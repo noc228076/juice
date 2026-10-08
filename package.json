@@ -1,0 +1,19 @@
+{
+  "name": "drink-persona-lab",
+  "version": "1.0.0",
+  "description": "饮料人格研究所 - 纯前端网页测试应用",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "keywords": [
+    "mbti",
+    "h5",
+    "game",
+    "web-audio",
+    "canvas"
+  ],
+  "author": "",
+  "license": "MIT"
+}

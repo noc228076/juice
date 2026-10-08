@@ -3,10 +3,10 @@ const CACHE_NAME = 'juice-persona-v3';
 const ASSETS = [
   './',
   './index.html',
-  './css/style.css?v=2.2',
-  './js/data.js?v=2.2',
-  './js/sfx.js?v=2.2',
-  './js/app.js?v=2.2',
+  './css/style.css?v=2.3',
+  './js/data.js?v=2.3',
+  './js/sfx.js?v=2.3',
+  './js/app.js?v=2.3',
   './favicon.png'
 ];
 

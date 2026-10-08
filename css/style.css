@@ -1914,3 +1914,58 @@ html[data-theme="light"] .mc-badge.badge-scale {
     padding: 24px 28px;
   }
 }
+
+
+/* 卡片卡通配图 */
+.card-art {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 22px 20px 4px;
+  position: relative;
+  z-index: 2;
+}
+.card-art-circle {
+  width: 136px;
+  height: 136px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--pc, var(--ac)) 0%, rgba(255,255,255,0.05) 72%, transparent 100%);
+  background-color: rgba(255, 255, 255, 0.03);
+  border: 1.5px solid var(--line-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 14px 34px rgba(0,0,0,0.3), inset 0 0 20px rgba(255,255,255,0.08);
+  transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.3s ease;
+  position: relative;
+  overflow: visible;
+}
+.card-art-circle:hover {
+  transform: translateY(-4px) scale(1.05);
+  box-shadow: 0 20px 44px rgba(0,0,0,0.4);
+}
+.card-art-svg {
+  width: 116px;
+  height: 116px;
+  filter: drop-shadow(0 8px 18px rgba(0,0,0,0.25));
+  animation: artFloat 4s ease-in-out infinite;
+}
+@keyframes artFloat {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-5px) rotate(1.5deg); }
+}
+
+
+
+@media (max-width: 768px) {
+  .card-art-circle {
+    width: 112px;
+    height: 112px;
+  }
+  .card-art-svg {
+    width: 96px;
+    height: 96px;
+  }
+}
+@media (max-width: 480px) {
+}

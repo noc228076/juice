@@ -1,12 +1,8 @@
 /* 饮料人格研究所 — 离线瞬开 Service Worker */
-const CACHE_NAME = 'juice-persona-v3';
+const CACHE_NAME = 'juice-persona-v4';
 const ASSETS = [
   './',
   './index.html',
-  './css/style.css?v=2.3',
-  './js/data.js?v=2.3',
-  './js/sfx.js?v=2.3',
-  './js/app.js?v=2.3',
   './favicon.png'
 ];
 
@@ -29,7 +25,6 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
-  // 只拦截同源核心静态资源
   if (url.origin !== self.location.origin) return;
 
   e.respondWith(
@@ -42,7 +37,6 @@ self.addEventListener('fetch', (e) => {
         return res;
       }).catch(() => cached);
 
-      // 如果有缓存立即以 0ms 返回，无缓存则走网络
       return cached || networkFetch;
     })
   );

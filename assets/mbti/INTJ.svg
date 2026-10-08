@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F3ECF8"/>
+      <stop offset="100%" stop-color="#E2D0ED"/>
+    </linearGradient>
+    <linearGradient id="pBody" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#88619A"/>
+      <stop offset="100%" stop-color="#5E3970"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="3" stdDeviation="3" flood-opacity="0.15"/>
+    </filter>
+  </defs>
+  <!-- Background circle -->
+  <circle cx="100" cy="100" r="94" fill="url(#bgGrad)" stroke="#88619A" stroke-width="3"/>
+  <circle cx="100" cy="100" r="88" fill="none" stroke="#88619A" stroke-width="1" stroke-dasharray="4,4" opacity="0.4"/>
+  
+  <!-- Architect: Blueprint / Scroll & Chess Knight -->
+  <!-- Body / Cloak -->
+  <path d="M55,168 C55,125 72,118 100,118 C128,118 145,125 145,168 Z" fill="url(#pBody)" filter="url(#shadow)"/>
+  <!-- Dark Coat Lapels -->
+  <path d="M85,118 L100,145 L115,118 L108,168 L92,168 Z" fill="#4A295B"/>
+  <path d="M100,118 L100,145" stroke="#D8C4E5" stroke-width="2"/>
+  <!-- Head -->
+  <circle cx="100" cy="80" r="28" fill="#FCEBD9"/>
+  <!-- Hair: Sleek combed back purple-grey -->
+  <path d="M72,78 C72,52 86,46 100,46 C114,46 128,52 128,78 C128,82 120,60 100,60 C80,60 72,82 72,78 Z" fill="#4A295B"/>
+  <!-- Glasses -->
+  <rect x="80" y="74" width="16" height="12" rx="3" fill="none" stroke="#2D1A38" stroke-width="2.5"/>
+  <rect x="104" y="74" width="16" height="12" rx="3" fill="none" stroke="#2D1A38" stroke-width="2.5"/>
+  <line x1="96" y1="80" x2="104" y2="80" stroke="#2D1A38" stroke-width="2.5"/>
+  <!-- Eyes behind glasses -->
+  <circle cx="88" cy="80" r="2" fill="#2D1A38"/>
+  <circle cx="112" cy="80" r="2" fill="#2D1A38"/>
+  <!-- Subtle confident smirk -->
+  <path d="M96,96 Q102,99 108,95" stroke="#A66752" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <!-- Prop 1: Blueprint Scroll in arm -->
+  <g transform="translate(122, 126) rotate(-20)" filter="url(#shadow)">
+    <rect x="0" y="0" width="14" height="42" rx="3" fill="#6FB3E8" stroke="#3D75A0" stroke-width="1.5"/>
+    <line x1="3" y1="8" x2="11" y2="8" stroke="#FFFFFF" stroke-width="1.5"/>
+    <line x1="3" y1="16" x2="11" y2="16" stroke="#FFFFFF" stroke-width="1.5"/>
+    <line x1="3" y1="24" x2="11" y2="24" stroke="#FFFFFF" stroke-width="1.5"/>
+    <line x1="3" y1="32" x2="11" y2="32" stroke="#FFFFFF" stroke-width="1.5"/>
+  </g>
+  <!-- Prop 2: Chess piece (Knight/Rook) in left hand -->
+  <g transform="translate(60, 134)" filter="url(#shadow)">
+    <path d="M8,26 L22,26 L20,20 L18,12 C18,8 14,4 10,8 C8,10 6,14 8,20 Z" fill="#E2D0ED" stroke="#4A295B" stroke-width="1.5"/>
+    <circle cx="12" cy="11" r="1.5" fill="#4A295B"/>
+  </g>
+</svg>

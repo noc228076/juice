@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <linearGradient id="bgINFP" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#EDF8F2"/>
+      <stop offset="100%" stop-color="#D3EFE0"/>
+    </linearGradient>
+  </defs>
+  <circle cx="100" cy="100" r="94" fill="url(#bgINFP)" stroke="#33A474" stroke-width="3"/>
+  <circle cx="100" cy="100" r="88" fill="none" stroke="#33A474" stroke-width="1" stroke-dasharray="4,4" opacity="0.4"/>
+  
+  <!-- Mediator: Flower crown wreath, gentle poet fairy aesthetic, butterfly / blossom -->
+  <!-- Body: Soft mint green fairy/poet dress -->
+  <path d="M54,168 C54,126 72,120 100,120 C128,120 146,126 146,168 Z" fill="#57BE93"/>
+  <path d="M84,120 L100,140 L116,120 Z" fill="#33A474"/>
+  <!-- Head -->
+  <circle cx="100" cy="80" r="27" fill="#FDF0E4"/>
+  <!-- Curly soft hair -->
+  <path d="M70,82 C68,52 82,46 100,46 C118,46 132,52 130,82 C134,98 128,114 124,124 C118,100 116,62 100,62 C84,62 82,100 76,124 C72,114 66,98 70,82 Z" fill="#256B4C"/>
+  <!-- Iconic Flower Crown (Yellow & Pink blossoms) -->
+  <g transform="translate(74, 48)">
+    <circle cx="8" cy="8" r="5" fill="#FF85A1"/>
+    <circle cx="20" cy="4" r="5" fill="#FFD166"/>
+    <circle cx="34" cy="4" r="5" fill="#FF85A1"/>
+    <circle cx="46" cy="8" r="5" fill="#FFD166"/>
+    <path d="M4,10 Q26,0 50,10" stroke="#33A474" stroke-width="2" fill="none"/>
+  </g>
+  <!-- Gentle dreaming eyes & blush -->
+  <circle cx="88" cy="80" r="3" fill="#256B4C"/>
+  <circle cx="112" cy="80" r="3" fill="#256B4C"/>
+  <ellipse cx="80" cy="86" rx="5" ry="3" fill="#FF85A1" opacity="0.4"/>
+  <ellipse cx="120" cy="86" rx="5" ry="3" fill="#FF85A1" opacity="0.4"/>
+  <!-- Gentle sweet smile -->
+  <path d="M95,94 Q100,97 105,94" stroke="#256B4C" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <!-- Prop: Little fluttering butterfly / flower -->
+  <g transform="translate(132, 114) rotate(-15)">
+    <path d="M10,10 Q2,2 10,-2 Q14,6 10,10 Z" fill="#FF85A1"/>
+    <path d="M12,10 Q20,2 12,-2 Q8,6 12,10 Z" fill="#FFD166"/>
+  </g>
+</svg>

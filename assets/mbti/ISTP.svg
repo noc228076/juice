@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <linearGradient id="bgISTP" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FAF4E7"/>
+      <stop offset="100%" stop-color="#F5E4BD"/>
+    </linearGradient>
+  </defs>
+  <circle cx="100" cy="100" r="94" fill="url(#bgISTP)" stroke="#E4AE3A" stroke-width="3"/>
+  <circle cx="100" cy="100" r="88" fill="none" stroke="#E4AE3A" stroke-width="1" stroke-dasharray="4,4" opacity="0.4"/>
+  
+  <!-- Virtuoso: Tool belt, forehead goggles, wrench & screwdriver, hands-on master -->
+  <!-- Body: Work jacket / mechanic vest -->
+  <path d="M52,168 C52,125 72,118 100,118 C128,118 148,125 148,168 Z" fill="#C68C1D"/>
+  <path d="M78,118 L100,144 L122,118 Z" fill="#5D4037"/>
+  <!-- Tool belt strap -->
+  <path d="M60,154 L140,154" stroke="#4E342E" stroke-width="6"/>
+  <!-- Head -->
+  <circle cx="100" cy="80" r="27" fill="#FDEDE0"/>
+  <!-- Goggles on forehead -->
+  <rect x="76" y="58" width="20" height="12" rx="4" fill="#37474F" stroke="#CFD8DC" stroke-width="2"/>
+  <rect x="104" y="58" width="20" height="12" rx="4" fill="#37474F" stroke="#CFD8DC" stroke-width="2"/>
+  <line x1="96" y1="64" x2="104" y2="64" stroke="#37474F" stroke-width="3"/>
+  <path d="M68,64 L76,64" stroke="#4E342E" stroke-width="3"/>
+  <path d="M124,64 L132,64" stroke="#4E342E" stroke-width="3"/>
+  <!-- Hair: Short cool spiky -->
+  <path d="M72,76 C72,50 84,44 100,44 C116,44 128,50 128,76 C124,62 114,56 100,56 C86,56 78,62 72,76 Z" fill="#6D4C41"/>
+  <!-- Calm focused eyes -->
+  <circle cx="88" cy="82" r="2.5" fill="#37474F"/>
+  <circle cx="112" cy="82" r="2.5" fill="#37474F"/>
+  <!-- Pragmatic smirk -->
+  <path d="M96,96 Q102,99 108,96" stroke="#4E342E" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <!-- Prop: Big adjustable Wrench in hand -->
+  <g transform="translate(132, 116) rotate(-25)">
+    <rect x="4" y="10" width="8" height="42" rx="2" fill="#90A4AE" stroke="#455A64" stroke-width="1.5"/>
+    <path d="M0,10 C0,2 16,2 16,10 L12,12 L4,12 Z" fill="#78909C" stroke="#455A64" stroke-width="1.5"/>
+  </g>
+</svg>

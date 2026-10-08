@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <linearGradient id="bgENTP" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F5EEF9"/>
+      <stop offset="100%" stop-color="#E4D3EE"/>
+    </linearGradient>
+  </defs>
+  <circle cx="100" cy="100" r="94" fill="url(#bgENTP)" stroke="#88619A" stroke-width="3"/>
+  <circle cx="100" cy="100" r="88" fill="none" stroke="#88619A" stroke-width="1" stroke-dasharray="4,4" opacity="0.4"/>
+  
+  <!-- Debater: Smirking, glasses tilted up, playful animated debating gesture -->
+  <!-- Body -->
+  <path d="M52,168 C52,126 72,118 100,118 C128,118 148,126 148,168 Z" fill="#88619A"/>
+  <path d="M82,118 L100,146 L118,118 Z" fill="#5E3970"/>
+  <polygon points="96,128 104,128 100,154" fill="#E8D5F2"/>
+  <!-- Head -->
+  <circle cx="100" cy="78" r="27" fill="#FDEDE0"/>
+  <!-- Hair: Spiky, creative animated tufts -->
+  <path d="M70,76 C70,48 84,40 100,40 C118,40 132,48 132,74 C128,60 118,52 104,52 C94,46 80,54 70,76 Z" fill="#4B2761"/>
+  <path d="M88,40 L94,30 L102,40 Z" fill="#4B2761"/>
+  <path d="M106,38 L114,28 L118,42 Z" fill="#4B2761"/>
+  <!-- Raised eyebrow & playful wink/smirk -->
+  <path d="M82,68 Q88,64 94,68" stroke="#4B2761" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <path d="M106,64 Q114,60 120,65" stroke="#4B2761" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <!-- Eyes: one wink, one arched -->
+  <circle cx="88" cy="76" r="3" fill="#4B2761"/>
+  <path d="M107,76 Q113,72 119,76" stroke="#4B2761" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <!-- Big sarcastic smirk -->
+  <path d="M92,92 Q102,98 114,88" stroke="#4B2761" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <!-- Gesturing argument hands / speech bubble sparks -->
+  <g transform="translate(136, 92)">
+    <circle cx="8" cy="8" r="6" fill="#F1C40F" opacity="0.8"/>
+    <path d="M8,0 L10,6 L16,8 L10,10 L8,16 L6,10 L0,8 L6,6 Z" fill="#E67E22"/>
+  </g>
+  <g transform="translate(48, 126)">
+    <ellipse cx="12" cy="14" rx="8" ry="6" fill="#FDEDE0" stroke="#88619A" stroke-width="2"/>
+    <line x1="16" y1="12" x2="24" y2="8" stroke="#FDEDE0" stroke-width="4" stroke-linecap="round"/>
+  </g>
+</svg>

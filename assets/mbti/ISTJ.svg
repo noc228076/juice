@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <linearGradient id="bgISTJ" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#EAF4F8"/>
+      <stop offset="100%" stop-color="#D0E7F1"/>
+    </linearGradient>
+  </defs>
+  <circle cx="100" cy="100" r="94" fill="url(#bgISTJ)" stroke="#4298B4" stroke-width="3"/>
+  <circle cx="100" cy="100" r="88" fill="none" stroke="#4298B4" stroke-width="1" stroke-dasharray="4,4" opacity="0.4"/>
+  
+  <!-- Logistician: Formal dark blue suit and tie, neat glasses, clipboard with checklist & pen -->
+  <!-- Body: Neat formal suit -->
+  <path d="M52,168 C52,125 72,118 100,118 C128,118 148,125 148,168 Z" fill="#2E6B82"/>
+  <!-- White shirt & Blue tie -->
+  <polygon points="100,118 90,128 110,128" fill="#FFFFFF"/>
+  <polygon points="96,128 104,128 106,156 100,162 94,156" fill="#4298B4"/>
+  <!-- Head -->
+  <circle cx="100" cy="78" r="27" fill="#FCEBD9"/>
+  <!-- Neat, parted professional hair -->
+  <path d="M72,74 C72,50 86,44 100,44 C116,44 128,50 128,74 C122,58 114,52 100,52 C84,52 76,58 72,74 Z" fill="#1C4556"/>
+  <!-- Rectangular professional glasses -->
+  <rect x="80" y="74" width="16" height="10" rx="2" fill="none" stroke="#1C4556" stroke-width="2.5"/>
+  <rect x="104" y="74" width="16" height="10" rx="2" fill="none" stroke="#1C4556" stroke-width="2.5"/>
+  <line x1="96" y1="79" x2="104" y2="79" stroke="#1C4556" stroke-width="2.5"/>
+  <circle cx="88" cy="79" r="2" fill="#1C4556"/>
+  <circle cx="112" cy="79" r="2" fill="#1C4556"/>
+  <!-- Strict straight mouth -->
+  <line x1="94" y1="94" x2="106" y2="94" stroke="#1C4556" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- Prop: Clipboard with checklist -->
+  <g transform="translate(124, 126) rotate(-10)">
+    <rect x="0" y="0" width="28" height="38" rx="3" fill="#D5AA72" stroke="#8A6240" stroke-width="1.5"/>
+    <rect x="8" y="-3" width="12" height="6" rx="2" fill="#95A5A6"/>
+    <!-- Checklist paper -->
+    <rect x="3" y="5" width="22" height="29" fill="#FFFFFF"/>
+    <line x1="6" y1="11" x2="20" y2="11" stroke="#2E6B82" stroke-width="1.5"/>
+    <line x1="6" y1="17" x2="20" y2="17" stroke="#2E6B82" stroke-width="1.5"/>
+    <line x1="6" y1="23" x2="16" y2="23" stroke="#2E6B82" stroke-width="1.5"/>
+  </g>
+</svg>

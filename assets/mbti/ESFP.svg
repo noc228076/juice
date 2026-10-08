@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <linearGradient id="bgESFP" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FBF5E8"/>
+      <stop offset="100%" stop-color="#F7E5BA"/>
+    </linearGradient>
+  </defs>
+  <circle cx="100" cy="100" r="94" fill="url(#bgESFP)" stroke="#E4AE3A" stroke-width="3"/>
+  <circle cx="100" cy="100" r="88" fill="none" stroke="#E4AE3A" stroke-width="1" stroke-dasharray="4,4" opacity="0.4"/>
+  
+  <!-- Entertainer: Performer superstar, star sunglasses, vintage microphone, dance move -->
+  <!-- Body: Flashy performer jacket / costume -->
+  <path d="M52,168 C52,126 72,118 100,118 C128,118 148,126 148,168 Z" fill="#E4AE3A"/>
+  <path d="M82,118 L100,138 L118,118 Z" fill="#FF85A1"/>
+  <!-- Head -->
+  <circle cx="100" cy="76" r="27" fill="#FDF0E4"/>
+  <!-- Fun voluminous pop star hair -->
+  <path d="M68,76 C64,48 80,38 100,38 C122,38 136,48 132,76 C138,62 132,48 118,46 C104,40 82,42 74,54 C66,62 66,70 68,76 Z" fill="#6B3A0E"/>
+  <!-- Star-shaped Party Sunglasses -->
+  <g transform="translate(80, 70)">
+    <polygon points="10,0 12,6 18,8 12,10 10,16 8,10 2,8 8,6" fill="#FF4081"/>
+    <circle cx="10" cy="8" r="5" fill="#3F51B5"/>
+  </g>
+  <g transform="translate(104, 70)">
+    <polygon points="10,0 12,6 18,8 12,10 10,16 8,10 2,8 8,6" fill="#FF4081"/>
+    <circle cx="10" cy="8" r="5" fill="#3F51B5"/>
+  </g>
+  <line x1="98" y1="78" x2="106" y2="78" stroke="#FF4081" stroke-width="2"/>
+  <!-- Joyful singing mouth -->
+  <path d="M92,90 Q100,104 108,90 Z" fill="#E91E63"/>
+  <!-- Prop: Vintage microphone in hand with music notes -->
+  <g transform="translate(132, 102)">
+    <!-- Mic capsule -->
+    <rect x="4" y="0" width="12" height="18" rx="6" fill="#CFD8DC" stroke="#455A64" stroke-width="1.5"/>
+    <line x1="4" y1="8" x2="16" y2="8" stroke="#455A64" stroke-width="1.5"/>
+    <rect x="8" y="18" width="4" height="24" rx="2" fill="#37474F"/>
+    <!-- Musical notes -->
+    <path d="M22,4 L28,2 L28,10 L24,10" stroke="#FF4081" stroke-width="2" fill="none"/>
+    <circle cx="22" cy="10" r="2.5" fill="#FF4081"/>
+  </g>
+</svg>

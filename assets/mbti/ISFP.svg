@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <linearGradient id="bgISFP" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FAF5E9"/>
+      <stop offset="100%" stop-color="#F5E6C1"/>
+    </linearGradient>
+  </defs>
+  <circle cx="100" cy="100" r="94" fill="url(#bgISFP)" stroke="#E4AE3A" stroke-width="3"/>
+  <circle cx="100" cy="100" r="88" fill="none" stroke="#E4AE3A" stroke-width="1" stroke-dasharray="4,4" opacity="0.4"/>
+  
+  <!-- Adventurer: Artist beret, painter palette & brush with colorful paint, artistic gentle posture -->
+  <!-- Body: Artist apron / smock with cute paint splatters -->
+  <path d="M52,168 C52,126 72,118 100,118 C128,118 148,126 148,168 Z" fill="#E4AE3A"/>
+  <path d="M80,128 L120,128 L116,168 L84,168 Z" fill="#FFF9E6"/>
+  <!-- Paint splatters on smock -->
+  <circle cx="92" cy="144" r="3" fill="#E74C3C"/>
+  <circle cx="106" cy="152" r="3.5" fill="#3498DB"/>
+  <circle cx="112" cy="140" r="2.5" fill="#2ECC71"/>
+  <!-- Head -->
+  <circle cx="100" cy="78" r="27" fill="#FDEDE0"/>
+  <!-- Artist Beret (Tilted) -->
+  <path d="M68,64 C64,48 88,38 116,42 C128,44 136,52 134,62 C116,56 88,58 68,64 Z" fill="#C0392B"/>
+  <circle cx="104" cy="40" r="3" fill="#C0392B"/>
+  <!-- Hair: Flowing creative waves -->
+  <path d="M72,74 C72,94 76,112 80,120 C88,96 86,64 100,64 C114,64 112,96 120,120 C124,112 128,94 128,74 Z" fill="#6E4426"/>
+  <!-- Dreamy aesthetic eyes -->
+  <circle cx="88" cy="78" r="3" fill="#4E342E"/>
+  <circle cx="112" cy="78" r="3" fill="#4E342E"/>
+  <ellipse cx="80" cy="85" rx="5" ry="2.5" fill="#FF85A1" opacity="0.45"/>
+  <ellipse cx="120" cy="85" rx="5" ry="2.5" fill="#FF85A1" opacity="0.45"/>
+  <!-- Gentle artistic smile -->
+  <path d="M95,93 Q100,97 105,93" stroke="#4E342E" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <!-- Prop: Artist Palette with dabbed colors & paintbrush -->
+  <g transform="translate(126, 122) rotate(-15)">
+    <path d="M14,4 C26,4 32,16 26,26 C20,32 6,30 2,20 C-2,10 6,4 14,4 Z" fill="#E0C39E" stroke="#8A6240" stroke-width="1.5"/>
+    <circle cx="10" cy="12" r="2.5" fill="#E74C3C"/>
+    <circle cx="18" cy="10" r="2.5" fill="#3498DB"/>
+    <circle cx="22" cy="18" r="2.5" fill="#2ECC71"/>
+    <!-- Paintbrush -->
+    <line x1="28" y1="2" x2="16" y2="28" stroke="#8A6240" stroke-width="3" stroke-linecap="round"/>
+    <path d="M28,2 L32,-2 L30,6 Z" fill="#3498DB"/>
+  </g>
+</svg>

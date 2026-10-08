@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="200" height="200">
+  <defs>
+    <linearGradient id="bgENTJ" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F2EAF7"/>
+      <stop offset="100%" stop-color="#DFCEE9"/>
+    </linearGradient>
+    <linearGradient id="suitGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#5E3970"/>
+      <stop offset="100%" stop-color="#3B1E48"/>
+    </linearGradient>
+  </defs>
+  <circle cx="100" cy="100" r="94" fill="url(#bgENTJ)" stroke="#88619A" stroke-width="3"/>
+  <circle cx="100" cy="100" r="88" fill="none" stroke="#88619A" stroke-width="1" stroke-dasharray="4,4" opacity="0.4"/>
+  
+  <!-- Commander: Sharp suit, commander epaulets, pointing baton, powerful posture -->
+  <!-- Body: Sharp military / executive commander suit -->
+  <path d="M50,168 C50,122 70,114 100,114 C130,114 150,122 150,168 Z" fill="url(#suitGrad)"/>
+  <!-- Gold Epaulets on shoulders -->
+  <path d="M52,126 L68,124 L66,134 L50,132 Z" fill="#F1C40F"/>
+  <path d="M148,126 L132,124 L134,134 L150,132 Z" fill="#F1C40F"/>
+  <!-- Tie and Collar -->
+  <polygon points="100,114 93,124 107,124" fill="#FFFFFF"/>
+  <polygon points="97,124 103,124 105,152 100,158 95,152" fill="#88619A"/>
+  <!-- Head -->
+  <circle cx="100" cy="76" r="27" fill="#FCE9D8"/>
+  <!-- Hair: Sharp powerful bob / side-part -->
+  <path d="M72,74 C72,48 84,42 102,42 C120,42 130,50 130,72 C124,54 114,50 100,50 C86,50 76,56 72,74 Z" fill="#3B1E48"/>
+  <path d="M70,72 L76,92 L82,78 Z" fill="#3B1E48"/>
+  <!-- Determined Eyebrows & Eyes -->
+  <line x1="82" y1="70" x2="94" y2="72" stroke="#3B1E48" stroke-width="2.5" stroke-linecap="round"/>
+  <line x1="118" y1="70" x2="106" y2="72" stroke="#3B1E48" stroke-width="2.5" stroke-linecap="round"/>
+  <circle cx="89" cy="76" r="2.5" fill="#3B1E48"/>
+  <circle cx="111" cy="76" r="2.5" fill="#3B1E48"/>
+  <!-- Confident smile -->
+  <path d="M93,92 Q100,97 107,92" stroke="#3B1E48" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+  <!-- Prop: Commander baton / pointing cane -->
+  <g transform="translate(132, 116) rotate(-35)">
+    <rect x="0" y="0" width="8" height="54" rx="4" fill="#E0D0EC" stroke="#5E3970" stroke-width="1.5"/>
+    <circle cx="4" cy="4" r="7" fill="#F1C40F" stroke="#B7950B" stroke-width="1.5"/>
+  </g>
+</svg>

@@ -18,6 +18,7 @@
   --sab: env(safe-area-inset-bottom, 0px);
 }
 
+:root,
 html[data-theme="dark"] {
   --bg: #0B0C10;
   --bg-soft: #12141B;
@@ -312,13 +313,12 @@ button {
 .cover-wrap {
   position: relative;
   z-index: 2;
-  flex: 1;
   display: flex;
   flex-direction: column;
-  justify-content: center;
   max-width: 460px;
   width: 100%;
-  margin: 0 auto;
+  margin: auto;
+  padding: 8px 0 24px;
 }
 
 .cover-center {
@@ -327,7 +327,7 @@ button {
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 20px 0;
+  padding: 10px 0 16px;
 }
 
 /* 纯 CSS 拟真杯子 */
@@ -1083,6 +1083,89 @@ html[data-theme="light"] .mc-badge.badge-scale {
 .dot-val-m3 .dot-circle { width: 48px; height: 48px; }
 
 @media (max-width: 480px) {
+  #scr-cover {
+    padding: calc(var(--sat) + 8px) 16px calc(var(--sab) + 16px);
+  }
+  .cover-center {
+    padding: 4px 0 10px;
+  }
+  .cover-cup {
+    width: 82px;
+    height: 112px;
+    margin-bottom: 14px;
+  }
+  .cup-lid {
+    width: 88px;
+    height: 10px;
+  }
+  .cup-body {
+    top: 10px;
+    width: 74px;
+    height: 94px;
+  }
+  .cover-eyebrow {
+    font-size: 10px;
+    letter-spacing: 2.5px;
+    margin-bottom: 6px;
+  }
+  .cover-title {
+    font-size: 38px;
+    letter-spacing: 2px;
+  }
+  .cover-sub {
+    margin-top: 8px;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .cover-sub b {
+    font-size: 15px;
+  }
+  .cover-action-card {
+    gap: 10px;
+  }
+  .mode-cards {
+    gap: 7px;
+  }
+  .mode-card {
+    padding: 9px 12px;
+    gap: 10px;
+  }
+  .mc-radio {
+    width: 18px;
+    height: 18px;
+  }
+  .mc-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
+    border-radius: 10px;
+  }
+  .mc-name {
+    font-size: 14px;
+  }
+  .mc-badge {
+    font-size: 10px;
+    padding: 1px 6px;
+  }
+  .mc-desc {
+    font-size: 11.5px;
+  }
+  .btn-primary {
+    padding: 15px 18px;
+  }
+  .btn-primary span {
+    font-size: 16px;
+    letter-spacing: 1px;
+  }
+  .btn-primary em {
+    font-size: 10.5px;
+  }
+  .chip-toggle {
+    padding: 7px 14px;
+  }
+  .chip-toggle label {
+    font-size: 11.5px;
+  }
   .dot-val-p3 .dot-circle { width: 40px; height: 40px; }
   .dot-val-p2 .dot-circle { width: 32px; height: 32px; }
   .dot-val-p1 .dot-circle { width: 26px; height: 26px; }

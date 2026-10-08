@@ -1,12 +1,12 @@
 /* 饮料人格研究所 — 离线瞬开 Service Worker */
-const CACHE_NAME = 'juice-persona-v2';
+const CACHE_NAME = 'juice-persona-v3';
 const ASSETS = [
   './',
   './index.html',
-  './css/style.css',
-  './js/data.js',
-  './js/sfx.js',
-  './js/app.js',
+  './css/style.css?v=2.2',
+  './js/data.js?v=2.2',
+  './js/sfx.js?v=2.2',
+  './js/app.js?v=2.2',
   './favicon.png'
 ];
 

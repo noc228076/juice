@@ -172,7 +172,6 @@
         `<div class="ing-row"><b>${x.n}</b><span class="dots"></span><em>${x.p}%</em></div>`).join('');
 
     renderAxes();
-    renderPersonasMatrix();
     $('paraDesc').innerHTML = p.desc;
     $('paraShine').textContent = p.shine;
     $('paraWarn').textContent = p.warn;
@@ -186,25 +185,6 @@
     setTimeout(() => {
       document.querySelectorAll('.axis-fill').forEach(el => { el.style.width = el.dataset.w + '%'; });
     }, 500);
-  }
-
-  function renderPersonasMatrix() {
-    const box = $('personasMatrix');
-    if (!box) return;
-    box.innerHTML = '';
-    const curCode = resolveCode();
-    Object.entries(PERSONAS).forEach(([code, item]) => {
-      const chip = document.createElement('div');
-      const isCur = code === curCode;
-      chip.className = 'matrix-chip' + (isCur ? ' current' : '');
-      chip.style.setProperty('--c-chip', item.color);
-      chip.innerHTML = `
-        <span class="m-code">${code}</span>
-        <span class="m-name">${item.name}</span>
-        ${isCur ? '<span class="m-cur-tag">你的特调</span>' : ''}
-      `;
-      box.appendChild(chip);
-    });
   }
 
   function codeLetters() {

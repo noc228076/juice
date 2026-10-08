@@ -28,15 +28,69 @@
           </div>
           <div class="cup-shadow"></div>
         </div>
-        <p class="cover-eyebrow">DRINK PERSONA LAB · EST. 2026</p>
-        <h1 class="cover-title">饮料人格<br>研究所</h1>
-        <p class="cover-sub">12 道题，摇出一杯真实的你<br>全站 <b>16</b> 种饮料人格 · 精准到气泡</p>
+        <p class="cover-eyebrow">PERSONA & MBTI LAB · 双重性格探索</p>
+        <h1 class="cover-title">灵感人格<br>研究所</h1>
+        <p class="cover-sub" id="coverSub">双套独立测评任选 · 探索真实的自我<br><b>16</b> 种特调饮料 & 经典 <b>MBTI</b> 深度档案</p>
       </div>
       <div class="cover-bottom">
         <div class="cover-action-card">
+          <!-- 测验选择卡片 (4 种测评项目) -->
+          <div class="mode-select-wrap">
+            <div class="mode-select-head">
+              <span class="mode-select-label">选择测评项目</span>
+              <span class="mode-select-shortcut">快捷键 [1] - [4]</span>
+            </div>
+            <div class="mode-cards" id="modeCards">
+              <div class="mode-card active" data-mode="drink" tabindex="0" role="button" aria-pressed="true">
+                <div class="mc-radio"><div class="mc-radio-dot"></div></div>
+                <div class="mc-icon">🍹</div>
+                <div class="mc-info">
+                  <div class="mc-title-row">
+                    <strong class="mc-name">饮料人格测试</strong>
+                    <span class="mc-badge">12 题 · 趣味特调</span>
+                  </div>
+                  <p class="mc-desc">凭日常第一直觉，摇出专属特调与风味人格</p>
+                </div>
+              </div>
+              <div class="mode-card" data-mode="mbti_short" tabindex="0" role="button" aria-pressed="false">
+                <div class="mc-radio"><div class="mc-radio-dot"></div></div>
+                <div class="mc-icon">⚡</div>
+                <div class="mc-info">
+                  <div class="mc-title-row">
+                    <strong class="mc-name">MBTI · Short Form</strong>
+                    <span class="mc-badge badge-pro">28 题 · 快速版</span>
+                  </div>
+                  <p class="mc-desc">28 道精选情景题，快速测出你的性格偏好</p>
+                </div>
+              </div>
+              <div class="mode-card" data-mode="mbti_form_m" tabindex="0" role="button" aria-pressed="false">
+                <div class="mc-radio"><div class="mc-radio-dot"></div></div>
+                <div class="mc-icon">📋</div>
+                <div class="mc-info">
+                  <div class="mc-title-row">
+                    <strong class="mc-name">MBTI · Form M</strong>
+                    <span class="mc-badge badge-pro">93 题 · 标准版</span>
+                  </div>
+                  <p class="mc-desc">93 道经典情景题，全面测出你的性格类型</p>
+                </div>
+              </div>
+              <div class="mode-card" data-mode="mbti_form_q" tabindex="0" role="button" aria-pressed="false">
+                <div class="mc-radio"><div class="mc-radio-dot"></div></div>
+                <div class="mc-icon">🔬</div>
+                <div class="mc-info">
+                  <div class="mc-title-row">
+                    <strong class="mc-name">MBTI · Form Q</strong>
+                    <span class="mc-badge badge-pro">144 题 · 深度版</span>
+                  </div>
+                  <p class="mc-desc">144 道全景情景题，深度洞悉真实性格特质</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <button class="btn-primary" id="btnStart">
-            <span>开始调配</span>
-            <em>SHAKE IT →</em>
+            <span id="btnStartText">开始饮料调配</span>
+            <em id="btnStartSub">SHAKE IT →</em>
           </button>
           <p class="pc-key-tip">💡 按键盘 <b>Space</b> 或 <b>Enter</b> 快捷开始</p>
           <div class="cover-toggles">
@@ -61,6 +115,7 @@
         <button class="icon-btn small" id="btnBack" aria-label="上一题" title="返回上一题 (Backspace / Esc)">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
         </button>
+        <div class="quiz-mode-pill" id="quizModePill">🍹 极速特调</div>
         <div class="quiz-cup">
           <div class="quiz-fill" id="quizFill"></div>
           <span class="quiz-count" id="quizCount">Q1/12</span>
@@ -72,7 +127,7 @@
         <h2 class="quiz-q" id="quizQ">……</h2>
         <div class="quiz-opts" id="quizOpts"></div>
       </div>
-      <p class="quiz-hint">凭第一直觉选，答案没有对错<span class="pc-key-tip-inline"> · 可按键盘 <b>A/B/C/D</b> 或 <b>1/2/3/4</b> 作答</span></p>
+      <p class="quiz-hint" id="quizHint">凭第一直觉选，答案没有对错<span class="pc-key-tip-inline"> · 可按键盘 <b>A/B/C/D</b> 或 <b>1/2/3/4</b> 作答</span></p>
     </div>
   </section>
 
@@ -95,7 +150,7 @@
         <!-- 左侧：专属人格卡与快捷操作 -->
         <aside class="result-left-col">
           <div class="result-hero">
-            <p class="result-eyebrow">YOUR PERSONA · 检测完毕</p>
+            <p class="result-eyebrow" id="resultEyebrow">YOUR PERSONA · 检测完毕</p>
             <div class="result-card" id="resultCard">
               <div class="card-band" id="cardBand">
                 <span id="cardCode">MBTI</span>
@@ -103,11 +158,12 @@
               </div>
               <div class="card-main">
                 <h1 id="cardName">饮料名</h1>
+                <p class="card-sub-name" id="cardSubName" style="display:none;"></p>
                 <div class="card-tags" id="cardTags"></div>
               </div>
               <div class="card-divider"></div>
               <div class="card-ing" id="cardIng"></div>
-              <p class="card-stamp">饮料人格研究所 · 出品认证</p>
+              <p class="card-stamp" id="cardStamp">饮料人格研究所 · 出品认证</p>
             </div>
           </div>
           <div class="result-actions pc-actions">
@@ -116,33 +172,37 @@
               <span>保存分享卡 (PNG)</span>
             </button>
             <button class="btn-ghost btn-retry-act" id="btnRetryPc">再摇一杯</button>
+            <button class="btn-subtle btn-mode-act" id="btnModePc">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
+              <span>切换测评项目</span>
+            </button>
           </div>
         </aside>
 
         <!-- 右侧：成分轴、深度解析与三维特质 -->
         <main class="result-right-col">
           <div class="result-sec">
-            <h3 class="sec-title">四维成分轴</h3>
+            <h3 class="sec-title" id="secTitleAxes">四维成分轴</h3>
             <div class="axes" id="axesBox"></div>
           </div>
 
           <div class="result-sec">
-            <h3 class="sec-title">配方解析</h3>
+            <h3 class="sec-title" id="secTitleDesc">配方解析</h3>
             <p class="para" id="paraDesc"></p>
           </div>
 
           <div class="result-sec">
             <div class="trio">
               <div class="mini-card">
-                <h4>闪光点 <i>SHINE</i></h4>
+                <h4 id="titleShine">闪光点 <i>SHINE</i></h4>
                 <p id="paraShine"></p>
               </div>
               <div class="mini-card warn">
-                <h4>雷区 <i>WARN</i></h4>
+                <h4 id="titleWarn">雷区 <i>WARN</i></h4>
                 <p id="paraWarn"></p>
               </div>
               <div class="mini-card match">
-                <h4>绝配饮料 <i>MATCH</i></h4>
+                <h4 id="titleMatch">绝配饮料 <i>MATCH</i></h4>
                 <p id="paraMatch"></p>
               </div>
             </div>
@@ -153,8 +213,12 @@
           <div class="result-actions mobile-actions">
             <button class="btn-primary btn-save-act" id="btnSave">保存分享卡</button>
             <button class="btn-ghost btn-retry-act" id="btnRetry">再摇一杯</button>
+            <button class="btn-subtle btn-mode-act" id="btnMode">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
+              <span>切换测评项目</span>
+            </button>
           </div>
-          <p class="result-foot">DRINK PERSONA LAB · 仅供娱乐 · 甜度自选</p>
+          <p class="result-foot" id="resultFoot">DRINK PERSONA LAB · 仅供娱乐 · 甜度自选</p>
         </main>
       </div>
     </div>

@@ -1,9 +1,13 @@
-/* 饮料人格研究所 — 离线瞬开 Service Worker */
-const CACHE_NAME = 'juice-persona-v4';
+/* 饮料人格研究所 — 离线瞬开 Service Worker v5 */
+const CACHE_NAME = 'juice-persona-v5';
 const ASSETS = [
   './',
   './index.html',
-  './favicon.png'
+  './manifest.json',
+  './favicon.png',
+  './assets/icons/icon-192.png',
+  './assets/icons/icon-512.png',
+  './assets/icons/icon-maskable.png'
 ];
 
 self.addEventListener('install', (e) => {

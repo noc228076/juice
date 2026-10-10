@@ -8,8 +8,17 @@
 
   var DATA = window.SM_DATA, ORDER = window.SM_ORDER;
   var root = null;
-  function $(s) { return root ? root.querySelector(s) : document.querySelector(s); }
-  function $$(s) { return root ? Array.prototype.slice.call(root.querySelectorAll(s)) : []; }
+  function $(s) {
+    if (root) {
+      var el = root.querySelector(s);
+      if (el) return el;
+    }
+    return document.querySelector(s);
+  }
+  function $$(s) {
+    var list = root ? root.querySelectorAll(s) : document.querySelectorAll(s);
+    return Array.prototype.slice.call(list);
+  }
 
   var state = {
     mode: 'home',
@@ -49,12 +58,12 @@
 
   function showScreen(id) {
     if (!root) root = document.getElementById('mod-manual');
-    if (!root) return;
-    $$('.sm-screen').forEach(function (s) { s.classList.remove('active'); });
-    var sc = $('#' + id);
+    var screens = root ? root.querySelectorAll('.sm-screen') : document.querySelectorAll('#mod-manual .sm-screen');
+    screens.forEach(function (s) { s.classList.remove('active'); });
+    var sc = document.getElementById(id);
     if (sc) {
       sc.classList.add('active');
-      root.scrollTop = 0;
+      if (root) root.scrollTop = 0;
     }
   }
 
@@ -64,6 +73,8 @@
       state.gameCtl.destroy();
       state.gameCtl = null;
     }
+    var DATA = window.SM_DATA || {};
+    var ORDER = window.SM_ORDER || ['social-battery', 'procrastination', 'slacking', 'night-owl', 'reaction', 'color'];
     var s = store();
     var done = ORDER.filter(function (id) { return s[id] && s[id].length; }).length;
     var total = ORDER.reduce(function (n, id) { return n + (s[id] ? s[id].length : 0); }, 0);
@@ -75,7 +86,8 @@
 
     html += '<div class="stat-strip"><div style="display:flex;gap:5px">'
       + ORDER.map(function (id) {
-        var c = DATA[id].color;
+        var t = DATA[id];
+        var c = t ? t.color : '#38BDF8';
         var on = s[id] && s[id].length;
         return '<span class="dot' + (on ? ' done' : '') + '" style="' + (on ? 'background:' + c : '') + '"></span>';
       }).join('')
@@ -84,15 +96,17 @@
     html += '<div class="manual-grid">';
     ORDER.forEach(function (id, i) {
       var t = DATA[id];
+      if (!t) return;
       var last = s[id] && s[id].length ? s[id][s[id].length - 1] : null;
       var chip = '';
       if (last) {
         var txt = last.type;
         chip = '<span style="font-size:11px;color:' + t.color + ';background:' + hexSoft(t.color, 0.12) + ';padding:2px 8px;border-radius:999px;font-weight:700;">' + txt + '</span>';
       }
+      var iconSvg = (typeof window.icon === 'function') ? window.icon(t.icon) : '📖';
       html += '<div class="tile" data-test="' + id + '">'
         + '<span class="t-num">' + t.num + '</span>'
-        + '<span class="t-ico" style="background:' + hexSoft(t.color, 0.1) + ';color:' + t.color + '">' + window.icon(t.icon) + '</span>'
+        + '<span class="t-ico" style="background:' + hexSoft(t.color, 0.1) + ';color:' + t.color + '">' + iconSvg + '</span>'
         + '<div class="t-info">'
         + '<div style="display:flex;align-items:center;gap:6px;"><span class="t-title">' + t.title + '</span>' + chip + '</div>'
         + '<div class="t-meta">' + t.tagline + '</div>'
@@ -102,7 +116,10 @@
     });
     html += '</div>';
 
-    $('#sm-homebody').innerHTML = html;
+    var homeBodyEl = $('#sm-homebody');
+    if (homeBodyEl) {
+      homeBodyEl.innerHTML = html;
+    }
 
     $$('#sm-homebody .tile').forEach(function (c) {
       c.addEventListener('click', function () {
@@ -308,6 +325,7 @@
     root = document.getElementById('mod-manual');
     if (!root) return;
     renderHome();
+    showScreen('scr-sm-home');
   }
 
   window.AppManual = {
@@ -317,4 +335,11 @@
     showScreen,
     restore
   };
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
 })();
+

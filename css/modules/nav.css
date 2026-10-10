@@ -255,15 +255,10 @@ html[data-theme="light"] .nav-tabs {
 .app-module {
   position: absolute !important;
   inset: 0 !important;
-  display: flex !important;
+  display: none !important;
   flex-direction: column !important;
   overflow-y: auto !important;
   -webkit-overflow-scrolling: touch;
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transform: translateY(6px);
-  transition: opacity 0.24s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1), visibility 0.24s ease;
   background: var(--bg);
 }
 
@@ -273,10 +268,8 @@ html[data-theme="light"] .nav-tabs {
 #mod-fengshui.active,
 #mod-tarot.active,
 .app-module.active {
-  opacity: 1;
-  visibility: visible;
-  pointer-events: auto;
-  transform: translateY(0);
+  display: flex !important;
+  pointer-events: auto !important;
 }
 
 /* 移动端媒体查询 (宽度小于 768px) */

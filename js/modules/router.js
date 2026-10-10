@@ -59,6 +59,11 @@
       if (modKey === 'fengshui' && window.AppFengshui) window.AppFengshui.init();
       if (modKey === 'tarot' && window.AppTarot) window.AppTarot.init();
       if (modKey === 'manual' && window.AppManual) window.AppManual.init();
+    } else {
+      if (modKey === 'manual' && window.AppManual) {
+        const body = document.getElementById('sm-homebody');
+        if (!body || !body.children.length) window.AppManual.init();
+      }
     }
 
     if (updateHash) {

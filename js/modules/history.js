@@ -104,6 +104,10 @@
         if (window.AppManual && typeof window.AppManual.restore === 'function' && item.data) {
           window.AppManual.restore(item.data);
         }
+      } else if (mod === 'decision') {
+        if (window.AppDecision && typeof window.AppDecision.restore === 'function' && item.data) {
+          window.AppDecision.restore(item.data);
+        }
       }
     } catch (e) {
       console.warn('restore record error:', e);
@@ -121,7 +125,8 @@
       milktea: list.filter(r => r.module === 'milktea').length,
       manual: list.filter(r => r.module === 'manual').length,
       fengshui: list.filter(r => r.module === 'fengshui').length,
-      tarot: list.filter(r => r.module === 'tarot').length
+      tarot: list.filter(r => r.module === 'tarot').length,
+      decision: list.filter(r => r.module === 'decision').length
     };
 
     // 渲染分类筛选条
@@ -134,6 +139,7 @@
         <button class="uni-filter-chip ${filterMod === 'manual' ? 'active' : ''}" data-mod="manual">📖 说明书 <span class="chip-count">${counts.manual}</span></button>
         <button class="uni-filter-chip ${filterMod === 'fengshui' ? 'active' : ''}" data-mod="fengshui">🧭 风水 <span class="chip-count">${counts.fengshui}</span></button>
         <button class="uni-filter-chip ${filterMod === 'tarot' ? 'active' : ''}" data-mod="tarot">🔮 塔罗 <span class="chip-count">${counts.tarot}</span></button>
+        <button class="uni-filter-chip ${filterMod === 'decision' ? 'active' : ''}" data-mod="decision">🪙 决策 <span class="chip-count">${counts.decision}</span></button>
       `;
 
       filterBar.querySelectorAll('.uni-filter-chip').forEach(btn => {

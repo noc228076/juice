@@ -1,0 +1,1202 @@
+/* =========================================================
+   模块 6：纠结拯救机 (Cyber Decision Oracle)
+   赛博决策局 · 命运大转盘 · 量子抛硬币 · 赛博掷圣杯
+   ========================================================= */
+
+#mod-decision {
+  background: var(--bg);
+  color: var(--tx);
+  --dec-ac: #10B981;
+  --dec-ac-ink: #022C22;
+  --dec-ac-glow: rgba(16, 185, 129, 0.35);
+  --dec-ambient: rgba(16, 185, 129, 0.06);
+  --dec-gold: #F59E0B;
+  --dec-wood: #B91C1C;
+  --dec-wood-dark: #7F1D1D;
+  --dec-wood-flat: #FDE68A;
+  --rcpt-bg: #181D26;
+  --rcpt-paper: #1F2430;
+  --rcpt-tx: #F3F4F6;
+  --rcpt-dim: #9CA3AF;
+  --rcpt-line: rgba(255, 255, 255, 0.12);
+  --rcpt-stamp: #EF4444;
+}
+
+#mod-decision::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 900px;
+  height: 520px;
+  background: radial-gradient(circle at 50% 15%, rgba(16, 185, 129, 0.09) 0%, transparent 68%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+html[data-theme="light"] #mod-decision {
+  --dec-ac: #059669;
+  --dec-ac-ink: #ECFDF5;
+  --dec-ac-glow: rgba(5, 150, 105, 0.30);
+  --dec-ambient: rgba(5, 150, 105, 0.05);
+  --rcpt-bg: #F3F4F6;
+  --rcpt-paper: #FFFFFF;
+  --rcpt-tx: #111827;
+  --rcpt-dim: #6B7280;
+  --rcpt-line: rgba(0, 0, 0, 0.10);
+  --rcpt-stamp: #DC2626;
+}
+
+html[data-theme="light"] #mod-decision::before {
+  background: radial-gradient(circle at 50% 15%, rgba(5, 150, 105, 0.08) 0%, transparent 68%);
+}
+
+/* ============ 主页面容器 ============ */
+#mod-decision .dec-screen {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.dec-wrap {
+  width: 100%;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 16px 20px calc(40px + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* 顶部标题区 */
+.dec-header {
+  text-align: center;
+  padding: 8px 0 4px;
+}
+
+.dec-tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--dec-ac);
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  padding: 3px 10px;
+  border-radius: 999px;
+  margin-bottom: 8px;
+}
+
+.dec-title {
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: -0.5px;
+  margin: 0 0 6px;
+  color: var(--tx);
+  background: linear-gradient(135deg, var(--tx) 30%, var(--dec-ac) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.dec-sub {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--tx-dim);
+  margin: 0;
+}
+
+/* ============ 三合一子模式导航栏 ============ */
+.dec-subnav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: var(--card);
+  padding: 5px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
+}
+
+.dec-tab {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--tx-dim);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.dec-tab:hover {
+  color: var(--tx);
+}
+
+.dec-tab.active {
+  background: var(--dec-ac);
+  color: var(--dec-ac-ink);
+  font-weight: 800;
+  box-shadow: 0 4px 14px var(--dec-ac-glow);
+}
+
+.dec-tab .dtab-icon {
+  font-size: 15px;
+}
+
+/* ============ 子视图切换容器 ============ */
+.dec-stage-container {
+  width: 100%;
+}
+
+.dec-substage {
+  display: none;
+  flex-direction: column;
+  gap: 16px;
+  animation: decFadeIn 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+
+.dec-substage.active {
+  display: flex;
+}
+
+@keyframes decFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* =========================================================
+   子模式 1：命运大轮盘
+   ========================================================= */
+.dec-presets-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: none;
+}
+.dec-presets-bar::-webkit-scrollbar {
+  display: none;
+}
+
+.dec-preset-pill {
+  flex: none;
+  padding: 6px 13px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--tx-dim);
+  background: var(--card);
+  border: 1px solid var(--line);
+  cursor: pointer;
+  transition: all 0.18s ease;
+  user-select: none;
+}
+
+.dec-preset-pill:hover {
+  border-color: var(--dec-ac);
+  color: var(--tx);
+}
+
+.dec-preset-pill.active {
+  background: rgba(16, 185, 129, 0.14);
+  color: var(--dec-ac);
+  border-color: var(--dec-ac);
+  font-weight: 800;
+}
+
+/* 轮盘画布舞台 */
+.wheel-stage-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 380px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 0 12px;
+}
+
+.wheel-pointer {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  font-size: 28px;
+  line-height: 1;
+  color: #EF4444;
+  filter: drop-shadow(0 4px 10px rgba(239, 68, 68, 0.6));
+  pointer-events: none;
+  transition: transform 0.08s ease;
+  transform-origin: 50% 20%;
+}
+
+.wheel-pointer.tilt {
+  transform: translateX(-50%) rotate(-18deg) scale(1.15);
+}
+
+.wheel-canvas-box {
+  position: relative;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35), 0 0 0 6px var(--card), 0 0 0 8px var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+html[data-theme="light"] .wheel-canvas-box {
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.12), 0 0 0 6px #FFFFFF, 0 0 0 8px rgba(0, 0, 0, 0.08);
+}
+
+#wheelCanvas {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  display: block;
+}
+
+.wheel-center-btn {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 82px;
+  height: 82px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #10B981, #059669);
+  color: #FFFFFF;
+  border: 4px solid var(--card);
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.5), inset 0 2px 4px rgba(255, 255, 255, 0.35);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  z-index: 5;
+  transition: transform 0.15s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.15s ease;
+  user-select: none;
+}
+
+.wheel-center-btn:hover {
+  transform: translate(-50%, -50%) scale(1.08);
+  box-shadow: 0 8px 26px rgba(16, 185, 129, 0.65), inset 0 2px 6px rgba(255, 255, 255, 0.4);
+}
+
+.wheel-center-btn:active {
+  transform: translate(-50%, -50%) scale(0.94);
+}
+
+.wheel-center-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: translate(-50%, -50%);
+}
+
+.wheel-center-btn .spin-icon {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.wheel-center-btn .spin-label {
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 1px;
+}
+
+/* 轮盘选项管理卡片 */
+.dec-options-panel {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dec-opt-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.dec-opt-title {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--tx);
+}
+
+.dec-btn-link {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--dec-ac);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.dec-btn-link:hover {
+  text-decoration: underline;
+}
+
+.dec-chips-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-height: 130px;
+  overflow-y: auto;
+  padding: 2px;
+}
+
+.dec-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--tx);
+  user-select: none;
+}
+
+html[data-theme="light"] .dec-chip {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.dec-chip .chip-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: none;
+}
+
+.dec-chip .chip-del {
+  cursor: pointer;
+  color: var(--tx-faint);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0 2px;
+}
+.dec-chip .chip-del:hover {
+  color: #EF4444;
+}
+
+.dec-add-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.dec-add-form input {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--line);
+  color: var(--tx);
+  font-size: 13px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+html[data-theme="light"] .dec-add-form input {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.dec-add-form input:focus {
+  border-color: var(--dec-ac);
+}
+
+.dec-btn-add {
+  padding: 8px 14px;
+  border-radius: 10px;
+  background: var(--dec-ac);
+  color: var(--dec-ac-ink);
+  font-size: 13px;
+  font-weight: 800;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.dec-btn-add:hover {
+  filter: brightness(1.1);
+}
+
+/* =========================================================
+   子模式 2：量子抛硬币 (3D Coin Flip)
+   ========================================================= */
+.coin-input-box {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.coin-label {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--tx-dim);
+}
+
+#coinPropositionInput {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--line);
+  color: var(--tx);
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+html[data-theme="light"] #coinPropositionInput {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+#coinPropositionInput:focus {
+  border-color: var(--dec-ac);
+}
+
+.coin-sides-row {
+  display: flex;
+  gap: 12px;
+}
+
+.coin-side-edit {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--tx-dim);
+}
+
+.coin-side-edit input {
+  flex: 1;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--line);
+  color: var(--tx);
+  font-size: 12.5px;
+  font-weight: 700;
+  outline: none;
+  box-sizing: border-box;
+}
+
+html[data-theme="light"] .coin-side-edit input {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.coin-side-edit input:focus {
+  border-color: var(--dec-ac);
+}
+
+/* 3D 硬币翻转舞台 */
+.coin-stage-wrapper {
+  position: relative;
+  width: 100%;
+  height: 280px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.coin-3d-scene {
+  perspective: 1200px;
+  width: 160px;
+  height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.coin-3d-disc {
+  position: relative;
+  width: 150px;
+  height: 150px;
+  transform-style: preserve-3d;
+  transition: transform 0.08s linear;
+  border-radius: 50%;
+  cursor: pointer;
+  user-select: none;
+}
+
+.coin-face {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+/* 正面：纯金高光 */
+.coin-front {
+  background: radial-gradient(circle at 35% 30%, #FFF3B0 0%, #F59E0B 40%, #B45309 85%, #78350F 100%);
+  border: 5px solid #FDE68A;
+  box-shadow: 0 10px 28px rgba(245, 158, 11, 0.45), inset 0 2px 6px rgba(255, 255, 255, 0.7);
+  transform: rotateY(0deg);
+}
+
+/* 反面：白银曜光 */
+.coin-back {
+  background: radial-gradient(circle at 35% 30%, #FFFFFF 0%, #94A3B8 45%, #475569 85%, #1E293B 100%);
+  border: 5px solid #E2E8F0;
+  box-shadow: 0 10px 28px rgba(148, 163, 184, 0.4), inset 0 2px 6px rgba(255, 255, 255, 0.8);
+  transform: rotateY(180deg);
+}
+
+.coin-edge-ring {
+  position: absolute;
+  inset: 5px;
+  border-radius: 50%;
+  border: 2px dashed rgba(255, 255, 255, 0.45);
+  pointer-events: none;
+}
+
+.coin-inner-art {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #FFFFFF;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.coin-art-ico {
+  font-size: 32px;
+  line-height: 1.1;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+}
+
+.coin-art-txt {
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+}
+
+.coin-art-sub {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  opacity: 0.85;
+}
+
+.coin-shadow {
+  position: absolute;
+  bottom: 24px;
+  width: 120px;
+  height: 18px;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.45) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.coin-action-row,
+.bwei-action-row {
+  display: flex;
+  justify-content: center;
+}
+
+.dec-btn-primary {
+  width: 100%;
+  max-width: 320px;
+  padding: 13px 20px;
+  border-radius: 999px;
+  background: var(--dec-ac);
+  color: var(--dec-ac-ink);
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 6px 20px var(--dec-ac-glow);
+  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.dec-btn-primary:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.08);
+  box-shadow: 0 8px 26px var(--dec-ac-glow);
+}
+
+.dec-btn-primary:active {
+  transform: scale(0.96);
+}
+
+.dec-btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* =========================================================
+   子模式 3：赛博掷圣杯 (Cyber Bwa Bwei)
+   ========================================================= */
+.bwei-input-box {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bwei-label {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--tx-dim);
+}
+
+#bweiPropositionInput {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--line);
+  color: var(--tx);
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+html[data-theme="light"] #bweiPropositionInput {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+#bweiPropositionInput:focus {
+  border-color: var(--dec-ac);
+}
+
+/* 圣杯法垫与红木月牙茭舞台 */
+.bwei-stage-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.bwei-mat-plate {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  height: 240px;
+  background: radial-gradient(ellipse at center, rgba(185, 28, 28, 0.12) 0%, rgba(20, 24, 33, 0.7) 100%);
+  border: 1px solid rgba(185, 28, 28, 0.35);
+  border-radius: 20px;
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.4), 0 8px 30px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+html[data-theme="light"] .bwei-mat-plate {
+  background: radial-gradient(ellipse at center, rgba(254, 226, 226, 0.7) 0%, rgba(245, 245, 240, 0.95) 100%);
+  border-color: rgba(185, 28, 28, 0.25);
+  box-shadow: inset 0 0 30px rgba(185, 28, 28, 0.08), 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+.bwei-mat-pattern {
+  position: absolute;
+  inset: 12px;
+  border: 1px dashed rgba(245, 158, 11, 0.25);
+  border-radius: 12px;
+  pointer-events: none;
+}
+
+.bwei-blocks-area {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 40px;
+  width: 100%;
+  height: 100%;
+  perspective: 1000px;
+}
+
+/* 月牙茭本体 */
+.bwei-block {
+  position: relative;
+  width: 90px;
+  height: 130px;
+  transform-style: preserve-3d;
+  transition: transform 0.1s linear;
+  cursor: pointer;
+  user-select: none;
+}
+
+.bwei-crescent {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+}
+
+/* 茭杯双面渲染 (SVG/CSS 组合) */
+.bwei-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 凸面 (阴): 深朱红漆木质感 */
+.bwei-face.convex {
+  transform: rotateY(0deg);
+}
+
+/* 平面 (阳): 浅金檀木刻铭质感 */
+.bwei-face.flat {
+  transform: rotateY(180deg);
+}
+
+.bwei-hint {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--tx-dim);
+  text-align: center;
+  max-width: 420px;
+}
+
+/* =========================================================
+   终局裁决单 / 赛博收据模态框 (Receipt Modal)
+   ========================================================= */
+.dec-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 2000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+.dec-modal-backdrop.open {
+  display: flex;
+  animation: modalFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes modalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.dec-receipt-dialog {
+  position: relative;
+  width: 100%;
+  max-width: 380px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  animation: receiptPop 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes receiptPop {
+  from { opacity: 0; transform: scale(0.92) translateY(14px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.dec-receipt-close {
+  position: absolute;
+  top: -12px;
+  right: -12px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--card);
+  border: 1px solid var(--line);
+  color: var(--tx);
+  font-size: 14px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  z-index: 10;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* 拟真热敏小票纸张 */
+.dec-receipt-paper {
+  position: relative;
+  width: 100%;
+  background: var(--rcpt-paper);
+  color: var(--rcpt-tx);
+  border-radius: 4px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45), 0 0 0 1px var(--rcpt-line);
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+/* 顶部与底部撕纸锯齿齿口 */
+.dec-tear-edge {
+  width: 100%;
+  height: 10px;
+  background-color: var(--rcpt-paper);
+  position: relative;
+  overflow: hidden;
+}
+
+.dec-tear-edge.top {
+  border-bottom: 1px dashed var(--rcpt-line);
+}
+
+.dec-tear-edge.bottom {
+  border-top: 1px dashed var(--rcpt-line);
+}
+
+.dec-rcpt-inner {
+  padding: 18px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.dec-rcpt-head {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rcpt-logo {
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: var(--dec-ac);
+}
+
+.rcpt-title {
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  margin: 0;
+  color: var(--rcpt-tx);
+}
+
+.rcpt-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--rcpt-dim);
+  font-family: monospace;
+  margin-top: 4px;
+}
+
+.rcpt-dash-line {
+  width: 100%;
+  border-bottom: 1px dashed var(--rcpt-line);
+  margin: 4px 0;
+}
+
+.dec-rcpt-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.rcpt-prop-box {
+  background: rgba(255, 255, 255, 0.04);
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--rcpt-line);
+}
+
+html[data-theme="light"] .rcpt-prop-box {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.rcpt-prop-box .rcpt-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--rcpt-dim);
+  text-transform: uppercase;
+}
+
+.rcpt-prop-txt {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--rcpt-tx);
+  margin-top: 2px;
+}
+
+.rcpt-verdict-box {
+  text-align: center;
+  padding: 12px 10px;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1.5px solid var(--dec-ac);
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.rcpt-verdict-tag {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--dec-ac);
+  letter-spacing: 1px;
+}
+
+.rcpt-verdict-val {
+  font-size: 26px;
+  font-weight: 900;
+  color: var(--rcpt-tx);
+  letter-spacing: 0.5px;
+  line-height: 1.2;
+}
+
+.rcpt-comment-box {
+  background: rgba(255, 255, 255, 0.03);
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--rcpt-tx);
+}
+
+html[data-theme="light"] .rcpt-comment-box {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.rcpt-comment-title {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--dec-ac);
+  margin-bottom: 2px;
+}
+
+.rcpt-comment-txt {
+  margin: 0;
+  color: var(--rcpt-dim);
+}
+
+.rcpt-notice-box {
+  font-size: 11px;
+  line-height: 1.45;
+  color: #EF4444;
+  background: rgba(239, 68, 68, 0.08);
+  padding: 6px 10px;
+  border-radius: 6px;
+  border: 1px solid rgba(239, 68, 68, 0.2);
+}
+
+/* 底部签章与条形码 */
+.dec-rcpt-foot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.rcpt-stamp-seal {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stamp-circle {
+  border: 2px solid var(--rcpt-stamp);
+  color: var(--rcpt-stamp);
+  border-radius: 50%;
+  width: 82px;
+  height: 82px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transform: rotate(-10deg);
+  opacity: 0.9;
+  user-select: none;
+  box-shadow: inset 0 0 0 1px var(--rcpt-stamp);
+}
+
+.stamp-circle span {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.stamp-circle b {
+  font-size: 12px;
+  font-weight: 900;
+  margin: 1px 0;
+}
+
+.stamp-circle em {
+  font-size: 8px;
+  font-style: normal;
+  letter-spacing: 1px;
+}
+
+.rcpt-barcode {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  font-family: monospace;
+  font-size: 9.5px;
+  color: var(--rcpt-dim);
+}
+
+.barcode-lines {
+  width: 180px;
+  height: 28px;
+  background: repeating-linear-gradient(
+    90deg,
+    var(--rcpt-tx) 0px,
+    var(--rcpt-tx) 2px,
+    transparent 2px,
+    transparent 4px,
+    var(--rcpt-tx) 4px,
+    var(--rcpt-tx) 7px,
+    transparent 7px,
+    transparent 9px,
+    var(--rcpt-tx) 9px,
+    var(--rcpt-tx) 10px,
+    transparent 10px,
+    transparent 13px,
+    var(--rcpt-tx) 13px,
+    var(--rcpt-tx) 16px,
+    transparent 16px,
+    transparent 18px
+  );
+  opacity: 0.85;
+}
+
+/* 按钮组 */
+.dec-rcpt-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.dec-btn-action {
+  flex: 1;
+  padding: 10px 16px;
+  border-radius: 999px;
+  font-size: 13.5px;
+  font-weight: 800;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.dec-btn-action.primary {
+  background: var(--dec-ac);
+  color: var(--dec-ac-ink);
+  box-shadow: 0 4px 14px var(--dec-ac-glow);
+}
+
+.dec-btn-action.primary:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.dec-btn-action.ghost {
+  background: var(--card);
+  color: var(--tx);
+  border: 1px solid var(--line);
+}
+
+.dec-btn-action.ghost:hover {
+  border-color: var(--dec-ac);
+}
+
+/* =========================================================
+   移动端与响应式适配
+   ========================================================= */
+@media (max-width: 480px) {
+  .dec-wrap {
+    padding-left: 14px;
+    padding-right: 14px;
+    gap: 12px;
+  }
+  .dec-title {
+    font-size: 22px;
+  }
+  .dec-tab {
+    padding: 7px 8px;
+    font-size: 12px;
+    gap: 4px;
+  }
+  .wheel-canvas-box {
+    width: 280px;
+    height: 280px;
+  }
+  .wheel-center-btn {
+    width: 72px;
+    height: 72px;
+  }
+  .coin-3d-scene {
+    width: 130px;
+    height: 130px;
+  }
+  .coin-3d-disc {
+    width: 125px;
+    height: 125px;
+  }
+  .bwei-mat-plate {
+    height: 200px;
+  }
+  .bwei-block {
+    width: 75px;
+    height: 110px;
+  }
+  .bwei-blocks-area {
+    gap: 24px;
+  }
+  .dec-receipt-dialog {
+    max-width: 340px;
+  }
+}

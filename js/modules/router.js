@@ -21,7 +21,7 @@
   }
 
   function switchModule(modKey, updateHash = true) {
-    if (!['drinks', 'milktea', 'manual', 'fengshui', 'tarot'].includes(modKey)) {
+    if (!['drinks', 'milktea', 'manual', 'fengshui', 'tarot', 'decision'].includes(modKey)) {
       modKey = 'drinks';
     }
 
@@ -63,6 +63,7 @@
       if (modKey === 'fengshui' && window.AppFengshui) window.AppFengshui.init();
       if (modKey === 'tarot' && window.AppTarot) window.AppTarot.init();
       if (modKey === 'manual' && window.AppManual) window.AppManual.init();
+      if (modKey === 'decision' && window.AppDecision) window.AppDecision.init();
     } else {
       if (modKey === 'manual' && window.AppManual) {
         const body = document.getElementById('sm-homebody');
@@ -77,7 +78,7 @@
 
   function handleHash() {
     const hash = window.location.hash.replace(/^#\/?/, '').toLowerCase();
-    if (['drinks', 'milktea', 'manual', 'fengshui', 'tarot'].includes(hash)) {
+    if (['drinks', 'milktea', 'manual', 'fengshui', 'tarot', 'decision'].includes(hash)) {
       switchModule(hash, false);
     }
   }

@@ -1,7 +1,8 @@
 /* 饮料人格研究所 — 全局统一 WebAudio 合成音效 + 震动引擎 */
-'use strict';
+(function () {
+  'use strict';
 
-const SFX = (function () {
+  const SFXEngine = (function () {
   let ctx = null;
   let master = null;
   const store = {
@@ -174,4 +175,5 @@ const SFX = (function () {
   };
 })();
 
-window.SFX = SFX;
+  window.SFX = SFXEngine;
+})();

@@ -1,10 +1,18 @@
 const fs = require('fs');
 const path = require('path');
+const vm = require('vm');
 
 const root = __dirname;
-let html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 
-// 1. 读取所有 CSS 文件
+// 1. 读取干净的基础模板 template.html
+const templatePath = path.join(root, 'template.html');
+if (!fs.existsSync(templatePath)) {
+  console.error('template.html not found! Please ensure template.html exists.');
+  process.exit(1);
+}
+let html = fs.readFileSync(templatePath, 'utf8');
+
+// 2. 读取所有 CSS 文件并合并
 const cssFiles = [
   'css/modules/nav.css',
   'css/modules/milktea.css',
@@ -14,49 +22,76 @@ const cssFiles = [
   'css/modules/history.css'
 ];
 
-let mergedCss = '\n/* ====== 核心模块隔离与防串屏兜底 ====== */\n.app-module { display: none !important; width: 100%; height: 100%; }\n.app-module.active { display: block !important; }\n';
+let mergedCss = '\n/* ====== 全局模块样式合并集 ====== */\n';
 for (const file of cssFiles) {
-  const content = fs.readFileSync(path.join(root, file), 'utf8');
-  mergedCss += `\n/* ====== ${file} ====== */\n${content}\n`;
+  const filePath = path.join(root, file);
+  if (fs.existsSync(filePath)) {
+    const content = fs.readFileSync(filePath, 'utf8');
+    mergedCss += `\n/* ====== ${file} ====== */\n${content}\n`;
+  }
 }
 
-// 移除头部 link 标签
+// 移除 template.html 中的 <link rel="stylesheet" ...>
 for (const file of cssFiles) {
   const linkRegex = new RegExp(`<link\\s+rel=["']stylesheet["']\\s+href=["']${file}["'][^>]*>\\s*`, 'g');
   html = html.replace(linkRegex, '');
 }
 
-// 将合并的 CSS 插入到已有的 <style> 标签最前部
-html = html.replace('<style>', '<style>' + mergedCss);
+// 将合并的 CSS 注入到已有 <style> 标签的最前部
+html = html.replace('<style>', `<style>\n${mergedCss}\n`);
 
-// 2. 读取所有 JS 文件
+// 3. 读取所有 JS 模块文件并合并
 const jsFiles = [
   'js/sfx.js',
+  'js/modules/milktea.js',
+  'js/modules/fengshui.js',
+  'js/modules/tarot.js',
   'js/modules/manual-data.js',
   'js/modules/manual-games.js',
   'js/modules/manual-report.js',
   'js/modules/manual.js',
-  'js/modules/milktea.js',
-  'js/modules/fengshui.js',
-  'js/modules/tarot.js',
   'js/modules/history.js',
   'js/modules/router.js'
 ];
 
-let mergedJs = '';
+let mergedJs = '\n/* ====== 全局模块脚本合并集 ====== */\n';
 for (const file of jsFiles) {
-  const content = fs.readFileSync(path.join(root, file), 'utf8');
-  mergedJs += `\n/* ====== ${file} ====== */\n${content}\n`;
+  const filePath = path.join(root, file);
+  if (fs.existsSync(filePath)) {
+    const content = fs.readFileSync(filePath, 'utf8');
+    mergedJs += `\n/* ====== ${file} ====== */\n${content}\n`;
+  }
 }
 
-// 移除底部的 script src 标签
+// 移除 template.html 底部的模块 <script src="...">
 for (const file of jsFiles) {
   const scriptRegex = new RegExp(`<script\\s+src=["']${file}["'][^>]*><\\/script>\\s*`, 'g');
   html = html.replace(scriptRegex, '');
 }
 
-// 将合并的 JS 作为 <script> 插入到 </body> 前
+// 将合并的 JS 注入到 </body> 之前
 html = html.replace('</body>', `<script>\n${mergedJs}\n</script>\n</body>`);
 
+// 4. 对生成的 HTML 内部的所有 script 做语法校验
+const scriptMatches = [...html.matchAll(/<script[\s\S]*?>([\s\S]*?)<\/script>/gi)];
+console.log(`Found ${scriptMatches.length} <script> blocks in bundled HTML.`);
+let hasError = false;
+scriptMatches.forEach((m, idx) => {
+  const code = m[1];
+  try {
+    new vm.Script(code);
+    console.log(`  Block #${idx + 1}: Syntax OK (${(code.length / 1024).toFixed(1)} KB)`);
+  } catch (err) {
+    console.error(`  Block #${idx + 1}: SYNTAX ERROR ->`, err.message);
+    hasError = true;
+  }
+});
+
+if (hasError) {
+  console.error('ABORTING: Generated bundle has syntax errors!');
+  process.exit(1);
+}
+
+// 5. 写入最终 index.html
 fs.writeFileSync(path.join(root, 'index.html'), html, 'utf8');
-console.log('Successfully bundled modules into index.html, size:', (html.length / 1024).toFixed(1), 'KB');
+console.log(`\nSUCCESS: index.html updated successfully! Total size: ${(html.length / 1024).toFixed(1)} KB\n`);

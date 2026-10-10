@@ -1,5 +1,5 @@
-/* 饮料人格研究所 & 五合一心理矩阵 — 离线瞬开 Service Worker v8 */
-const CACHE_NAME = 'juice-persona-v8';
+/* 饮料人格研究所 & 五合一心理矩阵 — 离线瞬开 Service Worker v9 */
+const CACHE_NAME = 'juice-persona-v9';
 const ASSETS = [
   './',
   './index.html',
@@ -7,23 +7,7 @@ const ASSETS = [
   './favicon.png',
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',
-  './assets/icons/icon-maskable.png',
-  './js/sfx.js',
-  './css/modules/nav.css',
-  './css/modules/milktea.css',
-  './css/modules/fengshui.css',
-  './css/modules/tarot.css',
-  './css/modules/manual.css',
-  './css/modules/history.css',
-  './js/modules/router.js',
-  './js/modules/history.js',
-  './js/modules/milktea.js',
-  './js/modules/fengshui.js',
-  './js/modules/tarot.js',
-  './js/modules/manual-data.js',
-  './js/modules/manual-games.js',
-  './js/modules/manual-report.js',
-  './js/modules/manual.js'
+  './assets/icons/icon-maskable.png'
 ];
 
 self.addEventListener('install', (e) => {
@@ -47,6 +31,24 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
   if (url.origin !== self.location.origin) return;
 
+  // HTML 页面或根路径：网络优先，确保上线后第一时间获取最新版本，离线时回退缓存
+  const isHtml = e.request.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname.endsWith('/');
+  if (isHtml) {
+    e.respondWith(
+      fetch(e.request)
+        .then((res) => {
+          if (res && res.status === 200) {
+            const clone = res.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(e.request, clone));
+          }
+          return res;
+        })
+        .catch(() => caches.match(e.request).then((cached) => cached || caches.match('./index.html')))
+    );
+    return;
+  }
+
+  // 其他静态静态资源：缓存优先
   e.respondWith(
     caches.match(e.request).then((cached) => {
       const networkFetch = fetch(e.request).then((res) => {
@@ -61,3 +63,4 @@ self.addEventListener('fetch', (e) => {
     })
   );
 });
+

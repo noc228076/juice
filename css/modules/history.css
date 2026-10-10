@@ -1,0 +1,358 @@
+/* =========================================================
+   全所通用综合档案抽屉 (Universal History Archive Drawer)
+   高阶视觉质感、响应式自适应、无截断筛选栏与动态徽章
+   ========================================================= */
+
+/* 抽屉大屏宽度升级与严格防塌陷 flexbox 架构 */
+.history-drawer {
+  position: relative !important;
+  z-index: 2 !important;
+  width: 92% !important;
+  max-width: 720px !important;
+  max-height: 84vh !important;
+  height: auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  border-radius: 28px !important;
+  background: var(--bg-soft) !important;
+  border: 1.5px solid var(--line-strong) !important;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45) !important;
+  overflow: hidden !important;
+}
+
+.history-header {
+  flex: 0 0 auto !important;
+  display: flex !important;
+  justify-content: space-between !important;
+  align-items: center !important;
+  padding: 18px 24px 14px !important;
+  border-bottom: 1px solid var(--line) !important;
+  background: var(--bg-soft) !important;
+}
+
+.uni-history-filter-bar {
+  flex: 0 0 auto !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  padding: 12px 20px !important;
+  border-bottom: 1px solid var(--line) !important;
+  background: var(--card-solid) !important;
+  overflow-x: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  scrollbar-width: none !important;
+  min-height: 56px !important;
+  box-sizing: border-box !important;
+}
+.uni-history-filter-bar::-webkit-scrollbar {
+  display: none !important;
+}
+
+/* 屏幕空间充足时自然换行，绝不右侧切断 */
+@media (min-width: 620px) {
+  .uni-history-filter-bar {
+    flex-wrap: wrap !important;
+    row-gap: 8px !important;
+  }
+}
+
+.history-body {
+  flex: 1 1 0% !important;
+  min-height: 0 !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch !important;
+  padding: 16px 20px 20px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 12px !important;
+  box-sizing: border-box !important;
+}
+
+.history-footer {
+  flex: 0 0 auto !important;
+  padding: 14px 20px !important;
+  border-top: 1px solid var(--line) !important;
+  display: flex !important;
+  justify-content: center !important;
+  background: var(--bg-soft) !important;
+  box-sizing: border-box !important;
+}
+
+.uni-filter-chip {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--tx-dim);
+  background: var(--card);
+  border: 1px solid var(--line);
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+  white-space: nowrap;
+  user-select: none;
+}
+.uni-filter-chip:hover {
+  border-color: var(--line-strong);
+  color: var(--tx);
+  transform: translateY(-1px);
+}
+.uni-filter-chip:active {
+  transform: scale(0.96);
+}
+.uni-filter-chip.active {
+  background: var(--ac);
+  color: var(--ac-ink);
+  border-color: var(--ac);
+  box-shadow: 0 3px 12px var(--ac-glow);
+}
+.uni-filter-chip .chip-count {
+  font-size: 10.5px;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.14);
+}
+html[data-theme="dark"] .uni-filter-chip.active .chip-count {
+  background: rgba(0, 0, 0, 0.3);
+}
+
+/* ============ 历史卡片排版质感强化 ============ */
+.uni-hist-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 18px;
+  background: var(--card-solid);
+  border: 1.5px solid var(--line);
+  border-radius: 18px;
+  margin-bottom: 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+  transition: all 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+  position: relative;
+  cursor: pointer;
+}
+.uni-hist-item:hover {
+  border-color: var(--card-accent, var(--line-strong));
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+.uni-hist-item:active {
+  transform: scale(0.99);
+}
+
+/* 头像立体发光与模块印记 */
+.uni-hist-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: grid;
+  place-items: center;
+  font-size: 24px;
+  background: var(--avatar-bg, rgba(255, 255, 255, 0.05));
+  border: 2px solid var(--card-accent, var(--line));
+  box-shadow: 0 4px 12px var(--avatar-glow, rgba(0, 0, 0, 0.1));
+  flex: none;
+  transition: transform 0.2s ease;
+}
+.uni-hist-item:hover .uni-hist-avatar {
+  transform: scale(1.06);
+}
+
+.uni-hist-body {
+  flex: 1;
+  min-width: 0;
+}
+.uni-hist-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.uni-hist-mod-tag {
+  font-size: 10.5px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--tag-bg, rgba(255, 255, 255, 0.08));
+  color: var(--card-accent, var(--tx));
+  border: 1px solid var(--card-accent-border, var(--line));
+}
+.uni-hist-time {
+  font-size: 11px;
+  color: var(--tx-faint);
+  letter-spacing: 0.3px;
+}
+.uni-hist-title {
+  font-size: 15.5px;
+  font-weight: 800;
+  color: var(--tx);
+  letter-spacing: 0.3px;
+  line-height: 1.35;
+}
+.uni-hist-sub {
+  font-size: 12.5px;
+  color: var(--tx-dim);
+  margin-top: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.4;
+}
+
+.uni-hist-ops {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+
+/* 主操作：查看并还原结果页面按钮 */
+.uni-btn-view {
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--card-accent, var(--ac));
+  color: var(--ac-ink, #0a0e14);
+  border: 1px solid transparent;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  white-space: nowrap;
+}
+.uni-btn-view:hover {
+  transform: translateY(-1px) scale(1.04);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.22);
+  filter: brightness(1.08);
+}
+.uni-btn-view:active {
+  transform: scale(0.95);
+}
+
+/* 辅助操作：精致复制图标按钮 */
+.uni-btn-copy-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--btn-ghost-bg);
+  color: var(--tx-dim);
+  font-size: 13px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: all 0.18s ease;
+  flex: none;
+}
+.uni-btn-copy-icon:hover {
+  color: var(--tx);
+  border-color: var(--line-strong);
+  background: var(--card);
+  transform: scale(1.08);
+}
+.uni-btn-copy-icon:active {
+  transform: scale(0.92);
+}
+
+/* 兼容旧版复制按钮 */
+.uni-btn-copy {
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--btn-ghost-bg);
+  border: 1px solid var(--line);
+  color: var(--tx-dim);
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+}
+.uni-btn-copy:hover {
+  background: var(--card);
+  color: var(--tx);
+  border-color: var(--line-strong);
+}
+.uni-btn-copy:active {
+  transform: scale(0.94);
+}
+
+.uni-btn-del {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--btn-ghost-bg);
+  color: var(--tx-faint);
+  font-size: 13px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: all 0.18s ease;
+}
+.uni-btn-del:hover {
+  color: #ef4444;
+  border-color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+  transform: scale(1.08);
+}
+.uni-btn-del:active {
+  transform: scale(0.92);
+}
+
+@media (max-width: 480px) {
+  .uni-hist-item {
+    padding: 12px 14px;
+    gap: 10px;
+  }
+  .uni-hist-avatar {
+    width: 42px;
+    height: 42px;
+    font-size: 20px;
+    border-radius: 12px;
+  }
+  .uni-hist-title {
+    font-size: 14px;
+  }
+  .uni-btn-view {
+    padding: 5px 10px;
+    font-size: 11.5px;
+  }
+}
+
+/* 底部操作区美化 */
+.history-footer {
+  padding: 16px 20px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  justify-content: center;
+  background: var(--bg-soft);
+}
+.btn-clear-history {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--tx-dim);
+  background: var(--card);
+  border: 1px solid var(--line);
+  cursor: pointer;
+  padding: 7px 20px;
+  border-radius: 999px;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn-clear-history:hover {
+  color: #ef4444;
+  border-color: rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.08);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
+}

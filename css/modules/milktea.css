@@ -1,0 +1,563 @@
+/* =========================================================
+   模块 2：奶茶人格 (Milktea Module) 样式系统
+   26 大主流品牌 · 7 维性格画像 · 暖奶茶色调与多端自适应
+   ========================================================= */
+
+#mod-milktea {
+  background: var(--bg);
+  color: var(--tx);
+  --mt-gold: #e8c96a;
+  --mt-gold2: #f5e3a1;
+  --mt-gold3: #b08a2e;
+}
+
+#mod-milktea::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 900px;
+  height: 520px;
+  background: radial-gradient(circle at 50% 15%, rgba(251, 191, 36, 0.08) 0%, transparent 65%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ============ 屏幕切换与基础容器 ============ */
+#mod-milktea .mt-screen {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  min-height: 100%;
+  display: none;
+  flex-direction: column;
+  padding: 18px 20px calc(28px + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  max-width: 540px;
+  margin: 0 auto;
+}
+
+#mod-milktea .mt-screen.active {
+  display: flex;
+  animation: mtFadeIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes mtFadeIn {
+  from { opacity: 0; transform: translateY(12px) scale(0.995); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ============ 首页布局 ============ */
+#mod-milktea .mt-home-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+#mod-milktea .mt-hero {
+  text-align: center;
+  padding: 12px 8px 6px;
+}
+#mod-milktea .mt-cup {
+  font-size: 64px;
+  line-height: 1;
+  filter: drop-shadow(0 10px 24px rgba(251, 191, 36, 0.35));
+  animation: mtFloaty 3.6s ease-in-out infinite;
+  display: inline-block;
+}
+@keyframes mtFloaty {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+#mod-milktea .mt-hero h1 {
+  margin-top: 14px;
+  font-size: 32px;
+  font-weight: 900;
+  letter-spacing: 3px;
+  background: linear-gradient(120deg, #f5e3a1, #e8c96a 45%, #ffd27a);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+html[data-theme="light"] #mod-milktea .mt-hero h1 {
+  background: linear-gradient(120deg, #8a5818, #b87b22 45%, #6a410f);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+#mod-milktea .mt-hero p {
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--tx-dim);
+  letter-spacing: 1px;
+}
+
+#mod-milktea .mt-brand-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 16px 18px;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+#mod-milktea .mt-brand-card-title {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--tx-dim);
+  letter-spacing: 1.5px;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+#mod-milktea .mt-brand-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: center;
+}
+
+#mod-milktea .mt-bchip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
+  transition: transform 0.18s ease;
+  user-select: none;
+}
+#mod-milktea .mt-bchip:hover {
+  transform: translateY(-1.5px) scale(1.05);
+}
+#mod-milktea .mt-bchip em {
+  font-style: normal;
+  font-size: 13px;
+}
+
+#mod-milktea .mt-glass {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 14px 18px;
+  font-size: 13.5px;
+  color: var(--tx-dim);
+  line-height: 1.75;
+}
+
+#mod-milktea .mt-home-btns {
+  display: flex;
+  gap: 10px;
+  margin: 16px 0 8px;
+  width: 100%;
+}
+
+#mod-milktea .mt-disc {
+  font-size: 11px;
+  color: var(--tx-faint);
+  text-align: center;
+  line-height: 1.6;
+}
+
+/* ============ 按钮系统 ============ */
+#mod-milktea .mt-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 15px 22px;
+  border-radius: 999px;
+  font-size: 15.5px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  cursor: pointer;
+  border: none;
+  background: linear-gradient(135deg, #f5e3a1, #e8c96a);
+  color: #261604;
+  box-shadow: 0 8px 24px rgba(232, 201, 106, 0.35);
+  transition: transform 0.15s, filter 0.2s, box-shadow 0.2s;
+  box-sizing: border-box;
+}
+#mod-milktea .mt-btn:hover {
+  filter: brightness(1.06);
+  box-shadow: 0 12px 30px rgba(232, 201, 106, 0.45);
+}
+#mod-milktea .mt-btn:active {
+  transform: scale(0.97);
+}
+#mod-milktea .mt-btn.ghost {
+  background: var(--card);
+  border: 1.5px solid var(--line);
+  color: var(--tx);
+  box-shadow: none;
+}
+#mod-milktea .mt-btn.ghost:hover {
+  border-color: #e8c96a;
+}
+#mod-milktea .mt-btn:disabled {
+  opacity: 0.45;
+  filter: grayscale(0.4);
+  cursor: not-allowed;
+}
+
+/* ============ 答题页布局 ============ */
+#mod-milktea .mt-topbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+  width: 100%;
+}
+#mod-milktea .mt-iconbtn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: var(--card);
+  border: 1.5px solid var(--line);
+  color: var(--tx);
+  display: grid;
+  place-items: center;
+  font-size: 17px;
+  cursor: pointer;
+  flex: none;
+}
+#mod-milktea .mt-pick-head b {
+  font-size: 16px;
+  color: var(--tx);
+  letter-spacing: 1px;
+}
+#mod-milktea .mt-pick-head p {
+  font-size: 12px;
+  color: var(--tx-dim);
+}
+
+#mod-milktea .mt-qbar {
+  height: 6px;
+  background: var(--card);
+  border-radius: 99px;
+  overflow: hidden;
+  margin-bottom: 20px;
+  border: 1px solid var(--line);
+  width: 100%;
+}
+#mod-milktea .mt-qbar i {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, #b08a2e, #e8c96a);
+  transition: width 0.35s ease;
+}
+
+#mod-milktea .mt-qcard {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+}
+#mod-milktea .mt-qmeta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12.5px;
+  color: var(--tx-dim);
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+#mod-milktea .mt-qcard h3 {
+  font-size: 20px;
+  line-height: 1.45;
+  color: var(--tx);
+  margin-bottom: 12px;
+  font-weight: 800;
+}
+
+/* ============ 题目选项 (支持 .tag 和 .mt-opt-tag) ============ */
+#mod-milktea .mt-opt {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 15px 18px;
+  background: var(--card);
+  border: 1.5px solid var(--line);
+  border-radius: var(--r-md);
+  color: var(--tx);
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+  text-align: left;
+  width: 100%;
+  box-sizing: border-box;
+}
+#mod-milktea .mt-opt:hover {
+  border-color: #e8c96a;
+  transform: translateY(-1.5px);
+  background: rgba(232, 201, 106, 0.08);
+}
+#mod-milktea .mt-opt:active {
+  transform: scale(0.98);
+}
+#mod-milktea .mt-opt.sel {
+  border-color: #e8c96a;
+  background: rgba(232, 201, 106, 0.16);
+  box-shadow: 0 4px 14px rgba(232, 201, 106, 0.25);
+  font-weight: 700;
+}
+#mod-milktea .mt-opt .tag,
+#mod-milktea .mt-opt .mt-opt-tag {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--tx-dim);
+  flex: none;
+}
+#mod-milktea .mt-opt.sel .tag,
+#mod-milktea .mt-opt.sel .mt-opt-tag {
+  background: #e8c96a;
+  color: #261604;
+  border-color: #e8c96a;
+}
+
+/* ============ 结果页布局 ============ */
+#mod-milktea .mt-res-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+#mod-milktea .mt-res-badge {
+  font-size: 12.5px;
+  letter-spacing: 3px;
+  color: var(--tx-faint);
+  font-weight: 800;
+  margin-bottom: 14px;
+  text-align: center;
+}
+
+#mod-milktea .mt-res-card {
+  width: 100%;
+  background: var(--card);
+  border: 1.5px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: 24px 20px;
+  text-align: center;
+  box-shadow: var(--shadow);
+  box-sizing: border-box;
+}
+#mod-milktea .mt-res-disc {
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  margin: 0 auto 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 46px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  border: 3px solid rgba(255, 255, 255, 0.35);
+}
+#mod-milktea .mt-res-card h2 {
+  font-size: 28px;
+  letter-spacing: 2px;
+  color: var(--tx);
+  font-weight: 900;
+}
+#mod-milktea .mt-res-card .en {
+  font-size: 12px;
+  color: var(--tx-dim);
+  letter-spacing: 3px;
+  margin-top: 4px;
+}
+#mod-milktea .mt-drink-tag {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 6px 16px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 800;
+  color: #241809;
+  background: linear-gradient(135deg, #f5e3a1, #e8c96a);
+}
+#mod-milktea .mt-res-card .desc {
+  margin-top: 16px;
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--tx-dim);
+  text-align: left;
+  background: var(--card);
+  border-radius: var(--r-md);
+  padding: 14px 16px;
+  border: 1px solid var(--line);
+}
+
+/* 七维雷达条 */
+#mod-milktea .mt-traits {
+  margin-top: 18px;
+  text-align: left;
+}
+#mod-milktea .mt-traits .tt {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--tx-dim);
+  margin-bottom: 10px;
+  letter-spacing: 1.5px;
+}
+#mod-milktea .mt-trow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+#mod-milktea .mt-trow .lbl {
+  flex: none;
+  width: 65px;
+  font-size: 12.5px;
+  color: var(--tx-dim);
+}
+#mod-milktea .mt-trow .bar {
+  flex: 1;
+  height: 8px;
+  background: var(--card);
+  border-radius: 99px;
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+#mod-milktea .mt-trow .bar i {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, #b08a2e, #e8c96a);
+  transition: width 0.8s cubic-bezier(0.3, 0.8, 0.3, 1);
+}
+#mod-milktea .mt-trow .val {
+  flex: none;
+  width: 30px;
+  text-align: right;
+  font-size: 11px;
+  color: var(--tx-faint);
+  font-weight: 700;
+}
+
+/* 第二人格卡片 */
+#mod-milktea .mt-runner {
+  margin-top: 14px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 14px 16px;
+  box-sizing: border-box;
+}
+#mod-milktea .mt-runner .rd {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  flex: none;
+}
+#mod-milktea .mt-runner b {
+  display: block;
+  font-size: 14px;
+  color: var(--tx);
+  font-weight: 800;
+}
+#mod-milktea .mt-runner span {
+  font-size: 12px;
+  color: var(--tx-dim);
+  margin-top: 2px;
+  display: block;
+}
+
+#mod-milktea .mt-res-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 20px;
+  width: 100%;
+}
+#mod-milktea .mt-res-foot .mt-btn {
+  flex: 1 1 130px;
+  padding: 13px 14px;
+  font-size: 14px;
+}
+
+#mod-milktea .mt-quote {
+  margin-top: 16px;
+  font-size: 12px;
+  color: var(--tx-faint);
+  text-align: center;
+  line-height: 1.7;
+}
+
+/* =========================================================
+   桌面端针对性自适应优化 (min-width: 900px)
+   ========================================================= */
+@media (min-width: 900px) {
+  #mod-milktea .mt-screen {
+    max-width: 1080px;
+    padding: 36px 32px 50px;
+  }
+  #mod-milktea .mt-home-grid {
+    display: grid;
+    grid-template-columns: 1fr 1.15fr;
+    gap: 48px;
+    align-items: center;
+  }
+  #mod-milktea .mt-hero {
+    text-align: left;
+    padding: 0;
+  }
+  #mod-milktea .mt-cup {
+    font-size: 76px;
+  }
+  #mod-milktea .mt-hero h1 {
+    font-size: 42px;
+  }
+  #mod-milktea .mt-brand-card {
+    padding: 22px;
+    border-radius: var(--r-lg);
+  }
+  #mod-milktea .mt-brand-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+  #mod-milktea .mt-bchip {
+    justify-content: center;
+    padding: 8px 10px;
+  }
+  #mod-milktea .mt-qcard {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+  #mod-milktea .mt-qcard h3 {
+    font-size: 26px;
+  }
+  #mod-milktea .mt-opt {
+    padding: 18px 22px;
+    font-size: 16px;
+  }
+  #mod-milktea .mt-res-wrap {
+    max-width: 680px;
+    margin: 0 auto;
+  }
+}

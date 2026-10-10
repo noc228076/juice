@@ -1,0 +1,323 @@
+/* =========================================================
+   全局顶部常驻顶栏 & 5 模块自适应导航切换系统
+   ========================================================= */
+
+/* 模块动态主题色系统与视觉底色统一 */
+:root {
+  --mod-ac: #D6FF4B;
+  --mod-ac-ink: #10120A;
+  --mod-ac-glow: rgba(214, 255, 75, 0.35);
+  --mod-ambient: rgba(214, 255, 75, 0.05);
+}
+html[data-active-module="drinks"] {
+  --mod-ac: #D6FF4B;
+  --mod-ac-ink: #10120A;
+  --mod-ac-glow: rgba(214, 255, 75, 0.35);
+  --mod-ambient: rgba(214, 255, 75, 0.06);
+}
+html[data-active-module="milktea"] {
+  --mod-ac: #FBBF24;
+  --mod-ac-ink: #261604;
+  --mod-ac-glow: rgba(251, 191, 36, 0.35);
+  --mod-ambient: rgba(251, 191, 36, 0.06);
+}
+html[data-active-module="manual"] {
+  --mod-ac: #38BDF8;
+  --mod-ac-ink: #04212F;
+  --mod-ac-glow: rgba(56, 189, 248, 0.35);
+  --mod-ambient: rgba(56, 189, 248, 0.06);
+}
+html[data-active-module="fengshui"] {
+  --mod-ac: #FB923C;
+  --mod-ac-ink: #2B1202;
+  --mod-ac-glow: rgba(251, 146, 60, 0.35);
+  --mod-ambient: rgba(251, 146, 60, 0.06);
+}
+html[data-active-module="tarot"] {
+  --mod-ac: #C084FC;
+  --mod-ac-ink: #1E0836;
+  --mod-ac-glow: rgba(192, 132, 252, 0.35);
+  --mod-ambient: rgba(192, 132, 252, 0.07);
+}
+
+#global-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: calc(52px + env(safe-area-inset-top, 0px));
+  padding: calc(env(safe-area-inset-top, 0px) + 6px) 16px 6px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  z-index: 1000;
+  background: rgba(11, 12, 16, 0.88);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  border-bottom: 1px solid var(--line);
+  transition: background 0.35s ease, border-color 0.35s ease;
+  box-sizing: border-box;
+}
+
+html[data-theme="dark"] #global-header {
+  background: rgba(11, 12, 16, 0.88);
+  border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+html[data-theme="light"] #global-header {
+  background: rgba(245, 246, 241, 0.90);
+  border-bottom-color: rgba(20, 24, 18, 0.08);
+}
+
+.global-nav-left {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.nav-tabs-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  mask-image: linear-gradient(to right, black calc(100% - 18px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, black calc(100% - 18px), transparent 100%);
+}
+.nav-tabs-wrapper::-webkit-scrollbar {
+  display: none;
+}
+
+.nav-tabs {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 3px 4px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  white-space: nowrap;
+}
+.nav-tabs::-webkit-scrollbar {
+  display: none;
+}
+html[data-theme="light"] .nav-tabs {
+  background: rgba(20, 24, 18, 0.04);
+}
+
+/* 丝滑滑动药丸指示器 */
+.nav-tab-glider {
+  position: absolute;
+  top: 3px;
+  bottom: 3px;
+  left: 0;
+  width: 0;
+  border-radius: 999px;
+  background: var(--mod-ac);
+  box-shadow: 0 4px 16px var(--mod-ac-glow);
+  pointer-events: none;
+  z-index: 0;
+  transform: translateX(0);
+  transition: transform 0.32s cubic-bezier(0.2, 1, 0.3, 1), width 0.32s cubic-bezier(0.2, 1, 0.3, 1), background 0.3s ease, box-shadow 0.3s ease;
+}
+
+.nav-tab {
+  position: relative;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 13px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--tx-dim);
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: color 0.22s ease, transform 0.15s ease;
+  white-space: nowrap;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.nav-tab:hover {
+  color: var(--tx);
+}
+.nav-tab:active {
+  transform: scale(0.95);
+}
+
+.nav-tab.active {
+  color: var(--mod-ac-ink);
+  font-weight: 800;
+}
+
+.nav-tab .tab-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.nav-tab .tab-label-short {
+  display: none;
+}
+.nav-tab .tab-label-full {
+  display: inline;
+}
+
+/* 右侧控制区 */
+.global-nav-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+
+.global-btn-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--tx);
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+  white-space: nowrap;
+}
+.global-btn-pill:hover {
+  border-color: var(--mod-ac);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px var(--mod-ac-glow);
+}
+.global-btn-pill:active {
+  transform: scale(0.95);
+}
+.global-btn-pill .pill-badge {
+  font-size: 10.5px;
+  font-weight: 800;
+  padding: 1.5px 6px;
+  border-radius: 999px;
+  background: var(--mod-ac);
+  color: var(--mod-ac-ink);
+  line-height: 1.2;
+}
+
+.global-icon-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--card);
+  border: 1px solid var(--line);
+  color: var(--tx);
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex: none;
+}
+.global-icon-btn:hover {
+  border-color: var(--line-strong);
+  transform: scale(1.06);
+}
+.global-icon-btn:active {
+  transform: scale(0.92);
+}
+
+/* 视口与模块容器：统一底色与丝滑转场 */
+#modules-viewport {
+  position: fixed;
+  inset: 0;
+  top: calc(52px + env(safe-area-inset-top, 0px));
+  overflow: hidden;
+  z-index: 1;
+  background: var(--bg);
+}
+
+#mod-drinks,
+#mod-milktea,
+#mod-manual,
+#mod-fengshui,
+#mod-tarot,
+.app-module {
+  position: absolute !important;
+  inset: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(6px);
+  transition: opacity 0.24s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.24s cubic-bezier(0.2, 0.8, 0.2, 1), visibility 0.24s ease;
+  background: var(--bg);
+}
+
+#mod-drinks.active,
+#mod-milktea.active,
+#mod-manual.active,
+#mod-fengshui.active,
+#mod-tarot.active,
+.app-module.active {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+/* 移动端媒体查询 (宽度小于 768px) */
+@media (max-width: 768px) {
+  #global-header {
+    padding-left: 8px;
+    padding-right: 8px;
+    gap: 6px;
+  }
+  .nav-tab {
+    padding: 5px 8px;
+    font-size: 12px;
+    gap: 3px;
+  }
+  .nav-tab .tab-icon {
+    font-size: 13px;
+  }
+  .nav-tab .tab-label-short {
+    display: inline;
+  }
+  .nav-tab .tab-label-full {
+    display: none;
+  }
+  .global-nav-right {
+    gap: 4px;
+  }
+  .global-btn-pill {
+    padding: 5px 8px;
+    font-size: 12px;
+  }
+  .global-btn-pill .pill-txt {
+    display: none;
+  }
+  .global-icon-btn {
+    width: 32px;
+    height: 32px;
+    font-size: 13px;
+  }
+}
+
+/* 隐藏旧版饮料封面中重复的局部顶栏（已由全局顶栏 #global-header 统一承接） */
+#scr-cover .cover-top {
+  display: none !important;
+}

@@ -1,0 +1,473 @@
+/* =========================================================
+   模块 4：工位风水大师 (Desk Fengshui Module) 样式系统
+   朱砂红与帝皇金玄学质感 · 独立测算双屏视图与完整签文卡片
+   ========================================================= */
+
+#mod-fengshui {
+  background: var(--bg);
+  color: var(--tx);
+  --fs-gold: #d4af37;
+  --fs-accent: #e06a3c;
+  --fs-chip: rgba(255, 255, 255, 0.08);
+  --fs-chipink: #d4af37;
+}
+
+#mod-fengshui::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 900px;
+  height: 520px;
+  background: radial-gradient(circle at 50% 15%, rgba(251, 146, 60, 0.08) 0%, transparent 65%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+html[data-theme="light"] #mod-fengshui {
+  --fs-gold: #b38808;
+  --fs-accent: #c04a20;
+  --fs-chip: rgba(20, 24, 18, 0.06);
+  --fs-chipink: #936b04;
+}
+
+/* ============ 屏幕切换系统 (表单页 vs 结果页) ============ */
+#mod-fengshui .fs-screen {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  min-height: 100%;
+  display: none;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+#mod-fengshui .fs-screen.active {
+  display: flex;
+  animation: fsFadeIn 0.32s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes fsFadeIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+
+#mod-fengshui .fs-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  padding: 16px 20px calc(28px + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+}
+
+/* 顶部标题 */
+#mod-fengshui header {
+  text-align: center;
+  padding: 14px 0 10px;
+  position: relative;
+}
+#mod-fengshui header h1 {
+  margin: 4px 0 0;
+  font-size: 28px;
+  letter-spacing: 2px;
+  background: linear-gradient(90deg, var(--fs-gold), var(--fs-accent), var(--fs-gold));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+#mod-fengshui header p {
+  margin: 6px 0 0;
+  font-size: 13.5px;
+  color: var(--tx-dim);
+}
+
+/* 结果页顶栏 */
+#mod-fengshui .fs-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0 14px;
+  width: 100%;
+}
+#mod-fengshui .fs-backbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1.5px solid var(--line);
+  background: var(--card);
+  color: var(--tx);
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+#mod-fengshui .fs-backbtn:hover {
+  border-color: var(--fs-gold);
+  color: var(--fs-gold);
+  transform: translateY(-1px);
+}
+#mod-fengshui .fs-backbtn:active {
+  transform: scale(0.96);
+}
+
+/* 工作台布局 */
+#mod-fengshui .fs-workbench {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+#mod-fengshui .fs-card {
+  background: var(--card);
+  border: 1.5px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: 22px 20px;
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+#mod-fengshui .fs-card h2 {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--tx);
+  letter-spacing: 1px;
+  margin: 0 0 6px;
+}
+#mod-fengshui .fs-desc {
+  font-size: 12.5px;
+  color: var(--tx-dim);
+  line-height: 1.6;
+  margin: 0 0 14px;
+}
+
+#mod-fengshui label {
+  display: block;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--tx);
+  margin-top: 14px;
+  margin-bottom: 6px;
+  letter-spacing: 0.5px;
+}
+#mod-fengshui label:first-of-type {
+  margin-top: 4px;
+}
+
+#mod-fengshui select {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: var(--r-md);
+  border: 1.5px solid var(--line);
+  background: var(--card);
+  color: var(--tx);
+  font-size: 13.5px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s ease;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+#mod-fengshui select:focus {
+  border-color: var(--fs-gold);
+}
+
+/* ============ 摆件筹码 (核心修复：解决点击无法选中高亮的问题) ============ */
+#mod-fengshui .fs-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+#mod-fengshui .fs-chip {
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  background: var(--card);
+  color: var(--tx);
+  border: 1.5px solid var(--line);
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.2, 0.8, 0.2, 1);
+  user-select: none;
+}
+#mod-fengshui .fs-chip:hover {
+  border-color: var(--fs-gold);
+  transform: translateY(-1px);
+}
+#mod-fengshui .fs-chip:active {
+  transform: scale(0.95);
+}
+#mod-fengshui .fs-chip.on,
+#mod-fengshui .fs-chip.active {
+  background: linear-gradient(135deg, var(--fs-gold), var(--fs-accent)) !important;
+  color: #fff !important;
+  border-color: var(--fs-gold) !important;
+  box-shadow: 0 4px 14px rgba(224, 106, 60, 0.4) !important;
+  transform: translateY(-1px) scale(1.03);
+}
+
+/* 按钮行 */
+#mod-fengshui .fs-btn-row {
+  display: flex;
+  gap: 12px;
+  margin-top: 22px;
+  width: 100%;
+}
+#mod-fengshui .fs-btn {
+  flex: 1;
+  padding: 15px 18px;
+  border-radius: 999px;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+#mod-fengshui .fs-btn:active {
+  transform: scale(0.96);
+}
+#mod-fengshui .fs-btn-main {
+  background: linear-gradient(135deg, var(--fs-accent), var(--fs-gold));
+  color: #fff;
+  box-shadow: 0 8px 24px rgba(224, 106, 60, 0.35);
+}
+#mod-fengshui .fs-btn-main:hover {
+  filter: brightness(1.08);
+}
+#mod-fengshui .fs-btn-ghost {
+  background: var(--card);
+  color: var(--tx);
+  border: 1.5px solid var(--line);
+}
+#mod-fengshui .fs-btn-ghost:hover {
+  border-color: var(--fs-gold);
+}
+
+/* 每日看板 */
+#mod-fengshui .fs-board-card {
+  background: var(--card);
+  border: 1.5px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: 22px 20px;
+  box-shadow: var(--shadow);
+}
+#mod-fengshui .fs-board-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--tx);
+  letter-spacing: 1px;
+  margin-bottom: 14px;
+}
+#mod-fengshui .fs-almanac-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+#mod-fengshui .fs-almanac-item {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+#mod-fengshui .fs-almanac-item span {
+  font-size: 11.5px;
+  color: var(--tx-dim);
+  font-weight: 700;
+}
+#mod-fengshui .fs-almanac-item b {
+  font-size: 13px;
+  line-height: 1.4;
+}
+#mod-fengshui .fs-almanac-item.good b { color: #10b981; }
+#mod-fengshui .fs-almanac-item.bad b { color: #ef4444; }
+
+#mod-fengshui .fs-compass-box {
+  margin-top: 14px;
+  background: var(--card);
+  border-radius: var(--r-md);
+  padding: 14px;
+  font-size: 12.5px;
+  line-height: 1.8;
+  color: var(--tx-dim);
+  border: 1px solid var(--line);
+}
+
+/* ============ 测算报告卡片 (核心修复：完整恢复签文高保真样式) ============ */
+#mod-fengshui .fs-report {
+  background: var(--card);
+  border: 1.5px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: 24px 22px;
+  box-shadow: var(--shadow);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+#mod-fengshui .r-top {
+  text-align: center;
+  padding-bottom: 18px;
+  border-bottom: 1px dashed var(--line);
+}
+#mod-fengshui .r-grade {
+  font-size: 38px;
+  font-weight: 900;
+  letter-spacing: 3px;
+  background: linear-gradient(90deg, var(--fs-accent), var(--fs-gold));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+#mod-fengshui .r-verdict {
+  font-size: 13.5px;
+  color: var(--tx-dim);
+  margin-top: 6px;
+  line-height: 1.6;
+}
+
+#mod-fengshui .score-row {
+  margin-top: 16px;
+}
+#mod-fengshui .score-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12.5px;
+  color: var(--tx-dim);
+  margin-bottom: 6px;
+  font-weight: 700;
+}
+#mod-fengshui .score-bar {
+  height: 10px;
+  background: var(--line);
+  border-radius: 99px;
+  overflow: hidden;
+}
+#mod-fengshui .score-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--fs-accent), var(--fs-gold));
+  width: 0;
+  transition: width 0.9s cubic-bezier(0.3, 0.8, 0.3, 1);
+}
+
+#mod-fengshui .r-sec {
+  margin-top: 18px;
+}
+#mod-fengshui .r-sec h4 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  letter-spacing: 0.8px;
+  color: var(--fs-accent);
+  font-weight: 800;
+}
+#mod-fengshui .r-line {
+  font-size: 14px;
+  line-height: 1.85;
+  color: var(--tx);
+}
+#mod-fengshui .r-line b {
+  color: var(--fs-gold);
+}
+
+#mod-fengshui .luck {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+#mod-fengshui .luck span {
+  border-radius: 999px;
+  padding: 6px 12px;
+  font-size: 12.5px;
+  font-weight: 700;
+  border: 1px solid currentColor;
+  background: var(--card);
+}
+
+#mod-fengshui .fs-quote {
+  margin-top: 18px;
+  padding: 14px 16px;
+  background: rgba(212, 175, 55, 0.08);
+  border-left: 3.5px solid var(--fs-gold);
+  border-radius: 0 var(--r-md) var(--r-md) 0;
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--tx);
+}
+
+#mod-fengshui .copy-row {
+  display: flex;
+  gap: 12px;
+  margin-top: 22px;
+  width: 100%;
+}
+#mod-fengshui .copy-btn {
+  flex: 1;
+  border: 1.5px solid var(--line);
+  background: var(--card);
+  color: var(--tx);
+  border-radius: 999px;
+  padding: 13px 16px;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+#mod-fengshui .copy-btn:hover {
+  border-color: var(--fs-gold);
+  color: var(--fs-gold);
+}
+#mod-fengshui .copy-btn:active {
+  transform: scale(0.96);
+}
+#mod-fengshui .copy-btn.done {
+  border-color: var(--fs-gold);
+  background: var(--fs-gold);
+  color: #fff;
+}
+
+#mod-fengshui footer {
+  color: var(--tx-dim);
+  font-size: 12px;
+  text-align: center;
+  margin-top: 24px;
+}
+
+/* =========================================================
+   桌面端针对性自适应优化 (min-width: 900px)
+   ========================================================= */
+@media (min-width: 900px) {
+  #mod-fengshui .fs-wrap {
+    max-width: 1080px;
+    padding: 32px 32px 48px;
+  }
+  #mod-fengshui .fs-workbench {
+    display: grid;
+    grid-template-columns: 1.15fr 1fr;
+    gap: 28px;
+    align-items: start;
+  }
+  #mod-fengshui .fs-card,
+  #mod-fengshui .fs-board-card {
+    padding: 26px 24px;
+  }
+  #mod-fengshui .fs-report {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 32px 28px;
+  }
+  #mod-fengshui .fs-topbar {
+    max-width: 720px;
+    margin: 0 auto;
+  }
+}

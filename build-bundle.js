@@ -38,7 +38,7 @@ for (const file of cssFiles) {
 }
 
 // 将合并的 CSS 注入到已有 <style> 标签的最前部
-html = html.replace('<style>', `<style>\n${mergedCss}\n`);
+html = html.replace('<style>', () => `<style>\n${mergedCss}\n`);
 
 // 3. 读取所有 JS 模块文件并合并
 const jsFiles = [
@@ -70,7 +70,7 @@ for (const file of jsFiles) {
 }
 
 // 将合并的 JS 注入到 </body> 之前
-html = html.replace('</body>', `<script>\n${mergedJs}\n</script>\n</body>`);
+html = html.replace('</body>', () => `<script>\n${mergedJs}\n</script>\n</body>`);
 
 // 4. 对生成的 HTML 内部的所有 script 做语法校验
 const scriptMatches = [...html.matchAll(/<script[\s\S]*?>([\s\S]*?)<\/script>/gi)];

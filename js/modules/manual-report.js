@@ -296,7 +296,7 @@
 
       var valY = yy + 68;
       if (unitPart) {
-        c.font = '700 64px Georgia, serif';
+        c.font = '800 60px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Noto Sans SC", sans-serif';
         var numW = c.measureText(numPart).width;
         c.font = '600 24px -apple-system, "PingFang SC", "Noto Sans SC", sans-serif';
         var unitW = c.measureText(unitPart).width;
@@ -305,7 +305,7 @@
 
         c.textAlign = 'left';
         c.fillStyle = '#26231D';
-        c.font = '700 64px Georgia, serif';
+        c.font = '800 60px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Noto Sans SC", sans-serif';
         c.fillText(numPart, startX, valY);
 
         c.fillStyle = '#8A8172';
@@ -314,7 +314,7 @@
       } else {
         c.textAlign = 'center';
         c.fillStyle = '#26231D';
-        c.font = '700 64px Georgia, serif';
+        c.font = '800 60px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", "Noto Sans SC", sans-serif';
         c.fillText(numPart, cx, valY);
       }
 

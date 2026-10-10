@@ -116,17 +116,16 @@
     });
     html += '</div>';
 
-    var homeBodyEl = $('#sm-homebody');
+    var homeBodyEl = document.getElementById('sm-homebody');
     if (homeBodyEl) {
       homeBodyEl.innerHTML = html;
-    }
-
-    $$('#sm-homebody .tile').forEach(function (c) {
-      c.addEventListener('click', function () {
-        if (window.SFX && window.SFX.tap) window.SFX.tap();
-        openTest(c.getAttribute('data-test'));
+      homeBodyEl.querySelectorAll('.tile').forEach(function (c) {
+        c.addEventListener('click', function () {
+          if (window.SFX && window.SFX.tap) window.SFX.tap();
+          openTest(c.getAttribute('data-test'));
+        });
       });
-    });
+    }
   }
 
   function openTest(id) {

@@ -69,6 +69,18 @@ html[data-active-module="decision"] {
   --mod-ac-glow: rgba(16, 185, 129, 0.35);
   --mod-ambient: rgba(16, 185, 129, 0.06);
 }
+html[data-active-module="lingqian"] {
+  --mod-ac: #FB7185;
+  --mod-ac-ink: #2B040E;
+  --mod-ac-glow: rgba(251, 113, 133, 0.35);
+  --mod-ambient: rgba(251, 113, 133, 0.06);
+}
+html[data-active-module="clock"] {
+  --mod-ac: #FACC15;
+  --mod-ac-ink: #241A00;
+  --mod-ac-glow: rgba(250, 204, 21, 0.35);
+  --mod-ambient: rgba(250, 204, 21, 0.06);
+}
 
 #global-header {
   position: fixed;
@@ -288,6 +300,8 @@ html {
 #mod-fengshui,
 #mod-tarot,
 #mod-decision,
+#mod-lingqian,
+#mod-clock,
 .app-module {
   position: absolute !important;
   inset: 0 !important;
@@ -305,9 +319,19 @@ html {
 #mod-fengshui.active,
 #mod-tarot.active,
 #mod-decision.active,
+#mod-lingqian.active,
+#mod-clock.active,
 .app-module.active {
   display: flex !important;
   pointer-events: auto !important;
+}
+
+@media (max-width: 1120px) {
+  .nav-tab {
+    padding: 6px 10px;
+    font-size: 12.5px;
+    gap: 4px;
+  }
 }
 
 /* 移动端媒体查询 (宽度小于 768px) */
@@ -4907,6 +4931,1084 @@ html[data-theme="light"] .rcpt-comment-box {
 }
 
 
+/* ====== css/modules/lingqian.css ====== */
+/* =========================================================
+   模块 7：东方赛博灵签 (Cyber Oriental Fortune Sticks)
+   与赛博塔罗构成「东西玄学双璧」· 紫竹摇签 · 掷茭印证 · 朱砂宣纸签文
+   ========================================================= */
+
+#mod-lingqian {
+  background: var(--bg);
+  color: var(--tx);
+  --lq-crimson: #E11D48;
+  --lq-crimson-glow: rgba(225, 29, 72, 0.35);
+  --lq-gold: #F59E0B;
+  --lq-gold-light: #FDE68A;
+  --lq-paper-bg: #1E161B;
+  --lq-paper-border: rgba(245, 158, 11, 0.35);
+  --lq-ink: #FDF2F8;
+  --lq-dim: #D1B8C4;
+}
+
+#mod-lingqian::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 900px;
+  height: 540px;
+  background: radial-gradient(circle at 50% 15%, rgba(225, 29, 72, 0.10) 0%, rgba(245, 158, 11, 0.05) 45%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+html[data-theme="light"] #mod-lingqian {
+  --lq-crimson: #BE123C;
+  --lq-crimson-glow: rgba(190, 18, 60, 0.25);
+  --lq-gold: #B45309;
+  --lq-gold-light: #FEF3C7;
+  --lq-paper-bg: #FFFDF9;
+  --lq-paper-border: rgba(180, 83, 9, 0.35);
+  --lq-ink: #29151B;
+  --lq-dim: #75535C;
+}
+
+/* 东西方玄学合辑联动胶囊条 (在 tarot 与 lingqian 共享) */
+.ew-mystic-bar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px;
+  margin: 0 auto 10px;
+}
+
+html[data-theme="light"] .ew-mystic-bar {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.ew-switch-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--tx-dim);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ew-switch-btn:hover {
+  color: var(--tx);
+}
+
+.ew-switch-btn.active.west {
+  background: rgba(192, 132, 252, 0.2);
+  color: #C084FC;
+  border: 1px solid rgba(192, 132, 252, 0.4);
+  font-weight: 800;
+}
+
+.ew-switch-btn.active.east {
+  background: rgba(225, 29, 72, 0.18);
+  color: #FB7185;
+  border: 1px solid rgba(225, 29, 72, 0.4);
+  font-weight: 800;
+}
+
+html[data-theme="light"] .ew-switch-btn.active.west {
+  color: #7E22CE;
+}
+html[data-theme="light"] .ew-switch-btn.active.east {
+  color: #BE123C;
+}
+
+/* ============ 屏幕容器切换 ============ */
+#mod-lingqian .lq-screen {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  min-height: 100%;
+  display: none;
+  flex-direction: column;
+  box-sizing: border-box;
+  max-width: 580px;
+  margin: 0 auto;
+  padding: 16px 20px calc(36px + env(safe-area-inset-bottom));
+}
+
+#mod-lingqian .lq-screen.active {
+  display: flex;
+  animation: lqFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes lqFadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.lq-header {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.lq-title {
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  margin: 2px 0 4px;
+  background: linear-gradient(135deg, #FB7185 0%, #F59E0B 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.lq-sub {
+  font-size: 12.5px;
+  color: var(--tx-dim);
+  letter-spacing: 1px;
+}
+
+/* 四大求签方向卡片 */
+.lq-cat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.lq-cat-card {
+  background: var(--card);
+  border: 1.5px solid var(--line);
+  border-radius: 14px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.lq-cat-card:hover {
+  border-color: rgba(245, 158, 11, 0.5);
+  transform: translateY(-1px);
+}
+
+.lq-cat-card.active {
+  background: rgba(225, 29, 72, 0.10);
+  border-color: var(--lq-crimson);
+  box-shadow: 0 4px 16px rgba(225, 29, 72, 0.2);
+}
+
+.lq-cat-ico {
+  font-size: 24px;
+  flex: none;
+}
+
+.lq-cat-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+}
+
+.lq-cat-info b {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--tx);
+}
+
+.lq-cat-info span {
+  font-size: 11px;
+  color: var(--tx-dim);
+}
+
+/* 祈愿输入框 */
+.lq-wish-box {
+  margin-bottom: 14px;
+}
+
+.lq-wish-input {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  color: var(--tx);
+  font-size: 13.5px;
+  outline: none;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.lq-wish-input:focus {
+  border-color: var(--lq-gold);
+}
+
+/* 紫竹雕花签筒舞台 */
+.lq-cylinder-stage {
+  position: relative;
+  height: 250px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 4px 0 12px;
+}
+
+.lq-cylinder-wrap {
+  position: relative;
+  width: 150px;
+  height: 210px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+  transform-origin: 50% 85%;
+}
+
+.lq-cylinder-wrap.shaking {
+  animation: cylinderShake 0.14s ease-in-out infinite;
+}
+
+@keyframes cylinderShake {
+  0% { transform: rotate(0deg) translateY(0); }
+  25% { transform: rotate(-11deg) translateY(-6px); }
+  50% { transform: rotate(2deg) translateY(2px); }
+  75% { transform: rotate(11deg) translateY(-6px); }
+  100% { transform: rotate(0deg) translateY(0); }
+}
+
+/* 飞出的那支灵签 */
+.lq-flying-stick {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%) translateY(40px) scale(0.8);
+  width: 28px;
+  height: 150px;
+  background: linear-gradient(90deg, #FDE68A 0%, #F59E0B 50%, #B45309 100%);
+  border: 1.5px solid #78350F;
+  border-radius: 14px 14px 4px 4px;
+  box-shadow: 0 10px 25px rgba(245, 158, 11, 0.6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 10px;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 10;
+  transition: all 0.5s cubic-bezier(0.2, 1.3, 0.3, 1);
+}
+
+.lq-flying-stick.dropped {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-28px) scale(1.08) rotate(6deg);
+}
+
+.lq-stick-tip {
+  width: 18px;
+  height: 24px;
+  background: #E11D48;
+  border-radius: 8px 8px 2px 2px;
+  margin-bottom: 6px;
+}
+
+.lq-stick-text {
+  writing-mode: vertical-rl;
+  font-size: 12px;
+  font-weight: 900;
+  color: #78350F;
+  letter-spacing: 2px;
+  font-family: serif;
+}
+
+.lq-stage-hint {
+  font-size: 12px;
+  color: var(--tx-dim);
+  text-align: center;
+  margin-top: 6px;
+}
+
+.lq-btn-main {
+  width: 100%;
+  max-width: 320px;
+  margin: 0 auto;
+  padding: 13px 22px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #E11D48, #BE123C);
+  color: #FFFFFF;
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 1.5px;
+  border: 1px solid rgba(253, 230, 138, 0.4);
+  box-shadow: 0 6px 22px var(--lq-crimson-glow);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.lq-btn-main:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.1);
+}
+
+.lq-btn-main:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ============ 解签结果页 (朱砂宣纸签文卷轴) ============ */
+.lq-scroll-card {
+  background: var(--lq-paper-bg);
+  border: 2px solid var(--lq-paper-border);
+  border-radius: 18px;
+  padding: 20px 18px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35), inset 0 0 0 4px rgba(245, 158, 11, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  position: relative;
+  overflow: hidden;
+}
+
+.lq-scroll-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1.5px dashed var(--lq-paper-border);
+  padding-bottom: 12px;
+}
+
+.lq-num-badge {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.lq-num-sub {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--lq-gold);
+  letter-spacing: 1px;
+}
+
+.lq-num-title {
+  font-size: 24px;
+  font-weight: 900;
+  color: var(--lq-ink);
+  letter-spacing: 1px;
+}
+
+.lq-rank-stamp {
+  padding: 6px 14px;
+  border-radius: 8px;
+  background: var(--lq-crimson);
+  color: #FFFFFF;
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  border: 2px solid #FDE68A;
+  box-shadow: 0 4px 12px var(--lq-crimson-glow);
+  transform: rotate(-4deg);
+}
+
+/* 古典四句签诗框 */
+.lq-poem-box {
+  background: rgba(245, 158, 11, 0.07);
+  border: 1px solid var(--lq-paper-border);
+  border-radius: 12px;
+  padding: 14px 12px;
+  text-align: center;
+  position: relative;
+}
+
+.lq-poem-label {
+  font-size: 10.5px;
+  font-weight: 800;
+  color: var(--lq-gold);
+  letter-spacing: 2px;
+  margin-bottom: 6px;
+}
+
+.lq-poem-lines {
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.85;
+  color: var(--lq-ink);
+  letter-spacing: 2px;
+  font-family: "Songti SC", "SimSun", "STSong", serif;
+}
+
+/* 仙机四维断语 */
+.lq-xianji-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.lq-xj-item {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+html[data-theme="light"] .lq-xj-item {
+  background: rgba(0, 0, 0, 0.025);
+}
+
+.lq-xj-item span {
+  color: var(--lq-dim);
+  font-weight: 600;
+}
+
+.lq-xj-item b {
+  color: var(--lq-gold);
+  font-weight: 800;
+}
+
+/* 赛博打工人白话解签 */
+.lq-interp-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lq-sec-label {
+  font-size: 12px;
+  font-weight: 900;
+  color: var(--lq-crimson);
+  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lq-interp-txt {
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: var(--lq-ink);
+  margin: 0;
+  text-align: justify;
+}
+
+/* 转运锦囊与宜忌 */
+.lq-tips-box {
+  background: rgba(225, 29, 72, 0.07);
+  border-left: 3.5px solid var(--lq-crimson);
+  border-radius: 0 10px 10px 0;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12.5px;
+  color: var(--lq-ink);
+}
+
+.lq-result-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.lq-btn-act {
+  flex: 1;
+  padding: 11px 14px;
+  border-radius: 999px;
+  font-size: 13.5px;
+  font-weight: 800;
+  cursor: pointer;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--tx);
+  transition: all 0.2s ease;
+}
+
+.lq-btn-act:hover {
+  border-color: var(--lq-gold);
+}
+
+.lq-btn-act.primary {
+  background: linear-gradient(135deg, #E11D48, #BE123C);
+  color: #FFFFFF;
+  border: none;
+  box-shadow: 0 4px 16px var(--lq-crimson-glow);
+}
+
+@media (max-width: 480px) {
+  .lq-title {
+    font-size: 24px;
+  }
+  .lq-poem-lines {
+    font-size: 15px;
+  }
+  .lq-num-title {
+    font-size: 20px;
+  }
+}
+
+
+/* ====== css/modules/clock.css ====== */
+/* =========================================================
+   模块 8：摸鱼发薪实时时钟 (Cyber Slacking & Salary Ticker)
+   扎心又快乐的工位时钟 · 毫秒级窝囊费跳表 · 带薪摸鱼计时 · 翻页屏保
+   ========================================================= */
+
+#mod-clock {
+  background: var(--bg);
+  color: var(--tx);
+  --ck-gold: #FACC15;
+  --ck-gold-glow: rgba(250, 204, 21, 0.35);
+  --ck-cyan: #22D3EE;
+  --ck-green: #10B981;
+  --ck-card: rgba(255, 255, 255, 0.045);
+}
+
+#mod-clock::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 920px;
+  height: 540px;
+  background: radial-gradient(circle at 50% 12%, rgba(250, 204, 21, 0.09) 0%, rgba(34, 211, 238, 0.05) 45%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+html[data-theme="light"] #mod-clock {
+  --ck-gold: #CA8A04;
+  --ck-gold-glow: rgba(202, 138, 4, 0.25);
+  --ck-cyan: #0891B2;
+  --ck-green: #059669;
+  --ck-card: rgba(255, 255, 255, 0.88);
+}
+
+.ck-wrap {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 14px 20px calc(38px + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* 顶部状态与屏保模式开关 */
+.ck-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ck-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: var(--ck-green);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.ck-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ck-green);
+  box-shadow: 0 0 8px var(--ck-green);
+  animation: ckPulse 1.6s ease-in-out infinite;
+}
+
+@keyframes ckPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.45; transform: scale(0.85); }
+}
+
+.ck-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ck-btn-mini {
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  color: var(--tx-dim);
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ck-btn-mini:hover {
+  border-color: var(--ck-gold);
+  color: var(--tx);
+}
+
+/* ============ 拟真工位翻页大时钟 ============ */
+.ck-flip-clock-box {
+  background: var(--ck-card);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+}
+
+.ck-flip-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ck-flip-unit {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  min-width: 68px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+  font-weight: 900;
+  color: var(--tx);
+  position: relative;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.4);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+html[data-theme="light"] .ck-flip-unit {
+  background: #F1F5F9;
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.08);
+}
+
+.ck-flip-unit::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+html[data-theme="light"] .ck-flip-unit::after {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.ck-flip-colon {
+  font-size: 32px;
+  font-weight: 900;
+  color: var(--ck-gold);
+  animation: ckPulse 1s infinite;
+}
+
+.ck-date-line {
+  font-size: 12px;
+  color: var(--tx-dim);
+  letter-spacing: 1px;
+}
+
+/* ============ 核心：毫秒级实时窝囊费跳字屏 ============ */
+.ck-salary-hero {
+  background: linear-gradient(145deg, rgba(250, 204, 21, 0.10), rgba(16, 185, 129, 0.06));
+  border: 1.5px solid rgba(250, 204, 21, 0.38);
+  border-radius: 22px;
+  padding: 18px 20px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.22);
+}
+
+.ck-hero-eyebrow {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--ck-gold);
+  letter-spacing: 1.5px;
+}
+
+.ck-money-ticker {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px;
+  font-variant-numeric: tabular-nums;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.ck-currency {
+  font-size: 28px;
+  font-weight: 900;
+  color: var(--ck-gold);
+}
+
+.ck-money-int {
+  font-size: 52px;
+  font-weight: 900;
+  color: var(--tx);
+  letter-spacing: -1px;
+  line-height: 1.05;
+}
+
+.ck-money-dec {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--ck-gold);
+}
+
+.ck-rate-sub {
+  font-size: 11.5px;
+  color: var(--tx-dim);
+}
+
+/* 快乐折算等价物胶囊 */
+.ck-equiv-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 4px;
+  width: 100%;
+}
+
+.ck-equiv-pill {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 4px 11px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--tx);
+}
+
+html[data-theme="light"] .ck-equiv-pill {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.ck-equiv-pill b {
+  color: var(--ck-gold);
+}
+
+/* ============ 带薪摸鱼 / 拉屎回血专项计时器 ============ */
+.ck-slack-card {
+  background: var(--ck-card);
+  border: 1.5px solid var(--line);
+  border-radius: 18px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ck-slack-card.slacking-active {
+  border-color: var(--ck-cyan);
+  background: rgba(34, 211, 238, 0.07);
+  box-shadow: 0 0 24px rgba(34, 211, 238, 0.18);
+}
+
+.ck-slack-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ck-slack-title {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--tx);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ck-slack-tags {
+  display: flex;
+  gap: 5px;
+}
+
+.ck-stag {
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--line);
+  color: var(--tx-dim);
+  cursor: pointer;
+}
+
+.ck-stag.active {
+  background: rgba(34, 211, 238, 0.16);
+  border-color: var(--ck-cyan);
+  color: var(--ck-cyan);
+}
+
+.ck-slack-body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.ck-slack-stats {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ck-slack-time {
+  font-size: 24px;
+  font-weight: 900;
+  font-family: monospace;
+  color: var(--ck-cyan);
+}
+
+.ck-slack-earned {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--tx);
+}
+
+.ck-slack-earned b {
+  color: var(--ck-gold);
+  font-size: 16px;
+}
+
+.ck-btn-slack {
+  padding: 9px 18px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #06B6D4, #0284C7);
+  color: #FFFFFF;
+  font-size: 13px;
+  font-weight: 800;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(6, 182, 212, 0.35);
+  transition: all 0.2s ease;
+}
+
+.ck-btn-slack.stop {
+  background: linear-gradient(135deg, #F59E0B, #D97706);
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);
+}
+
+/* ============ 四大扎心倒计时沙漏矩阵 ============ */
+.ck-countdown-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.ck-cd-card {
+  background: var(--ck-card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ck-cd-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--tx-dim);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ck-cd-val {
+  font-size: 20px;
+  font-weight: 900;
+  color: var(--tx);
+  font-variant-numeric: tabular-nums;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.ck-cd-bar {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+html[data-theme="light"] .ck-cd-bar {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.ck-cd-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--ck-green), var(--ck-gold));
+  border-radius: 999px;
+  width: 0%;
+  transition: width 0.4s ease;
+}
+
+.ck-cd-sub {
+  font-size: 11px;
+  color: var(--tx-faint);
+}
+
+/* ============ 工位参数设置面板 ============ */
+.ck-config-card {
+  background: var(--ck-card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ck-cfg-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--tx);
+}
+
+.ck-cfg-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.ck-cfg-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ck-cfg-item label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--tx-dim);
+}
+
+.ck-cfg-item input {
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--line);
+  color: var(--tx);
+  font-size: 13px;
+  font-weight: 700;
+  outline: none;
+  box-sizing: border-box;
+}
+
+html[data-theme="light"] .ck-cfg-item input {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.ck-cfg-item input:focus {
+  border-color: var(--ck-gold);
+}
+
+.ck-bottom-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.ck-btn-poster {
+  width: 100%;
+  padding: 12px 20px;
+  border-radius: 999px;
+  background: var(--ck-gold);
+  color: #1A1200;
+  font-size: 14px;
+  font-weight: 900;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 6px 20px var(--ck-gold-glow);
+  transition: all 0.2s ease;
+}
+
+.ck-btn-poster:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+}
+
+/* 极简工位屏保模式 (Zen Mode) */
+#mod-clock.zen-mode .ck-config-card,
+#mod-clock.zen-mode .ck-bottom-actions {
+  display: none;
+}
+
+#mod-clock.zen-mode .ck-wrap {
+  justify-content: center;
+  min-height: calc(100vh - 64px);
+}
+
+#mod-clock.zen-mode .ck-flip-unit {
+  min-width: 88px;
+  height: 92px;
+  font-size: 52px;
+}
+
+@media (max-width: 480px) {
+  .ck-money-int {
+    font-size: 40px;
+  }
+  .ck-flip-unit {
+    min-width: 56px;
+    height: 60px;
+    font-size: 32px;
+  }
+  .ck-countdown-grid,
+  .ck-cfg-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+
 
 :root{--ac:#D6FF4B;--ac-ink:#10120A;--ac-deep:#92CF46;--ac-fade:rgba(214,255,75,0.55);--ac-glow:rgba(214,255,75,0.28);--ac-soft:rgba(214,255,75,0.13);--ok:#7BE58B;--warn-c:#FF7A6B;--r-lg:28px;--r-md:20px;--r-sm:14px;--sat:env(safe-area-inset-top,0px);--sab:env(safe-area-inset-bottom,0px);}:root,html[data-theme="dark"]{--bg:#0B0C10;--bg-soft:#12141B;--card:rgba(255,255,255,0.045);--card-solid:#14161E;--line:rgba(255,255,255,0.09);--line-strong:rgba(255,255,255,0.16);--tx:#F2F4F0;--tx-dim:#949AA8;--tx-faint:#5A6070;--glass:rgba(18,20,27,0.72);--btn-ghost-bg:rgba(255,255,255,0.06);--shadow:0 18px 50px rgba(0,0,0,0.55);--bubble:rgba(214,255,75,0.10);--bubble-line:rgba(214,255,75,0.16);}html[data-theme="light"]{--bg:#F5F6F1;--bg-soft:#ECEEE6;--card:rgba(255,255,255,0.85);--card-solid:#FFFFFF;--line:rgba(20,24,18,0.10);--line-strong:rgba(20,24,18,0.22);--tx:#171A14;--tx-dim:#646A5E;--tx-faint:#9AA093;--glass:rgba(255,255,255,0.80);--ac:#A9CE00;--ac-ink:#141804;--ac-deep:#78B21D;--ac-fade:rgba(169,206,0,0.55);--ac-glow:rgba(150,190,0,0.30);--ac-soft:rgba(150,190,0,0.12);--btn-ghost-bg:rgba(20,24,18,0.05);--shadow:0 18px 44px rgba(40,46,30,0.14);--bubble:rgba(120,150,0,0.07);--bubble-line:rgba(120,150,0,0.13);}*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}::-webkit-scrollbar{width:8px;height:8px;}::-webkit-scrollbar-track{background:transparent;}::-webkit-scrollbar-thumb{background:var(--line-strong);border-radius:4px;}::-webkit-scrollbar-thumb:hover{background:var(--tx-dim);}*{scrollbar-width:thin;scrollbar-color:var(--line-strong) transparent;}html,body{height:100%;}body{font-family:"MiSans","HarmonyOS Sans SC","PingFang SC","Microsoft YaHei",-apple-system,system-ui,sans-serif;background:var(--bg);color:var(--tx);overflow:hidden;user-select:none;-webkit-user-select:none;transition:background 0.35s,color 0.35s;font-variant-numeric:tabular-nums;}#app{position:fixed;inset:0;overflow:hidden;}#app::before{content:"";position:absolute;inset:0;background-image:radial-gradient(var(--line) 1px,transparent 1px);background-size:32px 32px;opacity:0.45;pointer-events:none;z-index:0;}.screen{position:absolute;inset:0;display:none;flex-direction:column;z-index:1;}.screen.on{display:flex;animation:screenIn 0.3s ease;}@keyframes screenIn{from{opacity:0;transform:translateY(12px);}to{opacity:1;transform:none;}}button{font-family:inherit;border:0;background:none;color:inherit;cursor:pointer;}.btn-primary{display:flex;align-items:center;justify-content:center;gap:12px;width:100%;padding:18px 24px;background:var(--ac);color:var(--ac-ink);border-radius:999px;box-shadow:0 10px 30px var(--ac-glow);transition:transform 0.15s,filter 0.2s,box-shadow 0.2s;white-space:nowrap;}.btn-primary:hover{filter:brightness(1.06);box-shadow:0 14px 36px var(--ac-glow);}.btn-primary:active{transform:scale(0.97);}.btn-primary span{font-size:18px;font-weight:800;letter-spacing:2px;white-space:nowrap;}.btn-primary em{font-style:normal;font-size:11px;font-weight:700;letter-spacing:2px;opacity:0.6;white-space:nowrap;}.btn-ghost{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:16px 20px;background:var(--btn-ghost-bg);color:var(--tx);border:1px solid var(--line);border-radius:999px;font-size:15px;font-weight:700;letter-spacing:3px;transition:transform 0.15s,background 0.2s,border-color 0.2s;}.btn-ghost:hover{background:var(--card);border-color:var(--line-strong);}.btn-ghost:active{transform:scale(0.97);}.btn-subtle{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:14px 20px;background:transparent;color:var(--tx-dim);border:1.5px dashed var(--line-strong);border-radius:999px;font-size:14px;font-weight:700;letter-spacing:2px;cursor:pointer;transition:all 0.2s cubic-bezier(0.2,0.8,0.2,1);}.btn-subtle:hover{background:var(--card);color:var(--tx);border-color:var(--ac);border-style:solid;transform:translateY(-1px);}.btn-subtle:active{transform:scale(0.97);}.icon-btn{width:44px;height:44px;border-radius:50%;background:var(--card);border:1px solid var(--line);display:grid;place-items:center;font-size:19px;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);transition:transform 0.15s,border-color 0.2s;}.icon-btn:hover{border-color:var(--line-strong);transform:scale(1.05);}.icon-btn:active{transform:scale(0.9) rotate(-20deg);}.icon-btn.small{width:38px;height:38px;font-size:16px;}#scr-cover{padding:calc(var(--sat) + 14px) 24px calc(var(--sab) + 24px);overflow-y:auto;}.bubbles{position:absolute;inset:0;overflow:hidden;pointer-events:none;}.bubbles i{position:absolute;bottom:-60px;border-radius:50%;background:var(--bubble);border:1px solid var(--bubble-line);animation:rise linear infinite;}@keyframes rise{0%{transform:translateY(0) translateX(0);opacity:0;}8%{opacity:1;}50%{transform:translateY(-52vh) translateX(14px);}100%{transform:translateY(-112vh) translateX(-10px);opacity:0.15;}}.cover-top{display:flex;justify-content:flex-end;position:relative;z-index:2;max-width:1100px;width:100%;margin:0 auto;}.cover-wrap{position:relative;z-index:2;display:flex;flex-direction:column;max-width:460px;width:100%;margin:auto;padding:8px 0 24px;}.cover-center{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:10px 0 16px;}.cover-cup{position:relative;width:112px;height:154px;margin-bottom:28px;animation:floaty 4s ease-in-out infinite;}@keyframes floaty{0%,100%{transform:translateY(0);}50%{transform:translateY(-10px);}}.cup-lid{position:absolute;top:0;left:50%;transform:translateX(-50%);width:120px;height:12px;border-radius:8px;background:var(--tx);z-index:3;}.cup-body{position:absolute;top:12px;left:50%;transform:translateX(-50%);width:100px;height:128px;overflow:hidden;border:2.5px solid var(--line-strong);border-top:none;border-radius:0 0 28px 28px;background:var(--card);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:1;}.cup-liquid{position:absolute;left:0;right:0;bottom:0;height:74%;background:linear-gradient(180deg,var(--ac),var(--ac-deep));border-radius:0 0 24px 24px;animation:slosh 3.2s ease-in-out infinite;}@keyframes slosh{0%,100%{transform:translateY(0);}50%{transform:translateY(-5px);}}.cup-liquid i{position:absolute;bottom:8px;border-radius:50%;background:rgba(255,255,255,0.4);animation:bub 2.6s ease-in infinite;}.cup-liquid i:nth-child(1){left:16%;width:8px;height:8px;animation-delay:0s;}.cup-liquid i:nth-child(2){left:42%;width:5px;height:5px;animation-delay:0.7s;}.cup-liquid i:nth-child(3){left:62%;width:9px;height:9px;animation-delay:1.3s;}.cup-liquid i:nth-child(4){left:28%;width:4px;height:4px;animation-delay:1.8s;}.cup-liquid i:nth-child(5){left:74%;width:6px;height:6px;animation-delay:0.4s;}@keyframes bub{0%{transform:translateY(0);opacity:0;}25%{opacity:1;}100%{transform:translateY(-72px);opacity:0;}}.cup-straw{position:absolute;top:-30px;left:64px;width:13px;height:132px;background:var(--ac);border-radius:7px;transform:rotate(15deg);box-shadow:inset -3px 0 0 rgba(0,0,0,0.2);z-index:2;}.cup-shadow{position:absolute;bottom:-16px;left:50%;transform:translateX(-50%);width:94px;height:14px;border-radius:50%;background:rgba(0,0,0,0.35);filter:blur(6px);z-index:0;}html[data-theme="light"] .cup-shadow{background:rgba(60,66,40,0.18);}.cover-eyebrow{font-size:11px;letter-spacing:5px;font-weight:700;color:var(--tx-faint);margin-bottom:14px;}.cover-title{font-size:clamp(48px,12vw,84px);line-height:1.1;font-weight:900;letter-spacing:4px;background:linear-gradient(115deg,var(--tx) 55%,var(--ac));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;}.cover-sub{margin-top:18px;font-size:14.5px;line-height:1.9;color:var(--tx-dim);letter-spacing:1px;}.cover-sub b{color:var(--ac);font-size:18px;padding:0 2px;}.cover-bottom{display:flex;flex-direction:column;gap:16px;margin-top:10px;}.cover-action-card{display:flex;flex-direction:column;gap:14px;width:100%;}.mode-select-wrap{display:flex;flex-direction:column;gap:10px;width:100%;margin-bottom:2px;}.mode-select-head{display:flex;align-items:center;justify-content:space-between;padding:0 4px;}.mode-select-label{font-size:11px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;color:var(--tx-faint);}.mode-select-shortcut{font-size:11.5px;color:var(--tx-dim);letter-spacing:1px;opacity:0.85;}.mode-cards{display:flex;flex-direction:column;gap:8px;}.mode-card{position:relative;display:flex;align-items:center;gap:12px;padding:10.5px 14px;background:var(--card);border:1.5px solid var(--line);border-radius:var(--r-md);cursor:pointer;outline:none;transition:all 0.22s cubic-bezier(0.2,0.8,0.2,1);text-align:left;user-select:none;}.mode-card:hover{border-color:var(--line-strong);transform:translateY(-1.5px);}html[data-theme="dark"] .mode-card:hover{background:rgba(255,255,255,0.07);}html[data-theme="light"] .mode-card:hover{background:rgba(255,255,255,0.98);}.mode-card:focus-visible{border-color:var(--ac);box-shadow:0 0 0 3px var(--ac-fade);}.mode-card.active{border-color:var(--ac);box-shadow:0 8px 24px var(--ac-glow);}html[data-theme="dark"] .mode-card.active{background:rgba(214,255,75,0.07);}html[data-theme="light"] .mode-card.active{background:rgba(169,206,0,0.10);}.mc-radio{flex:none;width:20px;height:20px;border-radius:50%;border:2px solid var(--line-strong);display:grid;place-items:center;transition:all 0.2s ease;}.mode-card:hover .mc-radio{border-color:var(--tx-dim);}.mc-radio-dot{width:10px;height:10px;border-radius:50%;background:transparent;transform:scale(0);transition:transform 0.22s cubic-bezier(0.34,1.56,0.64,1);}.mode-card.active .mc-radio{border-color:var(--ac);box-shadow:0 0 8px var(--ac-glow);}.mode-card.active .mc-radio-dot{background:var(--ac);transform:scale(1);}.mc-icon{flex:none;width:40px;height:40px;border-radius:12px;background:rgba(255,255,255,0.05);border:1px solid var(--line);display:grid;place-items:center;font-size:20px;transition:transform 0.22s ease;}html[data-theme="light"] .mc-icon{background:rgba(20,24,18,0.04);}.mode-card:hover .mc-icon,.mode-card.active .mc-icon{transform:scale(1.1) rotate(-4deg);}.mc-info{flex:1;min-width:0;}.mc-title-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:2px;}.mc-name{font-size:15px;font-weight:800;color:var(--tx);letter-spacing:0.5px;}.mc-badge{font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:rgba(214,255,75,0.14);color:var(--ac);border:1px solid rgba(214,255,75,0.32);letter-spacing:0.5px;}.mc-badge.badge-pro{background:rgba(100,160,255,0.14);color:#79ABFF;border-color:rgba(100,160,255,0.35);}html[data-theme="light"] .mc-badge.badge-pro{background:rgba(25,90,210,0.10);color:#1958B5;border-color:rgba(25,90,210,0.25);}.mc-badge.badge-scale{background:rgba(168,85,247,0.15);color:#C084FC;border-color:rgba(168,85,247,0.35);}html[data-theme="light"] .mc-badge.badge-scale{background:rgba(147,51,234,0.10);color:#7E22CE;border-color:rgba(147,51,234,0.25);}.mc-desc{font-size:12px;color:var(--tx-dim);line-height:1.45;margin:0;letter-spacing:0.2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}.pc-key-tip{display:none;font-size:12.5px;color:var(--tx-dim);text-align:center;}.cover-toggles{display:flex;justify-content:center;gap:12px;}.chip-toggle{display:flex;align-items:center;gap:8px;padding:9px 16px;border-radius:999px;background:var(--card);border:1px solid var(--line);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);transition:opacity 0.2s,transform 0.12s,border-color 0.2s;}.chip-toggle:hover{border-color:var(--line-strong);}.chip-toggle:active{transform:scale(0.94);}.chip-toggle svg{flex:none;color:var(--tx-dim);}.chip-toggle label{font-size:12.5px;font-weight:600;color:var(--tx-dim);letter-spacing:2px;}.chip-toggle.off{opacity:0.45;}.chip-toggle.off label{text-decoration:line-through;}#scr-quiz{padding:calc(var(--sat) + 14px) 24px calc(var(--sab) + 20px);overflow-y:auto;}.quiz-container{display:flex;flex-direction:column;max-width:480px;width:100%;margin:auto;min-height:calc(100vh - 40px);justify-content:space-between;}.quiz-head{display:flex;align-items:center;gap:12px;}.quiz-mode-pill{flex:none;font-size:12px;font-weight:800;letter-spacing:0.5px;padding:6px 12px;border-radius:999px;background:var(--card);color:var(--tx-dim);border:1px solid var(--line-strong);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);white-space:nowrap;}.quiz-cup{position:relative;flex:1;height:34px;border:1.5px solid var(--line-strong);border-radius:999px;background:var(--card);overflow:hidden;backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);}.quiz-fill{position:absolute;inset:0;width:0%;background:linear-gradient(90deg,var(--ac-fade),var(--ac));border-radius:999px;transition:width 0.45s cubic-bezier(0.22,1,0.36,1);}.quiz-fill::after{content:"";position:absolute;inset:0;background:radial-gradient(circle at 20% 40%,rgba(255,255,255,0.5) 0 2px,transparent 3px),radial-gradient(circle at 55% 70%,rgba(255,255,255,0.4) 0 1.5px,transparent 2.5px),radial-gradient(circle at 80% 30%,rgba(255,255,255,0.45) 0 1.5px,transparent 2.5px);}.quiz-count{position:absolute;inset:0;display:grid;place-items:center;font-size:12.5px;font-weight:800;letter-spacing:2px;color:var(--tx);text-shadow:0 0 6px var(--bg);}.quiz-body{flex:1;display:flex;flex-direction:column;justify-content:center;gap:8px;padding:24px 0 12px;}.quiz-eyebrow{font-size:11px;letter-spacing:4px;color:var(--ac);font-weight:800;margin-bottom:8px;}.quiz-q{font-size:clamp(23px,5.5vw,32px);font-weight:800;line-height:1.45;letter-spacing:0.5px;margin-bottom:24px;animation:qin 0.4s cubic-bezier(0.22,1,0.36,1);}@keyframes qin{from{opacity:0;transform:translateY(16px);}to{opacity:1;transform:none;}}.quiz-opts{display:flex;flex-direction:column;gap:12px;}.opt{display:flex;align-items:center;gap:14px;text-align:left;padding:16px 20px;border-radius:var(--r-md);background:var(--card);border:1.5px solid var(--line);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);transition:transform 0.15s,border-color 0.2s,background 0.2s,box-shadow 0.2s;animation:qin 0.4s cubic-bezier(0.22,1,0.36,1) backwards;}.opt:hover{border-color:var(--ac);transform:translateY(-2px);box-shadow:0 8px 24px var(--ac-soft);}.opt:nth-child(1){animation-delay:0.05s;}.opt:nth-child(2){animation-delay:0.12s;}.opt:nth-child(3){animation-delay:0.19s;}.opt:nth-child(4){animation-delay:0.26s;}.opt:active{transform:scale(0.97);}.opt.picked{border-color:var(--ac);background:var(--ac-soft);transform:scale(0.98);}.opt-key{flex:none;width:34px;height:34px;border-radius:12px;display:grid;place-items:center;font-size:15px;font-weight:900;background:var(--btn-ghost-bg);color:var(--tx-dim);transition:background 0.2s,color 0.2s;}.opt.picked .opt-key{background:var(--ac);color:var(--ac-ink);}.opt-t{font-size:15.5px;line-height:1.5;font-weight:600;color:var(--tx);}.quiz-hint{text-align:center;font-size:12px;letter-spacing:2px;color:var(--tx-faint);padding:12px 0 8px;}.pc-key-tip-inline{display:none;}.quiz-opts.is-likert{display:block;}.likert-wrap{display:flex;flex-direction:column;align-items:center;gap:22px;width:100%;padding:16px 4px 10px;animation:qin 0.35s cubic-bezier(0.22,1,0.36,1);}.likert-labels{display:flex;justify-content:space-between;width:100%;max-width:580px;padding:0 4px;}.likert-lbl{font-size:13.5px;font-weight:800;letter-spacing:2px;}.likert-lbl.agree{color:#10B981;}.likert-lbl.neutral{color:var(--tx-dim);opacity:0.7;}.likert-lbl.disagree{color:#A855F7;}.likert-scale{display:flex;justify-content:space-between;align-items:center;width:100%;max-width:580px;position:relative;padding:12px 0;}.likert-scale::before{content:"";position:absolute;top:50%;left:20px;right:20px;height:3px;background:var(--line-strong);transform:translateY(-50%);z-index:0;}.likert-dot{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;background:transparent;border:none;cursor:pointer;padding:0;outline:none;transition:transform 0.18s cubic-bezier(0.2,0.8,0.2,1);-webkit-tap-highlight-color:transparent;}.likert-dot:hover{transform:scale(1.18);}.likert-dot:active{transform:scale(0.92);}.likert-dot.picked .dot-circle{background:var(--dot-color);box-shadow:0 0 20px var(--dot-glow);transform:scale(1.08);}.likert-dot .dot-circle{border-radius:50%;display:grid;place-items:center;transition:all 0.2s ease;background:var(--card-solid);border:2.5px solid var(--dot-color);box-shadow:0 2px 10px rgba(0,0,0,0.2);}.likert-dot:hover .dot-circle{box-shadow:0 0 16px var(--dot-glow);background:var(--dot-color);}.likert-dot .dot-sub{position:absolute;top:100%;margin-top:8px;font-size:11px;font-weight:700;color:var(--tx-faint);white-space:nowrap;pointer-events:none;opacity:0;transition:opacity 0.15s ease;}.likert-dot:hover .dot-sub{opacity:1;}.dot-val-p3{--dot-color:#10B981;--dot-glow:rgba(16,185,129,0.45);}.dot-val-p3 .dot-circle{width:48px;height:48px;}.dot-val-p2{--dot-color:#34D399;--dot-glow:rgba(52,211,153,0.4);}.dot-val-p2 .dot-circle{width:38px;height:38px;}.dot-val-p1{--dot-color:#6EE7B7;--dot-glow:rgba(110,231,183,0.35);}.dot-val-p1 .dot-circle{width:30px;height:30px;}.dot-val-0{--dot-color:#94A3B8;--dot-glow:rgba(148,163,184,0.3);}.dot-val-0 .dot-circle{width:24px;height:24px;}.dot-val-m1{--dot-color:#C084FC;--dot-glow:rgba(192,132,252,0.35);}.dot-val-m1 .dot-circle{width:30px;height:30px;}.dot-val-m2{--dot-color:#A855F7;--dot-glow:rgba(168,85,247,0.4);}.dot-val-m2 .dot-circle{width:38px;height:38px;}.dot-val-m3{--dot-color:#9333EA;--dot-glow:rgba(147,51,234,0.45);}.dot-val-m3 .dot-circle{width:48px;height:48px;}@media (max-width:480px){#scr-cover{padding:calc(var(--sat) + 8px) 16px calc(var(--sab) + 16px);}.cover-center{padding:4px 0 10px;}.cover-cup{width:82px;height:112px;margin-bottom:14px;}.cup-lid{width:88px;height:10px;}.cup-body{top:10px;width:74px;height:94px;}.cup-straw{top:-20px;left:47px;width:10px;height:96px;border-radius:5px;}.cup-shadow{width:68px;}.cover-eyebrow{font-size:10px;letter-spacing:2.5px;margin-bottom:6px;}.cover-title{font-size:38px;letter-spacing:2px;}.cover-sub{margin-top:8px;font-size:13px;line-height:1.6;}.cover-sub b{font-size:15px;}.cover-action-card{gap:10px;}.mode-cards{gap:7px;}.mode-card{padding:9px 12px;gap:10px;}.mc-radio{width:18px;height:18px;}.mc-icon{width:36px;height:36px;font-size:18px;border-radius:10px;}.mc-name{font-size:14px;}.mc-badge{font-size:10px;padding:1px 6px;}.mc-desc{font-size:11.5px;}.btn-primary{padding:15px 18px;}.btn-primary span{font-size:16px;letter-spacing:1px;}.btn-primary em{font-size:10.5px;}.chip-toggle{padding:7px 14px;}.chip-toggle label{font-size:11.5px;}.dot-val-p3 .dot-circle{width:40px;height:40px;}.dot-val-p2 .dot-circle{width:32px;height:32px;}.dot-val-p1 .dot-circle{width:26px;height:26px;}.dot-val-0 .dot-circle{width:20px;height:20px;}.dot-val-m1 .dot-circle{width:26px;height:26px;}.dot-val-m2 .dot-circle{width:32px;height:32px;}.dot-val-m3 .dot-circle{width:40px;height:40px;}}#scr-shake{align-items:center;justify-content:center;background:var(--bg);}.shake-stage{display:flex;flex-direction:column;align-items:center;gap:34px;width:80%;max-width:380px;}.shake-cup{position:relative;width:124px;height:166px;border:3px solid var(--line-strong);border-top:none;border-radius:0 0 32px 32px;overflow:hidden;background:var(--card);animation:shakeIt 0.5s ease-in-out infinite;}@keyframes shakeIt{0%,100%{transform:rotate(0);}25%{transform:rotate(-14deg) translateX(-6px);}75%{transform:rotate(14deg) translateX(6px);}}.shake-liquid{position:absolute;inset:12% 0 0 0;background:linear-gradient(180deg,var(--ac),var(--ac-deep));}.shake-liquid::after{content:"";position:absolute;top:-12px;left:-30%;width:160%;height:24px;border-radius:45%;background:var(--bg);animation:wave 1s ease-in-out infinite;}@keyframes wave{0%,100%{transform:translateX(-8%) rotate(4deg);}50%{transform:translateX(8%) rotate(-4deg);}}.shake-ice i{position:absolute;width:34px;height:34px;border-radius:9px;background:rgba(255,255,255,0.35);border:1.5px solid rgba(255,255,255,0.55);animation:icebob 1.1s ease-in-out infinite;}.shake-ice i:nth-child(1){top:34%;left:18%;}.shake-ice i:nth-child(2){top:52%;right:16%;animation-delay:0.35s;}@keyframes icebob{0%,100%{transform:translateY(0) rotate(0);}50%{transform:translateY(-12px) rotate(22deg);}}.shake-progress{width:100%;height:8px;border-radius:999px;background:var(--card);border:1px solid var(--line);overflow:hidden;}#shakeBar{height:100%;width:0%;border-radius:999px;background:var(--ac);transition:width 0.3s linear;}.shake-text{font-size:14.5px;letter-spacing:4px;color:var(--tx-dim);font-weight:600;}#scr-result{background:var(--bg);overflow-y:auto;overflow-x:hidden;}#scr-result::before{content:"";position:fixed;top:15%;left:20%;width:500px;height:500px;border-radius:50%;background:radial-gradient(circle,var(--pc,var(--ac)) 0%,transparent 70%);opacity:0.12;filter:blur(90px);pointer-events:none;z-index:0;}.result-scroll{position:relative;z-index:1;width:100%;min-height:100%;padding:calc(var(--sat) + 26px) 24px calc(var(--sab) + 40px);}.result-layout{display:flex;flex-direction:column;max-width:480px;width:100%;margin:0 auto;}.result-left-col{display:flex;flex-direction:column;align-items:center;}.result-hero{display:flex;flex-direction:column;align-items:center;width:100%;}.result-eyebrow{font-size:11px;letter-spacing:5px;color:var(--tx-faint);font-weight:800;margin-bottom:16px;animation:qin 0.5s 0.05s backwards;}.result-card{width:100%;max-width:440px;background:var(--card-solid);border:1.5px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow);overflow:hidden;animation:cardIn 0.65s cubic-bezier(0.2,1.2,0.3,1) 0.15s backwards;position:relative;backdrop-filter:blur(14px);}@keyframes cardIn{from{opacity:0;transform:translateY(46px) scale(0.92);}to{opacity:1;transform:none;}}.card-band{display:flex;justify-content:space-between;align-items:center;padding:14px 22px;background:var(--pc,var(--ac));color:var(--ac-ink);}.card-band span:first-child{font-size:13.5px;font-weight:900;letter-spacing:3px;}.card-band span:last-child{font-size:11px;font-weight:800;letter-spacing:2px;opacity:0.8;}.card-main{padding:30px 24px 20px;text-align:center;}.card-main h1{font-size:clamp(30px,4.2vw,42px);font-weight:900;letter-spacing:2px;line-height:1.25;white-space:nowrap;text-overflow:ellipsis;word-break:keep-all;}.card-main h1.is-mbti-code{font-size:clamp(52px,7.5vw,68px);font-weight:950;letter-spacing:6px;line-height:1.05;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",sans-serif;color:var(--tx);}.card-sub-name{font-size:15.5px;font-weight:800;color:var(--tx-dim);letter-spacing:2px;margin-top:6px;}.card-tags{display:flex;flex-wrap:wrap;justify-content:center;gap:8px;margin-top:16px;}.card-tags i{font-style:normal;font-size:12px;font-weight:700;letter-spacing:1px;padding:6px 14px;border-radius:999px;color:var(--tx-dim);background:var(--btn-ghost-bg);border:1px solid var(--line);animation:qin 0.4s backwards;}.card-tags i:nth-child(1){animation-delay:0.45s;}.card-tags i:nth-child(2){animation-delay:0.55s;}.card-tags i:nth-child(3){animation-delay:0.65s;}.card-divider{height:1px;margin:6px 24px 0;background:var(--line);}.card-ing{padding:20px 24px 8px;}.card-ing .ing-head{display:flex;justify-content:space-between;align-items:baseline;padding-bottom:10px;border-bottom:2.5px solid var(--tx);margin-bottom:4px;}.card-ing .ing-head b{font-size:14px;letter-spacing:2px;}.card-ing .ing-head span{font-size:10px;letter-spacing:2px;color:var(--tx-faint);}.ing-row{display:flex;align-items:baseline;gap:8px;padding:9px 0;border-bottom:1px solid var(--line);animation:qin 0.4s backwards;}.ing-row:nth-child(2){animation-delay:0.5s;}.ing-row:nth-child(3){animation-delay:0.6s;}.ing-row:nth-child(4){animation-delay:0.7s;}.ing-row:nth-child(5){animation-delay:0.8s;}.ing-row b{font-size:13.5px;font-weight:700;color:var(--tx);white-space:nowrap;}.ing-row .dots{flex:1;border-bottom:1.5px dotted var(--line-strong);transform:translateY(-3px);}.ing-row em{font-style:normal;font-size:14px;font-weight:900;color:var(--ac);}.card-stamp{padding:14px 0 18px;text-align:center;font-size:9.5px;letter-spacing:4px;color:var(--tx-faint);}.result-right-col{display:flex;flex-direction:column;}.result-sec{margin-top:30px;}.sec-title{font-size:13.5px;font-weight:900;letter-spacing:4px;color:var(--tx);margin-bottom:14px;display:flex;align-items:center;gap:10px;}.sec-title::before{content:"";width:5px;height:16px;border-radius:3px;background:var(--ac);}.sec-title::after{content:"";flex:1;height:1px;background:var(--line);}.axes{display:flex;flex-direction:column;gap:16px;}.axis{display:grid;grid-template-columns:88px 1fr 88px;gap:14px;align-items:center;animation:qin 0.45s backwards;}.axis:nth-child(1){animation-delay:0.1s;}.axis:nth-child(2){animation-delay:0.18s;}.axis:nth-child(3){animation-delay:0.26s;}.axis:nth-child(4){animation-delay:0.34s;}.axis-side{font-size:12px;font-weight:800;letter-spacing:1px;color:var(--tx-dim);white-space:nowrap;}.axis-side.r{text-align:right;}.axis-side.win{color:var(--ac);}.axis-bar{display:flex;gap:4px;}.axis-half{position:relative;flex:1;height:12px;border-radius:999px;background:var(--btn-ghost-bg);overflow:hidden;}.axis-fill{position:absolute;top:0;bottom:0;border-radius:999px;background:linear-gradient(90deg,var(--ac-fade),var(--ac));width:0;transition:width 0.9s cubic-bezier(0.22,1,0.36,1);}.axis-half.l .axis-fill{left:0;}.axis-half.r .axis-fill{right:0;background:linear-gradient(270deg,var(--ac-fade),var(--ac));}.axis-pct{font-size:10.5px;color:var(--tx-faint);text-align:center;margin-top:4px;grid-column:1 / -1;letter-spacing:2px;}.para{font-size:15px;line-height:2;color:var(--tx-dim);text-align:justify;}.para b{color:var(--tx);}.trio{display:flex;flex-direction:column;gap:12px;}.mini-card{padding:18px 20px;border-radius:var(--r-md);background:var(--card);border:1.5px solid var(--line);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);animation:qin 0.45s backwards;}.mini-card:nth-child(1){animation-delay:0.1s;}.mini-card:nth-child(2){animation-delay:0.2s;}.mini-card:nth-child(3){animation-delay:0.3s;}.mini-card h4{font-size:13.5px;font-weight:900;letter-spacing:2px;margin-bottom:8px;display:flex;align-items:baseline;gap:8px;}.mini-card h4 i{font-style:normal;font-size:9px;letter-spacing:2px;color:var(--tx-faint);}.mini-card p{font-size:13.5px;line-height:1.9;color:var(--tx-dim);}.mini-card.warn h4{color:var(--warn-c);}.mini-card.match h4{color:var(--ok);}.mini-card.match p b{color:var(--tx);}.quote{margin:30px 4px 0;padding:22px 24px;border-left:4px solid var(--ac);background:var(--card);border-radius:0 var(--r-md) var(--r-md) 0;font-size:16px;font-weight:700;line-height:1.8;letter-spacing:1px;animation:qin 0.5s backwards;}.result-actions{display:flex;flex-direction:column;gap:12px;}.result-actions.pc-actions{display:none;width:100%;}.result-actions.mobile-actions{margin-top:34px;}.result-foot{text-align:center;margin-top:24px;font-size:10.5px;letter-spacing:3px;color:var(--tx-faint);}@media (min-width:768px){.quiz-container{max-width:800px;}.quiz-opts{display:grid;grid-template-columns:1fr 1fr;gap:16px;}.opt{padding:20px 22px;}.pc-key-tip-inline{display:inline;}.trio{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}.axis{grid-template-columns:108px 1fr 108px;gap:18px;}.axis-side{font-size:13px;}}@media (min-width:900px){.cover-top{padding:12px 20px 0;}.cover-wrap{display:grid;grid-template-columns:1.05fr 0.95fr;gap:52px;max-width:1080px;align-items:center;}.cover-center{align-items:flex-start;text-align:left;padding:24px 0;}.cover-cup{width:130px;height:180px;}.cup-lid{width:140px;height:14px;}.cup-body{top:14px;width:118px;height:152px;}.cup-straw{top:-34px;left:75px;width:15px;height:152px;border-radius:8px;}.cup-shadow{width:110px;}.cover-title{font-size:76px;}.cover-sub{font-size:15.5px;}.cover-action-card{background:var(--card);border:1.5px solid var(--line-strong);border-radius:var(--r-lg);padding:30px 28px;box-shadow:var(--shadow);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);gap:16px;}.mode-card{padding:14px 18px;}.mc-name{font-size:15.5px;}.mc-desc{font-size:12.5px;}.pc-key-tip{display:block;}.btn-primary{padding:22px 28px;}.btn-primary span{font-size:20px;}.quiz-container{max-width:880px;min-height:auto;padding:36px 0;}.quiz-q{font-size:32px;text-align:center;margin-bottom:34px;}.result-scroll{padding:40px 36px 60px;}.result-layout{display:grid;grid-template-columns:440px 1fr;gap:52px;max-width:1180px;align-items:start;}.result-left-col{position:sticky;top:32px;align-items:stretch;gap:22px;}.result-card{max-width:100%;}.card-main h1{font-size:42px;}.result-actions.pc-actions{display:flex;margin-top:4px;}.result-actions.mobile-actions{display:none;}.result-sec{margin-top:26px;}.result-sec:first-child{margin-top:0;}.axis{grid-template-columns:116px 1fr 116px;gap:22px;}.axis-side{font-size:13.5px;}.axis-half{height:14px;}.para{font-size:16px;line-height:2.1;}.mini-card{padding:22px 24px;}.mini-card h4{font-size:14.5px;}.mini-card p{font-size:14px;}.quote{font-size:17.5px;padding:24px 28px;}}
 
@@ -5429,10 +6531,20 @@ html[data-theme="light"] .sbti-dim-badge.lvl-L {
             <span class="tab-label-full">赛博塔罗</span>
             <span class="tab-label-short">塔罗</span>
           </button>
+          <button class="nav-tab" data-mod="lingqian">
+            <span class="tab-icon">🎋</span>
+            <span class="tab-label-full">东方灵签</span>
+            <span class="tab-label-short">灵签</span>
+          </button>
           <button class="nav-tab" data-mod="decision">
             <span class="tab-icon">🪙</span>
             <span class="tab-label-full">纠结拯救</span>
             <span class="tab-label-short">决策</span>
+          </button>
+          <button class="nav-tab" data-mod="clock">
+            <span class="tab-icon">⏰</span>
+            <span class="tab-label-full">摸鱼时钟</span>
+            <span class="tab-label-short">摸鱼</span>
           </button>
         </nav>
       </div>
@@ -5892,6 +7004,10 @@ html[data-theme="light"] .sbti-dim-badge.lvl-L {
     <!-- 模块 5：赛博塔罗 (22张大阿卡那) -->
     <section id="mod-tarot" class="app-module">
       <div class="tr-screen active" id="sc-tr-home">
+        <div class="ew-mystic-bar">
+          <button class="ew-switch-btn active west" data-ew-jump="tarot">🔮 西方塔罗</button>
+          <button class="ew-switch-btn east" data-ew-jump="lingqian">🎋 东方灵签 ⇄</button>
+        </div>
         <h1 class="logo">塔罗占卜</h1>
         <div class="sub">大阿卡那 · 二十二张启示之牌</div>
         <div class="orn">✦ ✦ ✦</div>
@@ -6172,6 +7288,225 @@ html[data-theme="light"] .sbti-dim-badge.lvl-L {
             <button class="dec-btn-action ghost" id="btnReceiptAgain">🔄 再来一次</button>
             <button class="dec-btn-action primary" id="btnReceiptSaveImage">📸 保存小票图</button>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 模块 7：东方赛博灵签 (与赛博塔罗构成东西玄学合辑) -->
+    <section id="mod-lingqian" class="app-module">
+      <!-- 屏幕 1：求签摇筒主页 -->
+      <div class="lq-screen active" id="sc-lq-home">
+        <header class="lq-header">
+          <div class="ew-mystic-bar">
+            <button class="ew-switch-btn west" data-ew-jump="tarot">⇄ 🔮 西方塔罗</button>
+            <button class="ew-switch-btn active east" data-ew-jump="lingqian">🎋 东方灵签</button>
+          </div>
+          <h1 class="lq-title">东方赛博灵签</h1>
+          <div class="lq-sub">紫竹摇签 · 朱砂宣纸 · 当代打工人渡劫指南</div>
+        </header>
+
+        <!-- 四大求签方向 -->
+        <div class="lq-cat-grid">
+          <div class="lq-cat-card active" data-cat="career">
+            <span class="lq-cat-ico">💼</span>
+            <div class="lq-cat-info">
+              <b>搞钱事业签</b>
+              <span>升职加薪 · 避坑跳槽</span>
+            </div>
+          </div>
+          <div class="lq-cat-card" data-cat="wealth">
+            <span class="lq-cat-ico">💰</span>
+            <div class="lq-cat-info">
+              <b>暴富偏财签</b>
+              <span>正财稳进 · 锦鲤附体</span>
+            </div>
+          </div>
+          <div class="lq-cat-card" data-cat="love">
+            <span class="lq-cat-ico">🌸</span>
+            <div class="lq-cat-info">
+              <b>赛博桃花签</b>
+              <span>正缘显灵 · 寡王破局</span>
+            </div>
+          </div>
+          <div class="lq-cat-card" data-cat="shield">
+            <span class="lq-cat-ico">🛡️</span>
+            <div class="lq-cat-info">
+              <b>退散小人签</b>
+              <span>甩锅免疫 · 水逆清零</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="lq-wish-box">
+          <input type="text" class="lq-wish-input" id="lqWishInput" placeholder="默念并输入你的心愿或困惑（选填，心诚则灵）" maxlength="32" autocomplete="off">
+        </div>
+
+        <!-- 雕花紫竹签筒舞台 -->
+        <div class="lq-cylinder-stage">
+          <div class="lq-flying-stick" id="lqFlyingStick">
+            <div class="lq-stick-tip"></div>
+            <div class="lq-stick-text" id="lqStickText">第一签</div>
+          </div>
+          <div class="lq-cylinder-wrap" id="lqCylinderWrap" title="点击摇晃签筒">
+            <div id="lqCylinderSvgBox"></div>
+          </div>
+          <div class="lq-stage-hint" id="lqStageHint">轻点签筒或下方按钮，诚心摇出今日灵签</div>
+        </div>
+
+        <button class="lq-btn-main" id="lqBtnShake">🎋 诚心摇签 · 恭请神明指引</button>
+      </div>
+
+      <!-- 屏幕 2：宣纸朱砂签文揭晓页 -->
+      <div class="lq-screen" id="sc-lq-result">
+        <div class="lq-scroll-card">
+          <div class="lq-scroll-head">
+            <div class="lq-num-badge">
+              <span class="lq-num-sub" id="lqResCatSub">💼 搞钱事业 · 祈愿</span>
+              <div class="lq-num-title" id="lqResTitle">第一签 · 紫气东来</div>
+            </div>
+            <div class="lq-rank-stamp" id="lqResRank">上上大吉</div>
+          </div>
+
+          <div class="lq-poem-box">
+            <div class="lq-poem-label">✦ 古典灵签诗曰 ✦</div>
+            <div class="lq-poem-lines" id="lqResPoem">大鹏一日同风起，扶摇直上九万里。<br>久困樊笼今脱锁，金鳞岂是池中物。</div>
+          </div>
+
+          <div class="lq-xianji-grid" id="lqResXianji">
+            <!-- 动态渲染四维仙机 -->
+          </div>
+
+          <div class="lq-interp-box">
+            <div class="lq-sec-label">🔥 【赛博打工人白话解签】</div>
+            <p class="lq-interp-txt" id="lqResInterp"></p>
+          </div>
+
+          <div class="lq-tips-box" id="lqResTips">
+            <!-- 动态渲染今日宜忌 -->
+          </div>
+        </div>
+
+        <div class="lq-result-actions">
+          <button class="lq-btn-act" id="lqBtnAgain">🔄 再求一签</button>
+          <button class="lq-btn-act primary" id="lqBtnSave">📜 保存朱砂灵签图</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 模块 8：摸鱼发薪实时时钟 (扎心又快乐的工位时钟) -->
+    <section id="mod-clock" class="app-module">
+      <div class="ck-wrap">
+        <!-- 顶部状态与快捷工具栏 -->
+        <div class="ck-topbar">
+          <div class="ck-status-pill">
+            <span class="ck-status-dot"></span>
+            <span id="ckStatusText">🟢 工位带薪搬砖 · 秒级暴富中</span>
+          </div>
+          <div class="ck-top-actions">
+            <button class="ck-btn-mini" id="ckBtnMask">🙈 隐藏月薪</button>
+            <button class="ck-btn-mini" id="ckBtnZen">🖥️ 极简屏保</button>
+          </div>
+        </div>
+
+        <!-- 拟真工位翻页时钟 -->
+        <div class="ck-flip-clock-box">
+          <div class="ck-flip-row">
+            <div class="ck-flip-unit" id="ckFlipHH">09</div>
+            <span class="ck-flip-colon">:</span>
+            <div class="ck-flip-unit" id="ckFlipMM">30</div>
+            <span class="ck-flip-colon">:</span>
+            <div class="ck-flip-unit" id="ckFlipSS">00</div>
+          </div>
+          <div class="ck-date-line" id="ckDateLine">2026年10月10日 · 设定 ¥ 12,000/月</div>
+        </div>
+
+        <!-- 毫秒级实时窝囊费跳字屏 -->
+        <div class="ck-salary-hero">
+          <div class="ck-hero-eyebrow">💰 今日在工位已窝囊赚取 (实时毫秒级跳表)</div>
+          <div class="ck-money-ticker">
+            <span class="ck-currency">¥</span>
+            <span class="ck-money-int" id="ckMoneyInt">168</span>
+            <span class="ck-money-dec" id="ckMoneyDec">.4285</span>
+          </div>
+          <div class="ck-rate-sub" id="ckRateSub">日薪 ¥551.7  ·  每秒入账 ¥0.0170  ·  呼吸都在赚钱</div>
+          <div class="ck-equiv-row">
+            <span class="ck-equiv-pill">≈ 🧋 <b id="ckEqMilktea">9.3</b> 杯生椰拿铁</span>
+            <span class="ck-equiv-pill">≈ 🍗 <b id="ckEqKfc">3.4</b> 顿疯狂星期四</span>
+            <span class="ck-equiv-pill">≈ 🧻 <b id="ckEqTissue">48</b> 包工位抽纸</span>
+          </div>
+        </div>
+
+        <!-- 带薪摸鱼 / 拉屎专项计时器 -->
+        <div class="ck-slack-card" id="ckSlackCard">
+          <div class="ck-slack-head">
+            <span class="ck-slack-title">🐟 带薪摸鱼专项回血计时器</span>
+            <div class="ck-slack-tags">
+              <span class="ck-stag active" data-stype="🚽 带薪如厕">🚽 如厕</span>
+              <span class="ck-stag" data-stype="☕ 茶水放空">☕ 茶水间</span>
+              <span class="ck-stag" data-stype="📱 刷手机">📱 刷手机</span>
+            </div>
+          </div>
+          <div class="ck-slack-body">
+            <div class="ck-slack-stats">
+              <span class="ck-slack-time" id="ckSlackTime">00:00:00</span>
+              <span class="ck-slack-earned">已白嫖老板 <b id="ckSlackEarnedVal">¥ 0.000</b></span>
+            </div>
+            <button class="ck-btn-slack" id="ckBtnSlack">🐟 开始带薪摸鱼计时</button>
+          </div>
+        </div>
+
+        <!-- 四大扎心又快乐倒计时沙漏 -->
+        <div class="ck-countdown-grid">
+          <div class="ck-cd-card">
+            <div class="ck-cd-label"><span>🏃 距离今日下班解放</span></div>
+            <div class="ck-cd-val" id="ckCdOffwork">02:45:12</div>
+            <div class="ck-cd-bar"><div class="ck-cd-fill" id="ckCdOffworkBar"></div></div>
+            <div class="ck-cd-sub" id="ckCdOffworkSub">今日工时已熬过 68.5%</div>
+          </div>
+          <div class="ck-cd-card">
+            <div class="ck-cd-label"><span>🍻 距离周五下班狂欢</span></div>
+            <div class="ck-cd-val" id="ckCdFriday">0天 02时 45分</div>
+            <div class="ck-cd-sub" id="ckCdFridaySub">撑住，胜利的曙光就在前方</div>
+          </div>
+          <div class="ck-cd-card">
+            <div class="ck-cd-label"><span>💸 距离下次发薪回血</span></div>
+            <div class="ck-cd-val" id="ckCdPayday">5 天</div>
+            <div class="ck-cd-sub" id="ckCdPaydaySub">每月 15 号准时回血</div>
+          </div>
+          <div class="ck-cd-card">
+            <div class="ck-cd-label"><span>🏖️ 距离下一法定节假日</span></div>
+            <div class="ck-cd-val" id="ckCdHoliday">83 天</div>
+            <div class="ck-cd-sub" id="ckCdHolidaySub">距离【元旦假期】放假</div>
+          </div>
+        </div>
+
+        <!-- 工位薪资与上下班参数配置 -->
+        <div class="ck-config-card">
+          <div class="ck-cfg-head">
+            <span>⚙️ 工位计薪参数自定义 (自动本地保存)</span>
+          </div>
+          <div class="ck-cfg-grid">
+            <div class="ck-cfg-item">
+              <label>税前/到手月薪 (元)</label>
+              <input type="number" id="ckInpSalary" value="12000" min="100" max="9999999" step="500">
+            </div>
+            <div class="ck-cfg-item">
+              <label>每月发薪日 (1-31号)</label>
+              <input type="number" id="ckInpPayday" value="15" min="1" max="31">
+            </div>
+            <div class="ck-cfg-item">
+              <label>上班打卡时间</label>
+              <input type="time" id="ckInpStart" value="09:00">
+            </div>
+            <div class="ck-cfg-item">
+              <label>下班解放时间</label>
+              <input type="time" id="ckInpEnd" value="18:00">
+            </div>
+          </div>
+        </div>
+
+        <div class="ck-bottom-actions">
+          <button class="ck-btn-poster" id="ckBtnPoster">📸 生成《今日工位带薪摸鱼战报》并归档</button>
         </div>
       </div>
     </section>
@@ -16135,6 +17470,1073 @@ if ('serviceWorker' in navigator) {
 })();
 
 
+/* ====== js/modules/lingqian.js ====== */
+/* =========================================================
+   模块 7：东方赛博灵签 (Cyber Oriental Fortune Sticks)
+   与西方赛博塔罗并列「东西玄学合辑」· 紫竹摇签 · 朱砂宣纸签文
+   ========================================================= */
+
+(function () {
+  'use strict';
+
+  const CATEGORIES = {
+    career: { name: '💼 搞钱事业', desc: '升职加薪 · 避坑跳槽' },
+    wealth: { name: '💰 暴富偏财', desc: '正财稳进 · 锦鲤附体' },
+    love:   { name: '🌸 赛博桃花', desc: '正缘显灵 · 寡王破局' },
+    shield: { name: '🛡️ 退散小人', desc: '甩锅免疫 · 水逆清零' }
+  };
+
+  // 精选 16 支东西方交融赛博灵签库
+  const STICKS = [
+    {
+      no: '第一签',
+      title: '紫气东来 · 扶摇直上',
+      rank: '上上大吉',
+      poem: ['大鹏一日同风起，扶摇直上九万里。', '久困樊笼今脱锁，金鳞岂是池中物。'],
+      xianji: { '功名': '破格拔擢', '财运': '八方来财', '良缘': '天作之合', '防锅': '万邪不侵' },
+      interp: '此乃百里挑一的「天选打工人」神签！你之前积攒的所有隐忍、熬过的夜、改过的烂需求，都将在近期转化为实质性的大爆发。原本卡壳的事情会突然绿灯全开，贵人主动递梯子。别再自我怀疑，大胆争取你应得的筹码！',
+      yi: '大胆提条件、投递心仪 Offer、买杯最贵的特调犒劳自己',
+      ji: '过度谦虚、替不懂感恩的人免费加班'
+    },
+    {
+      no: '第三签',
+      title: '姜公钓鱼 · 愿者上钩',
+      rank: '上吉',
+      poem: ['渭水河畔持翠竿，风波不动心自宽。', '莫道良辰来得晚，一朝得势跃龙门。'],
+      xianji: { '功名': '大器晚成', '财运': '静待花开', '良缘': '水到渠成', '防锅': '稳坐钓鱼台' },
+      interp: '焦虑是因为你把时间线拉得太短了！当前看似风平浪静甚至有点无聊的工位日常，其实是宇宙在帮你蓄力。不要看别人瞎卷就跟着乱阵脚，按你自己的节奏摸鱼充电、精进手艺，真正属于你的大鱼已经在咬钩的路上了。',
+      yi: '按时下班、整理作品集、带薪学习新技能',
+      ji: '跟风内卷、在深夜回复工作群消息'
+    },
+    {
+      no: '第六签',
+      title: '火炼真金 · 拨云见日',
+      rank: '中上吉',
+      poem: ['千淘万漉虽辛苦，吹尽狂沙始到金。', '守得云开见明月，自有清风拂衣襟。'],
+      xianji: { '功名': '先苦后甜', '财运': '渐入佳境', '良缘': '真心相见', '防锅': '清者自清' },
+      interp: '最近是不是觉得破事一堆、仿佛全公司的草台班子都在考验你的脾气？稳住！这支签告诉你：目前的折腾正是筛掉庸人、凸显你价值的时刻。那些甩不掉的烂摊子很快就会收尾，你的专业度会被真正有话语权的人看在眼里。',
+      yi: '留存工作留痕记录、午休闭目养神 20 分钟',
+      ji: '在背后跟半熟的同事吐槽老板'
+    },
+    {
+      no: '第八签',
+      title: '财神敲门 · 暗流涌金',
+      rank: '上上大吉',
+      poem: ['忽如一夜春风来，千树万树金花开。', '正道勤耕有厚报，偏财亦随喜鹊来。'],
+      xianji: { '功名': '名利双收', '财运': '横财就手', '良缘': '喜气盈门', '防锅': '逢凶化吉' },
+      interp: '恭喜抽中赛博财神爷亲自加持的搞钱灵签！近期你的财运磁场极强，不仅主业有望迎来奖金、补贴或绩效好消息，还容易遇到报销秒批、闲置高价卖出、抽中免单等意外惊喜。记得把手机电量充满，随时接听好消息！',
+      yi: '核对报销单、清理二手闲置、请朋友喝快乐水攒人品',
+      ji: '冲动消费买华而不实的电子垃圾'
+    },
+    {
+      no: '第十一签',
+      title: '明哲保身 · 潜龙勿用',
+      rank: '中平',
+      poem: ['深潭潜龙莫轻狂，雾里看花且敛光。', '他山纵有千般险，我自高卧白云乡。'],
+      xianji: { '功名': '宜守不宜攻', '财运': '落袋为安', '良缘': '随缘莫强求', '防锅': '三十六计闪为上' },
+      interp: '这是一支极具东方生存智慧的「摸鱼护体签」！当前外部环境（或者你们部门的规划）正处于朝令夕改的混乱期，谁冲在最前面谁就最容易当炮灰。此时最高级的策略就是：降低存在感，精准卡点完成分内事，绝不主动揽活！',
+      yi: '开启免打扰模式、准点打卡溜号、保持表情平淡',
+      ji: '在会议上抢答、盲目立下高难度 Flag'
+    },
+    {
+      no: '第十五签',
+      title: '钟馗捉鬼 · 小人退散',
+      rank: '上吉',
+      poem: ['青锋宝剑耀寒光，魑魅魍魉无处藏。', '坦荡胸怀行大道，清风明月伴君旁。'],
+      xianji: { '功名': '排除万难', '财运': '失而复得', '良缘': '去伪存真', '防锅': '反弹琵琶' },
+      interp: '近期若有阴阳怪气的甩锅侠、爱打小报告的职场戏精围着你转，请尽管放心！此签自带「赛博钟馗防弹盾」，对方耍的小聪明不仅伤不到你，反而会在大庭广众之下露出马脚自食其果。你只管堂堂正正看戏即可！',
+      yi: '重要沟通一律群聊留底、桌面摆一盆绿植或冰水',
+      ji: '因别人的愚蠢而内耗生闷气'
+    },
+    {
+      no: '第十八签',
+      title: '桃花映面 · 良缘天降',
+      rank: '上上大吉',
+      poem: ['春水初生映彩霞，春林初盛满枝花。', '莫愁前路无知己，转角相逢便是一家。'],
+      xianji: { '功名': '人脉亨通', '财运': '和气生财', '良缘': '红鸾星动', '防锅': '众人相助' },
+      interp: '不仅爱情桃花旺，人际贵人运更是直接拉满！单身者近期极易在兴趣社群、朋友聚会或偶然的搭话中遇到聊得来的高频灵魂；职场人则会遇到沟通极其顺畅的神仙搭档或爽快客户，让你感叹“人间居然还有正常人”！',
+      yi: '换个清爽发型、周末出门晒太阳、主动给朋友点个赞',
+      ji: '全天宅在被窝不见天日、拒绝所有社交邀请'
+    },
+    {
+      no: '第二十二签',
+      title: '柳暗花明 · 绝处逢生',
+      rank: '中吉（逆袭签）',
+      poem: ['山重水复疑无路，柳暗花明又一村。', '莫叹眼下微霜冷，转身便是艳阳春。'],
+      xianji: { '功名': '另辟蹊径', '财运': '转弯见喜', '良缘': '旧去新来', '防锅': '化险为夷' },
+      interp: '如果一件事怎么推进都觉得别扭、或者一段关系怎么维护都觉得心累，这支签在温柔地拍拍你：别死磕那扇锁死的门了！试着换一条路、换一个方案，甚至直接放下它，你会惊讶地发现旁边就有一扇洒满阳光的落地窗。',
+      yi: '清理手机内存与桌面杂物、换条路散步回家',
+      ji: '钻牛角尖、为沉没成本继续买单'
+    },
+    {
+      no: '第二十六签',
+      title: '偷得浮生 · 逍遥神仙',
+      rank: '上吉',
+      poem: ['竹密不妨流水过，山高岂碍白云飞。', '因过竹院逢僧话，偷得浮生半日闲。'],
+      xianji: { '功名': '松弛有度', '财运': '知足常乐', '良缘': '自在随心', '防锅': '片叶不沾身' },
+      interp: '宇宙检测到你的精神发条拧得太紧了！特赐「带薪逍遥签」一支。天塌下来有高个子顶着，公司的股价更不会因为你少回一条消息而跌停。今天你的首要KPI就是照顾好自己的情绪，去喝杯好喝的，让灵魂充个电！',
+      yi: '正大光明摸鱼 15 分钟、听喜欢的歌、早点钻进被窝',
+      ji: '把工作焦虑带上餐桌和床头'
+    },
+    {
+      no: '第三十签',
+      title: '否极泰来 · 破茧成蝶',
+      rank: '下下转上吉（触底反弹）',
+      poem: ['冬去冰消春自回，寒梅历雪更芳菲。', '今朝虽有微云蔽，明日金乌照九围。'],
+      xianji: { '功名': '触底反弹', '财运': '守正待时', '良缘': '破镜重圆', '防锅': '涅槃重生' },
+      interp: '抽到这支签反而要恭喜你！所谓「否极泰来」，意味着最倒霉、最心烦的谷底已经彻底翻篇了！从你看到这行字开始，所有的霉运都已经清零结算，接下来走的每一步都是在往高处走。去洗把脸，好戏才刚刚开始！',
+      yi: '吃一顿热乎乎的美食、洗个热水澡洗去疲惫',
+      ji: '灰心丧气、否定自己的价值'
+    }
+  ];
+
+  let curCategory = 'career';
+  let isShaking = false;
+  let lastStickRecord = null;
+
+  function showScreen(id) {
+    const root = document.getElementById('mod-lingqian');
+    if (!root) return;
+    root.querySelectorAll('.lq-screen').forEach(s => s.classList.remove('active'));
+    const target = root.querySelector('#' + id);
+    if (target) {
+      target.classList.add('active');
+      root.scrollTop = 0;
+    }
+  }
+
+  function renderCylinderSvg() {
+    const box = document.getElementById('lqCylinderSvgBox');
+    if (!box) return;
+    box.innerHTML = `
+      <svg viewBox="0 0 160 220" width="150" height="206" style="filter: drop-shadow(0 12px 24px rgba(0,0,0,0.45));">
+        <defs>
+          <linearGradient id="g_lq_bamboo" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#7F1D1D"/>
+            <stop offset="25%" stop-color="#B91C1C"/>
+            <stop offset="55%" stop-color="#991B1B"/>
+            <stop offset="100%" stop-color="#450A0A"/>
+          </linearGradient>
+          <linearGradient id="g_lq_gold" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#D97706"/>
+            <stop offset="50%" stop-color="#FDE68A"/>
+            <stop offset="100%" stop-color="#B45309"/>
+          </linearGradient>
+          <linearGradient id="g_lq_stick" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#FDE68A"/>
+            <stop offset="100%" stop-color="#D97706"/>
+          </linearGradient>
+        </defs>
+        <!-- 签筒内簇拥的竹签群 -->
+        <g id="lqSticksBundle">
+          <rect x="46" y="18" width="10" height="80" rx="4" transform="rotate(-10 50 70)" fill="url(#g_lq_stick)" stroke="#92400E" stroke-width="1"/>
+          <rect x="60" y="10" width="10" height="85" rx="4" transform="rotate(-4 65 70)" fill="url(#g_lq_stick)" stroke="#92400E" stroke-width="1"/>
+          <rect x="75" y="8" width="11" height="88" rx="4" fill="url(#g_lq_stick)" stroke="#92400E" stroke-width="1"/>
+          <rect x="90" y="12" width="10" height="84" rx="4" transform="rotate(5 95 70)" fill="url(#g_lq_stick)" stroke="#92400E" stroke-width="1"/>
+          <rect x="104" y="20" width="10" height="78" rx="4" transform="rotate(11 108 70)" fill="url(#g_lq_stick)" stroke="#92400E" stroke-width="1"/>
+          <!-- 红头点缀 -->
+          <rect x="75" y="8" width="11" height="14" rx="3" fill="#E11D48"/>
+          <rect x="60" y="10" width="10" height="12" rx="3" transform="rotate(-4 65 70)" fill="#E11D48"/>
+          <rect x="90" y="12" width="10" height="12" rx="3" transform="rotate(5 95 70)" fill="#E11D48"/>
+        </g>
+        <!-- 签筒后壁内口 -->
+        <ellipse cx="80" cy="72" rx="46" ry="12" fill="#2A0505" stroke="url(#g_lq_gold)" stroke-width="2.5"/>
+        <!-- 雕花朱漆签筒桶身 -->
+        <path d="M34,72 L40,192 C40,202 58,208 80,208 C102,208 120,202 120,192 L126,72 C126,80 105,84 80,84 C55,84 34,80 34,72 Z" fill="url(#g_lq_bamboo)" stroke="#7F1D1D" stroke-width="1.5"/>
+        <!-- 鎏金箍环 -->
+        <path d="M35,92 Q80,102 125,92" fill="none" stroke="url(#g_lq_gold)" stroke-width="4"/>
+        <path d="M39,176 Q80,186 121,176" fill="none" stroke="url(#g_lq_gold)" stroke-width="4"/>
+        <!-- 筒身中央牌匾 -->
+        <rect x="62" y="106" width="36" height="60" rx="6" fill="#450A0A" stroke="url(#g_lq_gold)" stroke-width="2"/>
+        <text x="80" y="132" font-size="15" font-weight="900" fill="#FDE68A" text-anchor="middle" font-family="serif">有求</text>
+        <text x="80" y="154" font-size="15" font-weight="900" fill="#FDE68A" text-anchor="middle" font-family="serif">必应</text>
+      </svg>
+    `;
+  }
+
+  function startShake() {
+    if (isShaking) return;
+    isShaking = true;
+
+    const btn = document.getElementById('lqBtnShake');
+    const cyl = document.getElementById('lqCylinderWrap');
+    const flyStick = document.getElementById('lqFlyingStick');
+    const stickTxt = document.getElementById('lqStickText');
+    const hint = document.getElementById('lqStageHint');
+
+    if (btn) btn.disabled = true;
+    if (flyStick) flyStick.classList.remove('dropped');
+    if (cyl) cyl.classList.add('shaking');
+    if (hint) hint.textContent = '🎋 正在摇晃紫竹签筒，聆听神明指引……';
+
+    // 连续播放竹签碰撞音效
+    let tickCount = 0;
+    const soundTimer = setInterval(() => {
+      tickCount++;
+      if (window.SFX && window.SFX.shake && tickCount === 1) {
+        window.SFX.shake();
+      } else if (window.SFX && window.SFX.tap) {
+        window.SFX.tap();
+      }
+      if (tickCount >= 7) clearInterval(soundTimer);
+    }, 180);
+
+    // 随机抽取一支灵签
+    const picked = STICKS[Math.floor(Math.random() * STICKS.length)];
+    if (stickTxt) stickTxt.textContent = picked.no;
+
+    setTimeout(() => {
+      clearInterval(soundTimer);
+      if (cyl) cyl.classList.remove('shaking');
+      if (flyStick) flyStick.classList.add('dropped');
+      if (window.SFX && window.SFX.bell) window.SFX.bell(true);
+      if (hint) hint.textContent = `✨ 灵签已落：${picked.no} · 正在展开宣纸签文……`;
+
+      setTimeout(() => {
+        isShaking = false;
+        if (btn) btn.disabled = false;
+        if (flyStick) flyStick.classList.remove('dropped');
+        if (hint) hint.textContent = '轻点签筒或下方按钮，诚心摇出今日灵签';
+        renderResult(picked);
+      }, 900);
+    }, 1450);
+  }
+
+  function renderResult(stick, isRestored = false) {
+    const wishInput = document.getElementById('lqWishInput');
+    const wish = isRestored && stick.wish
+      ? stick.wish
+      : ((wishInput && wishInput.value.trim()) || CATEGORIES[curCategory].name);
+
+    const catName = isRestored && stick.catName ? stick.catName : CATEGORIES[curCategory].name;
+
+    lastStickRecord = {
+      ...stick,
+      catKey: curCategory,
+      catName: catName,
+      wish: wish,
+      timeStr: new Date().toLocaleString('zh-CN', { hour12: false })
+    };
+
+    const subEl = document.getElementById('lqResCatSub');
+    const titleEl = document.getElementById('lqResTitle');
+    const rankEl = document.getElementById('lqResRank');
+    const poemEl = document.getElementById('lqResPoem');
+    const xjEl = document.getElementById('lqResXianji');
+    const interpEl = document.getElementById('lqResInterp');
+    const tipsEl = document.getElementById('lqResTips');
+
+    if (subEl) subEl.textContent = `${catName} · 祈愿：${wish}`;
+    if (titleEl) titleEl.textContent = `${stick.no} · ${stick.title}`;
+    if (rankEl) rankEl.textContent = stick.rank;
+    if (poemEl) poemEl.innerHTML = stick.poem.join('<br>');
+
+    if (xjEl && stick.xianji) {
+      xjEl.innerHTML = Object.entries(stick.xianji).map(([k, v]) => `
+        <div class="lq-xj-item"><span>${k}</span><b>${v}</b></div>
+      `).join('');
+    }
+
+    if (interpEl) interpEl.textContent = stick.interp;
+    if (tipsEl) {
+      tipsEl.innerHTML = `
+        <div><b>✅ 今日宜：</b>${stick.yi}</div>
+        <div><b>❌ 今日忌：</b>${stick.ji}</div>
+      `;
+    }
+
+    showScreen('sc-lq-result');
+    if (window.SFX && window.SFX.reveal) window.SFX.reveal();
+
+    if (!isRestored && window.UniversalHistory && typeof window.UniversalHistory.add === 'function') {
+      window.UniversalHistory.add({
+        module: 'lingqian',
+        title: `${stick.no} · ${stick.title} (${stick.rank})`,
+        subtitle: `${catName} · ${ stick.poem[0] }`,
+        color: '#E11D48',
+        badge: '🎋 灵签',
+        avatar: '🎋',
+        data: lastStickRecord
+      });
+    }
+  }
+
+  // 生成复古宣纸朱砂签文高清分享海报
+  function drawLingqianPoster(record) {
+    if (!record) return;
+    const cv = document.createElement('canvas');
+    cv.width = 1080;
+    cv.height = 1620;
+    const ctx = cv.getContext('2d');
+    const isDark = document.documentElement.dataset.theme !== 'light';
+
+    // 背景
+    ctx.fillStyle = isDark ? '#140D11' : '#F7F1E5';
+    ctx.fillRect(0, 0, 1080, 1620);
+
+    // 宣纸卷轴外框
+    ctx.fillStyle = isDark ? '#21151B' : '#FFFDF8';
+    ctx.strokeStyle = '#D97706';
+    ctx.lineWidth = 5;
+    roundRect(ctx, 80, 80, 920, 1460, 32);
+    ctx.fill();
+    ctx.stroke();
+
+    // 内层金线框
+    ctx.strokeStyle = 'rgba(217, 119, 6, 0.35)';
+    ctx.lineWidth = 2;
+    roundRect(ctx, 104, 104, 872, 1412, 20);
+    ctx.stroke();
+
+    // 顶部抬头
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#D97706';
+    ctx.font = 'bold 26px system-ui, sans-serif';
+    ctx.fillText('东方赛博灵签 · 灵感研究所', 540, 175);
+
+    ctx.fillStyle = isDark ? '#FDF2F8' : '#29151B';
+    ctx.font = '900 58px serif';
+    ctx.fillText(`${record.no} · ${record.title}`, 540, 260);
+
+    // 吉凶朱砂大印
+    ctx.fillStyle = '#E11D48';
+    roundRect(ctx, 410, 295, 260, 64, 14);
+    ctx.fill();
+    ctx.fillStyle = '#FFFFFF';
+    ctx.font = '900 34px system-ui, sans-serif';
+    ctx.fillText(record.rank, 540, 339);
+
+    // 签诗框
+    ctx.fillStyle = isDark ? 'rgba(245, 158, 11, 0.08)' : 'rgba(245, 158, 11, 0.1)';
+    roundRect(ctx, 140, 400, 800, 220, 20);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(217, 119, 6, 0.4)';
+    ctx.stroke();
+
+    ctx.fillStyle = isDark ? '#FDE68A' : '#78350F';
+    ctx.font = 'bold 38px "Songti SC", "SimSun", serif';
+    ctx.fillText(record.poem[0], 540, 485);
+    ctx.fillText(record.poem[1], 540, 560);
+
+    // 仙机断语
+    let curY = 690;
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#E11D48';
+    ctx.font = '900 28px system-ui, sans-serif';
+    ctx.fillText('【仙机四维批注】', 140, curY);
+
+    curY += 52;
+    ctx.fillStyle = isDark ? '#FDF2F8' : '#29151B';
+    ctx.font = 'bold 28px system-ui, sans-serif';
+    const xjPairs = Object.entries(record.xianji || {});
+    xjPairs.forEach(([k, v], idx) => {
+      const colX = idx % 2 === 0 ? 160 : 560;
+      const rowY = curY + Math.floor(idx / 2) * 52;
+      ctx.fillText(`✦ ${k}：${v}`, colX, rowY);
+    });
+
+    // 白话解签
+    curY += 140;
+    ctx.fillStyle = '#E11D48';
+    ctx.font = '900 28px system-ui, sans-serif';
+    ctx.fillText('【赛博打工人白话解签】', 140, curY);
+
+    curY += 50;
+    ctx.fillStyle = isDark ? '#E5D5DC' : '#3F272E';
+    ctx.font = '26px system-ui, sans-serif';
+    curY = wrapText(ctx, record.interp, 140, curY, 800, 44);
+
+    // 宜忌锦囊
+    curY += 45;
+    ctx.fillStyle = isDark ? 'rgba(225, 29, 72, 0.12)' : 'rgba(225, 29, 72, 0.08)';
+    roundRect(ctx, 140, curY, 800, 150, 16);
+    ctx.fill();
+
+    ctx.fillStyle = isDark ? '#FDF2F8' : '#29151B';
+    ctx.font = 'bold 24px system-ui, sans-serif';
+    ctx.fillText(`✅ 今日宜：${record.yi}`, 170, curY + 55);
+    ctx.fillText(`❌ 今日忌：${record.ji}`, 170, curY + 108);
+
+    // 底部印记
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#D97706';
+    ctx.font = '600 22px monospace';
+    ctx.fillText(`祈愿方向：${record.catName}  |  心诚则灵 · 逢凶化吉`, 540, 1480);
+
+    const a = document.createElement('a');
+    a.download = `东方赛博灵签_${record.no}_${record.title}.png`;
+    a.href = cv.toDataURL('image/png');
+    a.click();
+  }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.arcTo(x + w, y, x + w, y + r, r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+    ctx.lineTo(x + r, y + h);
+    ctx.arcTo(x, y + h, x, y + h - r, r);
+    ctx.lineTo(x, y + r);
+    ctx.arcTo(x, y, x + r, y, r);
+    ctx.closePath();
+  }
+
+  function wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+    const chars = String(text).split('');
+    let line = '';
+    let curY = y;
+    for (let n = 0; n < chars.length; n++) {
+      const testLine = line + chars[n];
+      if (ctx.measureText(testLine).width > maxWidth && n > 0) {
+        ctx.fillText(line, x, curY);
+        line = chars[n];
+        curY += lineHeight;
+      } else {
+        line = testLine;
+      }
+    }
+    ctx.fillText(line, x, curY);
+    return curY + lineHeight;
+  }
+
+  let isInitialized = false;
+
+  function init() {
+    if (isInitialized) return;
+    isInitialized = true;
+
+    renderCylinderSvg();
+
+    // 绑定四大求签分类
+    document.querySelectorAll('.lq-cat-card').forEach(card => {
+      card.onclick = () => {
+        if (isShaking) return;
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        curCategory = card.dataset.cat;
+        document.querySelectorAll('.lq-cat-card').forEach(c => c.classList.toggle('active', c === card));
+      };
+    });
+
+    // 绑定摇签按钮与点击签筒
+    const btnShake = document.getElementById('lqBtnShake');
+    if (btnShake) btnShake.onclick = startShake;
+
+    const cylWrap = document.getElementById('lqCylinderWrap');
+    if (cylWrap) cylWrap.onclick = startShake;
+
+    // 绑定结果页按钮
+    const btnAgain = document.getElementById('lqBtnAgain');
+    if (btnAgain) {
+      btnAgain.onclick = () => {
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        showScreen('sc-lq-home');
+      };
+    }
+
+    const btnSave = document.getElementById('lqBtnSave');
+    if (btnSave) {
+      btnSave.onclick = () => {
+        if (window.SFX && window.SFX.save) window.SFX.save();
+        drawLingqianPoster(lastStickRecord);
+      };
+    }
+
+    // 绑定东西方玄学互跳开关
+    document.querySelectorAll('[data-ew-jump]').forEach(btn => {
+      btn.onclick = () => {
+        const targetMod = btn.dataset.ewJump;
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        if (window.AppRouter && typeof window.AppRouter.switchModule === 'function') {
+          window.AppRouter.switchModule(targetMod, true);
+        }
+      };
+    });
+  }
+
+  function restore(recordData) {
+    init();
+    if (!recordData) return;
+    renderResult(recordData, true);
+  }
+
+  window.AppLingqian = {
+    init,
+    restore,
+    startShake,
+    drawLingqianPoster
+  };
+})();
+
+
+/* ====== js/modules/clock.js ====== */
+/* =========================================================
+   模块 8：摸鱼发薪实时时钟 (Cyber Slacking & Salary Ticker)
+   扎心又快乐的工位时钟 · 毫秒级窝囊费跳字 · 带薪摸鱼计时 · 战报海报
+   ========================================================= */
+
+(function () {
+  'use strict';
+
+  const STORAGE_KEY = 'juice_clock_config_v1';
+
+  let cfg = {
+    monthlySalary: 12000,
+    workDays: 21.75,
+    startTime: '09:00',
+    endTime: '18:00',
+    payday: 15,
+    maskSalary: false
+  };
+
+  // 带薪摸鱼专项计时状态
+  let isSlacking = false;
+  let slackType = '🚽 带薪如厕';
+  let slackStartMs = 0;
+  let slackAccumulatedMs = 0;
+  let tickerInterval = null;
+  let lastClockRecord = null;
+
+  function loadConfig() {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        cfg = { ...cfg, ...JSON.parse(saved) };
+      }
+    } catch (e) {}
+  }
+
+  function saveConfig() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
+    } catch (e) {}
+  }
+
+  function parseHm(str, defH, defM) {
+    const parts = String(str || '').split(':');
+    const h = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10);
+    return {
+      h: isNaN(h) ? defH : Math.min(23, Math.max(0, h)),
+      m: isNaN(m) ? defM : Math.min(59, Math.max(0, m))
+    };
+  }
+
+  function getRates() {
+    const salary = Math.max(100, Number(cfg.monthlySalary) || 12000);
+    const days = Math.max(1, Number(cfg.workDays) || 21.75);
+    const dailySalary = salary / days;
+
+    const st = parseHm(cfg.startTime, 9, 0);
+    const et = parseHm(cfg.endTime, 18, 0);
+    let workMinutes = (et.h * 60 + et.m) - (st.h * 60 + st.m);
+    if (workMinutes <= 0) workMinutes = 540; // 默认 9 小时
+    const workSeconds = workMinutes * 60;
+    const perSecond = dailySalary / workSeconds;
+
+    return { salary, days, dailySalary, st, et, workSeconds, perSecond };
+  }
+
+  function pad2(n) {
+    return String(Math.floor(Math.max(0, n))).padStart(2, '0');
+  }
+
+  function getNextHoliday(now) {
+    const y = now.getFullYear();
+    const holidays = [
+      { name: '元旦假期', m: 1, d: 1 },
+      { name: '春节长假', m: 2, d: 17 },
+      { name: '清明假期', m: 4, d: 5 },
+      { name: '五一劳动节', m: 5, d: 1 },
+      { name: '端午假期', m: 6, d: 19 },
+      { name: '中秋假期', m: 9, d: 25 },
+      { name: '十一国庆节', m: 10, d: 1 },
+      { name: '元旦假期', m: 1, d: 1, nextY: true }
+    ];
+
+    for (const h of holidays) {
+      const targetYear = h.nextY ? y + 1 : y;
+      const targetDate = new Date(targetYear, h.m - 1, h.d, 0, 0, 0);
+      if (targetDate > now) {
+        const diffDays = Math.ceil((targetDate - now) / (1000 * 86400));
+        return { name: h.name, days: diffDays };
+      }
+    }
+    return { name: '元旦假期', days: 30 };
+  }
+
+  function updateTick() {
+    const now = new Date();
+    const rates = getRates();
+
+    // 1. 翻页时钟更新
+    const hhEl = document.getElementById('ckFlipHH');
+    const mmEl = document.getElementById('ckFlipMM');
+    const ssEl = document.getElementById('ckFlipSS');
+    const dateEl = document.getElementById('ckDateLine');
+
+    if (hhEl) hhEl.textContent = pad2(now.getHours());
+    if (mmEl) mmEl.textContent = pad2(now.getMinutes());
+    if (ssEl) ssEl.textContent = pad2(now.getSeconds());
+
+    const weekNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+    if (dateEl) {
+      const salaryDisplay = cfg.maskSalary ? '¥ *****/月' : `¥ ${rates.salary.toLocaleString()}/月`;
+      dateEl.textContent = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日 · ${weekNames[now.getDay()]} · 设定 ${salaryDisplay}`;
+    }
+
+    // 2. 计算今日工时进度与实时已赚窝囊费
+    const startOfTodayWork = new Date(now.getFullYear(), now.getMonth(), now.getDate(), rates.st.h, rates.st.m, 0, 0);
+    const endOfTodayWork = new Date(now.getFullYear(), now.getMonth(), now.getDate(), rates.et.h, rates.et.m, 0, 0);
+
+    let earnedToday = 0;
+    let progressPct = 0;
+    let statusText = '🟢 工位带薪搬砖计薪中';
+
+    if (now < startOfTodayWork) {
+      // 早于上班时间：展示昨日余温或呼吸模拟跳字
+      const secSinceMidnight = (now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds()) + now.getMilliseconds() / 1000;
+      earnedToday = secSinceMidnight * rates.perSecond * 0.25;
+      progressPct = 0;
+      statusText = '🌅 尚未到岗 · 赛博预热计薪中';
+    } else if (now <= endOfTodayWork) {
+      const elapsedSec = (now - startOfTodayWork) / 1000;
+      earnedToday = elapsedSec * rates.perSecond;
+      progressPct = Math.min(100, (elapsedSec / rates.workSeconds) * 100);
+      if (now.getHours() === 12) {
+        statusText = '🍱 午休干饭回血 · 照常计薪中';
+      } else {
+        statusText = '🟢 工位带薪搬砖 · 秒级暴富中';
+      }
+    } else {
+      // 已过下班时间：正班满额 + 赛博加班呼吸微跳动，确保任何时刻打开都有毫秒跳字快感
+      const overSec = (now - endOfTodayWork) / 1000;
+      earnedToday = rates.dailySalary + overSec * rates.perSecond * 0.35;
+      progressPct = 100;
+      statusText = '🎉 今日正班窝囊费已满额 · 赛博延时跳表中';
+    }
+
+    const statusTxtEl = document.getElementById('ckStatusText');
+    if (statusTxtEl) statusTxtEl.textContent = statusText;
+
+    const intPart = Math.floor(earnedToday);
+    const decPart = (earnedToday - intPart).toFixed(4).substring(1); // .xxxx
+
+    const intEl = document.getElementById('ckMoneyInt');
+    const decEl = document.getElementById('ckMoneyDec');
+    const rateSubEl = document.getElementById('ckRateSub');
+
+    if (intEl) intEl.textContent = intPart.toLocaleString();
+    if (decEl) decEl.textContent = decPart;
+    if (rateSubEl) {
+      rateSubEl.textContent = `日薪 ¥${rates.dailySalary.toFixed(1)}  ·  每秒入账 ¥${rates.perSecond.toFixed(4)}  ·  呼吸都在赚钱`;
+    }
+
+    // 3. 快乐等价物换算
+    const milkteaCount = (earnedToday / 18).toFixed(1);
+    const kfcCount = (earnedToday / 50).toFixed(1);
+    const tissueCount = Math.floor(earnedToday / 3.5);
+
+    const eqMilktea = document.getElementById('ckEqMilktea');
+    const eqKfc = document.getElementById('ckEqKfc');
+    const eqTissue = document.getElementById('ckEqTissue');
+    if (eqMilktea) eqMilktea.textContent = milkteaCount;
+    if (eqKfc) eqKfc.textContent = kfcCount;
+    if (eqTissue) eqTissue.textContent = tissueCount;
+
+    // 4. 带薪摸鱼专项计时器跳字
+    let curSlackMs = slackAccumulatedMs;
+    if (isSlacking) {
+      curSlackMs += (performance.now() - slackStartMs);
+    }
+    const slackSec = curSlackMs / 1000;
+    const slackMoney = slackSec * rates.perSecond;
+
+    const slackTimeEl = document.getElementById('ckSlackTime');
+    const slackEarnedEl = document.getElementById('ckSlackEarnedVal');
+    if (slackTimeEl) {
+      const sh = Math.floor(slackSec / 3600);
+      const sm = Math.floor((slackSec % 3600) / 60);
+      const ss = Math.floor(slackSec % 60);
+      slackTimeEl.textContent = `${pad2(sh)}:${pad2(sm)}:${pad2(ss)}`;
+    }
+    if (slackEarnedEl) {
+      slackEarnedEl.textContent = `¥ ${slackMoney.toFixed(3)}`;
+    }
+
+    // 5. 四大扎心倒计时更新
+    // (a) 距离今日下班
+    const cdOffEl = document.getElementById('ckCdOffwork');
+    const cdOffBar = document.getElementById('ckCdOffworkBar');
+    const cdOffSub = document.getElementById('ckCdOffworkSub');
+    if (now < endOfTodayWork && now >= startOfTodayWork) {
+      const remSec = Math.max(0, Math.floor((endOfTodayWork - now) / 1000));
+      const rh = Math.floor(remSec / 3600);
+      const rm = Math.floor((remSec % 3600) / 60);
+      const rs = remSec % 60;
+      if (cdOffEl) cdOffEl.textContent = `${pad2(rh)}:${pad2(rm)}:${pad2(rs)}`;
+      if (cdOffBar) cdOffBar.style.width = `${progressPct.toFixed(1)}%`;
+      if (cdOffSub) cdOffSub.textContent = `今日工时已熬过 ${progressPct.toFixed(1)}%`;
+    } else {
+      if (cdOffEl) cdOffEl.textContent = '00:00:00';
+      if (cdOffBar) cdOffBar.style.width = '100%';
+      if (cdOffSub) cdOffSub.textContent = '🎉 恭喜！当前处于下班自由时间';
+    }
+
+    // (b) 距离周五下班
+    const cdFriEl = document.getElementById('ckCdFriday');
+    const cdFriSub = document.getElementById('ckCdFridaySub');
+    const dayOfWeek = now.getDay(); // 0 is Sun, 6 is Sat
+    if (dayOfWeek === 0 || dayOfWeek === 6 || (dayOfWeek === 5 && now >= endOfTodayWork)) {
+      if (cdFriEl) cdFriEl.textContent = '周末狂欢中';
+      if (cdFriSub) cdFriSub.textContent = '🍻 尽情享受周末，禁止思考工作！';
+    } else {
+      const daysToFri = 5 - dayOfWeek;
+      const friEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + daysToFri, rates.et.h, rates.et.m, 0);
+      const diffSec = Math.max(0, Math.floor((friEnd - now) / 1000));
+      const fd = Math.floor(diffSec / 86400);
+      const fh = Math.floor((diffSec % 86400) / 3600);
+      const fm = Math.floor((diffSec % 3600) / 60);
+      if (cdFriEl) cdFriEl.textContent = `${fd}天 ${pad2(fh)}时 ${pad2(fm)}分`;
+      if (cdFriSub) cdFriSub.textContent = '撑住，胜利的曙光就在前方';
+    }
+
+    // (c) 距离下次发薪日
+    const cdPayEl = document.getElementById('ckCdPayday');
+    const cdPaySub = document.getElementById('ckCdPaydaySub');
+    const pDay = Math.min(28, Math.max(1, parseInt(cfg.payday, 10) || 15));
+    let nextPayDate = new Date(now.getFullYear(), now.getMonth(), pDay, 9, 0, 0);
+    if (now.getDate() === pDay) {
+      if (cdPayEl) cdPayEl.textContent = '🎉 就是今天！';
+      if (cdPaySub) cdPaySub.textContent = `每月 ${pDay} 号窝囊费到账日`;
+    } else {
+      if (now > nextPayDate) {
+        nextPayDate = new Date(now.getFullYear(), now.getMonth() + 1, pDay, 9, 0, 0);
+      }
+      const payDays = Math.ceil((nextPayDate - now) / (1000 * 86400));
+      if (cdPayEl) cdPayEl.textContent = `${payDays} 天`;
+      if (cdPaySub) cdPaySub.textContent = `每月 ${pDay} 号准时回血`;
+    }
+
+    // (d) 距离下一个法定节假日
+    const hol = getNextHoliday(now);
+    const cdHolEl = document.getElementById('ckCdHoliday');
+    const cdHolSub = document.getElementById('ckCdHolidaySub');
+    if (cdHolEl) cdHolEl.textContent = `${hol.days} 天`;
+    if (cdHolSub) cdHolSub.textContent = `距离【${hol.name}】放假`;
+  }
+
+  function toggleSlacking() {
+    const card = document.getElementById('ckSlackCard');
+    const btn = document.getElementById('ckBtnSlack');
+
+      if (!isSlacking) {
+      // 开始摸鱼
+      isSlacking = true;
+      slackStartMs = performance.now();
+      if (window.SFX && window.SFX.go) window.SFX.go();
+      if (card) card.classList.add('slacking-active');
+      if (btn) {
+        btn.textContent = '⏸️ 结束本次摸鱼 (结算入档)';
+        btn.classList.add('stop');
+      }
+    } else {
+      // 结束摸鱼并结算归档（不自动弹窗下载图片，保存图片仅由底部按钮触发）
+      isSlacking = false;
+      slackAccumulatedMs += (performance.now() - slackStartMs);
+      if (window.SFX && window.SFX.reveal) window.SFX.reveal();
+      if (card) card.classList.remove('slacking-active');
+      if (btn) {
+        btn.textContent = '🐟 继续带薪摸鱼计时';
+        btn.classList.remove('stop');
+      }
+
+      const rates = getRates();
+      const totalSec = Math.max(1, Math.round(slackAccumulatedMs / 1000));
+      const slackEarned = (totalSec * rates.perSecond).toFixed(2);
+
+      lastClockRecord = {
+        slackType: slackType,
+        slackSeconds: totalSec,
+        slackEarned: slackEarned,
+        dailySalary: rates.dailySalary.toFixed(1),
+        timeStr: new Date().toLocaleString('zh-CN', { hour12: false })
+      };
+
+      if (window.UniversalHistory && typeof window.UniversalHistory.add === 'function') {
+        window.UniversalHistory.add({
+          module: 'clock',
+          title: `带薪摸鱼净赚 ¥${slackEarned}`,
+          subtitle: `${slackType} · 耗时 ${totalSec} 秒 · 老板含泪买单`,
+          color: '#FACC15',
+          badge: '⏰ 摸鱼',
+          avatar: '🐟',
+          data: lastClockRecord
+        });
+      }
+    }
+  }
+
+  // 生成《工位摸鱼发薪战报》高清分享图
+  function drawClockPoster(record) {
+    const rates = getRates();
+    const intEl = document.getElementById('ckMoneyInt');
+    const decEl = document.getElementById('ckMoneyDec');
+    const todayEarnedStr = `${intEl ? intEl.textContent : '168'}${decEl ? decEl.textContent : '.8800'}`;
+
+    const totalSec = record ? record.slackSeconds : Math.round(slackAccumulatedMs / 1000);
+    const slackMoney = record ? record.slackEarned : (totalSec * rates.perSecond).toFixed(2);
+    const sType = record ? record.slackType : slackType;
+
+    const cv = document.createElement('canvas');
+    cv.width = 1080;
+    cv.height = 1620;
+    const ctx = cv.getContext('2d');
+    const isDark = document.documentElement.dataset.theme !== 'light';
+
+    ctx.fillStyle = isDark ? '#0B0E14' : '#F3F4F6';
+    ctx.fillRect(0, 0, 1080, 1620);
+
+    // 战报主卡片
+    ctx.fillStyle = isDark ? '#151923' : '#FFFFFF';
+    ctx.strokeStyle = '#FACC15';
+    ctx.lineWidth = 5;
+    roundRect(ctx, 80, 90, 920, 1440, 36);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#FACC15';
+    ctx.font = '900 26px monospace';
+    ctx.fillText('CYBER WORKSTATION SALARY & SLACKING REPORT', 540, 180);
+
+    ctx.fillStyle = isDark ? '#FFFFFF' : '#111827';
+    ctx.font = '900 54px system-ui, sans-serif';
+    ctx.fillText('工位带薪摸鱼 · 实时战报', 540, 265);
+
+    // 今日累计窝囊费大字框
+    ctx.fillStyle = isDark ? 'rgba(250, 204, 21, 0.10)' : 'rgba(250, 204, 21, 0.12)';
+    roundRect(ctx, 140, 330, 800, 280, 28);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(250, 204, 21, 0.45)';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+
+    ctx.fillStyle = '#FACC15';
+    ctx.font = '800 28px system-ui, sans-serif';
+    ctx.fillText('💰 今日在工位已窝囊赚取', 540, 405);
+
+    ctx.fillStyle = isDark ? '#FFFFFF' : '#111827';
+    ctx.font = '900 84px monospace';
+    ctx.fillText(`¥ ${todayEarnedStr}`, 540, 520);
+
+    ctx.fillStyle = isDark ? '#9CA3AF' : '#4B5563';
+    ctx.font = 'bold 24px system-ui, sans-serif';
+    ctx.fillText(`折合 🧋 ${(parseFloat(todayEarnedStr.replace(/,/g, '')) / 18).toFixed(1)} 杯生椰拿铁  |  🍗 ${(parseFloat(todayEarnedStr.replace(/,/g, '')) / 50).toFixed(1)} 顿疯狂星期四`, 540, 578);
+
+    // 专项带薪摸鱼白嫖统计
+    ctx.fillStyle = isDark ? 'rgba(34, 211, 238, 0.10)' : 'rgba(6, 182, 212, 0.08)';
+    roundRect(ctx, 140, 660, 800, 240, 24);
+    ctx.fill();
+    ctx.strokeStyle = '#22D3EE';
+    ctx.stroke();
+
+    ctx.fillStyle = '#22D3EE';
+    ctx.font = '800 28px system-ui, sans-serif';
+    ctx.fillText(`🐟 专项摸鱼科目：【${sType}】`, 540, 730);
+
+    ctx.fillStyle = isDark ? '#FFFFFF' : '#0F172A';
+    ctx.font = '900 46px system-ui, sans-serif';
+    ctx.fillText(`耗时 ${totalSec} 秒 · 净白嫖老板 ¥ ${slackMoney}`, 540, 815);
+
+    ctx.fillStyle = '#10B981';
+    ctx.font = 'bold 24px system-ui, sans-serif';
+    ctx.fillText('✦ 每一秒带薪发呆，都是对资本的温柔反击 ✦', 540, 868);
+
+    // 打工人金句与印章
+    ctx.textAlign = 'left';
+    ctx.fillStyle = isDark ? '#D1D5DB' : '#374151';
+    ctx.font = 'bold 28px system-ui, sans-serif';
+    ctx.fillText('【工位生存哲学】', 150, 990);
+    ctx.font = '26px system-ui, sans-serif';
+    ctx.fillText('上班是为了下班，打卡是为了发薪。只要我摸鱼的速度够快，', 150, 1048);
+    ctx.fillText('内耗就追不上我！今日份窝囊费已妥善入袋，功德圆满！', 150, 1096);
+
+    // 红色盖章
+    ctx.save();
+    ctx.translate(540, 1270);
+    ctx.rotate(-8 * Math.PI / 180);
+    ctx.strokeStyle = '#EF4444';
+    ctx.lineWidth = 5;
+    roundRect(ctx, -160, -55, 320, 110, 16);
+    ctx.stroke();
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#EF4444';
+    ctx.font = '900 38px system-ui, sans-serif';
+    ctx.fillText('带薪摸鱼 · 功德无量', 0, 14);
+    ctx.restore();
+
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#9CA3AF';
+    ctx.font = '22px monospace';
+    ctx.fillText('灵感人格研究所 · 摸鱼发薪实时时钟', 540, 1460);
+
+    const a = document.createElement('a');
+    a.download = `摸鱼发薪战报_${Date.now()}.png`;
+    a.href = cv.toDataURL('image/png');
+    a.click();
+  }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.arcTo(x + w, y, x + w, y + r, r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+    ctx.lineTo(x + r, y + h);
+    ctx.arcTo(x, y + h, x, y + h - r, r);
+    ctx.lineTo(x, y + r);
+    ctx.arcTo(x, y, x + r, y, r);
+    ctx.closePath();
+  }
+
+  let isInitialized = false;
+
+  function init() {
+    if (isInitialized) return;
+    isInitialized = true;
+
+    loadConfig();
+
+    // 同步输入框初始值
+    const inpSalary = document.getElementById('ckInpSalary');
+    const inpPayday = document.getElementById('ckInpPayday');
+    const inpStart = document.getElementById('ckInpStart');
+    const inpEnd = document.getElementById('ckInpEnd');
+
+    if (inpSalary) {
+      inpSalary.value = cfg.monthlySalary;
+      inpSalary.oninput = () => {
+        cfg.monthlySalary = Math.max(100, Number(inpSalary.value) || 12000);
+        saveConfig();
+        updateTick();
+      };
+    }
+    if (inpPayday) {
+      inpPayday.value = cfg.payday;
+      inpPayday.oninput = () => {
+        cfg.payday = Math.min(31, Math.max(1, Number(inpPayday.value) || 15));
+        saveConfig();
+        updateTick();
+      };
+    }
+    if (inpStart) {
+      inpStart.value = cfg.startTime;
+      inpStart.onchange = () => {
+        cfg.startTime = inpStart.value || '09:00';
+        saveConfig();
+        updateTick();
+      };
+    }
+    if (inpEnd) {
+      inpEnd.value = cfg.endTime;
+      inpEnd.onchange = () => {
+        cfg.endTime = inpEnd.value || '18:00';
+        saveConfig();
+        updateTick();
+      };
+    }
+
+    // 隐私隐藏开关
+    const btnMask = document.getElementById('ckBtnMask');
+    if (btnMask) {
+      btnMask.onclick = () => {
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        cfg.maskSalary = !cfg.maskSalary;
+        if (inpSalary) inpSalary.type = cfg.maskSalary ? 'password' : 'number';
+        btnMask.textContent = cfg.maskSalary ? '👁️ 显示月薪' : '🙈 隐藏月薪';
+        saveConfig();
+        updateTick();
+      };
+    }
+
+    // 极简屏保模式开关
+    const btnZen = document.getElementById('ckBtnZen');
+    const modClock = document.getElementById('mod-clock');
+    if (btnZen && modClock) {
+      btnZen.onclick = () => {
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        const isZen = modClock.classList.toggle('zen-mode');
+        btnZen.textContent = isZen ? '🔙 退出屏保' : '🖥️ 极简屏保';
+      };
+    }
+
+    // 摸鱼科目切换
+    document.querySelectorAll('.ck-stag').forEach(tag => {
+      tag.onclick = () => {
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        slackType = tag.dataset.stype;
+        document.querySelectorAll('.ck-stag').forEach(t => t.classList.toggle('active', t === tag));
+      };
+    });
+
+    // 带薪摸鱼按钮
+    const btnSlack = document.getElementById('ckBtnSlack');
+    if (btnSlack) btnSlack.onclick = toggleSlacking;
+
+    // 战报生成按钮
+    const btnPoster = document.getElementById('ckBtnPoster');
+    if (btnPoster) {
+      btnPoster.onclick = () => {
+        if (window.SFX && window.SFX.save) window.SFX.save();
+        const rates = getRates();
+        const curSec = Math.round((slackAccumulatedMs + (isSlacking ? performance.now() - slackStartMs : 0)) / 1000);
+        const rec = {
+          slackType: slackType,
+          slackSeconds: curSec,
+          slackEarned: (curSec * rates.perSecond).toFixed(2),
+          dailySalary: rates.dailySalary.toFixed(1)
+        };
+        if (window.UniversalHistory && typeof window.UniversalHistory.add === 'function') {
+          const intEl = document.getElementById('ckMoneyInt');
+          window.UniversalHistory.add({
+            module: 'clock',
+            title: `今日已赚窝囊费 ¥${intEl ? intEl.textContent : '168'}`,
+            subtitle: `日薪 ¥${rates.dailySalary.toFixed(0)} · ${slackType}白嫖 ¥${rec.slackEarned}`,
+            color: '#FACC15',
+            badge: '⏰ 摸鱼',
+            avatar: '🐟',
+            data: rec
+          });
+        }
+        drawClockPoster(rec);
+      };
+    }
+
+    updateTick();
+    if (tickerInterval) clearInterval(tickerInterval);
+    tickerInterval = setInterval(updateTick, 100);
+  }
+
+  function restore(recordData) {
+    init();
+    if (recordData && recordData.slackSeconds) {
+      slackAccumulatedMs = recordData.slackSeconds * 1000;
+      updateTick();
+    }
+  }
+
+  window.AppClock = {
+    init,
+    restore,
+    toggleSlacking,
+    drawClockPoster
+  };
+})();
+
+
 /* ====== js/modules/history.js ====== */
 /* =========================================================
    全所综合历史档案系统 (Universal History Archive System)
@@ -16246,6 +18648,14 @@ if ('serviceWorker' in navigator) {
         if (window.AppDecision && typeof window.AppDecision.restore === 'function' && item.data) {
           window.AppDecision.restore(item.data);
         }
+      } else if (mod === 'lingqian') {
+        if (window.AppLingqian && typeof window.AppLingqian.restore === 'function' && item.data) {
+          window.AppLingqian.restore(item.data);
+        }
+      } else if (mod === 'clock') {
+        if (window.AppClock && typeof window.AppClock.restore === 'function' && item.data) {
+          window.AppClock.restore(item.data);
+        }
       }
     } catch (e) {
       console.warn('restore record error:', e);
@@ -16264,7 +18674,9 @@ if ('serviceWorker' in navigator) {
       manual: list.filter(r => r.module === 'manual').length,
       fengshui: list.filter(r => r.module === 'fengshui').length,
       tarot: list.filter(r => r.module === 'tarot').length,
-      decision: list.filter(r => r.module === 'decision').length
+      lingqian: list.filter(r => r.module === 'lingqian').length,
+      decision: list.filter(r => r.module === 'decision').length,
+      clock: list.filter(r => r.module === 'clock').length
     };
 
     // 渲染分类筛选条
@@ -16277,7 +18689,9 @@ if ('serviceWorker' in navigator) {
         <button class="uni-filter-chip ${filterMod === 'manual' ? 'active' : ''}" data-mod="manual">📖 说明书 <span class="chip-count">${counts.manual}</span></button>
         <button class="uni-filter-chip ${filterMod === 'fengshui' ? 'active' : ''}" data-mod="fengshui">🧭 风水 <span class="chip-count">${counts.fengshui}</span></button>
         <button class="uni-filter-chip ${filterMod === 'tarot' ? 'active' : ''}" data-mod="tarot">🔮 塔罗 <span class="chip-count">${counts.tarot}</span></button>
+        <button class="uni-filter-chip ${filterMod === 'lingqian' ? 'active' : ''}" data-mod="lingqian">🎋 灵签 <span class="chip-count">${counts.lingqian}</span></button>
         <button class="uni-filter-chip ${filterMod === 'decision' ? 'active' : ''}" data-mod="decision">🪙 决策 <span class="chip-count">${counts.decision}</span></button>
+        <button class="uni-filter-chip ${filterMod === 'clock' ? 'active' : ''}" data-mod="clock">⏰ 摸鱼 <span class="chip-count">${counts.clock}</span></button>
       `;
 
       filterBar.querySelectorAll('.uni-filter-chip').forEach(btn => {
@@ -16519,7 +18933,7 @@ if ('serviceWorker' in navigator) {
   }
 
   function switchModule(modKey, updateHash = true) {
-    if (!['drinks', 'milktea', 'manual', 'fengshui', 'tarot', 'decision'].includes(modKey)) {
+    if (!['drinks', 'milktea', 'manual', 'fengshui', 'tarot', 'lingqian', 'decision', 'clock'].includes(modKey)) {
       modKey = 'drinks';
     }
 
@@ -16562,6 +18976,8 @@ if ('serviceWorker' in navigator) {
       if (modKey === 'tarot' && window.AppTarot) window.AppTarot.init();
       if (modKey === 'manual' && window.AppManual) window.AppManual.init();
       if (modKey === 'decision' && window.AppDecision) window.AppDecision.init();
+      if (modKey === 'lingqian' && window.AppLingqian) window.AppLingqian.init();
+      if (modKey === 'clock' && window.AppClock) window.AppClock.init();
     } else {
       if (modKey === 'manual' && window.AppManual) {
         const body = document.getElementById('sm-homebody');
@@ -16576,17 +18992,25 @@ if ('serviceWorker' in navigator) {
 
   function handleHash() {
     const hash = window.location.hash.replace(/^#\/?/, '').toLowerCase();
-    if (['drinks', 'milktea', 'manual', 'fengshui', 'tarot', 'decision'].includes(hash)) {
+    if (['drinks', 'milktea', 'manual', 'fengshui', 'tarot', 'lingqian', 'decision', 'clock'].includes(hash)) {
       switchModule(hash, false);
     }
   }
 
   function init() {
-    // 绑定左上角 5 模块胶囊标签点击事件
+    // 绑定左上角模块胶囊标签点击事件
     document.querySelectorAll('.nav-tab').forEach(tab => {
       tab.addEventListener('click', () => {
         if (window.SFX && window.SFX.tap) window.SFX.tap();
         switchModule(tab.dataset.mod, true);
+      });
+    });
+
+    // 绑定东西方玄学合辑互跳按钮
+    document.querySelectorAll('[data-ew-jump]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        switchModule(btn.dataset.ewJump, true);
       });
     });
 

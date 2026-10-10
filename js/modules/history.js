@@ -108,6 +108,14 @@
         if (window.AppDecision && typeof window.AppDecision.restore === 'function' && item.data) {
           window.AppDecision.restore(item.data);
         }
+      } else if (mod === 'lingqian') {
+        if (window.AppLingqian && typeof window.AppLingqian.restore === 'function' && item.data) {
+          window.AppLingqian.restore(item.data);
+        }
+      } else if (mod === 'clock') {
+        if (window.AppClock && typeof window.AppClock.restore === 'function' && item.data) {
+          window.AppClock.restore(item.data);
+        }
       }
     } catch (e) {
       console.warn('restore record error:', e);
@@ -126,7 +134,9 @@
       manual: list.filter(r => r.module === 'manual').length,
       fengshui: list.filter(r => r.module === 'fengshui').length,
       tarot: list.filter(r => r.module === 'tarot').length,
-      decision: list.filter(r => r.module === 'decision').length
+      lingqian: list.filter(r => r.module === 'lingqian').length,
+      decision: list.filter(r => r.module === 'decision').length,
+      clock: list.filter(r => r.module === 'clock').length
     };
 
     // 渲染分类筛选条
@@ -139,7 +149,9 @@
         <button class="uni-filter-chip ${filterMod === 'manual' ? 'active' : ''}" data-mod="manual">📖 说明书 <span class="chip-count">${counts.manual}</span></button>
         <button class="uni-filter-chip ${filterMod === 'fengshui' ? 'active' : ''}" data-mod="fengshui">🧭 风水 <span class="chip-count">${counts.fengshui}</span></button>
         <button class="uni-filter-chip ${filterMod === 'tarot' ? 'active' : ''}" data-mod="tarot">🔮 塔罗 <span class="chip-count">${counts.tarot}</span></button>
+        <button class="uni-filter-chip ${filterMod === 'lingqian' ? 'active' : ''}" data-mod="lingqian">🎋 灵签 <span class="chip-count">${counts.lingqian}</span></button>
         <button class="uni-filter-chip ${filterMod === 'decision' ? 'active' : ''}" data-mod="decision">🪙 决策 <span class="chip-count">${counts.decision}</span></button>
+        <button class="uni-filter-chip ${filterMod === 'clock' ? 'active' : ''}" data-mod="clock">⏰ 摸鱼 <span class="chip-count">${counts.clock}</span></button>
       `;
 
       filterBar.querySelectorAll('.uni-filter-chip').forEach(btn => {

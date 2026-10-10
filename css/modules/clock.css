@@ -1,0 +1,540 @@
+/* =========================================================
+   模块 8：摸鱼发薪实时时钟 (Cyber Slacking & Salary Ticker)
+   扎心又快乐的工位时钟 · 毫秒级窝囊费跳表 · 带薪摸鱼计时 · 翻页屏保
+   ========================================================= */
+
+#mod-clock {
+  background: var(--bg);
+  color: var(--tx);
+  --ck-gold: #FACC15;
+  --ck-gold-glow: rgba(250, 204, 21, 0.35);
+  --ck-cyan: #22D3EE;
+  --ck-green: #10B981;
+  --ck-card: rgba(255, 255, 255, 0.045);
+}
+
+#mod-clock::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 920px;
+  height: 540px;
+  background: radial-gradient(circle at 50% 12%, rgba(250, 204, 21, 0.09) 0%, rgba(34, 211, 238, 0.05) 45%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+html[data-theme="light"] #mod-clock {
+  --ck-gold: #CA8A04;
+  --ck-gold-glow: rgba(202, 138, 4, 0.25);
+  --ck-cyan: #0891B2;
+  --ck-green: #059669;
+  --ck-card: rgba(255, 255, 255, 0.88);
+}
+
+.ck-wrap {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 14px 20px calc(38px + env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* 顶部状态与屏保模式开关 */
+.ck-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.ck-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: var(--ck-green);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.ck-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ck-green);
+  box-shadow: 0 0 8px var(--ck-green);
+  animation: ckPulse 1.6s ease-in-out infinite;
+}
+
+@keyframes ckPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.45; transform: scale(0.85); }
+}
+
+.ck-top-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ck-btn-mini {
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  color: var(--tx-dim);
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ck-btn-mini:hover {
+  border-color: var(--ck-gold);
+  color: var(--tx);
+}
+
+/* ============ 拟真工位翻页大时钟 ============ */
+.ck-flip-clock-box {
+  background: var(--ck-card);
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+}
+
+.ck-flip-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ck-flip-unit {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--line-strong);
+  border-radius: 12px;
+  min-width: 68px;
+  height: 72px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 40px;
+  font-weight: 900;
+  color: var(--tx);
+  position: relative;
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.4);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+html[data-theme="light"] .ck-flip-unit {
+  background: #F1F5F9;
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.08);
+}
+
+.ck-flip-unit::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+html[data-theme="light"] .ck-flip-unit::after {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.ck-flip-colon {
+  font-size: 32px;
+  font-weight: 900;
+  color: var(--ck-gold);
+  animation: ckPulse 1s infinite;
+}
+
+.ck-date-line {
+  font-size: 12px;
+  color: var(--tx-dim);
+  letter-spacing: 1px;
+}
+
+/* ============ 核心：毫秒级实时窝囊费跳字屏 ============ */
+.ck-salary-hero {
+  background: linear-gradient(145deg, rgba(250, 204, 21, 0.10), rgba(16, 185, 129, 0.06));
+  border: 1.5px solid rgba(250, 204, 21, 0.38);
+  border-radius: 22px;
+  padding: 18px 20px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.22);
+}
+
+.ck-hero-eyebrow {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--ck-gold);
+  letter-spacing: 1.5px;
+}
+
+.ck-money-ticker {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px;
+  font-variant-numeric: tabular-nums;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.ck-currency {
+  font-size: 28px;
+  font-weight: 900;
+  color: var(--ck-gold);
+}
+
+.ck-money-int {
+  font-size: 52px;
+  font-weight: 900;
+  color: var(--tx);
+  letter-spacing: -1px;
+  line-height: 1.05;
+}
+
+.ck-money-dec {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--ck-gold);
+}
+
+.ck-rate-sub {
+  font-size: 11.5px;
+  color: var(--tx-dim);
+}
+
+/* 快乐折算等价物胶囊 */
+.ck-equiv-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 4px;
+  width: 100%;
+}
+
+.ck-equiv-pill {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 4px 11px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--tx);
+}
+
+html[data-theme="light"] .ck-equiv-pill {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.ck-equiv-pill b {
+  color: var(--ck-gold);
+}
+
+/* ============ 带薪摸鱼 / 拉屎回血专项计时器 ============ */
+.ck-slack-card {
+  background: var(--ck-card);
+  border: 1.5px solid var(--line);
+  border-radius: 18px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ck-slack-card.slacking-active {
+  border-color: var(--ck-cyan);
+  background: rgba(34, 211, 238, 0.07);
+  box-shadow: 0 0 24px rgba(34, 211, 238, 0.18);
+}
+
+.ck-slack-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ck-slack-title {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--tx);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ck-slack-tags {
+  display: flex;
+  gap: 5px;
+}
+
+.ck-stag {
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--line);
+  color: var(--tx-dim);
+  cursor: pointer;
+}
+
+.ck-stag.active {
+  background: rgba(34, 211, 238, 0.16);
+  border-color: var(--ck-cyan);
+  color: var(--ck-cyan);
+}
+
+.ck-slack-body {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.ck-slack-stats {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.ck-slack-time {
+  font-size: 24px;
+  font-weight: 900;
+  font-family: monospace;
+  color: var(--ck-cyan);
+}
+
+.ck-slack-earned {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--tx);
+}
+
+.ck-slack-earned b {
+  color: var(--ck-gold);
+  font-size: 16px;
+}
+
+.ck-btn-slack {
+  padding: 9px 18px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #06B6D4, #0284C7);
+  color: #FFFFFF;
+  font-size: 13px;
+  font-weight: 800;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(6, 182, 212, 0.35);
+  transition: all 0.2s ease;
+}
+
+.ck-btn-slack.stop {
+  background: linear-gradient(135deg, #F59E0B, #D97706);
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);
+}
+
+/* ============ 四大扎心倒计时沙漏矩阵 ============ */
+.ck-countdown-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.ck-cd-card {
+  background: var(--ck-card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.ck-cd-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--tx-dim);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ck-cd-val {
+  font-size: 20px;
+  font-weight: 900;
+  color: var(--tx);
+  font-variant-numeric: tabular-nums;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.ck-cd-bar {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.07);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+html[data-theme="light"] .ck-cd-bar {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.ck-cd-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--ck-green), var(--ck-gold));
+  border-radius: 999px;
+  width: 0%;
+  transition: width 0.4s ease;
+}
+
+.ck-cd-sub {
+  font-size: 11px;
+  color: var(--tx-faint);
+}
+
+/* ============ 工位参数设置面板 ============ */
+.ck-config-card {
+  background: var(--ck-card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.ck-cfg-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--tx);
+}
+
+.ck-cfg-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.ck-cfg-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ck-cfg-item label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--tx-dim);
+}
+
+.ck-cfg-item input {
+  padding: 7px 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--line);
+  color: var(--tx);
+  font-size: 13px;
+  font-weight: 700;
+  outline: none;
+  box-sizing: border-box;
+}
+
+html[data-theme="light"] .ck-cfg-item input {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.ck-cfg-item input:focus {
+  border-color: var(--ck-gold);
+}
+
+.ck-bottom-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.ck-btn-poster {
+  width: 100%;
+  padding: 12px 20px;
+  border-radius: 999px;
+  background: var(--ck-gold);
+  color: #1A1200;
+  font-size: 14px;
+  font-weight: 900;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 6px 20px var(--ck-gold-glow);
+  transition: all 0.2s ease;
+}
+
+.ck-btn-poster:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.06);
+}
+
+/* 极简工位屏保模式 (Zen Mode) */
+#mod-clock.zen-mode .ck-config-card,
+#mod-clock.zen-mode .ck-bottom-actions {
+  display: none;
+}
+
+#mod-clock.zen-mode .ck-wrap {
+  justify-content: center;
+  min-height: calc(100vh - 64px);
+}
+
+#mod-clock.zen-mode .ck-flip-unit {
+  min-width: 88px;
+  height: 92px;
+  font-size: 52px;
+}
+
+@media (max-width: 480px) {
+  .ck-money-int {
+    font-size: 40px;
+  }
+  .ck-flip-unit {
+    min-width: 56px;
+    height: 60px;
+    font-size: 32px;
+  }
+  .ck-countdown-grid,
+  .ck-cfg-grid {
+    grid-template-columns: 1fr;
+  }
+}

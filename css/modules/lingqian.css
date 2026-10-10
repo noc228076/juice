@@ -1,0 +1,532 @@
+/* =========================================================
+   模块 7：东方赛博灵签 (Cyber Oriental Fortune Sticks)
+   与赛博塔罗构成「东西玄学双璧」· 紫竹摇签 · 掷茭印证 · 朱砂宣纸签文
+   ========================================================= */
+
+#mod-lingqian {
+  background: var(--bg);
+  color: var(--tx);
+  --lq-crimson: #E11D48;
+  --lq-crimson-glow: rgba(225, 29, 72, 0.35);
+  --lq-gold: #F59E0B;
+  --lq-gold-light: #FDE68A;
+  --lq-paper-bg: #1E161B;
+  --lq-paper-border: rgba(245, 158, 11, 0.35);
+  --lq-ink: #FDF2F8;
+  --lq-dim: #D1B8C4;
+}
+
+#mod-lingqian::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 900px;
+  height: 540px;
+  background: radial-gradient(circle at 50% 15%, rgba(225, 29, 72, 0.10) 0%, rgba(245, 158, 11, 0.05) 45%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+html[data-theme="light"] #mod-lingqian {
+  --lq-crimson: #BE123C;
+  --lq-crimson-glow: rgba(190, 18, 60, 0.25);
+  --lq-gold: #B45309;
+  --lq-gold-light: #FEF3C7;
+  --lq-paper-bg: #FFFDF9;
+  --lq-paper-border: rgba(180, 83, 9, 0.35);
+  --lq-ink: #29151B;
+  --lq-dim: #75535C;
+}
+
+/* 东西方玄学合辑联动胶囊条 (在 tarot 与 lingqian 共享) */
+.ew-mystic-bar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 3px;
+  margin: 0 auto 10px;
+}
+
+html[data-theme="light"] .ew-mystic-bar {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.ew-switch-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--tx-dim);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ew-switch-btn:hover {
+  color: var(--tx);
+}
+
+.ew-switch-btn.active.west {
+  background: rgba(192, 132, 252, 0.2);
+  color: #C084FC;
+  border: 1px solid rgba(192, 132, 252, 0.4);
+  font-weight: 800;
+}
+
+.ew-switch-btn.active.east {
+  background: rgba(225, 29, 72, 0.18);
+  color: #FB7185;
+  border: 1px solid rgba(225, 29, 72, 0.4);
+  font-weight: 800;
+}
+
+html[data-theme="light"] .ew-switch-btn.active.west {
+  color: #7E22CE;
+}
+html[data-theme="light"] .ew-switch-btn.active.east {
+  color: #BE123C;
+}
+
+/* ============ 屏幕容器切换 ============ */
+#mod-lingqian .lq-screen {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  min-height: 100%;
+  display: none;
+  flex-direction: column;
+  box-sizing: border-box;
+  max-width: 580px;
+  margin: 0 auto;
+  padding: 16px 20px calc(36px + env(safe-area-inset-bottom));
+}
+
+#mod-lingqian .lq-screen.active {
+  display: flex;
+  animation: lqFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes lqFadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.lq-header {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.lq-title {
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  margin: 2px 0 4px;
+  background: linear-gradient(135deg, #FB7185 0%, #F59E0B 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.lq-sub {
+  font-size: 12.5px;
+  color: var(--tx-dim);
+  letter-spacing: 1px;
+}
+
+/* 四大求签方向卡片 */
+.lq-cat-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.lq-cat-card {
+  background: var(--card);
+  border: 1.5px solid var(--line);
+  border-radius: 14px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.lq-cat-card:hover {
+  border-color: rgba(245, 158, 11, 0.5);
+  transform: translateY(-1px);
+}
+
+.lq-cat-card.active {
+  background: rgba(225, 29, 72, 0.10);
+  border-color: var(--lq-crimson);
+  box-shadow: 0 4px 16px rgba(225, 29, 72, 0.2);
+}
+
+.lq-cat-ico {
+  font-size: 24px;
+  flex: none;
+}
+
+.lq-cat-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  text-align: left;
+}
+
+.lq-cat-info b {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--tx);
+}
+
+.lq-cat-info span {
+  font-size: 11px;
+  color: var(--tx-dim);
+}
+
+/* 祈愿输入框 */
+.lq-wish-box {
+  margin-bottom: 14px;
+}
+
+.lq-wish-input {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  color: var(--tx);
+  font-size: 13.5px;
+  outline: none;
+  box-sizing: border-box;
+  text-align: center;
+}
+
+.lq-wish-input:focus {
+  border-color: var(--lq-gold);
+}
+
+/* 紫竹雕花签筒舞台 */
+.lq-cylinder-stage {
+  position: relative;
+  height: 250px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 4px 0 12px;
+}
+
+.lq-cylinder-wrap {
+  position: relative;
+  width: 150px;
+  height: 210px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+  transform-origin: 50% 85%;
+}
+
+.lq-cylinder-wrap.shaking {
+  animation: cylinderShake 0.14s ease-in-out infinite;
+}
+
+@keyframes cylinderShake {
+  0% { transform: rotate(0deg) translateY(0); }
+  25% { transform: rotate(-11deg) translateY(-6px); }
+  50% { transform: rotate(2deg) translateY(2px); }
+  75% { transform: rotate(11deg) translateY(-6px); }
+  100% { transform: rotate(0deg) translateY(0); }
+}
+
+/* 飞出的那支灵签 */
+.lq-flying-stick {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%) translateY(40px) scale(0.8);
+  width: 28px;
+  height: 150px;
+  background: linear-gradient(90deg, #FDE68A 0%, #F59E0B 50%, #B45309 100%);
+  border: 1.5px solid #78350F;
+  border-radius: 14px 14px 4px 4px;
+  box-shadow: 0 10px 25px rgba(245, 158, 11, 0.6);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 10px;
+  opacity: 0;
+  pointer-events: none;
+  z-index: 10;
+  transition: all 0.5s cubic-bezier(0.2, 1.3, 0.3, 1);
+}
+
+.lq-flying-stick.dropped {
+  opacity: 1;
+  transform: translateX(-50%) translateY(-28px) scale(1.08) rotate(6deg);
+}
+
+.lq-stick-tip {
+  width: 18px;
+  height: 24px;
+  background: #E11D48;
+  border-radius: 8px 8px 2px 2px;
+  margin-bottom: 6px;
+}
+
+.lq-stick-text {
+  writing-mode: vertical-rl;
+  font-size: 12px;
+  font-weight: 900;
+  color: #78350F;
+  letter-spacing: 2px;
+  font-family: serif;
+}
+
+.lq-stage-hint {
+  font-size: 12px;
+  color: var(--tx-dim);
+  text-align: center;
+  margin-top: 6px;
+}
+
+.lq-btn-main {
+  width: 100%;
+  max-width: 320px;
+  margin: 0 auto;
+  padding: 13px 22px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #E11D48, #BE123C);
+  color: #FFFFFF;
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 1.5px;
+  border: 1px solid rgba(253, 230, 138, 0.4);
+  box-shadow: 0 6px 22px var(--lq-crimson-glow);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.lq-btn-main:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.1);
+}
+
+.lq-btn-main:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* ============ 解签结果页 (朱砂宣纸签文卷轴) ============ */
+.lq-scroll-card {
+  background: var(--lq-paper-bg);
+  border: 2px solid var(--lq-paper-border);
+  border-radius: 18px;
+  padding: 20px 18px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35), inset 0 0 0 4px rgba(245, 158, 11, 0.08);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  position: relative;
+  overflow: hidden;
+}
+
+.lq-scroll-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1.5px dashed var(--lq-paper-border);
+  padding-bottom: 12px;
+}
+
+.lq-num-badge {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.lq-num-sub {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--lq-gold);
+  letter-spacing: 1px;
+}
+
+.lq-num-title {
+  font-size: 24px;
+  font-weight: 900;
+  color: var(--lq-ink);
+  letter-spacing: 1px;
+}
+
+.lq-rank-stamp {
+  padding: 6px 14px;
+  border-radius: 8px;
+  background: var(--lq-crimson);
+  color: #FFFFFF;
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  border: 2px solid #FDE68A;
+  box-shadow: 0 4px 12px var(--lq-crimson-glow);
+  transform: rotate(-4deg);
+}
+
+/* 古典四句签诗框 */
+.lq-poem-box {
+  background: rgba(245, 158, 11, 0.07);
+  border: 1px solid var(--lq-paper-border);
+  border-radius: 12px;
+  padding: 14px 12px;
+  text-align: center;
+  position: relative;
+}
+
+.lq-poem-label {
+  font-size: 10.5px;
+  font-weight: 800;
+  color: var(--lq-gold);
+  letter-spacing: 2px;
+  margin-bottom: 6px;
+}
+
+.lq-poem-lines {
+  font-size: 17px;
+  font-weight: 800;
+  line-height: 1.85;
+  color: var(--lq-ink);
+  letter-spacing: 2px;
+  font-family: "Songti SC", "SimSun", "STSong", serif;
+}
+
+/* 仙机四维断语 */
+.lq-xianji-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.lq-xj-item {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+html[data-theme="light"] .lq-xj-item {
+  background: rgba(0, 0, 0, 0.025);
+}
+
+.lq-xj-item span {
+  color: var(--lq-dim);
+  font-weight: 600;
+}
+
+.lq-xj-item b {
+  color: var(--lq-gold);
+  font-weight: 800;
+}
+
+/* 赛博打工人白话解签 */
+.lq-interp-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lq-sec-label {
+  font-size: 12px;
+  font-weight: 900;
+  color: var(--lq-crimson);
+  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.lq-interp-txt {
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: var(--lq-ink);
+  margin: 0;
+  text-align: justify;
+}
+
+/* 转运锦囊与宜忌 */
+.lq-tips-box {
+  background: rgba(225, 29, 72, 0.07);
+  border-left: 3.5px solid var(--lq-crimson);
+  border-radius: 0 10px 10px 0;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12.5px;
+  color: var(--lq-ink);
+}
+
+.lq-result-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.lq-btn-act {
+  flex: 1;
+  padding: 11px 14px;
+  border-radius: 999px;
+  font-size: 13.5px;
+  font-weight: 800;
+  cursor: pointer;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--tx);
+  transition: all 0.2s ease;
+}
+
+.lq-btn-act:hover {
+  border-color: var(--lq-gold);
+}
+
+.lq-btn-act.primary {
+  background: linear-gradient(135deg, #E11D48, #BE123C);
+  color: #FFFFFF;
+  border: none;
+  box-shadow: 0 4px 16px var(--lq-crimson-glow);
+}
+
+@media (max-width: 480px) {
+  .lq-title {
+    font-size: 24px;
+  }
+  .lq-poem-lines {
+    font-size: 15px;
+  }
+  .lq-num-title {
+    font-size: 20px;
+  }
+}

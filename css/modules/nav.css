@@ -45,6 +45,18 @@ html[data-active-module="decision"] {
   --mod-ac-glow: rgba(16, 185, 129, 0.35);
   --mod-ambient: rgba(16, 185, 129, 0.06);
 }
+html[data-active-module="lingqian"] {
+  --mod-ac: #FB7185;
+  --mod-ac-ink: #2B040E;
+  --mod-ac-glow: rgba(251, 113, 133, 0.35);
+  --mod-ambient: rgba(251, 113, 133, 0.06);
+}
+html[data-active-module="clock"] {
+  --mod-ac: #FACC15;
+  --mod-ac-ink: #241A00;
+  --mod-ac-glow: rgba(250, 204, 21, 0.35);
+  --mod-ambient: rgba(250, 204, 21, 0.06);
+}
 
 #global-header {
   position: fixed;
@@ -264,6 +276,8 @@ html {
 #mod-fengshui,
 #mod-tarot,
 #mod-decision,
+#mod-lingqian,
+#mod-clock,
 .app-module {
   position: absolute !important;
   inset: 0 !important;
@@ -281,9 +295,19 @@ html {
 #mod-fengshui.active,
 #mod-tarot.active,
 #mod-decision.active,
+#mod-lingqian.active,
+#mod-clock.active,
 .app-module.active {
   display: flex !important;
   pointer-events: auto !important;
+}
+
+@media (max-width: 1120px) {
+  .nav-tab {
+    padding: 6px 10px;
+    font-size: 12.5px;
+    gap: 4px;
+  }
 }
 
 /* 移动端媒体查询 (宽度小于 768px) */

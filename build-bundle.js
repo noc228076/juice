@@ -20,7 +20,9 @@ const cssFiles = [
   'css/modules/tarot.css',
   'css/modules/manual.css',
   'css/modules/history.css',
-  'css/modules/decision.css'
+  'css/modules/decision.css',
+  'css/modules/lingqian.css',
+  'css/modules/clock.css'
 ];
 
 let mergedCss = '\n/* ====== 全局模块样式合并集 ====== */\n';
@@ -52,6 +54,8 @@ const jsFiles = [
   'js/modules/manual-report.js',
   'js/modules/manual.js',
   'js/modules/decision.js',
+  'js/modules/lingqian.js',
+  'js/modules/clock.js',
   'js/modules/history.js',
   'js/modules/router.js'
 ];

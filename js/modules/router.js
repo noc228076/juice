@@ -21,7 +21,7 @@
   }
 
   function switchModule(modKey, updateHash = true) {
-    if (!['drinks', 'milktea', 'manual', 'fengshui', 'tarot', 'decision'].includes(modKey)) {
+    if (!['drinks', 'milktea', 'manual', 'fengshui', 'tarot', 'lingqian', 'decision', 'clock'].includes(modKey)) {
       modKey = 'drinks';
     }
 
@@ -64,6 +64,8 @@
       if (modKey === 'tarot' && window.AppTarot) window.AppTarot.init();
       if (modKey === 'manual' && window.AppManual) window.AppManual.init();
       if (modKey === 'decision' && window.AppDecision) window.AppDecision.init();
+      if (modKey === 'lingqian' && window.AppLingqian) window.AppLingqian.init();
+      if (modKey === 'clock' && window.AppClock) window.AppClock.init();
     } else {
       if (modKey === 'manual' && window.AppManual) {
         const body = document.getElementById('sm-homebody');
@@ -78,17 +80,25 @@
 
   function handleHash() {
     const hash = window.location.hash.replace(/^#\/?/, '').toLowerCase();
-    if (['drinks', 'milktea', 'manual', 'fengshui', 'tarot', 'decision'].includes(hash)) {
+    if (['drinks', 'milktea', 'manual', 'fengshui', 'tarot', 'lingqian', 'decision', 'clock'].includes(hash)) {
       switchModule(hash, false);
     }
   }
 
   function init() {
-    // 绑定左上角 5 模块胶囊标签点击事件
+    // 绑定左上角模块胶囊标签点击事件
     document.querySelectorAll('.nav-tab').forEach(tab => {
       tab.addEventListener('click', () => {
         if (window.SFX && window.SFX.tap) window.SFX.tap();
         switchModule(tab.dataset.mod, true);
+      });
+    });
+
+    // 绑定东西方玄学合辑互跳按钮
+    document.querySelectorAll('[data-ew-jump]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        switchModule(btn.dataset.ewJump, true);
       });
     });
 

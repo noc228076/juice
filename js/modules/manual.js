@@ -130,7 +130,9 @@
   }
 
   function openTest(id) {
-    var t = DATA[id];
+    var dataMap = window.SM_DATA || {};
+    var t = dataMap[id];
+    if (!t) return;
     state.test = t;
     if (t.mode === 'interactive') {
       openGame(t);
@@ -146,20 +148,27 @@
 
   function openCover(t) {
     state.mode = 'cover';
-    var topEl = $('#sm-quiztop');
-    topEl.innerHTML = topbarHTML(t);
+    var topEl = document.getElementById('sm-quiztop');
+    if (topEl) {
+      topEl.innerHTML = topbarHTML(t);
+    }
+    var icoHtml = (typeof window.icon === 'function') ? window.icon(t.icon) : '📖';
+    var boltIco = (typeof window.icon === 'function') ? window.icon('bolt') : '⚡';
     var html = '<div class="fs-card" style="text-align:center;padding:28px 20px;">'
-      + '<div style="width:72px;height:72px;border-radius:20px;margin:0 auto 14px;background:' + hexSoft(t.color, 0.12) + ';color:' + t.color + ';display:grid;place-items:center;font-size:36px;">' + window.icon(t.icon) + '</div>'
+      + '<div style="width:72px;height:72px;border-radius:20px;margin:0 auto 14px;background:' + hexSoft(t.color, 0.12) + ';color:' + t.color + ';display:grid;place-items:center;font-size:36px;">' + icoHtml + '</div>'
       + '<h2 style="font-size:24px;margin-bottom:4px;">' + t.title + '</h2>'
       + '<div style="font-size:12px;color:var(--tx-dim);letter-spacing:2px;margin-bottom:16px;">' + t.en + '</div>'
       + '<div style="font-size:13.5px;color:var(--tx-dim);line-height:1.8;text-align:left;background:var(--card);padding:14px 16px;border-radius:var(--r-md);margin-bottom:20px;">'
-      + t.intro.map(function (p) { return '<p style="margin-bottom:6px;">' + p + '</p>'; }).join('')
+      + (t.intro || []).map(function (p) { return '<p style="margin-bottom:6px;">' + p + '</p>'; }).join('')
       + '</div>'
-      + '<button class="mt-btn" id="sm-startbtn" style="width:100%;">' + window.icon('bolt') + ' 翻开这一章</button>'
+      + '<button class="mt-btn" id="sm-startbtn" style="width:100%;">' + boltIco + ' 翻开这一章</button>'
       + '</div>';
-    $('#sm-quizbody').innerHTML = html;
+    var bodyEl = document.getElementById('sm-quizbody');
+    if (bodyEl) {
+      bodyEl.innerHTML = html;
+    }
     showScreen('scr-sm-quiz');
-    var backBtn = topEl.querySelector('.mt-iconbtn');
+    var backBtn = topEl ? topEl.querySelector('.mt-iconbtn') : null;
     if (backBtn) {
       backBtn.onclick = function () {
         if (window.SFX && window.SFX.tap) window.SFX.tap();
@@ -167,10 +176,13 @@
         showScreen('scr-sm-home');
       };
     }
-    $('#sm-startbtn').onclick = function () {
-      if (window.SFX && window.SFX.tap) window.SFX.tap();
-      startQuiz(t);
-    };
+    var startBtn = document.getElementById('sm-startbtn');
+    if (startBtn) {
+      startBtn.onclick = function () {
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        startQuiz(t);
+      };
+    }
   }
 
   function startQuiz(t) {
@@ -196,14 +208,16 @@
         + '<span class="tag">' + keys[i] + '</span><span>' + op.t + '</span></button>';
     });
     html += '</div></div></div>';
-    $('#sm-quizbody').innerHTML = html;
-
-    $$('#sm-quizbody .q-opt').forEach(function (b) {
-      b.addEventListener('click', function () {
-        var i = parseInt(b.getAttribute('data-i'), 10);
-        pickOption(t, i, b);
+    var bodyEl = document.getElementById('sm-quizbody');
+    if (bodyEl) {
+      bodyEl.innerHTML = html;
+      bodyEl.querySelectorAll('.q-opt').forEach(function (b) {
+        b.addEventListener('click', function () {
+          var i = parseInt(b.getAttribute('data-i'), 10);
+          pickOption(t, i, b);
+        });
       });
-    });
+    }
   }
 
   function pickOption(t, i, btn) {
@@ -223,10 +237,13 @@
   }
 
   function showComputing(t) {
-    $('#sm-quizbody').innerHTML = '<div style="text-align:center;padding:60px 20px;">'
-      + window.sealHTML()
-      + '<h3 style="margin-top:20px;font-size:20px;">正在质检盖章…</h3>'
-      + '<p style="font-size:13px;color:var(--tx-dim);margin-top:8px;">盖上官方检验印章，马上出具说明书</p></div>';
+    var bodyEl = document.getElementById('sm-quizbody');
+    if (bodyEl) {
+      bodyEl.innerHTML = '<div style="text-align:center;padding:60px 20px;">'
+        + window.sealHTML()
+        + '<h3 style="margin-top:20px;font-size:20px;">正在质检盖章…</h3>'
+        + '<p style="font-size:13px;color:var(--tx-dim);margin-top:8px;">盖上官方检验印章，马上出具说明书</p></div>';
+    }
     setTimeout(function () {
       var res = t.compute.call(t, state.scores);
       showResult(t, res);
@@ -251,13 +268,20 @@
       });
     }
 
-    window.renderReport($('#sm-resultbody'), t, res, extra);
+    var resultBody = document.getElementById('sm-resultbody');
+    if (resultBody && window.renderReport) {
+      window.renderReport(resultBody, t, res, extra);
+    }
     showScreen('scr-sm-result');
 
-    $('#rback').onclick = function () { renderHome(); showScreen('scr-sm-home'); };
-    $('#rhome').onclick = function () { renderHome(); showScreen('scr-sm-home'); };
-    $('#rretry').onclick = function () { openCover(t); };
-    $('#rsave').onclick = function () {
+    var rback = document.getElementById('rback');
+    if (rback) rback.onclick = function () { renderHome(); showScreen('scr-sm-home'); };
+    var rhome = document.getElementById('rhome');
+    if (rhome) rhome.onclick = function () { renderHome(); showScreen('scr-sm-home'); };
+    var rretry = document.getElementById('rretry');
+    if (rretry) rretry.onclick = function () { openCover(t); };
+    var rsave = document.getElementById('rsave');
+    if (rsave) rsave.onclick = function () {
       if (window.buildShareCard) {
         var card = window.buildShareCard(t, res, extra);
         var href = (typeof card === 'string') ? card : card.toDataURL('image/png');
@@ -273,14 +297,16 @@
     state.mode = 'game';
     var isReaction = t.id === 'reaction';
     var scrId = isReaction ? 'scr-sm-reaction' : 'scr-sm-color';
-    var topId = isReaction ? '#sm-reacttop' : '#sm-colortop';
-    var bodyId = isReaction ? '#sm-reactbody' : '#sm-colorbody';
+    var topId = isReaction ? 'sm-reacttop' : 'sm-colortop';
+    var bodyId = isReaction ? 'sm-reactbody' : 'sm-colorbody';
 
-    var topEl = $(topId);
-    topEl.innerHTML = topbarHTML(t);
+    var topEl = document.getElementById(topId);
+    if (topEl) {
+      topEl.innerHTML = topbarHTML(t);
+    }
     showScreen(scrId);
 
-    var backBtn = topEl.querySelector('.mt-iconbtn');
+    var backBtn = topEl ? topEl.querySelector('.mt-iconbtn') : null;
     if (backBtn) {
       backBtn.onclick = function () {
         if (window.SFX && window.SFX.tap) window.SFX.tap();
@@ -291,8 +317,9 @@
     }
 
     var startFn = isReaction ? window.startReaction : window.startColor;
-    if (startFn) {
-      state.gameCtl = startFn($(bodyId), function (rawRes) {
+    var bodyEl = document.getElementById(bodyId);
+    if (startFn && bodyEl) {
+      state.gameCtl = startFn(bodyEl, function (rawRes) {
         var res = (t.compute ? t.compute.call(t, rawRes) : rawRes) || rawRes;
         showResult(t, res);
       });
@@ -303,13 +330,20 @@
     if (!data || !data.test || !data.res) return;
     state.mode = 'result';
     state.result = data.res;
-    window.renderReport($('#sm-resultbody'), data.test, data.res, data.extra || { no: reportNo(), t: Date.now() });
+    var resultBody = document.getElementById('sm-resultbody');
+    if (resultBody && window.renderReport) {
+      window.renderReport(resultBody, data.test, data.res, data.extra || { no: reportNo(), t: Date.now() });
+    }
     showScreen('scr-sm-result');
 
-    $('#rback').onclick = function () { renderHome(); showScreen('scr-sm-home'); };
-    $('#rhome').onclick = function () { renderHome(); showScreen('scr-sm-home'); };
-    $('#rretry').onclick = function () { openCover(data.test); };
-    $('#rsave').onclick = function () {
+    var rback = document.getElementById('rback');
+    if (rback) rback.onclick = function () { renderHome(); showScreen('scr-sm-home'); };
+    var rhome = document.getElementById('rhome');
+    if (rhome) rhome.onclick = function () { renderHome(); showScreen('scr-sm-home'); };
+    var rretry = document.getElementById('rretry');
+    if (rretry) rretry.onclick = function () { openCover(data.test); };
+    var rsave = document.getElementById('rsave');
+    if (rsave) rsave.onclick = function () {
       if (window.buildShareCard) {
         var card = window.buildShareCard(data.test, data.res, data.extra);
         var href = (typeof card === 'string') ? card : card.toDataURL('image/png');

@@ -943,21 +943,25 @@ html[data-theme="light"] #mod-tarot .tr-info-desc {
     padding: 18px 22px;
   }
 
-  /* 总结头部居中受控 */
+  /* 总结头部与卡片严格两端对齐 (1040px) */
+  #mod-tarot .topbar {
+    max-width: 1040px;
+    margin: 0 auto 16px;
+  }
   #mod-tarot .summary {
-    max-width: 860px;
+    max-width: 1040px;
     margin: 0 auto 24px;
   }
 
   /* 单张牌桌面端：高贵居中大牌展台 (280px 大牌 + 优雅解读面板) */
   #mod-tarot .result-list.is-single {
-    max-width: 860px;
+    max-width: 1040px;
     margin: 0 auto 28px;
   }
   #mod-tarot .result-list.is-single .tr-single-hero {
     display: grid;
     grid-template-columns: 280px 1fr;
-    gap: 36px;
+    gap: 40px;
     align-items: center;
     padding: 32px;
   }
@@ -966,7 +970,7 @@ html[data-theme="light"] #mod-tarot .tr-info-desc {
     margin: 0;
   }
 
-  /* 三张牌桌面端：3列并排展开的塔罗圣坛 */
+  /* 三张牌桌面端：3列并排展开的塔罗圣坛 (1040px) */
   #mod-tarot .result-list.is-three {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -978,9 +982,22 @@ html[data-theme="light"] #mod-tarot .tr-info-desc {
     padding: 24px 20px;
   }
 
-  /* 结果操作按钮栏与卡片完美对齐居中 */
+  /* 结果操作按钮栏：PC 端与卡片两端对齐，一排放置三个按钮 */
   #mod-tarot .tr-result-actions {
-    max-width: 860px;
-    margin: 24px auto 0;
+    max-width: 1040px !important;
+    margin: 28px auto 0 !important;
+    display: flex !important;
+    flex-direction: row !important;
+    justify-content: center !important;
+    align-items: stretch !important;
+    gap: 16px !important;
+    width: 100% !important;
+  }
+  #mod-tarot .tr-result-actions .tr-btn {
+    flex: 1 1 0 !important;
+    width: auto !important;
+    margin: 0 !important;
+    height: 48px !important;
+    white-space: nowrap !important;
   }
 }

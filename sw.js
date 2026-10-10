@@ -1,5 +1,5 @@
-/* 饮料人格研究所 & 五合一心理矩阵 — 离线瞬开 Service Worker v12 */
-const CACHE_NAME = 'juice-persona-v12';
+/* 饮料人格研究所 & 五合一心理矩阵 — 离线瞬开 Service Worker v13 */
+const CACHE_NAME = 'juice-persona-v13';
 const ASSETS = [
   './',
   './index.html',

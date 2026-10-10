@@ -262,6 +262,10 @@ html[data-theme="light"] .nav-tabs {
 }
 
 /* 视口与模块容器：统一底色与丝滑转场 */
+html {
+  scrollbar-gutter: stable;
+}
+
 #modules-viewport {
   position: fixed;
   inset: 0;
@@ -269,6 +273,7 @@ html[data-theme="light"] .nav-tabs {
   overflow: hidden;
   z-index: 1;
   background: var(--bg);
+  scrollbar-gutter: stable;
 }
 
 #mod-drinks,
@@ -282,6 +287,7 @@ html[data-theme="light"] .nav-tabs {
   display: none !important;
   flex-direction: column !important;
   overflow-y: auto !important;
+  scrollbar-gutter: stable;
   -webkit-overflow-scrolling: touch;
   background: var(--bg);
 }
@@ -387,7 +393,7 @@ html[data-theme="light"] .nav-tabs {
 }
 
 @keyframes mtFadeIn {
-  from { opacity: 0; transform: translateY(12px) scale(0.995); }
+  from { opacity: 0; transform: translateY(12px); }
   to { opacity: 1; transform: none; }
 }
 
@@ -1447,7 +1453,7 @@ html[data-theme="light"] #mod-tarot::before {
 }
 
 @keyframes trFadeIn {
-  from { opacity: 0; transform: translateY(10px) scale(0.995); }
+  from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: none; }
 }
 
@@ -13982,7 +13988,11 @@ if ('serviceWorker' in navigator) {
       tab.classList.toggle('active', isMatch);
       if (isMatch) {
         matchedTab = tab;
-        tab.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+        const wrapper = tab.closest('.nav-tabs-wrapper');
+        if (wrapper && wrapper.scrollWidth > wrapper.clientWidth + 4) {
+          const targetLeft = tab.offsetLeft - (wrapper.clientWidth - tab.offsetWidth) / 2;
+          wrapper.scrollTo({ left: Math.max(0, targetLeft), behavior: 'smooth' });
+        }
       }
     });
 

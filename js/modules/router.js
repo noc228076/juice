@@ -35,7 +35,11 @@
       tab.classList.toggle('active', isMatch);
       if (isMatch) {
         matchedTab = tab;
-        tab.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+        const wrapper = tab.closest('.nav-tabs-wrapper');
+        if (wrapper && wrapper.scrollWidth > wrapper.clientWidth + 4) {
+          const targetLeft = tab.offsetLeft - (wrapper.clientWidth - tab.offsetWidth) / 2;
+          wrapper.scrollTo({ left: Math.max(0, targetLeft), behavior: 'smooth' });
+        }
       }
     });
 

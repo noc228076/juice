@@ -238,6 +238,10 @@ html[data-theme="light"] .nav-tabs {
 }
 
 /* 视口与模块容器：统一底色与丝滑转场 */
+html {
+  scrollbar-gutter: stable;
+}
+
 #modules-viewport {
   position: fixed;
   inset: 0;
@@ -245,6 +249,7 @@ html[data-theme="light"] .nav-tabs {
   overflow: hidden;
   z-index: 1;
   background: var(--bg);
+  scrollbar-gutter: stable;
 }
 
 #mod-drinks,
@@ -258,6 +263,7 @@ html[data-theme="light"] .nav-tabs {
   display: none !important;
   flex-direction: column !important;
   overflow-y: auto !important;
+  scrollbar-gutter: stable;
   -webkit-overflow-scrolling: touch;
   background: var(--bg);
 }

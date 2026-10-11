@@ -33,6 +33,9 @@
     if (modKey !== 'manual' && window.AppManual && typeof window.AppManual.stopActiveGame === 'function') {
       window.AppManual.stopActiveGame();
     }
+    if (modKey !== 'decision' && window.AppDecision && typeof window.AppDecision.closeReceipt === 'function') {
+      window.AppDecision.closeReceipt();
+    }
 
     currentModule = modKey;
     document.documentElement.dataset.activeModule = modKey;
@@ -121,6 +124,8 @@
     // 绑定全局右上角控制中枢事件
     const btnTheme = document.getElementById('globalBtnTheme');
     if (btnTheme) {
+      const initTheme = document.documentElement.dataset.theme || 'dark';
+      btnTheme.textContent = initTheme === 'dark' ? '☾' : '☀';
       btnTheme.addEventListener('click', () => {
         if (window.SFX && window.SFX.tap) window.SFX.tap();
         const curTheme = document.documentElement.dataset.theme;
@@ -128,16 +133,28 @@
         document.documentElement.dataset.theme = nextTheme;
         try { localStorage.setItem('dp_theme', nextTheme); } catch (e) {}
         btnTheme.textContent = nextTheme === 'dark' ? '☾' : '☀';
+        const ti1 = document.getElementById('themeIcon');
+        if (ti1) ti1.textContent = nextTheme === 'dark' ? '☾' : '☀';
+        const ti2 = document.querySelector('#btnTheme2 span');
+        if (ti2) ti2.textContent = nextTheme === 'dark' ? '☾' : '☀';
       });
     }
 
     const btnSfx = document.getElementById('globalBtnSfx');
     if (btnSfx) {
+      if (window.SFX && typeof window.SFX.isMuted === 'function') {
+        const initEnabled = !window.SFX.isMuted();
+        btnSfx.textContent = initEnabled ? '🔊' : '🔇';
+        if (btnSfx.title) btnSfx.title = initEnabled ? '音效已开启' : '音效已静音';
+      }
       btnSfx.addEventListener('click', () => {
         if (window.SFX && window.SFX.toggle) {
           const enabled = window.SFX.toggle();
           btnSfx.textContent = enabled ? '🔊' : '🔇';
           if (btnSfx.title) btnSfx.title = enabled ? '音效已开启' : '音效已静音';
+          if (typeof window.__syncDrinkSfx === 'function') {
+            window.__syncDrinkSfx(enabled);
+          }
         }
       });
     }

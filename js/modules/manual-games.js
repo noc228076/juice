@@ -80,10 +80,11 @@
 
     /* ---------- 第一关:简单反应 ---------- */
     function run1() {
-      var valid = [], fouls = 0, shown = 0, t0 = 0, armed = false, waitId = 0;
+      var valid = [], fouls = 0, shown = 0, t0 = 0, armed = false, locked = false, waitId = 0;
       var stageStartTime = performance.now();
       function paint(k) {
         stageStartTime = performance.now();
+        locked = false;
         el.innerHTML = hud('<b>第一关 · 简单反应（变红即点）</b>', '有效 ' + valid.length + '/5') +
           '<div class="rz-stage rz-pure-wait" id="rz"><div class="rz-count">' + (valid.length ? '上次 ' + valid[valid.length - 1] + ' ms' : '&nbsp;') + '</div>' +
           '<div class="rz-big" id="big"></div>' +
@@ -94,6 +95,7 @@
       }
       function arm() {
         armed = false;
+        locked = false;
         var big = el.querySelector('#big'), sub = el.querySelector('#sub'), st = el.querySelector('#rz');
         if (big) big.textContent = '';
         if (sub) { sub.className = 'rz-sub'; sub.textContent = ''; }
@@ -107,7 +109,9 @@
         }, 1200 + Math.random() * 2200);
       }
       function onTap(e) {
+        if (locked) return;
         if (performance.now() - stageStartTime < 280) return; // 280ms 手势防抖保护
+        locked = true;
         if (!armed) {   // 抢跑
           clearTimeout(waitId);
           fouls++;
@@ -141,8 +145,9 @@
       var traps = {};
       var tp = shuffle([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]).slice(0, 4);
       tp.forEach(function (i) { traps[i] = true; });
-      var i = 0, t0 = 0, answered = false, toId = 0;
+      var i = 0, t0 = 0, answered = true, toId = 0;
       function paint() {
+        answered = true;
         el.innerHTML = hud('<b>第二关 · 选择反应（红左·绿右）</b>', (i + 1) + '/' + N) +
           '<div class="rz-stage" style="padding:20px 14px"><div class="rz-banner" id="ban">⚠️ 规则反转：红右 · 绿左</div>' +
           '<div class="rz-cue-slot" id="cue"><span class="dot" style="width:64px;height:64px;display:inline-block;border-radius:50%;background:#2E2A3B;"></span></div>' +
@@ -206,8 +211,9 @@
       for (var k = 0; k < N; k++) seq.push(k < 16 ? 'go' : 'nogo');
       shuffle(seq);
       if (seq[0] === 'nogo') { var f = seq.indexOf('go'); seq[f] = 'nogo'; seq[0] = 'go'; }
-      var i = 0, t0 = 0, answered = false, toId = 0;
+      var i = 0, t0 = 0, answered = true, toId = 0;
       function paint() {
+        answered = true;
         el.innerHTML = hud('<b>第三关 · 冲动控制（绿按·红忍）</b>', (i + 1) + '/' + N) +
           '<div class="rz-stage rz-pure-wait" id="st"><div class="rz-count">Go ' + S3.goRts.length + '</div>' +
           '<div class="rz-big" id="big"></div><div class="rz-sub" id="sub"></div></div>';

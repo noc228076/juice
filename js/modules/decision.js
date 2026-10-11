@@ -607,16 +607,23 @@
   }
 
   // ================= 终局裁决单小票弹窗与历史存入 =================
-  function showReceipt(data) {
+  function showReceipt(data, isRestored = false) {
     const modal = document.getElementById('decReceiptModal');
     if (!modal) return;
 
-    lastVerdictRecord = {
-      ...data,
-      caseNo: getCaseNumber(),
-      timeStr: formatTime(new Date()),
-      timestamp: Date.now()
-    };
+    lastVerdictRecord = isRestored
+      ? {
+          ...data,
+          caseNo: data.caseNo || getCaseNumber(),
+          timeStr: data.timeStr || formatTime(new Date()),
+          timestamp: data.timestamp || Date.now()
+        }
+      : {
+          ...data,
+          caseNo: getCaseNumber(),
+          timeStr: formatTime(new Date()),
+          timestamp: Date.now()
+        };
 
     const caseNoEl = document.getElementById('rcptCaseNo');
     const timeEl = document.getElementById('rcptTime');
@@ -635,8 +642,8 @@
     modal.classList.add('open');
     modal.setAttribute('aria-hidden', 'false');
 
-    // 自动沉淀至全所历史档案
-    if (window.UniversalHistory && typeof window.UniversalHistory.add === 'function') {
+    // 自动沉淀至全所历史档案（回看旧记录时不重复入库）
+    if (!isRestored && window.UniversalHistory && typeof window.UniversalHistory.add === 'function') {
       window.UniversalHistory.add({
         module: 'decision',
         title: `裁决: ${lastVerdictRecord.verdict}`,
@@ -1036,13 +1043,14 @@
     if (recordData.modeKey) {
       switchSubMode(recordData.modeKey);
     }
-    showReceipt(recordData);
+    showReceipt(recordData, true);
   }
 
   // 全局暴露 API
   window.AppDecision = {
     init,
     restore,
+    closeReceipt,
     spinWheel,
     flipCoin,
     tossBwei,

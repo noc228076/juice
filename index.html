@@ -12404,6 +12404,7 @@ const SFX = (function () {
 
   function ensure() {
     if (!state.sound) return null;
+    if (window.SFX && typeof window.SFX.isMuted === 'function' && window.SFX.isMuted()) return null;
     if (!ctx) {
       const AC = window.AudioContext || window.webkitAudioContext;
       if (!AC) return null;
@@ -12462,7 +12463,19 @@ const SFX = (function () {
   return {
     get sound() { return state.sound; },
     get vibrate() { return state.vibrate; },
-    setSound(v) { state.sound = v; store.set('dp_sound', v); if (v) ensure(); },
+    setSound(v) {
+      state.sound = v;
+      store.set('dp_sound', v);
+      if (window.SFX && typeof window.SFX.setSound === 'function') {
+        window.SFX.setSound(v);
+      }
+      const gBtn = document.getElementById('globalBtnSfx');
+      if (gBtn) {
+        gBtn.textContent = v ? '🔊' : '🔇';
+        if (gBtn.title) gBtn.title = v ? '音效已开启' : '音效已静音';
+      }
+      if (v) ensure();
+    },
     setVibrate(v) { state.vibrate = v; store.set('dp_vibrate', v); if (v) vib(20); },
     unlock() { ensure(); },
 
@@ -12677,6 +12690,8 @@ const SFX = (function () {
     document.documentElement.dataset.theme = t;
     $('themeIcon').textContent = t === 'dark' ? '☾' : '☀';
     $('btnTheme2').querySelector('span').textContent = t === 'dark' ? '☾' : '☀';
+    const gTheme = document.getElementById('globalBtnTheme');
+    if (gTheme) gTheme.textContent = t === 'dark' ? '☾' : '☀';
     try { localStorage.setItem('dp_theme', t); } catch (e) {}
     if (window.AndroidBridge && AndroidBridge.setLightTheme) {
       AndroidBridge.setLightTheme(t === 'light');
@@ -13151,6 +13166,10 @@ const SFX = (function () {
   }
 
   function updateHistoryBadge() {
+    if (window.UniversalHistory && typeof window.UniversalHistory.updateBadges === 'function') {
+      window.UniversalHistory.updateBadges();
+      return;
+    }
     const list = getHistoryList();
     const count = list.length;
     const badges = document.querySelectorAll('.history-count-badge');
@@ -13178,6 +13197,10 @@ const SFX = (function () {
   }
 
   function clearAllHistory() {
+    if (window.UniversalHistory && typeof window.UniversalHistory.clear === 'function') {
+      window.UniversalHistory.clear();
+      return;
+    }
     if (!confirm('确定要清空所有历史测评档案吗？')) return;
     setHistoryList([]);
     updateHistoryBadge();
@@ -13255,6 +13278,10 @@ const SFX = (function () {
   window.__delHistory = removeHistoryItem;
 
   function renderHistoryDrawer() {
+    if (window.UniversalHistory && typeof window.UniversalHistory.renderDrawer === 'function') {
+      window.UniversalHistory.renderDrawer();
+      return;
+    }
     const listContainer = $('historyList');
     if (!listContainer) return;
     const list = getHistoryList();
@@ -13317,6 +13344,10 @@ const SFX = (function () {
   }
 
   function showHistoryDrawer() {
+    if (window.UniversalHistory && typeof window.UniversalHistory.openDrawer === 'function') {
+      window.UniversalHistory.openDrawer();
+      return;
+    }
     renderHistoryDrawer();
     const modal = $('modalHistory');
     if (modal) {
@@ -13327,6 +13358,10 @@ const SFX = (function () {
   }
 
   function hideHistoryDrawer() {
+    if (window.UniversalHistory && typeof window.UniversalHistory.closeDrawer === 'function') {
+      window.UniversalHistory.closeDrawer();
+      return;
+    }
     const modal = $('modalHistory');
     if (modal) {
       modal.classList.remove('open');
@@ -14014,6 +14049,11 @@ const SFX = (function () {
     $('tglSound').classList.toggle('off', !SFX.sound);
     $('tglVib').classList.toggle('off', !SFX.vibrate);
   }
+  window.__syncDrinkSfx = function (enabled) {
+    state.sound = !!enabled;
+    store.set('dp_sound', !!enabled);
+    refreshToggles();
+  };
 
   /* ---------- 启动 ---------- */
   function init() {
@@ -14025,18 +14065,20 @@ const SFX = (function () {
     setMode('drink');
 
     updateHistoryBadge();
-    const btnHist = $('btnOpenHistory');
-    if (btnHist) btnHist.addEventListener('click', showHistoryDrawer);
-    const btnHistRes = $('btnResultHistory');
-    if (btnHistRes) btnHistRes.addEventListener('click', showHistoryDrawer);
-    const btnHistResPc = $('btnResultHistoryPc');
-    if (btnHistResPc) btnHistResPc.addEventListener('click', showHistoryDrawer);
-    const btnCloseHist = $('btnCloseHistory');
-    if (btnCloseHist) btnCloseHist.addEventListener('click', hideHistoryDrawer);
-    const backdropHist = $('historyBackdrop');
-    if (backdropHist) backdropHist.addEventListener('click', hideHistoryDrawer);
-    const btnClrHist = $('btnClearHistory');
-    if (btnClrHist) btnClrHist.addEventListener('click', clearAllHistory);
+    if (!window.UniversalHistory) {
+      const btnHist = $('btnOpenHistory');
+      if (btnHist) btnHist.addEventListener('click', showHistoryDrawer);
+      const btnHistRes = $('btnResultHistory');
+      if (btnHistRes) btnHistRes.addEventListener('click', showHistoryDrawer);
+      const btnHistResPc = $('btnResultHistoryPc');
+      if (btnHistResPc) btnHistResPc.addEventListener('click', showHistoryDrawer);
+      const btnCloseHist = $('btnCloseHistory');
+      if (btnCloseHist) btnCloseHist.addEventListener('click', hideHistoryDrawer);
+      const backdropHist = $('historyBackdrop');
+      if (backdropHist) backdropHist.addEventListener('click', hideHistoryDrawer);
+      const btnClrHist = $('btnClearHistory');
+      if (btnClrHist) btnClrHist.addEventListener('click', clearAllHistory);
+    }
 
 
     $('btnStart').addEventListener('click', () => { SFX.pour(); startQuiz(); });
@@ -14082,11 +14124,19 @@ const SFX = (function () {
       btnBack.addEventListener('click', () => { window.__dpGoBack(); });
     }
 
-    // 浏览器键盘快捷键支持 (桌面端体验增强)
+    // 浏览器键盘快捷键支持 (桌面端体验增强，仅在特调灵魂馆模块激活且非输入框聚焦时生效)
     document.addEventListener('keydown', (e) => {
       const modalHist = $('modalHistory');
       if (modalHist && modalHist.classList.contains('open') && e.key === 'Escape') {
         hideHistoryDrawer();
+        return;
+      }
+      const tag = e.target && e.target.tagName ? e.target.tagName.toUpperCase() : '';
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (e.target && e.target.isContentEditable)) {
+        return;
+      }
+      const activeMod = document.documentElement.dataset.activeModule;
+      if (activeMod && activeMod !== 'drinks') {
         return;
       }
       if (cur === 'quiz') {
@@ -15586,8 +15636,14 @@ if ('serviceWorker' in navigator) {
     showCardInReveal();
   }
 
+  let revealFlipTimer1 = null;
+  let revealFlipTimer2 = null;
+
   function showCardInReveal() {
+    if (revealFlipTimer1) clearTimeout(revealFlipTimer1);
+    if (revealFlipTimer2) clearTimeout(revealFlipTimer2);
     const cardData = deck[picks[revIdx]];
+    if (!cardData) return;
     const posList = curSpread === "one" ? POS1 : POS3;
     const pos = posList[revIdx];
 
@@ -15624,30 +15680,34 @@ if ('serviceWorker' in navigator) {
     nextBtn.textContent = revIdx === picks.length - 1 ? '查看完整解读' : '下一张牌';
 
     // 翻转动效
-    setTimeout(() => {
+    revealFlipTimer1 = setTimeout(() => {
       if (window.SFX && window.SFX.tarotFlip) window.SFX.tarotFlip();
       bigCard.classList.add('flipped');
-      setTimeout(() => {
+      revealFlipTimer2 = setTimeout(() => {
         reading.style.opacity = '1';
         if (window.SFX && window.SFX.tarotReveal) window.SFX.tarotReveal();
       }, 400);
     }, 250);
   }
 
-  function finish() {
-    if (window.SFX && window.SFX.tarotDone) window.SFX.tarotDone();
+  function finish(restoredData) {
+    const isRestored = !!(restoredData && Array.isArray(restoredData.items) && restoredData.items.length > 0);
+    if (!isRestored && window.SFX && window.SFX.tarotDone) window.SFX.tarotDone();
     showScreen('sc-tr-result');
 
     const posList = curSpread === "one" ? POS1 : POS3;
-    const items = picks.map((pIdx, i) => {
-      const c = deck[pIdx];
-      return {
-        pos: posList[i],
-        card: c,
-        kw: c.isRev ? c.revKw : c.upKw,
-        txt: c.isRev ? c.rev : c.up
-      };
-    });
+    const items = isRestored
+      ? restoredData.items
+      : picks.map((pIdx, i) => {
+          const c = deck[pIdx];
+          return {
+            pos: posList[i],
+            card: c,
+            kw: c.isRev ? c.revKw : c.upKw,
+            txt: c.isRev ? c.rev : c.up
+          };
+        });
+    if (!items || !items.length) return;
 
     const summaryBox = document.getElementById('trSummaryBox');
     const resultList = document.getElementById('trResultList');
@@ -15777,8 +15837,8 @@ if ('serviceWorker' in navigator) {
 
     lastTarotResult = { spread: curSpread, items };
 
-    // 保存至全所综合档案库
-    if (window.UniversalHistory) {
+    // 保存至全所综合档案库（回看历史时不重复入库）
+    if (!isRestored && window.UniversalHistory) {
       const mainCard = items[0].card;
       window.UniversalHistory.add({
         module: 'tarot',
@@ -16685,10 +16745,11 @@ if ('serviceWorker' in navigator) {
 
     /* ---------- 第一关:简单反应 ---------- */
     function run1() {
-      var valid = [], fouls = 0, shown = 0, t0 = 0, armed = false, waitId = 0;
+      var valid = [], fouls = 0, shown = 0, t0 = 0, armed = false, locked = false, waitId = 0;
       var stageStartTime = performance.now();
       function paint(k) {
         stageStartTime = performance.now();
+        locked = false;
         el.innerHTML = hud('<b>第一关 · 简单反应（变红即点）</b>', '有效 ' + valid.length + '/5') +
           '<div class="rz-stage rz-pure-wait" id="rz"><div class="rz-count">' + (valid.length ? '上次 ' + valid[valid.length - 1] + ' ms' : '&nbsp;') + '</div>' +
           '<div class="rz-big" id="big"></div>' +
@@ -16699,6 +16760,7 @@ if ('serviceWorker' in navigator) {
       }
       function arm() {
         armed = false;
+        locked = false;
         var big = el.querySelector('#big'), sub = el.querySelector('#sub'), st = el.querySelector('#rz');
         if (big) big.textContent = '';
         if (sub) { sub.className = 'rz-sub'; sub.textContent = ''; }
@@ -16712,7 +16774,9 @@ if ('serviceWorker' in navigator) {
         }, 1200 + Math.random() * 2200);
       }
       function onTap(e) {
+        if (locked) return;
         if (performance.now() - stageStartTime < 280) return; // 280ms 手势防抖保护
+        locked = true;
         if (!armed) {   // 抢跑
           clearTimeout(waitId);
           fouls++;
@@ -16746,8 +16810,9 @@ if ('serviceWorker' in navigator) {
       var traps = {};
       var tp = shuffle([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]).slice(0, 4);
       tp.forEach(function (i) { traps[i] = true; });
-      var i = 0, t0 = 0, answered = false, toId = 0;
+      var i = 0, t0 = 0, answered = true, toId = 0;
       function paint() {
+        answered = true;
         el.innerHTML = hud('<b>第二关 · 选择反应（红左·绿右）</b>', (i + 1) + '/' + N) +
           '<div class="rz-stage" style="padding:20px 14px"><div class="rz-banner" id="ban">⚠️ 规则反转：红右 · 绿左</div>' +
           '<div class="rz-cue-slot" id="cue"><span class="dot" style="width:64px;height:64px;display:inline-block;border-radius:50%;background:#2E2A3B;"></span></div>' +
@@ -16811,8 +16876,9 @@ if ('serviceWorker' in navigator) {
       for (var k = 0; k < N; k++) seq.push(k < 16 ? 'go' : 'nogo');
       shuffle(seq);
       if (seq[0] === 'nogo') { var f = seq.indexOf('go'); seq[f] = 'nogo'; seq[0] = 'go'; }
-      var i = 0, t0 = 0, answered = false, toId = 0;
+      var i = 0, t0 = 0, answered = true, toId = 0;
       function paint() {
+        answered = true;
         el.innerHTML = hud('<b>第三关 · 冲动控制（绿按·红忍）</b>', (i + 1) + '/' + N) +
           '<div class="rz-stage rz-pure-wait" id="st"><div class="rz-count">Go ' + S3.goRts.length + '</div>' +
           '<div class="rz-big" id="big"></div><div class="rz-sub" id="sub"></div></div>';
@@ -18586,16 +18652,23 @@ if ('serviceWorker' in navigator) {
   }
 
   // ================= 终局裁决单小票弹窗与历史存入 =================
-  function showReceipt(data) {
+  function showReceipt(data, isRestored = false) {
     const modal = document.getElementById('decReceiptModal');
     if (!modal) return;
 
-    lastVerdictRecord = {
-      ...data,
-      caseNo: getCaseNumber(),
-      timeStr: formatTime(new Date()),
-      timestamp: Date.now()
-    };
+    lastVerdictRecord = isRestored
+      ? {
+          ...data,
+          caseNo: data.caseNo || getCaseNumber(),
+          timeStr: data.timeStr || formatTime(new Date()),
+          timestamp: data.timestamp || Date.now()
+        }
+      : {
+          ...data,
+          caseNo: getCaseNumber(),
+          timeStr: formatTime(new Date()),
+          timestamp: Date.now()
+        };
 
     const caseNoEl = document.getElementById('rcptCaseNo');
     const timeEl = document.getElementById('rcptTime');
@@ -18614,8 +18687,8 @@ if ('serviceWorker' in navigator) {
     modal.classList.add('open');
     modal.setAttribute('aria-hidden', 'false');
 
-    // 自动沉淀至全所历史档案
-    if (window.UniversalHistory && typeof window.UniversalHistory.add === 'function') {
+    // 自动沉淀至全所历史档案（回看旧记录时不重复入库）
+    if (!isRestored && window.UniversalHistory && typeof window.UniversalHistory.add === 'function') {
       window.UniversalHistory.add({
         module: 'decision',
         title: `裁决: ${lastVerdictRecord.verdict}`,
@@ -19015,13 +19088,14 @@ if ('serviceWorker' in navigator) {
     if (recordData.modeKey) {
       switchSubMode(recordData.modeKey);
     }
-    showReceipt(recordData);
+    showReceipt(recordData, true);
   }
 
   // 全局暴露 API
   window.AppDecision = {
     init,
     restore,
+    closeReceipt,
     spinWheel,
     flipCoin,
     tossBwei,
@@ -21264,13 +21338,28 @@ if ('serviceWorker' in navigator) {
 
   function remove(id) {
     let list = getRecords();
+    const target = list.find(r => r.id === id);
     list = list.filter(r => r.id !== id);
     saveRecords(list);
+    // 同步清理旧版特调存储，防止刷新页面死灰复燃
+    if (target && target.module === 'drinks') {
+      try {
+        const raw = localStorage.getItem('juice_persona_history_v1');
+        if (raw) {
+          let legacy = JSON.parse(raw);
+          if (Array.isArray(legacy)) {
+            legacy = legacy.filter(x => ('rec_' + x.timestamp) !== id && x.id !== id && x.timestamp !== target.timestamp);
+            localStorage.setItem('juice_persona_history_v1', JSON.stringify(legacy));
+          }
+        }
+      } catch (e) {}
+    }
     renderDrawer(curFilter);
   }
 
   function clear() {
     saveRecords([]);
+    try { localStorage.removeItem('juice_persona_history_v1'); } catch (e) {}
     renderDrawer(curFilter);
   }
 
@@ -21278,7 +21367,7 @@ if ('serviceWorker' in navigator) {
     const list = getRecords();
     const badges = document.querySelectorAll('.history-count-badge, #globalHistoryCount');
     badges.forEach(b => {
-      b.textContent = list.length;
+      b.textContent = list.length > 99 ? '99+' : list.length;
       b.style.display = list.length > 0 ? 'inline-flex' : 'none';
     });
   }
@@ -21492,8 +21581,11 @@ if ('serviceWorker' in navigator) {
 
   function openDrawer() {
     renderDrawer('all');
+    const btnClear = document.getElementById('btnClearHistory');
+    if (btnClear) btnClear.style.display = '';
     const modal = document.getElementById('modalHistory');
     if (modal) {
+      modal.classList.add('open');
       modal.style.display = 'flex';
       modal.setAttribute('aria-hidden', 'false');
     }
@@ -21502,6 +21594,7 @@ if ('serviceWorker' in navigator) {
   function closeDrawer() {
     const modal = document.getElementById('modalHistory');
     if (modal) {
+      modal.classList.remove('open');
       modal.style.display = 'none';
       modal.setAttribute('aria-hidden', 'true');
     }
@@ -21538,6 +21631,8 @@ if ('serviceWorker' in navigator) {
         records.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
         saveRecords(records);
       }
+      // 迁移完成后移除旧键，避免后续删除单条记录后刷新又从旧键复活
+      localStorage.removeItem('juice_persona_history_v1');
     } catch (e) {
       console.warn('sync legacy drinks failed', e);
     }
@@ -21560,7 +21655,7 @@ if ('serviceWorker' in navigator) {
       };
     }
 
-    const openBtns = document.querySelectorAll('#btnOpenHistory, #globalBtnHistory, #btnResultHistory');
+    const openBtns = document.querySelectorAll('#btnOpenHistory, #globalBtnHistory, #btnResultHistory, #btnResultHistoryPc');
     openBtns.forEach(btn => {
       btn.onclick = () => {
         if (window.SFX && window.SFX.tap) window.SFX.tap();
@@ -21625,6 +21720,9 @@ if ('serviceWorker' in navigator) {
 
     if (modKey !== 'manual' && window.AppManual && typeof window.AppManual.stopActiveGame === 'function') {
       window.AppManual.stopActiveGame();
+    }
+    if (modKey !== 'decision' && window.AppDecision && typeof window.AppDecision.closeReceipt === 'function') {
+      window.AppDecision.closeReceipt();
     }
 
     currentModule = modKey;
@@ -21714,6 +21812,8 @@ if ('serviceWorker' in navigator) {
     // 绑定全局右上角控制中枢事件
     const btnTheme = document.getElementById('globalBtnTheme');
     if (btnTheme) {
+      const initTheme = document.documentElement.dataset.theme || 'dark';
+      btnTheme.textContent = initTheme === 'dark' ? '☾' : '☀';
       btnTheme.addEventListener('click', () => {
         if (window.SFX && window.SFX.tap) window.SFX.tap();
         const curTheme = document.documentElement.dataset.theme;
@@ -21721,16 +21821,28 @@ if ('serviceWorker' in navigator) {
         document.documentElement.dataset.theme = nextTheme;
         try { localStorage.setItem('dp_theme', nextTheme); } catch (e) {}
         btnTheme.textContent = nextTheme === 'dark' ? '☾' : '☀';
+        const ti1 = document.getElementById('themeIcon');
+        if (ti1) ti1.textContent = nextTheme === 'dark' ? '☾' : '☀';
+        const ti2 = document.querySelector('#btnTheme2 span');
+        if (ti2) ti2.textContent = nextTheme === 'dark' ? '☾' : '☀';
       });
     }
 
     const btnSfx = document.getElementById('globalBtnSfx');
     if (btnSfx) {
+      if (window.SFX && typeof window.SFX.isMuted === 'function') {
+        const initEnabled = !window.SFX.isMuted();
+        btnSfx.textContent = initEnabled ? '🔊' : '🔇';
+        if (btnSfx.title) btnSfx.title = initEnabled ? '音效已开启' : '音效已静音';
+      }
       btnSfx.addEventListener('click', () => {
         if (window.SFX && window.SFX.toggle) {
           const enabled = window.SFX.toggle();
           btnSfx.textContent = enabled ? '🔊' : '🔇';
           if (btnSfx.title) btnSfx.title = enabled ? '音效已开启' : '音效已静音';
+          if (typeof window.__syncDrinkSfx === 'function') {
+            window.__syncDrinkSfx(enabled);
+          }
         }
       });
     }

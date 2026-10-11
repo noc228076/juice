@@ -5154,6 +5154,7 @@ const SFX = (function () {
 
   function ensure() {
     if (!state.sound) return null;
+    if (window.SFX && typeof window.SFX.isMuted === 'function' && window.SFX.isMuted()) return null;
     if (!ctx) {
       const AC = window.AudioContext || window.webkitAudioContext;
       if (!AC) return null;
@@ -5212,7 +5213,19 @@ const SFX = (function () {
   return {
     get sound() { return state.sound; },
     get vibrate() { return state.vibrate; },
-    setSound(v) { state.sound = v; store.set('dp_sound', v); if (v) ensure(); },
+    setSound(v) {
+      state.sound = v;
+      store.set('dp_sound', v);
+      if (window.SFX && typeof window.SFX.setSound === 'function') {
+        window.SFX.setSound(v);
+      }
+      const gBtn = document.getElementById('globalBtnSfx');
+      if (gBtn) {
+        gBtn.textContent = v ? '🔊' : '🔇';
+        if (gBtn.title) gBtn.title = v ? '音效已开启' : '音效已静音';
+      }
+      if (v) ensure();
+    },
     setVibrate(v) { state.vibrate = v; store.set('dp_vibrate', v); if (v) vib(20); },
     unlock() { ensure(); },
 
@@ -5427,6 +5440,8 @@ const SFX = (function () {
     document.documentElement.dataset.theme = t;
     $('themeIcon').textContent = t === 'dark' ? '☾' : '☀';
     $('btnTheme2').querySelector('span').textContent = t === 'dark' ? '☾' : '☀';
+    const gTheme = document.getElementById('globalBtnTheme');
+    if (gTheme) gTheme.textContent = t === 'dark' ? '☾' : '☀';
     try { localStorage.setItem('dp_theme', t); } catch (e) {}
     if (window.AndroidBridge && AndroidBridge.setLightTheme) {
       AndroidBridge.setLightTheme(t === 'light');
@@ -5901,6 +5916,10 @@ const SFX = (function () {
   }
 
   function updateHistoryBadge() {
+    if (window.UniversalHistory && typeof window.UniversalHistory.updateBadges === 'function') {
+      window.UniversalHistory.updateBadges();
+      return;
+    }
     const list = getHistoryList();
     const count = list.length;
     const badges = document.querySelectorAll('.history-count-badge');
@@ -5928,6 +5947,10 @@ const SFX = (function () {
   }
 
   function clearAllHistory() {
+    if (window.UniversalHistory && typeof window.UniversalHistory.clear === 'function') {
+      window.UniversalHistory.clear();
+      return;
+    }
     if (!confirm('确定要清空所有历史测评档案吗？')) return;
     setHistoryList([]);
     updateHistoryBadge();
@@ -6005,6 +6028,10 @@ const SFX = (function () {
   window.__delHistory = removeHistoryItem;
 
   function renderHistoryDrawer() {
+    if (window.UniversalHistory && typeof window.UniversalHistory.renderDrawer === 'function') {
+      window.UniversalHistory.renderDrawer();
+      return;
+    }
     const listContainer = $('historyList');
     if (!listContainer) return;
     const list = getHistoryList();
@@ -6067,6 +6094,10 @@ const SFX = (function () {
   }
 
   function showHistoryDrawer() {
+    if (window.UniversalHistory && typeof window.UniversalHistory.openDrawer === 'function') {
+      window.UniversalHistory.openDrawer();
+      return;
+    }
     renderHistoryDrawer();
     const modal = $('modalHistory');
     if (modal) {
@@ -6077,6 +6108,10 @@ const SFX = (function () {
   }
 
   function hideHistoryDrawer() {
+    if (window.UniversalHistory && typeof window.UniversalHistory.closeDrawer === 'function') {
+      window.UniversalHistory.closeDrawer();
+      return;
+    }
     const modal = $('modalHistory');
     if (modal) {
       modal.classList.remove('open');
@@ -6764,6 +6799,11 @@ const SFX = (function () {
     $('tglSound').classList.toggle('off', !SFX.sound);
     $('tglVib').classList.toggle('off', !SFX.vibrate);
   }
+  window.__syncDrinkSfx = function (enabled) {
+    state.sound = !!enabled;
+    store.set('dp_sound', !!enabled);
+    refreshToggles();
+  };
 
   /* ---------- 启动 ---------- */
   function init() {
@@ -6775,18 +6815,20 @@ const SFX = (function () {
     setMode('drink');
 
     updateHistoryBadge();
-    const btnHist = $('btnOpenHistory');
-    if (btnHist) btnHist.addEventListener('click', showHistoryDrawer);
-    const btnHistRes = $('btnResultHistory');
-    if (btnHistRes) btnHistRes.addEventListener('click', showHistoryDrawer);
-    const btnHistResPc = $('btnResultHistoryPc');
-    if (btnHistResPc) btnHistResPc.addEventListener('click', showHistoryDrawer);
-    const btnCloseHist = $('btnCloseHistory');
-    if (btnCloseHist) btnCloseHist.addEventListener('click', hideHistoryDrawer);
-    const backdropHist = $('historyBackdrop');
-    if (backdropHist) backdropHist.addEventListener('click', hideHistoryDrawer);
-    const btnClrHist = $('btnClearHistory');
-    if (btnClrHist) btnClrHist.addEventListener('click', clearAllHistory);
+    if (!window.UniversalHistory) {
+      const btnHist = $('btnOpenHistory');
+      if (btnHist) btnHist.addEventListener('click', showHistoryDrawer);
+      const btnHistRes = $('btnResultHistory');
+      if (btnHistRes) btnHistRes.addEventListener('click', showHistoryDrawer);
+      const btnHistResPc = $('btnResultHistoryPc');
+      if (btnHistResPc) btnHistResPc.addEventListener('click', showHistoryDrawer);
+      const btnCloseHist = $('btnCloseHistory');
+      if (btnCloseHist) btnCloseHist.addEventListener('click', hideHistoryDrawer);
+      const backdropHist = $('historyBackdrop');
+      if (backdropHist) backdropHist.addEventListener('click', hideHistoryDrawer);
+      const btnClrHist = $('btnClearHistory');
+      if (btnClrHist) btnClrHist.addEventListener('click', clearAllHistory);
+    }
 
 
     $('btnStart').addEventListener('click', () => { SFX.pour(); startQuiz(); });
@@ -6832,11 +6874,19 @@ const SFX = (function () {
       btnBack.addEventListener('click', () => { window.__dpGoBack(); });
     }
 
-    // 浏览器键盘快捷键支持 (桌面端体验增强)
+    // 浏览器键盘快捷键支持 (桌面端体验增强，仅在特调灵魂馆模块激活且非输入框聚焦时生效)
     document.addEventListener('keydown', (e) => {
       const modalHist = $('modalHistory');
       if (modalHist && modalHist.classList.contains('open') && e.key === 'Escape') {
         hideHistoryDrawer();
+        return;
+      }
+      const tag = e.target && e.target.tagName ? e.target.tagName.toUpperCase() : '';
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (e.target && e.target.isContentEditable)) {
+        return;
+      }
+      const activeMod = document.documentElement.dataset.activeModule;
+      if (activeMod && activeMod !== 'drinks') {
         return;
       }
       if (cur === 'quiz') {

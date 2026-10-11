@@ -151,8 +151,14 @@
     showCardInReveal();
   }
 
+  let revealFlipTimer1 = null;
+  let revealFlipTimer2 = null;
+
   function showCardInReveal() {
+    if (revealFlipTimer1) clearTimeout(revealFlipTimer1);
+    if (revealFlipTimer2) clearTimeout(revealFlipTimer2);
     const cardData = deck[picks[revIdx]];
+    if (!cardData) return;
     const posList = curSpread === "one" ? POS1 : POS3;
     const pos = posList[revIdx];
 
@@ -189,30 +195,34 @@
     nextBtn.textContent = revIdx === picks.length - 1 ? '查看完整解读' : '下一张牌';
 
     // 翻转动效
-    setTimeout(() => {
+    revealFlipTimer1 = setTimeout(() => {
       if (window.SFX && window.SFX.tarotFlip) window.SFX.tarotFlip();
       bigCard.classList.add('flipped');
-      setTimeout(() => {
+      revealFlipTimer2 = setTimeout(() => {
         reading.style.opacity = '1';
         if (window.SFX && window.SFX.tarotReveal) window.SFX.tarotReveal();
       }, 400);
     }, 250);
   }
 
-  function finish() {
-    if (window.SFX && window.SFX.tarotDone) window.SFX.tarotDone();
+  function finish(restoredData) {
+    const isRestored = !!(restoredData && Array.isArray(restoredData.items) && restoredData.items.length > 0);
+    if (!isRestored && window.SFX && window.SFX.tarotDone) window.SFX.tarotDone();
     showScreen('sc-tr-result');
 
     const posList = curSpread === "one" ? POS1 : POS3;
-    const items = picks.map((pIdx, i) => {
-      const c = deck[pIdx];
-      return {
-        pos: posList[i],
-        card: c,
-        kw: c.isRev ? c.revKw : c.upKw,
-        txt: c.isRev ? c.rev : c.up
-      };
-    });
+    const items = isRestored
+      ? restoredData.items
+      : picks.map((pIdx, i) => {
+          const c = deck[pIdx];
+          return {
+            pos: posList[i],
+            card: c,
+            kw: c.isRev ? c.revKw : c.upKw,
+            txt: c.isRev ? c.rev : c.up
+          };
+        });
+    if (!items || !items.length) return;
 
     const summaryBox = document.getElementById('trSummaryBox');
     const resultList = document.getElementById('trResultList');
@@ -342,8 +352,8 @@
 
     lastTarotResult = { spread: curSpread, items };
 
-    // 保存至全所综合档案库
-    if (window.UniversalHistory) {
+    // 保存至全所综合档案库（回看历史时不重复入库）
+    if (!isRestored && window.UniversalHistory) {
       const mainCard = items[0].card;
       window.UniversalHistory.add({
         module: 'tarot',

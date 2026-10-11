@@ -49,13 +49,28 @@
 
   function remove(id) {
     let list = getRecords();
+    const target = list.find(r => r.id === id);
     list = list.filter(r => r.id !== id);
     saveRecords(list);
+    // 同步清理旧版特调存储，防止刷新页面死灰复燃
+    if (target && target.module === 'drinks') {
+      try {
+        const raw = localStorage.getItem('juice_persona_history_v1');
+        if (raw) {
+          let legacy = JSON.parse(raw);
+          if (Array.isArray(legacy)) {
+            legacy = legacy.filter(x => ('rec_' + x.timestamp) !== id && x.id !== id && x.timestamp !== target.timestamp);
+            localStorage.setItem('juice_persona_history_v1', JSON.stringify(legacy));
+          }
+        }
+      } catch (e) {}
+    }
     renderDrawer(curFilter);
   }
 
   function clear() {
     saveRecords([]);
+    try { localStorage.removeItem('juice_persona_history_v1'); } catch (e) {}
     renderDrawer(curFilter);
   }
 
@@ -63,7 +78,7 @@
     const list = getRecords();
     const badges = document.querySelectorAll('.history-count-badge, #globalHistoryCount');
     badges.forEach(b => {
-      b.textContent = list.length;
+      b.textContent = list.length > 99 ? '99+' : list.length;
       b.style.display = list.length > 0 ? 'inline-flex' : 'none';
     });
   }
@@ -277,8 +292,11 @@
 
   function openDrawer() {
     renderDrawer('all');
+    const btnClear = document.getElementById('btnClearHistory');
+    if (btnClear) btnClear.style.display = '';
     const modal = document.getElementById('modalHistory');
     if (modal) {
+      modal.classList.add('open');
       modal.style.display = 'flex';
       modal.setAttribute('aria-hidden', 'false');
     }
@@ -287,6 +305,7 @@
   function closeDrawer() {
     const modal = document.getElementById('modalHistory');
     if (modal) {
+      modal.classList.remove('open');
       modal.style.display = 'none';
       modal.setAttribute('aria-hidden', 'true');
     }
@@ -323,6 +342,8 @@
         records.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
         saveRecords(records);
       }
+      // 迁移完成后移除旧键，避免后续删除单条记录后刷新又从旧键复活
+      localStorage.removeItem('juice_persona_history_v1');
     } catch (e) {
       console.warn('sync legacy drinks failed', e);
     }
@@ -345,7 +366,7 @@
       };
     }
 
-    const openBtns = document.querySelectorAll('#btnOpenHistory, #globalBtnHistory, #btnResultHistory');
+    const openBtns = document.querySelectorAll('#btnOpenHistory, #globalBtnHistory, #btnResultHistory, #btnResultHistoryPc');
     openBtns.forEach(btn => {
       btn.onclick = () => {
         if (window.SFX && window.SFX.tap) window.SFX.tap();

@@ -139,6 +139,10 @@
         if (window.AppLifeguide && typeof window.AppLifeguide.restore === 'function' && item.data) {
           window.AppLifeguide.restore(item.data);
         }
+      } else if (mod === 'bazi') {
+        if (window.AppBazi && typeof window.AppBazi.restore === 'function' && item.data) {
+          window.AppBazi.restore(item.data);
+        }
       }
     } catch (e) {
       console.warn('restore record error:', e);
@@ -161,7 +165,8 @@
       decision: list.filter(r => r.module === 'decision').length,
       clock: list.filter(r => r.module === 'clock').length,
       merit: list.filter(r => r.module === 'merit').length,
-      lifeguide: list.filter(r => r.module === 'lifeguide').length
+      lifeguide: list.filter(r => r.module === 'lifeguide').length,
+      bazi: list.filter(r => r.module === 'bazi').length
     };
 
     // 渲染分类筛选条
@@ -179,6 +184,7 @@
         <button class="uni-filter-chip ${filterMod === 'clock' ? 'active' : ''}" data-mod="clock">⏰ 摸鱼 <span class="chip-count">${counts.clock}</span></button>
         <button class="uni-filter-chip ${filterMod === 'merit' ? 'active' : ''}" data-mod="merit">📿 功德 <span class="chip-count">${counts.merit}</span></button>
         <button class="uni-filter-chip ${filterMod === 'lifeguide' ? 'active' : ''}" data-mod="lifeguide">🛡️ 清醒 <span class="chip-count">${counts.lifeguide}</span></button>
+        <button class="uni-filter-chip ${filterMod === 'bazi' ? 'active' : ''}" data-mod="bazi">📜 八字 <span class="chip-count">${counts.bazi}</span></button>
       `;
 
       filterBar.querySelectorAll('.uni-filter-chip').forEach(btn => {

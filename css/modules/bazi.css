@@ -1,0 +1,1244 @@
+/* =========================================================
+   模块 11：赛博八字命盘 (Cyber BaZi & Four Pillars of Destiny)
+   基于开源历法库 6tail/lunar-javascript (MIT)
+   涵盖：真太阳时省市联动 / 命格速览 / 五行能量缺啥补啥 / 严格对齐四柱表格 /
+         当代打工人职场财运正缘 / 步步大运轮盘 / 袁天罡称骨
+   ========================================================= */
+
+#mod-bazi {
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: var(--bg);
+}
+
+.bz-wrap {
+  max-width: 1080px;
+  width: 100%;
+  margin: 0 auto;
+  padding: calc(var(--sat) + 76px) 20px calc(var(--sab) + 52px);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* 顶部东方玄学合辑互跳栏 */
+.bz-mystic-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.bz-switch-btn {
+  padding: 8px 16px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: var(--tx-dim);
+  background: var(--card);
+  border: 1px solid var(--line);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+  white-space: nowrap;
+}
+
+.bz-switch-btn:hover {
+  border-color: var(--line-strong);
+  color: var(--tx);
+  transform: translateY(-1.5px);
+}
+
+.bz-switch-btn.active {
+  background: linear-gradient(135deg, rgba(234, 88, 12, 0.22), rgba(217, 119, 6, 0.22));
+  color: #FB923C;
+  border-color: rgba(249, 115, 22, 0.5);
+  box-shadow: 0 4px 16px rgba(249, 115, 22, 0.2);
+}
+
+html[data-theme="light"] .bz-switch-btn.active {
+  background: rgba(234, 88, 12, 0.12);
+  color: #C2410C;
+  border-color: rgba(234, 88, 12, 0.35);
+}
+
+/* 顶部英雄标题区 */
+.bz-header {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.bz-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 3px;
+  padding: 5px 14px;
+  border-radius: 999px;
+  background: rgba(245, 158, 11, 0.14);
+  color: #FBBF24;
+  border: 1px solid rgba(245, 158, 11, 0.32);
+}
+
+html[data-theme="light"] .bz-eyebrow {
+  background: rgba(217, 119, 6, 0.10);
+  color: #B45309;
+  border-color: rgba(217, 119, 6, 0.28);
+}
+
+.bz-title {
+  font-size: clamp(30px, 5.2vw, 44px);
+  font-weight: 950;
+  letter-spacing: 3px;
+  line-height: 1.2;
+  background: linear-gradient(120deg, var(--tx) 30%, #F59E0B 70%, var(--ac));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.bz-sub {
+  font-size: 13.5px;
+  color: var(--tx-dim);
+  line-height: 1.65;
+  max-width: 680px;
+}
+
+/* =========================================================
+   排盘输入天机台 (Input Card)
+   ========================================================= */
+.bz-input-card {
+  background: var(--card-solid);
+  border: 1.5px solid var(--line-strong);
+  border-radius: var(--r-lg);
+  padding: 24px 28px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  position: relative;
+}
+
+.bz-input-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 28px;
+  right: 28px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #F59E0B, var(--ac), transparent);
+  opacity: 0.7;
+}
+
+/* 顶部历法与性别切换行 */
+.bz-top-switch-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: center;
+}
+
+@media (max-width: 600px) {
+  .bz-top-switch-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+}
+
+.bz-top-switch-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.bz-top-switch-label {
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: var(--tx-faint);
+}
+
+/* 历法类型切换 */
+.bz-cal-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 3px;
+  border-radius: 12px;
+  background: var(--btn-ghost-bg);
+  border: 1px solid var(--line);
+  gap: 4px;
+}
+
+.bz-cal-tab {
+  padding: 9px 12px;
+  border-radius: 9px;
+  border: none;
+  background: transparent;
+  color: var(--tx-dim);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.bz-cal-tab.active {
+  background: var(--card);
+  color: var(--tx);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--line-strong);
+}
+
+/* =========================================================
+   自定义生辰四轴轮盘选择器 (Custom 4-Axis Date Wheel)
+   ========================================================= */
+.bz-wheel-picker-card {
+  background: var(--card);
+  border: 1.5px solid var(--line-strong);
+  border-radius: 16px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
+}
+
+.bz-wheel-columns {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 768px) {
+  .bz-wheel-columns {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.bz-wheel-col {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.bz-wheel-col-title {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: var(--tx-dim);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.bz-wheel-select {
+  width: 100%;
+  padding: 12px 10px;
+  border-radius: 12px;
+  border: 1.5px solid var(--line);
+  background: var(--btn-ghost-bg);
+  color: var(--tx);
+  font-size: 13px;
+  font-weight: 800;
+  font-family: inherit;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23F59E0B' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  background-size: 16px;
+  padding-right: 30px;
+}
+
+.bz-wheel-select:focus {
+  border-color: #F59E0B;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.22);
+  background-color: var(--card-solid);
+}
+
+.bz-wheel-select option {
+  background: var(--card-solid);
+  color: var(--tx);
+  font-size: 13px;
+  font-weight: 700;
+  padding: 8px;
+}
+
+/* 实时双历法对照同步条 */
+.bz-wheel-sync-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  font-size: 12.5px;
+  color: var(--tx);
+  flex-wrap: wrap;
+}
+
+.bz-sync-badge {
+  font-size: 10px;
+  font-weight: 900;
+  padding: 2.5px 8px;
+  border-radius: 999px;
+  background: #F59E0B;
+  color: #000;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+}
+
+.bz-sync-txt {
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+/* 性别选择胶囊 */
+.bz-gender-group {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.bz-gender-btn {
+  padding: 11px 14px;
+  border-radius: 12px;
+  border: 1.5px solid var(--line);
+  background: var(--btn-ghost-bg);
+  color: var(--tx-dim);
+  font-size: 13.5px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.bz-gender-btn:hover {
+  border-color: var(--line-strong);
+  color: var(--tx);
+}
+
+.bz-gender-btn.active[data-gender="1"] {
+  border-color: #38BDF8;
+  background: rgba(56, 189, 248, 0.14);
+  color: #38BDF8;
+}
+
+html[data-theme="light"] .bz-gender-btn.active[data-gender="1"] {
+  background: rgba(2, 132, 199, 0.10);
+  color: #0284C7;
+  border-color: rgba(2, 132, 199, 0.4);
+}
+
+.bz-gender-btn.active[data-gender="0"] {
+  border-color: #F472B6;
+  background: rgba(244, 114, 182, 0.14);
+  color: #F472B6;
+}
+
+html[data-theme="light"] .bz-gender-btn.active[data-gender="0"] {
+  background: rgba(219, 39, 119, 0.10);
+  color: #DB2777;
+  border-color: rgba(219, 39, 119, 0.4);
+}
+
+/* =========================================================
+   出生地与真太阳时校准控制台 (Enhanced True Solar Time Console)
+   ========================================================= */
+.bz-solar-box {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: 14px;
+  background: var(--btn-ghost-bg);
+  border: 1px dashed var(--line-strong);
+  transition: border-color 0.2s;
+}
+
+.bz-solar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.bz-solar-check-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.bz-solar-check {
+  cursor: pointer;
+  accent-color: #F59E0B;
+  width: 17px;
+  height: 17px;
+}
+
+.bz-solar-title {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--tx);
+  letter-spacing: 0.5px;
+}
+
+.bz-solar-hint {
+  font-size: 11px;
+  color: var(--tx-faint);
+}
+
+.bz-solar-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--line);
+}
+
+.bz-solar-select-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.3fr auto;
+  gap: 10px;
+  align-items: flex-end;
+}
+
+@media (max-width: 768px) {
+  .bz-solar-select-row {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.bz-solar-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bz-solar-sublabel {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--tx-dim);
+}
+
+.bz-solar-select,
+.bz-solar-search-input {
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  color: var(--tx);
+  font-size: 12.5px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.bz-solar-select:focus,
+.bz-solar-search-input:focus {
+  border-color: #F59E0B;
+}
+
+.bz-solar-geo-btn {
+  padding: 8px 14px;
+  border-radius: 10px;
+  background: rgba(245, 158, 11, 0.14);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: #FBBF24;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s;
+  height: 36px;
+}
+
+.bz-solar-geo-btn:hover {
+  background: rgba(245, 158, 11, 0.25);
+  transform: translateY(-1px);
+}
+
+.bz-solar-custom-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--tx-dim);
+}
+
+.bz-custom-lng-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.bz-custom-lng-check {
+  accent-color: #F59E0B;
+  cursor: pointer;
+}
+
+.bz-custom-lng-inputs {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bz-solar-lng-inp {
+  width: 90px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  color: var(--tx);
+  font-size: 12px;
+  outline: none;
+}
+
+.bz-solar-feedback {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--tx);
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.22);
+  padding: 6px 12px;
+  border-radius: 8px;
+}
+
+.bz-feedback-badge {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #F59E0B;
+  color: #000;
+}
+
+.bz-feedback-txt {
+  font-weight: 700;
+}
+
+/* 快捷预设按钮组 */
+.bz-preset-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.bz-preset-label {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: var(--tx-faint);
+  margin-right: 4px;
+}
+
+.bz-btn-chip {
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 700;
+  background: var(--btn-ghost-bg);
+  color: var(--tx-dim);
+  border: 1px solid var(--line);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.bz-btn-chip:hover {
+  color: var(--tx);
+  border-color: var(--line-strong);
+  background: var(--card);
+}
+
+/* 提交排盘核心按钮 */
+.bz-btn-submit {
+  width: 100%;
+  padding: 16px 24px;
+  border-radius: 14px;
+  border: none;
+  background: linear-gradient(135deg, #F59E0B 0%, #D97706 45%, #B45309 100%);
+  color: #000;
+  font-size: 16px;
+  font-weight: 950;
+  letter-spacing: 2px;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+  box-shadow: 0 8px 24px rgba(217, 119, 6, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.bz-btn-submit:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(217, 119, 6, 0.5);
+  filter: brightness(1.06);
+}
+
+/* =========================================================
+   排盘结果视窗 (Result Stage)
+   ========================================================= */
+.bz-result-stage {
+  display: none;
+  flex-direction: column;
+  gap: 24px;
+  animation: bzFadeUp 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.bz-result-stage.active {
+  display: flex;
+}
+
+@keyframes bzFadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* =========================================================
+   ZONE 1: 命格核心结论速览卡片 (Verdict Card - 人人看得懂)
+   ========================================================= */
+.bz-verdict-card {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.12) 0%, rgba(217, 119, 6, 0.05) 100%), var(--card-solid);
+  border: 2px solid rgba(245, 158, 11, 0.45);
+  border-radius: var(--r-lg);
+  padding: 24px 28px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  position: relative;
+  overflow: hidden;
+}
+
+.bz-verdict-card::before {
+  content: "命格天机";
+  position: absolute;
+  top: -12px;
+  right: 18px;
+  font-size: 72px;
+  font-weight: 950;
+  font-family: "Noto Serif SC", serif;
+  color: rgba(245, 158, 11, 0.05);
+  pointer-events: none;
+}
+
+.bz-verdict-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid rgba(245, 158, 11, 0.25);
+  padding-bottom: 14px;
+}
+
+.bz-verdict-title-box {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bz-verdict-eyebrow {
+  font-size: 11px;
+  font-weight: 800;
+  color: #F59E0B;
+  letter-spacing: 2px;
+}
+
+.bz-verdict-name {
+  font-size: clamp(22px, 3.5vw, 30px);
+  font-weight: 950;
+  color: var(--tx);
+  letter-spacing: 1px;
+}
+
+.bz-verdict-tags {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.bz-verdict-tag {
+  font-size: 12px;
+  font-weight: 800;
+  padding: 4px 12px;
+  border-radius: 999px;
+  background: rgba(245, 158, 11, 0.15);
+  color: #FBBF24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+/* 4项核心速览指标网格 */
+.bz-verdict-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 12px;
+}
+
+.bz-verdict-cell {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bz-verdict-cell-lbl {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--tx-faint);
+  letter-spacing: 1px;
+}
+
+.bz-verdict-cell-val {
+  font-size: 16px;
+  font-weight: 900;
+  color: var(--tx);
+}
+
+.bz-verdict-cell-sub {
+  font-size: 11.5px;
+  color: var(--tx-dim);
+  line-height: 1.4;
+}
+
+.bz-verdict-quote {
+  padding: 14px 18px;
+  border-radius: 12px;
+  background: var(--card);
+  border-left: 4px solid #F59E0B;
+  font-size: 13.5px;
+  color: var(--tx);
+  line-height: 1.7;
+}
+
+/* =========================================================
+   ZONE 2: 五行能量占比 & 缺啥补啥开运指南
+   ========================================================= */
+.bz-wuxing-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+@media (max-width: 820px) {
+  .bz-wuxing-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.bz-wuxing-card,
+.bz-xi-card {
+  background: var(--card-solid);
+  border: 1.5px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: 22px 24px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.bz-sec-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 10px;
+  border-bottom: 1.5px solid var(--line);
+}
+
+.bz-sec-title {
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 1px;
+  color: var(--tx);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bz-bars-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.bz-wx-bar-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.bz-wx-bar-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.bz-wx-track {
+  height: 9px;
+  border-radius: 999px;
+  background: var(--btn-ghost-bg);
+  overflow: hidden;
+  border: 1px solid var(--line);
+}
+
+.bz-wx-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.bz-xi-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: var(--btn-ghost-bg);
+  border: 1px solid var(--line);
+}
+
+.bz-xi-lbl {
+  font-weight: 800;
+  color: var(--tx-dim);
+}
+
+.bz-xi-val {
+  font-weight: 900;
+}
+
+.bz-xi-box {
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--tx);
+}
+
+.bz-xi-box-title {
+  font-weight: 900;
+  color: #F59E0B;
+  display: block;
+  margin-bottom: 6px;
+}
+
+/* =========================================================
+   ZONE 3: 四柱神机全览 (严格对齐的语义化真表格)
+   ========================================================= */
+.bz-pillars-card {
+  background: var(--card-solid);
+  border: 1.5px solid var(--line-strong);
+  border-radius: var(--r-lg);
+  padding: 24px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.bz-table-scroll-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: var(--bg);
+  -webkit-overflow-scrolling: touch;
+}
+
+.bz-table-strict {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 580px;
+  text-align: center;
+}
+
+.bz-table-strict th,
+.bz-table-strict td {
+  padding: 10px 8px;
+  border-bottom: 1px solid var(--line);
+  border-right: 1px solid var(--line);
+  vertical-align: middle;
+}
+
+.bz-table-strict th:last-child,
+.bz-table-strict td:last-child {
+  border-right: none;
+}
+
+.bz-table-strict tr:last-child td {
+  border-bottom: none;
+}
+
+/* 表头行样式 */
+.bz-table-strict thead th {
+  background: var(--card);
+  padding: 12px 8px;
+  font-size: 13.5px;
+  font-weight: 900;
+  color: var(--tx);
+}
+
+.bz-th-lbl {
+  width: 90px;
+  background: var(--btn-ghost-bg) !important;
+  font-size: 12px !important;
+  color: var(--tx-faint) !important;
+  font-weight: 800 !important;
+}
+
+.bz-th-col-sub {
+  font-size: 10px;
+  font-weight: normal;
+  display: block;
+  color: var(--tx-faint);
+  margin-top: 2px;
+}
+
+/* 属性标签列 (首列) */
+.bz-td-lbl {
+  background: var(--btn-ghost-bg);
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--tx-dim);
+  white-space: nowrap;
+}
+
+/* ★ 日柱 (命主自身) 黄金高亮列 */
+.bz-col-day {
+  background: rgba(245, 158, 11, 0.08) !important;
+}
+
+.bz-th-day {
+  background: linear-gradient(180deg, rgba(245, 158, 11, 0.22) 0%, rgba(245, 158, 11, 0.12) 100%) !important;
+  color: #FBBF24 !important;
+  border-top: 2px solid #F59E0B !important;
+}
+
+.bz-td-day {
+  border-left: 1.5px solid rgba(245, 158, 11, 0.35) !important;
+  border-right: 1.5px solid rgba(245, 158, 11, 0.35) !important;
+}
+
+/* 表格内干支字号 */
+.bz-char-big {
+  font-size: 26px;
+  font-weight: 950;
+  line-height: 1.1;
+  font-family: "Noto Serif SC", "Songti SC", "SimSun", serif;
+  display: inline-block;
+}
+
+.bz-wx-badge {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 1.5px 6px;
+  border-radius: 999px;
+  line-height: 1.2;
+  margin-left: 4px;
+}
+
+.bz-zhi-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.bz-zodiac-icon {
+  font-size: 15px;
+}
+
+/* 五行专用色彩体系 */
+.wx-mu { color: #10B981; }
+.wx-huo { color: #EF4444; }
+.wx-tu { color: #F59E0B; }
+.wx-jin { color: #CBD5E1; }
+.wx-shui { color: #38BDF8; }
+
+html[data-theme="light"] .wx-jin { color: #64748B; }
+
+.bg-wx-mu { background: rgba(16, 185, 129, 0.16); color: #10B981; border: 1px solid rgba(16, 185, 129, 0.35); }
+.bg-wx-huo { background: rgba(239, 68, 68, 0.16); color: #EF4444; border: 1px solid rgba(239, 68, 68, 0.35); }
+.bg-wx-tu { background: rgba(245, 158, 11, 0.16); color: #F59E0B; border: 1px solid rgba(245, 158, 11, 0.35); }
+.bg-wx-jin { background: rgba(148, 163, 184, 0.16); color: #E2E8F0; border: 1px solid rgba(148, 163, 184, 0.35); }
+.bg-wx-shui { background: rgba(56, 189, 248, 0.16); color: #38BDF8; border: 1px solid rgba(56, 189, 248, 0.35); }
+
+html[data-theme="light"] .bg-wx-jin {
+  color: #475569;
+  border-color: rgba(71, 85, 105, 0.3);
+}
+
+/* 神煞胶囊群与三垣 */
+.bz-shensha-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.bz-shensha-pill {
+  padding: 6px 12px;
+  border-radius: 10px;
+  background: var(--btn-ghost-bg);
+  border: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--tx-dim);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bz-shensha-pill b {
+  color: var(--tx);
+}
+
+/* =========================================================
+   ZONE 4: 当代打工人白话格局解签 (4大主题卡片)
+   ========================================================= */
+.bz-interp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.bz-interp-card {
+  background: var(--card-solid);
+  border: 1.5px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: 20px 22px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: transform 0.2s, border-color 0.2s;
+}
+
+.bz-interp-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--line-strong);
+}
+
+.bz-interp-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14.5px;
+  font-weight: 900;
+  color: var(--tx);
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+}
+
+.bz-interp-badge {
+  font-size: 11px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--btn-ghost-bg);
+  color: #F59E0B;
+  border: 1px solid var(--line);
+}
+
+.bz-interp-txt {
+  font-size: 13px;
+  color: var(--tx-dim);
+  line-height: 1.7;
+}
+
+/* =========================================================
+   ZONE 5: 步步大运轮盘 & 袁天罡称骨
+   ========================================================= */
+.bz-timeline-card {
+  background: var(--card-solid);
+  border: 1.5px solid var(--line-strong);
+  border-radius: var(--r-lg);
+  padding: 24px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* 称骨卷轴 */
+.bz-bone-scroll-box {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(217, 119, 6, 0.04));
+  border: 1.5px solid rgba(245, 158, 11, 0.35);
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 8px;
+}
+
+.bz-bone-poem-title {
+  font-size: 15px;
+  font-weight: 950;
+  color: #F59E0B;
+}
+
+.bz-bone-poem-lines {
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1.8;
+  color: var(--tx);
+  font-family: "Noto Serif SC", "Songti SC", "SimSun", serif;
+  letter-spacing: 2px;
+}
+
+.bz-bone-interp {
+  font-size: 12.5px;
+  color: var(--tx-dim);
+  line-height: 1.6;
+  max-width: 600px;
+}
+
+/* 步步大运横向轮盘 */
+.bz-dayun-scroll {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  padding: 6px 2px 10px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.bz-dayun-item {
+  flex: 0 0 106px;
+  padding: 12px 10px;
+  border-radius: 14px;
+  background: var(--btn-ghost-bg);
+  border: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+  transition: all 0.2s;
+}
+
+.bz-dayun-item.is-current {
+  border-color: #F59E0B;
+  background: rgba(245, 158, 11, 0.16);
+  box-shadow: 0 0 16px rgba(245, 158, 11, 0.25);
+}
+
+.bz-dayun-age {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--tx-faint);
+}
+
+.bz-dayun-gz {
+  font-size: 18px;
+  font-weight: 950;
+  color: var(--tx);
+  font-family: "Noto Serif SC", serif;
+}
+
+.bz-dayun-ss {
+  font-size: 11px;
+  color: var(--tx-dim);
+}
+
+.bz-dayun-tag {
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: #F59E0B;
+  color: #000;
+  margin-top: 2px;
+}
+
+/* 底部操作与海报导出 */
+.bz-actions-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding-top: 10px;
+}
+
+.bz-btn-poster {
+  padding: 14px 28px;
+  border-radius: 12px;
+  border: none;
+  background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+  color: #FFF;
+  font-size: 14.5px;
+  font-weight: 900;
+  cursor: pointer;
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+
+.bz-btn-poster:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.45);
+}
+
+.bz-btn-again {
+  padding: 14px 24px;
+  border-radius: 12px;
+  border: 1px solid var(--line-strong);
+  background: var(--card);
+  color: var(--tx);
+  font-size: 14.5px;
+  font-weight: 800;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s;
+}
+
+.bz-btn-again:hover {
+  border-color: var(--tx);
+  transform: translateY(-2px);
+}

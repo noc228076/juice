@@ -24,7 +24,8 @@ const cssFiles = [
   'css/modules/lingqian.css',
   'css/modules/clock.css',
   'css/modules/merit.css',
-  'css/modules/lifeguide.css'
+  'css/modules/lifeguide.css',
+  'css/modules/bazi.css'
 ];
 
 let mergedCss = '\n/* ====== 全局模块样式合并集 ====== */\n';
@@ -48,6 +49,7 @@ html = html.replace('<style>', () => `<style>\n${mergedCss}\n`);
 // 3. 读取所有 JS 模块文件并合并
 const jsFiles = [
   'js/sfx.js',
+  'js/libs/lunar.js',
   'js/modules/milktea.js',
   'js/modules/fengshui.js',
   'js/modules/tarot.js',
@@ -60,6 +62,8 @@ const jsFiles = [
   'js/modules/clock.js',
   'js/modules/merit.js',
   'js/modules/lifeguide.js',
+  'js/modules/bazi-cities.js',
+  'js/modules/bazi.js',
   'js/modules/history.js',
   'js/modules/router.js'
 ];

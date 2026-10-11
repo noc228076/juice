@@ -8,7 +8,7 @@
 
   let currentModule = 'drinks';
   let lastMysticMod = 'tarot';
-  const ALLOWED_MODS = ['drinks', 'milktea', 'manual', 'fengshui', 'tarot', 'lingqian', 'decision', 'clock', 'merit', 'lifeguide'];
+  const ALLOWED_MODS = ['drinks', 'milktea', 'manual', 'fengshui', 'tarot', 'lingqian', 'decision', 'clock', 'merit', 'lifeguide', 'bazi'];
   const initializedModules = new Set(['drinks']);
 
   function updateGlider(activeTab) {
@@ -26,7 +26,7 @@
     if (!ALLOWED_MODS.includes(modKey)) {
       modKey = 'drinks';
     }
-    if (modKey === 'tarot' || modKey === 'lingqian') {
+    if (modKey === 'tarot' || modKey === 'lingqian' || modKey === 'bazi') {
       lastMysticMod = modKey;
     }
 
@@ -81,6 +81,7 @@
       if (modKey === 'clock' && window.AppClock) window.AppClock.init();
       if (modKey === 'merit' && window.AppMerit) window.AppMerit.init();
       if (modKey === 'lifeguide' && window.AppLifeguide) window.AppLifeguide.init();
+      if (modKey === 'bazi' && window.AppBazi) window.AppBazi.init();
     } else {
       if (modKey === 'manual' && window.AppManual) {
         const body = document.getElementById('sm-homebody');

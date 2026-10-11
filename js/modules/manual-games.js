@@ -84,10 +84,10 @@
       var stageStartTime = performance.now();
       function paint(k) {
         stageStartTime = performance.now();
-        el.innerHTML = hud('<b>第一关 · 简单反应</b>', '有效 ' + valid.length + '/5') +
-          '<div class="rz-stage" id="rz"><div class="rz-count">' + (valid.length ? '上次 ' + valid[valid.length - 1] + ' ms' : '&nbsp;') + '</div>' +
-          '<div class="rz-big" id="big">⏳ 屏息以待…</div>' +
-          '<div class="rz-sub" id="sub">屏幕变红的一瞬间，立即点它！</div></div>';
+        el.innerHTML = hud('<b>第一关 · 简单反应（变红即点）</b>', '有效 ' + valid.length + '/5') +
+          '<div class="rz-stage rz-pure-wait" id="rz"><div class="rz-count">' + (valid.length ? '上次 ' + valid[valid.length - 1] + ' ms' : '&nbsp;') + '</div>' +
+          '<div class="rz-big" id="big"></div>' +
+          '<div class="rz-sub" id="sub"></div></div>';
         var st = el.querySelector('#rz');
         if (st) st.addEventListener('pointerdown', onTap);
         arm();
@@ -95,29 +95,28 @@
       function arm() {
         armed = false;
         var big = el.querySelector('#big'), sub = el.querySelector('#sub'), st = el.querySelector('#rz');
-        if (big) big.textContent = '⏳ 屏息以待…';
-        if (sub) { sub.className = 'rz-sub'; sub.textContent = '屏幕变红的一瞬间，立即点它！'; }
-        if (st) st.classList.remove('gorun');
+        if (big) big.textContent = '';
+        if (sub) { sub.className = 'rz-sub'; sub.textContent = ''; }
+        if (st) { st.classList.remove('gorun'); st.classList.add('rz-pure-wait'); }
         waitId = later(function () {
           if (destroyed) return;
           armed = true; t0 = performance.now();
-          var s = el.querySelector('#rz'); if (s) s.classList.add('gorun');
-          var b = el.querySelector('#big'); if (b) b.textContent = '点！';
-          var u = el.querySelector('#sub'); if (u) u.textContent = '';
+          var s = el.querySelector('#rz');
+          if (s) { s.classList.remove('rz-pure-wait'); s.classList.add('gorun'); }
           if (window.SFX && window.SFX.go) window.SFX.go();
         }, 1200 + Math.random() * 2200);
       }
       function onTap(e) {
-        if (performance.now() - stageStartTime < 280) return; // 280ms 手势防抖保护：避免点“开始”的手指残余手势被误判为抢跑
+        if (performance.now() - stageStartTime < 280) return; // 280ms 手势防抖保护
         if (!armed) {   // 抢跑
           clearTimeout(waitId);
           fouls++;
           if (window.SFX && window.SFX.foul) window.SFX.foul();
-          var s = el.querySelector('#rz'), u = el.querySelector('#sub');
-          if (u) { u.className = 'rz-sub'; u.innerHTML = '<span class="rz-warn" style="color:#f87171;font-weight:700">抢跑！等变红再点，重新测试中…</span>'; }
+          var u = el.querySelector('#sub');
+          if (u) { u.className = 'rz-sub'; u.innerHTML = '<span class="rz-warn" style="color:#f87171;font-weight:700">抢跑！等背景变红再点</span>'; }
           if (fouls >= 2) {
             valid = []; shown = 0; fouls = 0;
-            if (u) u.innerHTML = '<span class="rz-warn" style="color:#f87171;font-weight:700">连续抢跑，本关作废重测！</span>';
+            if (u) u.innerHTML = '<span class="rz-warn" style="color:#f87171;font-weight:700">连续抢跑，本关重测！</span>';
           }
           later(function () { if (valid.length < 5) { shown = valid.length; paint(); } }, 900);
           return;
@@ -126,12 +125,12 @@
         var dt = Math.round(performance.now() - t0);
         valid.push(dt); fouls = 0;
         if (window.SFX && window.SFX.select) window.SFX.select();
-        var u = el.querySelector('#sub');
-        if (u) u.textContent = dt + ' ms';
+        var b = el.querySelector('#big');
+        if (b) b.textContent = dt + ' ms';
         later(function () {
           if (valid.length >= 5) { S1 = valid; stageSummary(1); }
           else paint();
-        }, 750);
+        }, 700);
       }
       paint();
     }
@@ -144,12 +143,12 @@
       tp.forEach(function (i) { traps[i] = true; });
       var i = 0, t0 = 0, answered = false, toId = 0;
       function paint() {
-        el.innerHTML = hud('<b>第二关 · 选择反应</b>', (i + 1) + '/' + N) +
-          '<div class="rz-stage" style="padding:20px 14px"><div class="rz-banner" id="ban">规则交换!红右 · 绿左</div>' +
-          '<div class="rz-sub" style="margin:2px 0 12px;color:#7E786C" id="cue">盯住中间的点</div>' +
+        el.innerHTML = hud('<b>第二关 · 选择反应（红左·绿右）</b>', (i + 1) + '/' + N) +
+          '<div class="rz-stage" style="padding:20px 14px"><div class="rz-banner" id="ban">⚠️ 规则反转：红右 · 绿左</div>' +
+          '<div class="rz-cue-slot" id="cue"><span class="dot" style="width:64px;height:64px;display:inline-block;border-radius:50%;background:#2E2A3B;"></span></div>' +
           '<div class="rz-halves">' +
-          '<div class="rz-half" id="L"><div class="dot" id="dL"></div><span>左半区</span></div>' +
-          '<div class="rz-half" id="R"><div class="dot" id="dR"></div><span>右半区</span></div>' +
+          '<div class="rz-half" id="L"><span>左半区</span></div>' +
+          '<div class="rz-half" id="R"><span>右半区</span></div>' +
           '</div></div>';
         el.querySelector('#L').addEventListener('pointerdown', function () { answer('L'); });
         el.querySelector('#R').addEventListener('pointerdown', function () { answer('R'); });
@@ -160,9 +159,8 @@
         var isRed = Math.random() < 0.5;
         var trap = !!traps[i];
         var need = isRed ? (trap ? 'R' : 'L') : (trap ? 'L' : 'R');
-        var dot = el.querySelector('#dL'); // 点显示在中央 cue 位置
         var cue = el.querySelector('#cue');
-        if (cue) cue.innerHTML = '<span class="dot ' + (isRed ? 'red' : 'green') + '" style="width:64px;height:64px"></span>';
+        if (cue) cue.innerHTML = '<span class="dot ' + (isRed ? 'red' : 'green') + '" style="width:64px;height:64px;display:inline-block;border-radius:50%;background:' + (isRed ? '#E23B2E' : '#2FBF6B') + ';box-shadow:0 0 24px ' + (isRed ? 'rgba(226,59,46,0.55)' : 'rgba(47,191,107,0.5)') + ';"></span>';
         var ban = el.querySelector('#ban');
         if (trap && ban) ban.classList.add('show');
         t0 = performance.now(); answered = false;
@@ -210,18 +208,20 @@
       if (seq[0] === 'nogo') { var f = seq.indexOf('go'); seq[f] = 'nogo'; seq[0] = 'go'; }
       var i = 0, t0 = 0, answered = false, toId = 0;
       function paint() {
-        el.innerHTML = hud('<b>第三关 · 冲动控制</b>', (i + 1) + '/' + N) +
-          '<div class="rz-stage" id="st"><div class="rz-count">Go ' + S3.goRts.length + '</div>' +
-          '<div class="rz-big" id="big">准备</div><div class="rz-sub" id="sub">绿点快按 · 红点忍住</div></div>';
+        el.innerHTML = hud('<b>第三关 · 冲动控制（绿按·红忍）</b>', (i + 1) + '/' + N) +
+          '<div class="rz-stage rz-pure-wait" id="st"><div class="rz-count">Go ' + S3.goRts.length + '</div>' +
+          '<div class="rz-big" id="big"></div><div class="rz-sub" id="sub"></div></div>';
         el.querySelector('#st').addEventListener('pointerdown', onTap);
         later(show, 700 + Math.random() * 900);
       }
       function show() {
         if (destroyed) return;
         var g = seq[i] === 'go';
-        var st = el.querySelector('#st'), big = el.querySelector('#big');
-        if (st) st.classList.add(g ? 'gozone' : 'gorun');
-        if (big) big.textContent = g ? '按!' : '忍';
+        var st = el.querySelector('#st');
+        if (st) {
+          st.classList.remove('rz-pure-wait');
+          st.classList.add(g ? 'gozone' : 'gorun');
+        }
         t0 = performance.now(); answered = false;
         if (window.SFX && window.SFX.tick) window.SFX.tick();
         toId = later(function () {
@@ -238,10 +238,10 @@
         if (g) {
           var dt = Math.round(performance.now() - t0);
           S3.goRts.push(dt); if (window.SFX && window.SFX.select) window.SFX.select();
-          var u = el.querySelector('#sub'); if (u) u.textContent = dt + ' ms';
+          var b = el.querySelector('#big'); if (b) b.textContent = dt + ' ms';
         } else {
           S3.falseHit++; if (window.SFX && window.SFX.foul) window.SFX.foul();
-          var u2 = el.querySelector('#sub'); if (u2) u2.innerHTML = '<span class="rz-warn">没忍住…</span>';
+          var u2 = el.querySelector('#sub'); if (u2) u2.innerHTML = '<span class="rz-warn" style="color:#fff;font-weight:800;font-size:20px;">没忍住！红屏不能点</span>';
         }
         later(next, 550);
       }
@@ -379,17 +379,13 @@
       var oddIdx = Math.floor(Math.random() * n * n);
 
       var box = el.querySelector('#gridbox');
-      var gw = Math.min(box.clientWidth || 320, 440);
-      var cell = Math.floor((gw - 6 - (n - 1) * 4) / n);
       var grid = document.createElement('div');
       grid.className = 'cl-grid';
-      grid.style.width = (cell * n + (n - 1) * 4 + 12) + 'px';
+      grid.style.gridTemplateColumns = 'repeat(' + n + ', minmax(0, 1fr))';
       for (var i = 0; i < n * n; i++) {
         (function (idx) {
           var cellEl = document.createElement('div');
           cellEl.className = 'cl-cell';
-          cellEl.style.width = cell + 'px';
-          cellEl.style.height = cell + 'px';
           cellEl.style.background = idx === oddIdx ? odd1 : base;
           cellEl.addEventListener('pointerdown', function () { pick(idx === oddIdx, cellEl); });
           grid.appendChild(cellEl);

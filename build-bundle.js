@@ -22,7 +22,8 @@ const cssFiles = [
   'css/modules/history.css',
   'css/modules/decision.css',
   'css/modules/lingqian.css',
-  'css/modules/clock.css'
+  'css/modules/clock.css',
+  'css/modules/merit.css'
 ];
 
 let mergedCss = '\n/* ====== 全局模块样式合并集 ====== */\n';
@@ -56,6 +57,7 @@ const jsFiles = [
   'js/modules/decision.js',
   'js/modules/lingqian.js',
   'js/modules/clock.js',
+  'js/modules/merit.js',
   'js/modules/history.js',
   'js/modules/router.js'
 ];

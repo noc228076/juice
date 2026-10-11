@@ -225,7 +225,7 @@ html[data-theme="light"] .ew-switch-btn.active.east {
 /* 紫竹雕花签筒舞台 */
 .lq-cylinder-stage {
   position: relative;
-  height: 250px;
+  height: 256px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -235,8 +235,8 @@ html[data-theme="light"] .ew-switch-btn.active.east {
 
 .lq-cylinder-wrap {
   position: relative;
-  width: 150px;
-  height: 210px;
+  width: 170px;
+  height: 230px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -257,49 +257,22 @@ html[data-theme="light"] .ew-switch-btn.active.east {
   100% { transform: rotate(0deg) translateY(0); }
 }
 
-/* 飞出的那支灵签 */
+/* 隐藏旧独立 DOM 飞签，改由 SVG 桶腔内层直接抽出 */
 .lq-flying-stick {
-  position: absolute;
-  top: 10px;
-  left: 50%;
-  transform: translateX(-50%) translateY(40px) scale(0.8);
-  width: 28px;
-  height: 150px;
-  background: linear-gradient(90deg, #FDE68A 0%, #F59E0B 50%, #B45309 100%);
-  border: 1.5px solid #78350F;
-  border-radius: 14px 14px 4px 4px;
-  box-shadow: 0 10px 25px rgba(245, 158, 11, 0.6);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  padding-top: 10px;
+  display: none !important;
+}
+
+/* SVG 筒内抽出的那支灵签（位于后壁椭圆之后、前壁桶身之前，物理夹在筒内） */
+.lq-svg-flying-stick {
   opacity: 0;
+  transform: translate(0px, 28px);
+  transition: transform 0.52s cubic-bezier(0.2, 1.3, 0.3, 1), opacity 0.25s ease;
   pointer-events: none;
-  z-index: 10;
-  transition: all 0.5s cubic-bezier(0.2, 1.3, 0.3, 1);
 }
 
-.lq-flying-stick.dropped {
+.lq-svg-flying-stick.dropped {
   opacity: 1;
-  transform: translateX(-50%) translateY(-28px) scale(1.08) rotate(6deg);
-}
-
-.lq-stick-tip {
-  width: 18px;
-  height: 24px;
-  background: #E11D48;
-  border-radius: 8px 8px 2px 2px;
-  margin-bottom: 6px;
-}
-
-.lq-stick-text {
-  writing-mode: vertical-rl;
-  font-size: 12px;
-  font-weight: 900;
-  color: #78350F;
-  letter-spacing: 2px;
-  font-family: serif;
+  transform: translate(4px, -44px) rotate(4deg);
 }
 
 .lq-stage-hint {
@@ -337,12 +310,48 @@ html[data-theme="light"] .ew-switch-btn.active.east {
   transform: none;
 }
 
+/* ============ 解签结果页顶部返回导航栏 ============ */
+.lq-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  gap: 10px;
+}
+
+.lq-backbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: var(--card);
+  border: 1.5px solid var(--lq-paper-border);
+  color: var(--lq-gold);
+  font-size: 12.5px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.lq-backbtn:hover {
+  background: rgba(245, 158, 11, 0.14);
+  transform: translateX(-2px);
+}
+
+.lq-topbar-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--tx-dim);
+  letter-spacing: 1px;
+}
+
 /* ============ 解签结果页 (朱砂宣纸签文卷轴) ============ */
 .lq-scroll-card {
   background: var(--lq-paper-bg);
   border: 2px solid var(--lq-paper-border);
   border-radius: 18px;
-  padding: 20px 18px;
+  padding: 20px 18px 18px;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35), inset 0 0 0 4px rgba(245, 158, 11, 0.08);
   display: flex;
   flex-direction: column;
@@ -490,33 +499,48 @@ html[data-theme="light"] .lq-xj-item {
 }
 
 .lq-result-actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 14px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 4px;
+  padding-top: 14px;
+  border-top: 1.5px dashed var(--lq-paper-border);
+  align-items: stretch;
 }
 
 .lq-btn-act {
-  flex: 1;
-  padding: 11px 14px;
-  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 44px;
+  padding: 0 14px;
+  border-radius: 12px;
   font-size: 13.5px;
   font-weight: 800;
   cursor: pointer;
-  border: 1px solid var(--line);
-  background: var(--card);
-  color: var(--tx);
+  border: 1.5px solid var(--lq-paper-border);
+  background: rgba(245, 158, 11, 0.10);
+  color: var(--lq-ink);
+  box-sizing: border-box;
   transition: all 0.2s ease;
 }
 
 .lq-btn-act:hover {
+  background: rgba(245, 158, 11, 0.18);
   border-color: var(--lq-gold);
+  transform: translateY(-1px);
 }
 
 .lq-btn-act.primary {
   background: linear-gradient(135deg, #E11D48, #BE123C);
   color: #FFFFFF;
-  border: none;
-  box-shadow: 0 4px 16px var(--lq-crimson-glow);
+  border: 1.5px solid rgba(253, 230, 138, 0.55);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.lq-btn-act.primary:hover {
+  filter: brightness(1.08);
 }
 
 @media (max-width: 480px) {

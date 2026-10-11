@@ -116,6 +116,10 @@
         if (window.AppClock && typeof window.AppClock.restore === 'function' && item.data) {
           window.AppClock.restore(item.data);
         }
+      } else if (mod === 'merit') {
+        if (window.AppMerit && typeof window.AppMerit.restore === 'function' && item.data) {
+          window.AppMerit.restore(item.data);
+        }
       }
     } catch (e) {
       console.warn('restore record error:', e);
@@ -136,7 +140,8 @@
       tarot: list.filter(r => r.module === 'tarot').length,
       lingqian: list.filter(r => r.module === 'lingqian').length,
       decision: list.filter(r => r.module === 'decision').length,
-      clock: list.filter(r => r.module === 'clock').length
+      clock: list.filter(r => r.module === 'clock').length,
+      merit: list.filter(r => r.module === 'merit').length
     };
 
     // 渲染分类筛选条
@@ -152,6 +157,7 @@
         <button class="uni-filter-chip ${filterMod === 'lingqian' ? 'active' : ''}" data-mod="lingqian">🎋 灵签 <span class="chip-count">${counts.lingqian}</span></button>
         <button class="uni-filter-chip ${filterMod === 'decision' ? 'active' : ''}" data-mod="decision">🪙 决策 <span class="chip-count">${counts.decision}</span></button>
         <button class="uni-filter-chip ${filterMod === 'clock' ? 'active' : ''}" data-mod="clock">⏰ 摸鱼 <span class="chip-count">${counts.clock}</span></button>
+        <button class="uni-filter-chip ${filterMod === 'merit' ? 'active' : ''}" data-mod="merit">📿 功德 <span class="chip-count">${counts.merit}</span></button>
       `;
 
       filterBar.querySelectorAll('.uni-filter-chip').forEach(btn => {

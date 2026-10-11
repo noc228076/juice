@@ -7,6 +7,8 @@
   'use strict';
 
   let currentModule = 'drinks';
+  let lastMysticMod = 'tarot';
+  const ALLOWED_MODS = ['drinks', 'milktea', 'manual', 'fengshui', 'tarot', 'lingqian', 'decision', 'clock', 'merit'];
   const initializedModules = new Set(['drinks']);
 
   function updateGlider(activeTab) {
@@ -21,17 +23,21 @@
   }
 
   function switchModule(modKey, updateHash = true) {
-    if (!['drinks', 'milktea', 'manual', 'fengshui', 'tarot', 'lingqian', 'decision', 'clock'].includes(modKey)) {
+    if (!ALLOWED_MODS.includes(modKey)) {
       modKey = 'drinks';
+    }
+    if (modKey === 'tarot' || modKey === 'lingqian') {
+      lastMysticMod = modKey;
     }
 
     currentModule = modKey;
     document.documentElement.dataset.activeModule = modKey;
 
+    const hasSeparateLingqianTab = !!document.querySelector('.nav-tab[data-mod="lingqian"]');
     let matchedTab = null;
     // 切换顶栏 Tab 选中状态
     document.querySelectorAll('.nav-tab').forEach(tab => {
-      const isMatch = tab.dataset.mod === modKey;
+      const isMatch = tab.dataset.mod === modKey || (!hasSeparateLingqianTab && modKey === 'lingqian' && tab.dataset.mod === 'tarot');
       tab.classList.toggle('active', isMatch);
       if (isMatch) {
         matchedTab = tab;
@@ -66,6 +72,7 @@
       if (modKey === 'decision' && window.AppDecision) window.AppDecision.init();
       if (modKey === 'lingqian' && window.AppLingqian) window.AppLingqian.init();
       if (modKey === 'clock' && window.AppClock) window.AppClock.init();
+      if (modKey === 'merit' && window.AppMerit) window.AppMerit.init();
     } else {
       if (modKey === 'manual' && window.AppManual) {
         const body = document.getElementById('sm-homebody');
@@ -80,7 +87,7 @@
 
   function handleHash() {
     const hash = window.location.hash.replace(/^#\/?/, '').toLowerCase();
-    if (['drinks', 'milktea', 'manual', 'fengshui', 'tarot', 'lingqian', 'decision', 'clock'].includes(hash)) {
+    if (ALLOWED_MODS.includes(hash)) {
       switchModule(hash, false);
     }
   }
@@ -90,7 +97,12 @@
     document.querySelectorAll('.nav-tab').forEach(tab => {
       tab.addEventListener('click', () => {
         if (window.SFX && window.SFX.tap) window.SFX.tap();
-        switchModule(tab.dataset.mod, true);
+        const hasSeparateLingqianTab = !!document.querySelector('.nav-tab[data-mod="lingqian"]');
+        let targetMod = tab.dataset.mod;
+        if (!hasSeparateLingqianTab && targetMod === 'tarot') {
+          targetMod = lastMysticMod || 'tarot';
+        }
+        switchModule(targetMod, true);
       });
     });
 

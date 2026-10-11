@@ -136,7 +136,7 @@
     const box = document.getElementById('lqCylinderSvgBox');
     if (!box) return;
     box.innerHTML = `
-      <svg viewBox="0 0 160 220" width="150" height="206" style="filter: drop-shadow(0 12px 24px rgba(0,0,0,0.45));">
+      <svg viewBox="0 -38 160 252" width="166" height="232" style="filter: drop-shadow(0 12px 24px rgba(0,0,0,0.45)); overflow: visible;">
         <defs>
           <linearGradient id="g_lq_bamboo" x1="0" y1="0" x2="1" y2="0">
             <stop offset="0%" stop-color="#7F1D1D"/>
@@ -153,30 +153,58 @@
             <stop offset="0%" stop-color="#FDE68A"/>
             <stop offset="100%" stop-color="#D97706"/>
           </linearGradient>
+          <linearGradient id="g_lq_stick_back" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#D97706"/>
+            <stop offset="100%" stop-color="#92400E"/>
+          </linearGradient>
         </defs>
-        <!-- 签筒内簇拥的竹签群 -->
+        <!-- 1. 签筒后壁内口与深色桶腔（绘制在最底层，位于所有竹签后方） -->
+        <ellipse cx="80" cy="72" rx="46" ry="13" fill="#220303" stroke="url(#g_lq_gold)" stroke-width="2.5"/>
+        <ellipse cx="80" cy="74" rx="42" ry="10" fill="#120101"/>
+
+        <!-- 2. 签筒内簇拥的竹签群（插在后壁之后、前壁之前，下半截伸入桶腔 y=110 被前壁自然遮挡） -->
         <g id="lqSticksBundle">
-          <rect x="46" y="18" width="10" height="80" rx="4" transform="rotate(-10 50 70)" fill="url(#g_lq_stick)" stroke="#92400E" stroke-width="1"/>
-          <rect x="60" y="10" width="10" height="85" rx="4" transform="rotate(-4 65 70)" fill="url(#g_lq_stick)" stroke="#92400E" stroke-width="1"/>
-          <rect x="75" y="8" width="11" height="88" rx="4" fill="url(#g_lq_stick)" stroke="#92400E" stroke-width="1"/>
-          <rect x="90" y="12" width="10" height="84" rx="4" transform="rotate(5 95 70)" fill="url(#g_lq_stick)" stroke="#92400E" stroke-width="1"/>
-          <rect x="104" y="20" width="10" height="78" rx="4" transform="rotate(11 108 70)" fill="url(#g_lq_stick)" stroke="#92400E" stroke-width="1"/>
-          <!-- 红头点缀 -->
-          <rect x="75" y="8" width="11" height="14" rx="3" fill="#E11D48"/>
-          <rect x="60" y="10" width="10" height="12" rx="3" transform="rotate(-4 65 70)" fill="#E11D48"/>
-          <rect x="90" y="12" width="10" height="12" rx="3" transform="rotate(5 95 70)" fill="#E11D48"/>
+          <!-- 后排竹签 -->
+          <rect x="53" y="22" width="9" height="86" rx="3.5" transform="rotate(-7 57 76)" fill="url(#g_lq_stick_back)" stroke="#78350F" stroke-width="1"/>
+          <rect x="68" y="16" width="9" height="90" rx="3.5" transform="rotate(-2 72 76)" fill="url(#g_lq_stick_back)" stroke="#78350F" stroke-width="1"/>
+          <rect x="84" y="17" width="9" height="89" rx="3.5" transform="rotate(3 88 76)" fill="url(#g_lq_stick_back)" stroke="#78350F" stroke-width="1"/>
+          <rect x="97" y="23" width="9" height="85" rx="3.5" transform="rotate(8 101 76)" fill="url(#g_lq_stick_back)" stroke="#78350F" stroke-width="1"/>
+          <!-- 前排主竹签 -->
+          <rect x="46" y="24" width="10" height="88" rx="4" transform="rotate(-11 50 78)" fill="url(#g_lq_stick)" stroke="#92400E" stroke-width="1"/>
+          <rect x="60" y="14" width="10" height="94" rx="4" transform="rotate(-4 65 78)" fill="url(#g_lq_stick)" stroke="#92400E" stroke-width="1"/>
+          <rect x="75" y="11" width="11" height="96" rx="4" fill="url(#g_lq_stick)" stroke="#92400E" stroke-width="1"/>
+          <rect x="90" y="15" width="10" height="93" rx="4" transform="rotate(5 95 78)" fill="url(#g_lq_stick)" stroke="#92400E" stroke-width="1"/>
+          <rect x="104" y="25" width="10" height="86" rx="4" transform="rotate(11 108 78)" fill="url(#g_lq_stick)" stroke="#92400E" stroke-width="1"/>
+          <!-- 朱砂红头点缀 -->
+          <rect x="46" y="24" width="10" height="11" rx="3" transform="rotate(-11 50 78)" fill="#E11D48"/>
+          <rect x="60" y="14" width="10" height="12" rx="3" transform="rotate(-4 65 78)" fill="#E11D48"/>
+          <rect x="75" y="11" width="11" height="14" rx="3" fill="#E11D48"/>
+          <rect x="90" y="15" width="10" height="12" rx="3" transform="rotate(5 95 78)" fill="#E11D48"/>
+          <rect x="104" y="25" width="10" height="11" rx="3" transform="rotate(11 108 78)" fill="#E11D48"/>
         </g>
-        <!-- 签筒后壁内口 -->
-        <ellipse cx="80" cy="72" rx="46" ry="12" fill="#2A0505" stroke="url(#g_lq_gold)" stroke-width="2.5"/>
-        <!-- 雕花朱漆签筒桶身 -->
-        <path d="M34,72 L40,192 C40,202 58,208 80,208 C102,208 120,202 120,192 L126,72 C126,80 105,84 80,84 C55,84 34,80 34,72 Z" fill="url(#g_lq_bamboo)" stroke="#7F1D1D" stroke-width="1.5"/>
+
+        <!-- 3. 摇出时从签筒内部升起的那支天命灵签（夹在桶口内，下端被前壁桶口自然遮挡） -->
+        <g id="lqSvgFlyingStick" class="lq-svg-flying-stick">
+          <rect x="70" y="8" width="20" height="118" rx="6" fill="url(#g_lq_stick)" stroke="#78350F" stroke-width="1.5"/>
+          <rect x="72" y="10" width="16" height="18" rx="4" fill="#E11D48"/>
+          <text id="lqSvgStickText" x="80" y="42" font-size="11" font-weight="900" fill="#78350F" text-anchor="middle" font-family="serif">
+            <tspan x="80" dy="0">第</tspan>
+            <tspan x="80" dy="13">一</tspan>
+            <tspan x="80" dy="13">签</tspan>
+          </text>
+        </g>
+
+        <!-- 4. 雕花朱漆签筒前壁桶身（覆盖在竹签下半截之上，形成真实「签在筒内」的物理遮挡关系） -->
+        <path d="M34,72 L40,192 C40,202 58,208 80,208 C102,208 120,202 120,192 L126,72 C126,81 105,85 80,85 C55,85 34,81 34,72 Z" fill="url(#g_lq_bamboo)" stroke="#7F1D1D" stroke-width="1.5"/>
+        <!-- 签筒前唇鎏金口沿弧线 -->
+        <path d="M34,72 C34,81 55,85 80,85 C105,85 126,81 126,72" fill="none" stroke="url(#g_lq_gold)" stroke-width="2.6" stroke-linecap="round"/>
         <!-- 鎏金箍环 -->
-        <path d="M35,92 Q80,102 125,92" fill="none" stroke="url(#g_lq_gold)" stroke-width="4"/>
+        <path d="M35,94 Q80,104 125,94" fill="none" stroke="url(#g_lq_gold)" stroke-width="4"/>
         <path d="M39,176 Q80,186 121,176" fill="none" stroke="url(#g_lq_gold)" stroke-width="4"/>
         <!-- 筒身中央牌匾 -->
-        <rect x="62" y="106" width="36" height="60" rx="6" fill="#450A0A" stroke="url(#g_lq_gold)" stroke-width="2"/>
-        <text x="80" y="132" font-size="15" font-weight="900" fill="#FDE68A" text-anchor="middle" font-family="serif">有求</text>
-        <text x="80" y="154" font-size="15" font-weight="900" fill="#FDE68A" text-anchor="middle" font-family="serif">必应</text>
+        <rect x="62" y="107" width="36" height="60" rx="6" fill="#450A0A" stroke="url(#g_lq_gold)" stroke-width="2"/>
+        <text x="80" y="133" font-size="15" font-weight="900" fill="#FDE68A" text-anchor="middle" font-family="serif">有求</text>
+        <text x="80" y="155" font-size="15" font-weight="900" fill="#FDE68A" text-anchor="middle" font-family="serif">必应</text>
       </svg>
     `;
   }
@@ -187,12 +215,12 @@
 
     const btn = document.getElementById('lqBtnShake');
     const cyl = document.getElementById('lqCylinderWrap');
-    const flyStick = document.getElementById('lqFlyingStick');
-    const stickTxt = document.getElementById('lqStickText');
+    const svgFlyStick = document.getElementById('lqSvgFlyingStick');
+    const svgStickTxt = document.getElementById('lqSvgStickText');
     const hint = document.getElementById('lqStageHint');
 
     if (btn) btn.disabled = true;
-    if (flyStick) flyStick.classList.remove('dropped');
+    if (svgFlyStick) svgFlyStick.classList.remove('dropped');
     if (cyl) cyl.classList.add('shaking');
     if (hint) hint.textContent = '🎋 正在摇晃紫竹签筒，聆听神明指引……';
 
@@ -210,32 +238,37 @@
 
     // 随机抽取一支灵签
     const picked = STICKS[Math.floor(Math.random() * STICKS.length)];
-    if (stickTxt) stickTxt.textContent = picked.no;
+    if (svgStickTxt) {
+      const chars = String(picked.no).split('');
+      svgStickTxt.innerHTML = chars
+        .map((ch, idx) => `<tspan x="80" dy="${idx === 0 ? 0 : 12}">${ch}</tspan>`)
+        .join('');
+    }
 
     setTimeout(() => {
       clearInterval(soundTimer);
       if (cyl) cyl.classList.remove('shaking');
-      if (flyStick) flyStick.classList.add('dropped');
+      if (svgFlyStick) svgFlyStick.classList.add('dropped');
       if (window.SFX && window.SFX.bell) window.SFX.bell(true);
-      if (hint) hint.textContent = `✨ 灵签已落：${picked.no} · 正在展开宣纸签文……`;
+      if (hint) hint.textContent = `✨ 灵签已出：${picked.no} · 正在展开宣纸签文……`;
 
       setTimeout(() => {
         isShaking = false;
         if (btn) btn.disabled = false;
-        if (flyStick) flyStick.classList.remove('dropped');
+        if (svgFlyStick) svgFlyStick.classList.remove('dropped');
         if (hint) hint.textContent = '轻点签筒或下方按钮，诚心摇出今日灵签';
         renderResult(picked);
-      }, 900);
+      }, 950);
     }, 1450);
   }
 
   function renderResult(stick, isRestored = false) {
     const wishInput = document.getElementById('lqWishInput');
+    const rawWish = wishInput ? wishInput.value.trim() : '';
+    const catName = isRestored && stick.catName ? stick.catName : CATEGORIES[curCategory].name;
     const wish = isRestored && stick.wish
       ? stick.wish
-      : ((wishInput && wishInput.value.trim()) || CATEGORIES[curCategory].name);
-
-    const catName = isRestored && stick.catName ? stick.catName : CATEGORIES[curCategory].name;
+      : (rawWish || '');
 
     lastStickRecord = {
       ...stick,
@@ -253,7 +286,11 @@
     const interpEl = document.getElementById('lqResInterp');
     const tipsEl = document.getElementById('lqResTips');
 
-    if (subEl) subEl.textContent = `${catName} · 祈愿：${wish}`;
+    if (subEl) {
+      subEl.textContent = wish && wish !== catName
+        ? `${catName} · 祈愿：${wish}`
+        : `${catName} · 诚心祈愿`;
+    }
     if (titleEl) titleEl.textContent = `${stick.no} · ${stick.title}`;
     if (rankEl) rankEl.textContent = stick.rank;
     if (poemEl) poemEl.innerHTML = stick.poem.join('<br>');
@@ -453,7 +490,15 @@
     const cylWrap = document.getElementById('lqCylinderWrap');
     if (cylWrap) cylWrap.onclick = startShake;
 
-    // 绑定结果页按钮
+    // 绑定结果页按钮与顶部返回键
+    const btnBack = document.getElementById('lqBtnBack');
+    if (btnBack) {
+      btnBack.onclick = () => {
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        showScreen('sc-lq-home');
+      };
+    }
+
     const btnAgain = document.getElementById('lqBtnAgain');
     if (btnAgain) {
       btnAgain.onclick = () => {

@@ -81,6 +81,12 @@ html[data-active-module="clock"] {
   --mod-ac-glow: rgba(250, 204, 21, 0.35);
   --mod-ambient: rgba(250, 204, 21, 0.06);
 }
+html[data-active-module="merit"] {
+  --mod-ac: #F59E0B;
+  --mod-ac-ink: #241200;
+  --mod-ac-glow: rgba(245, 158, 11, 0.35);
+  --mod-ambient: rgba(245, 158, 11, 0.06);
+}
 
 #global-header {
   position: fixed;
@@ -302,6 +308,7 @@ html {
 #mod-decision,
 #mod-lingqian,
 #mod-clock,
+#mod-merit,
 .app-module {
   position: absolute !important;
   inset: 0 !important;
@@ -321,12 +328,13 @@ html {
 #mod-decision.active,
 #mod-lingqian.active,
 #mod-clock.active,
+#mod-merit.active,
 .app-module.active {
   display: flex !important;
   pointer-events: auto !important;
 }
 
-@media (max-width: 1120px) {
+@media (max-width: 1280px) {
   .nav-tab {
     padding: 6px 10px;
     font-size: 12.5px;
@@ -503,21 +511,29 @@ html[data-theme="light"] #mod-milktea .mt-hero h1 {
 #mod-milktea .mt-bchip {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 6px 12px;
+  gap: 7px;
+  padding: 5px 11px 5px 6px;
   border-radius: 999px;
-  font-size: 12px;
-  font-weight: 700;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.18);
-  transition: transform 0.18s ease;
+  font-size: 12.5px;
+  font-weight: 800;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
   user-select: none;
 }
 #mod-milktea .mt-bchip:hover {
-  transform: translateY(-1.5px) scale(1.05);
+  transform: translateY(-2px) scale(1.04);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.28);
 }
-#mod-milktea .mt-bchip em {
-  font-style: normal;
-  font-size: 13px;
+#mod-milktea .mt-chip-logo {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #FFFFFF;
+  border: 1.5px solid rgba(255, 255, 255, 0.85);
+  flex-shrink: 0;
+  display: block;
 }
 
 #mod-milktea .mt-glass {
@@ -739,16 +755,24 @@ html[data-theme="light"] #mod-milktea .mt-hero h1 {
   box-sizing: border-box;
 }
 #mod-milktea .mt-res-disc {
-  width: 92px;
-  height: 92px;
+  width: 96px;
+  height: 96px;
   border-radius: 50%;
   margin: 0 auto 14px;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 46px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
-  border: 3px solid rgba(255, 255, 255, 0.35);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.28);
+  border: 3px solid rgba(232, 201, 106, 0.75);
+  overflow: hidden;
+  background: #FFFFFF;
+}
+#mod-milktea .mt-res-logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 #mod-milktea .mt-res-card h2 {
   font-size: 28px;
@@ -846,14 +870,23 @@ html[data-theme="light"] #mod-milktea .mt-hero h1 {
   box-sizing: border-box;
 }
 #mod-milktea .mt-runner .rd {
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 22px;
   flex: none;
+  overflow: hidden;
+  background: #FFFFFF;
+  border: 2px solid rgba(232, 201, 106, 0.6);
+}
+#mod-milktea .mt-runner-logo-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 #mod-milktea .mt-runner b {
   display: block;
@@ -3218,12 +3251,20 @@ html[data-theme="light"] #mod-manual {
   user-select: none;
   -webkit-user-select: none;
   overflow: hidden;
-  transition: background 0.15s ease;
+  cursor: pointer;
 }
+#mod-manual .rz-stage.rz-pure-wait { background: #23283B; }
 #mod-manual .rz-stage.gorun { background: #E23B2E; }
 #mod-manual .rz-stage.gorun .rz-big,
 #mod-manual .rz-stage.gorun .rz-sub { color: #FFF6E8; }
 #mod-manual .rz-stage.gozone { background: #1FA05C; }
+#mod-manual .rz-cue-slot {
+  height: 76px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
 #mod-manual .rz-big {
   font-family: "DIN Alternate", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", sans-serif;
   font-variant-numeric: tabular-nums;
@@ -3286,22 +3327,103 @@ html[data-theme="light"] #mod-manual {
   transform: scale(1.06);
 }
 
-#mod-manual .cl-grid {
+#mod-manual .timerbar {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 99px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+#mod-manual .timerbar i {
+  display: block;
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #E23B2E, #F59E0B, #2FBF6B);
+  border-radius: 99px;
+  transition: width 0.08s linear;
+}
+
+#mod-manual .rz-banner {
+  display: none;
+  padding: 5px 14px;
+  border-radius: 99px;
+  background: rgba(226, 59, 46, 0.22);
+  border: 1px solid #E23B2E;
+  color: #FCA5A5;
+  font-size: 12.5px;
+  font-weight: 800;
+  margin-bottom: 8px;
+}
+#mod-manual .rz-banner.show {
+  display: inline-block;
+}
+
+#mod-manual #gridbox {
+  width: 100%;
   display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
+  justify-content: center;
+}
+
+#mod-manual .cl-grid {
+  display: grid;
+  gap: 5px;
+  width: 100%;
+  max-width: 380px;
+  aspect-ratio: 1 / 1;
   background: #F2EEE3;
-  padding: 6px;
-  border-radius: 14px;
-  margin-top: 10px;
+  padding: 8px;
+  border-radius: 16px;
+  margin-top: 6px;
+  box-sizing: border-box;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
 }
 #mod-manual .cl-cell {
-  flex: none;
-  border-radius: 4px;
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 1 / 1;
+  border-radius: 6px;
   cursor: pointer;
   transition: transform 0.1s;
+  box-sizing: border-box;
 }
-#mod-manual .cl-cell:active { transform: scale(0.94); }
+#mod-manual .cl-cell:active { transform: scale(0.93); }
+
+@media (max-width: 480px) {
+  #mod-manual .wrap {
+    padding: 12px 14px calc(24px + env(safe-area-inset-bottom));
+  }
+  #mod-manual .stage {
+    padding: 12px;
+  }
+  #mod-manual .cl-grid {
+    gap: 4px;
+    padding: 6px;
+    border-radius: 14px;
+  }
+  #mod-manual .cl-cell {
+    border-radius: 5px;
+  }
+}
+
+.floatmsg {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(20, 18, 28, 0.92);
+  color: #FFF;
+  border: 1.5px solid #E23B2E;
+  padding: 10px 20px;
+  border-radius: 99px;
+  font-size: 14px;
+  font-weight: 800;
+  z-index: 9999;
+  pointer-events: none;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+}
 
 /* =========================================================
    桌面端大屏自适应 (min-width: 900px)
@@ -5159,7 +5281,7 @@ html[data-theme="light"] .ew-switch-btn.active.east {
 /* 紫竹雕花签筒舞台 */
 .lq-cylinder-stage {
   position: relative;
-  height: 250px;
+  height: 256px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -5169,8 +5291,8 @@ html[data-theme="light"] .ew-switch-btn.active.east {
 
 .lq-cylinder-wrap {
   position: relative;
-  width: 150px;
-  height: 210px;
+  width: 170px;
+  height: 230px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -5191,49 +5313,22 @@ html[data-theme="light"] .ew-switch-btn.active.east {
   100% { transform: rotate(0deg) translateY(0); }
 }
 
-/* 飞出的那支灵签 */
+/* 隐藏旧独立 DOM 飞签，改由 SVG 桶腔内层直接抽出 */
 .lq-flying-stick {
-  position: absolute;
-  top: 10px;
-  left: 50%;
-  transform: translateX(-50%) translateY(40px) scale(0.8);
-  width: 28px;
-  height: 150px;
-  background: linear-gradient(90deg, #FDE68A 0%, #F59E0B 50%, #B45309 100%);
-  border: 1.5px solid #78350F;
-  border-radius: 14px 14px 4px 4px;
-  box-shadow: 0 10px 25px rgba(245, 158, 11, 0.6);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
-  padding-top: 10px;
+  display: none !important;
+}
+
+/* SVG 筒内抽出的那支灵签（位于后壁椭圆之后、前壁桶身之前，物理夹在筒内） */
+.lq-svg-flying-stick {
   opacity: 0;
+  transform: translate(0px, 28px);
+  transition: transform 0.52s cubic-bezier(0.2, 1.3, 0.3, 1), opacity 0.25s ease;
   pointer-events: none;
-  z-index: 10;
-  transition: all 0.5s cubic-bezier(0.2, 1.3, 0.3, 1);
 }
 
-.lq-flying-stick.dropped {
+.lq-svg-flying-stick.dropped {
   opacity: 1;
-  transform: translateX(-50%) translateY(-28px) scale(1.08) rotate(6deg);
-}
-
-.lq-stick-tip {
-  width: 18px;
-  height: 24px;
-  background: #E11D48;
-  border-radius: 8px 8px 2px 2px;
-  margin-bottom: 6px;
-}
-
-.lq-stick-text {
-  writing-mode: vertical-rl;
-  font-size: 12px;
-  font-weight: 900;
-  color: #78350F;
-  letter-spacing: 2px;
-  font-family: serif;
+  transform: translate(4px, -44px) rotate(4deg);
 }
 
 .lq-stage-hint {
@@ -5271,12 +5366,48 @@ html[data-theme="light"] .ew-switch-btn.active.east {
   transform: none;
 }
 
+/* ============ 解签结果页顶部返回导航栏 ============ */
+.lq-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  gap: 10px;
+}
+
+.lq-backbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: var(--card);
+  border: 1.5px solid var(--lq-paper-border);
+  color: var(--lq-gold);
+  font-size: 12.5px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.lq-backbtn:hover {
+  background: rgba(245, 158, 11, 0.14);
+  transform: translateX(-2px);
+}
+
+.lq-topbar-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--tx-dim);
+  letter-spacing: 1px;
+}
+
 /* ============ 解签结果页 (朱砂宣纸签文卷轴) ============ */
 .lq-scroll-card {
   background: var(--lq-paper-bg);
   border: 2px solid var(--lq-paper-border);
   border-radius: 18px;
-  padding: 20px 18px;
+  padding: 20px 18px 18px;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35), inset 0 0 0 4px rgba(245, 158, 11, 0.08);
   display: flex;
   flex-direction: column;
@@ -5424,33 +5555,48 @@ html[data-theme="light"] .lq-xj-item {
 }
 
 .lq-result-actions {
-  display: flex;
-  gap: 10px;
-  margin-top: 14px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-top: 4px;
+  padding-top: 14px;
+  border-top: 1.5px dashed var(--lq-paper-border);
+  align-items: stretch;
 }
 
 .lq-btn-act {
-  flex: 1;
-  padding: 11px 14px;
-  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 44px;
+  padding: 0 14px;
+  border-radius: 12px;
   font-size: 13.5px;
   font-weight: 800;
   cursor: pointer;
-  border: 1px solid var(--line);
-  background: var(--card);
-  color: var(--tx);
+  border: 1.5px solid var(--lq-paper-border);
+  background: rgba(245, 158, 11, 0.10);
+  color: var(--lq-ink);
+  box-sizing: border-box;
   transition: all 0.2s ease;
 }
 
 .lq-btn-act:hover {
+  background: rgba(245, 158, 11, 0.18);
   border-color: var(--lq-gold);
+  transform: translateY(-1px);
 }
 
 .lq-btn-act.primary {
   background: linear-gradient(135deg, #E11D48, #BE123C);
   color: #FFFFFF;
-  border: none;
-  box-shadow: 0 4px 16px var(--lq-crimson-glow);
+  border: 1.5px solid rgba(253, 230, 138, 0.55);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.lq-btn-act.primary:hover {
+  filter: brightness(1.08);
 }
 
 @media (max-width: 480px) {
@@ -5729,6 +5875,91 @@ html[data-theme="light"] .ck-equiv-pill {
   color: var(--ck-gold);
 }
 
+/* 加班状态切换栏：正常上下班 / 付费加班 / 无偿加班 */
+.ck-overtime-bar {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 4px;
+  margin-top: 4px;
+}
+
+html[data-theme="light"] .ck-overtime-bar {
+  background: rgba(0, 0, 0, 0.045);
+}
+
+.ck-ot-btn {
+  padding: 6px 13px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--tx-dim);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ck-ot-btn:hover {
+  color: var(--tx);
+}
+
+.ck-ot-btn.active[data-ot="none"] {
+  background: rgba(16, 185, 129, 0.18);
+  color: var(--ck-green);
+  border-color: rgba(16, 185, 129, 0.45);
+}
+
+.ck-ot-btn.active[data-ot="paid"] {
+  background: rgba(250, 204, 21, 0.22);
+  color: var(--ck-gold);
+  border-color: rgba(250, 204, 21, 0.55);
+  box-shadow: 0 2px 12px rgba(250, 204, 21, 0.25);
+}
+
+.ck-ot-btn.active[data-ot="unpaid"] {
+  background: rgba(239, 68, 68, 0.22);
+  color: #F87171;
+  border-color: rgba(239, 68, 68, 0.55);
+  box-shadow: 0 2px 12px rgba(239, 68, 68, 0.25);
+}
+
+html[data-theme="light"] .ck-ot-btn.active[data-ot="unpaid"] {
+  color: #DC2626;
+}
+
+.ck-overtime-banner {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.5;
+  margin-top: 2px;
+}
+
+.ck-overtime-banner.paid {
+  background: rgba(250, 204, 21, 0.14);
+  border: 1px solid rgba(250, 204, 21, 0.45);
+  color: var(--ck-gold);
+}
+
+.ck-overtime-banner.unpaid {
+  background: rgba(239, 68, 68, 0.14);
+  border: 1px solid rgba(239, 68, 68, 0.45);
+  color: #F87171;
+  animation: ckPulse 1.5s ease-in-out infinite;
+}
+
+html[data-theme="light"] .ck-overtime-banner.unpaid {
+  color: #DC2626;
+}
+
 /* ============ 带薪摸鱼 / 拉屎回血专项计时器 ============ */
 .ck-slack-card {
   background: var(--ck-card);
@@ -5932,7 +6163,8 @@ html[data-theme="light"] .ck-cd-bar {
   color: var(--tx-dim);
 }
 
-.ck-cfg-item input {
+.ck-cfg-item input,
+.ck-cfg-item select {
   padding: 7px 10px;
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.04);
@@ -5942,13 +6174,26 @@ html[data-theme="light"] .ck-cd-bar {
   font-weight: 700;
   outline: none;
   box-sizing: border-box;
+  width: 100%;
 }
 
-html[data-theme="light"] .ck-cfg-item input {
+.ck-cfg-item select option {
+  background: #18181B;
+  color: #F4F4F5;
+}
+
+html[data-theme="light"] .ck-cfg-item input,
+html[data-theme="light"] .ck-cfg-item select {
   background: rgba(0, 0, 0, 0.03);
 }
 
-.ck-cfg-item input:focus {
+html[data-theme="light"] .ck-cfg-item select option {
+  background: #FFFFFF;
+  color: #18181B;
+}
+
+.ck-cfg-item input:focus,
+.ck-cfg-item select:focus {
   border-color: var(--ck-gold);
 }
 
@@ -6006,6 +6251,1008 @@ html[data-theme="light"] .ck-cfg-item input {
   .ck-cfg-grid {
     grid-template-columns: 1fr;
   }
+}
+
+
+/* ====== css/modules/merit.css ====== */
+/* =========================================================
+   模块 9：赛博功德局 · 电子木鱼 & 怨气粉碎机 (Cyber Merit & Stress Relief)
+   包含：赛博电子木鱼、无尽减压泡泡纸、怨气碎纸机/火盆
+   ========================================================= */
+
+#mod-merit {
+  --mr-bg: #111018;
+  --mr-card: #1B1926;
+  --mr-card-alt: #242134;
+  --mr-amber: #F59E0B;
+  --mr-amber-light: #FDE68A;
+  --mr-cyan: #22D3EE;
+  --mr-rose: #FB7185;
+  --mr-emerald: #10B981;
+  --mr-text: #F8FAFC;
+  --mr-muted: #94A3B8;
+  --mr-border: rgba(245, 158, 11, 0.22);
+
+  background:
+    radial-gradient(circle at 50% 0%, rgba(245, 158, 11, 0.14), transparent 55%),
+    radial-gradient(circle at 85% 85%, rgba(34, 211, 238, 0.10), transparent 50%),
+    var(--mr-bg);
+  color: var(--mr-text);
+  font-family: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif;
+}
+
+html[data-theme="light"] #mod-merit {
+  --mr-bg: #FAF7F2;
+  --mr-card: #FFFFFF;
+  --mr-card-alt: #F3EFE6;
+  --mr-amber: #D97706;
+  --mr-amber-light: #92400E;
+  --mr-cyan: #0891B2;
+  --mr-rose: #E11D48;
+  --mr-emerald: #059669;
+  --mr-text: #1E1B18;
+  --mr-muted: #64748B;
+  --mr-border: rgba(217, 119, 6, 0.25);
+}
+
+#mod-merit .mr-wrap {
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 20px 18px 56px;
+}
+
+/* 顶部标题区 */
+#mod-merit .mr-header {
+  text-align: center;
+  margin-bottom: 18px;
+}
+
+#mod-merit .mr-tag {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: var(--mr-amber);
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid var(--mr-border);
+  margin-bottom: 8px;
+}
+
+#mod-merit .mr-title {
+  font-size: clamp(25px, 5vw, 32px);
+  font-weight: 900;
+  letter-spacing: 2px;
+  margin: 0 0 6px;
+  background: linear-gradient(135deg, var(--mr-amber-light), var(--mr-amber), var(--mr-rose));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+#mod-merit .mr-sub {
+  font-size: 13px;
+  color: var(--mr-muted);
+  margin: 0;
+}
+
+/* 全局功德总览横幅 */
+#mod-merit .mr-stats-banner {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  padding: 14px 12px;
+  border-radius: 18px;
+  background: var(--mr-card);
+  border: 1px solid var(--mr-border);
+  margin-bottom: 16px;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 520px) {
+  #mod-merit .mr-stats-banner {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+#mod-merit .mr-stat-box {
+  text-align: center;
+  padding: 6px 4px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+#mod-merit .mr-stat-box span {
+  display: block;
+  font-size: 11.5px;
+  color: var(--mr-muted);
+  margin-bottom: 4px;
+}
+
+#mod-merit .mr-stat-box b {
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--mr-amber);
+  font-variant-numeric: tabular-nums;
+}
+
+#mod-merit .mr-stat-box b.rank-badge {
+  font-size: 14px;
+  color: var(--mr-cyan);
+}
+
+/* 三大解压法器切换栏 */
+#mod-merit .mr-subnav {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  padding: 5px;
+  border-radius: 16px;
+  background: var(--mr-card);
+  border: 1px solid var(--mr-border);
+  margin-bottom: 18px;
+}
+
+#mod-merit .mr-tab {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 8px;
+  border-radius: 12px;
+  border: none;
+  background: transparent;
+  color: var(--mr-muted);
+  font-size: 13.5px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.22s ease;
+}
+
+#mod-merit .mr-tab:hover {
+  color: var(--mr-text);
+}
+
+#mod-merit .mr-tab.active {
+  background: linear-gradient(135deg, #F59E0B, #EA580C);
+  color: #FFF;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.35);
+}
+
+/* 子舞台切换 */
+#mod-merit .mr-substage {
+  display: none;
+  animation: mrFadeIn 0.28s ease-out;
+}
+
+#mod-merit .mr-substage.active {
+  display: block;
+}
+
+@keyframes mrFadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* =========================================================
+   子模式 1：赛博电子木鱼 (Muyu)
+   ========================================================= */
+#mod-merit .muyu-controls-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+#mod-merit .muyu-chant-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+#mod-merit .muyu-pill {
+  padding: 6px 11px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  background: var(--mr-card);
+  color: var(--mr-muted);
+  border: 1px solid var(--mr-border);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+#mod-merit .muyu-pill.active {
+  background: rgba(245, 158, 11, 0.16);
+  color: var(--mr-amber);
+  border-color: var(--mr-amber);
+}
+
+#mod-merit .muyu-stage {
+  position: relative;
+  height: 310px;
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 50% 55%, rgba(245, 158, 11, 0.18), transparent 65%),
+    var(--mr-card);
+  border: 1.5px solid var(--mr-border);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  user-select: none;
+  cursor: pointer;
+  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.28);
+  margin-bottom: 14px;
+}
+
+/* 浮动功德文字容器 */
+#mod-merit .muyu-float-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 5;
+}
+
+#mod-merit .muyu-float-item {
+  position: absolute;
+  font-size: 19px;
+  font-weight: 900;
+  color: var(--mr-amber-light);
+  text-shadow: 0 2px 10px rgba(245, 158, 11, 0.65);
+  white-space: nowrap;
+  animation: muyuFloatUp 0.95s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes muyuFloatUp {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 10px) scale(0.75);
+  }
+  20% {
+    opacity: 1;
+    transform: translate(-50%, -18px) scale(1.08);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -95px) scale(0.95);
+  }
+}
+
+/* 木鱼本体与木槌交互动效 */
+#mod-merit .muyu-actor {
+  position: relative;
+  width: 220px;
+  height: 190px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.09s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+#mod-merit .muyu-actor.hit {
+  transform: scale(0.91) translateY(5px);
+}
+
+#mod-merit .muyu-ripple {
+  position: absolute;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  border: 2px solid var(--mr-amber);
+  opacity: 0;
+  pointer-events: none;
+}
+
+#mod-merit .muyu-actor.hit .muyu-ripple {
+  animation: muyuRippleOut 0.5s ease-out;
+}
+
+@keyframes muyuRippleOut {
+  0% { transform: scale(0.8); opacity: 0.75; }
+  100% { transform: scale(1.65); opacity: 0; }
+}
+
+#mod-merit .muyu-mallet {
+  position: absolute;
+  top: -8px;
+  right: -12px;
+  width: 96px;
+  height: 96px;
+  transform-origin: 80% 80%;
+  transform: rotate(18deg);
+  transition: transform 0.08s ease-out;
+  pointer-events: none;
+}
+
+#mod-merit .muyu-actor.hit .muyu-mallet {
+  transform: rotate(-16deg) translate(-6px, 8px);
+}
+
+#mod-merit .muyu-hint {
+  position: absolute;
+  bottom: 14px;
+  font-size: 12px;
+  color: var(--mr-muted);
+}
+
+#mod-merit .muyu-bottom-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+#mod-merit .muyu-sound-group {
+  display: flex;
+  gap: 6px;
+}
+
+#mod-merit .mr-btn-chip {
+  padding: 8px 13px;
+  border-radius: 12px;
+  font-size: 12.5px;
+  font-weight: 700;
+  border: 1px solid var(--mr-border);
+  background: var(--mr-card);
+  color: var(--mr-text);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+#mod-merit .mr-btn-chip.active {
+  background: rgba(34, 211, 238, 0.16);
+  border-color: var(--mr-cyan);
+  color: var(--mr-cyan);
+}
+
+#mod-merit .mr-btn-auto {
+  padding: 9px 16px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 800;
+  border: 1.5px solid var(--mr-amber);
+  background: rgba(245, 158, 11, 0.14);
+  color: var(--mr-amber);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+#mod-merit .mr-btn-auto.running {
+  background: linear-gradient(135deg, #10B981, #059669);
+  border-color: transparent;
+  color: #FFF;
+  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.35);
+}
+
+/* =========================================================
+   子模式 2：无尽减压泡泡纸 (Bubble Wrap)
+   ========================================================= */
+#mod-merit .bubble-card {
+  padding: 18px;
+  border-radius: 24px;
+  background: var(--mr-card);
+  border: 1.5px solid var(--mr-border);
+  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.24);
+}
+
+#mod-merit .bubble-top-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+#mod-merit .bubble-progress-txt {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--mr-text);
+}
+
+#mod-merit .bubble-progress-txt b {
+  color: var(--mr-cyan);
+}
+
+#mod-merit .bubble-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 10px;
+  padding: 14px;
+  border-radius: 18px;
+  background: rgba(34, 211, 238, 0.05);
+  border: 1px dashed rgba(34, 211, 238, 0.25);
+  user-select: none;
+  touch-action: manipulation;
+}
+
+@media (max-width: 440px) {
+  #mod-merit .bubble-grid {
+    gap: 7px;
+    padding: 10px;
+  }
+}
+
+#mod-merit .bubble-cell {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  background:
+    radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.78) 0%, rgba(255, 255, 255, 0.22) 24%, rgba(34, 211, 238, 0.28) 65%, rgba(8, 145, 178, 0.55) 100%);
+  box-shadow:
+    inset 0 -4px 8px rgba(0, 0, 0, 0.35),
+    0 5px 12px rgba(0, 0, 0, 0.28);
+  transition: transform 0.12s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease, opacity 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  color: transparent;
+}
+
+#mod-merit .bubble-cell:hover:not(.popped) {
+  transform: scale(1.06);
+}
+
+#mod-merit .bubble-cell.golden:not(.popped) {
+  background:
+    radial-gradient(circle at 32% 28%, #FFFBEB 0%, #FDE68A 28%, #F59E0B 68%, #B45309 100%);
+  box-shadow:
+    inset 0 -4px 8px rgba(120, 53, 15, 0.45),
+    0 0 14px rgba(245, 158, 11, 0.55);
+}
+
+#mod-merit .bubble-cell.popped {
+  transform: scale(0.86);
+  background: rgba(148, 163, 184, 0.12);
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.35);
+  border: 1px dashed rgba(148, 163, 184, 0.28);
+  color: var(--mr-muted);
+  cursor: default;
+}
+
+#mod-merit .bubble-cell.golden.popped {
+  color: var(--mr-amber);
+  border-color: rgba(245, 158, 11, 0.45);
+}
+
+#mod-merit .bubble-complete-toast {
+  margin-top: 12px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(16, 185, 129, 0.14);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: var(--mr-emerald);
+  font-size: 13px;
+  font-weight: 800;
+  text-align: center;
+  display: none;
+}
+
+#mod-merit .bubble-complete-toast.show {
+  display: block;
+}
+
+/* =========================================================
+   子模式 3：怨气碎纸机 & 赛博火盆 (Shredder)
+   ========================================================= */
+#mod-merit .shred-card {
+  padding: 18px;
+  border-radius: 24px;
+  background: var(--mr-card);
+  border: 1.5px solid var(--mr-border);
+  box-shadow: 0 16px 38px rgba(0, 0, 0, 0.24);
+}
+
+#mod-merit .shred-presets-title {
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--mr-muted);
+  margin-bottom: 8px;
+}
+
+#mod-merit .shred-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+#mod-merit .shred-preset-tag {
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  background: var(--mr-card-alt);
+  color: var(--mr-text);
+  border: 1px solid var(--mr-border);
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+#mod-merit .shred-preset-tag:hover {
+  border-color: var(--mr-rose);
+  color: var(--mr-rose);
+}
+
+/* 怨气纸条与粉碎舞台 */
+#mod-merit .shred-machine-stage {
+  position: relative;
+  padding: 12px 12px 14px;
+  border-radius: 20px;
+  background: var(--mr-card-alt);
+  border: 1.5px solid var(--mr-border);
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+
+/* 机器工作时的机械高频震动 */
+#mod-merit .shred-machine-stage.vibrating {
+  animation: machineVibrate 0.08s linear infinite;
+}
+
+@keyframes machineVibrate {
+  0%   { transform: translate(0, 0); }
+  25%  { transform: translate(-1.5px, 0.8px); }
+  50%  { transform: translate(1.5px, -0.8px); }
+  75%  { transform: translate(-1px, -0.5px); }
+  100% { transform: translate(0, 0); }
+}
+
+/* 上半部：进纸视窗（底部紧贴碎纸刀槽，overflow:hidden 让纸条真实从底口被吞入！） */
+#mod-merit .shred-feed-viewport {
+  position: relative;
+  max-width: 452px;
+  margin: 0 auto;
+  padding: 6px 6px 0;
+  overflow: hidden;
+}
+
+#mod-merit .shred-paper-note {
+  position: relative;
+  max-width: 440px;
+  margin: 0 auto;
+  padding: 14px 16px 16px;
+  border-radius: 10px 10px 2px 2px;
+  background:
+    repeating-linear-gradient(180deg, #FFFDF9 0px, #FFFDF9 27px, rgba(148, 163, 184, 0.22) 27px, rgba(148, 163, 184, 0.22) 28px);
+  color: #1E293B;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+  border: 1px solid #E2E8F0;
+  border-top: 6px solid #E11D48;
+  transform: translateY(0);
+  z-index: 2;
+  overflow: hidden;
+}
+
+/* 碎纸模式：纸张保持完整比例被刀辊匀速+机械顿挫向下拉入槽口，绝不虚假压扁 */
+#mod-merit .shred-paper-note.shredding {
+  animation: paperFeedIntoSlot 1.55s cubic-bezier(0.32, 0.08, 0.35, 0.98) forwards;
+}
+
+@keyframes paperFeedIntoSlot {
+  0%   { transform: translateY(0) rotate(0deg); }
+  15%  { transform: translateY(16%) rotate(-0.4deg); }
+  32%  { transform: translateY(34%) rotate(0.5deg); }
+  50%  { transform: translateY(54%) rotate(-0.5deg); }
+  68%  { transform: translateY(73%) rotate(0.4deg); }
+  85%  { transform: translateY(91%) rotate(-0.3deg); }
+  100% { transform: translateY(106%) rotate(0deg); }
+}
+
+/* 焚烧模式：纸条自下而上碳化卷曲、边缘泛起赤红火光并化为飞灰 */
+#mod-merit .shred-paper-note.burning {
+  animation: paperIncinerate 1.65s ease-in-out forwards;
+}
+
+@keyframes paperIncinerate {
+  0% {
+    transform: scale(1) translateY(0);
+    filter: brightness(1) contrast(1);
+    opacity: 1;
+  }
+  35% {
+    transform: scale(0.98) translateY(4px) rotate(-0.8deg);
+    filter: sepia(0.65) saturate(2.5) brightness(0.82) drop-shadow(0 0 14px #F97316);
+    opacity: 1;
+  }
+  72% {
+    transform: scale(0.93) translateY(12px) rotate(1.2deg);
+    filter: sepia(1) hue-rotate(-35deg) saturate(4) brightness(0.32) contrast(1.6) blur(1px);
+    opacity: 0.78;
+  }
+  100% {
+    transform: scale(0.86) translateY(24px);
+    filter: brightness(0.1) blur(5px);
+    opacity: 0;
+  }
+}
+
+/* 焚烧焦黑碳化上漫遮罩 */
+#mod-merit .shred-char-overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 0%;
+  background: linear-gradient(
+    0deg,
+    rgba(10, 10, 12, 0.96) 0%,
+    rgba(28, 18, 12, 0.92) 55%,
+    rgba(234, 88, 12, 0.88) 82%,
+    rgba(250, 204, 21, 0.75) 93%,
+    transparent 100%
+  );
+  pointer-events: none;
+  opacity: 0;
+  transition: none;
+  z-index: 4;
+}
+
+#mod-merit .shred-paper-note.burning .shred-char-overlay {
+  opacity: 1;
+  animation: charWaveRise 1.55s ease-in forwards;
+}
+
+@keyframes charWaveRise {
+  0%   { height: 0%; }
+  25%  { height: 35%; }
+  65%  { height: 85%; }
+  100% { height: 120%; }
+}
+
+#mod-merit .shred-paper-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #E11D48;
+  margin-bottom: 8px;
+  border-bottom: 1.5px dashed #CBD5E1;
+  padding-bottom: 6px;
+}
+
+#mod-merit .shred-stamp {
+  padding: 1px 7px;
+  border-radius: 4px;
+  border: 1px solid #E11D48;
+  font-size: 10.5px;
+  color: #E11D48;
+}
+
+#mod-merit .shred-textarea {
+  width: 100%;
+  border: none;
+  outline: none;
+  resize: none;
+  background: transparent;
+  color: #0F172A;
+  font-size: 15px;
+  font-weight: 800;
+  line-height: 1.65;
+  font-family: inherit;
+}
+
+/* 赛博火盆烈焰与火星层 */
+#mod-merit .shred-fire-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+  overflow: hidden;
+}
+
+#mod-merit .burn-flame-tongue {
+  position: absolute;
+  bottom: -18px;
+  width: 44px;
+  height: 110px;
+  border-radius: 50% 50% 35% 35%;
+  background: radial-gradient(ellipse at 50% 80%, #FEF08A 0%, #F97316 45%, #E11D48 78%, transparent 100%);
+  filter: blur(3px);
+  opacity: 0;
+  transform: translateY(40px) scaleY(0.3);
+  animation: flameTongueRise 1.55s ease-out forwards;
+}
+
+@keyframes flameTongueRise {
+  0%   { opacity: 0; transform: translateY(35px) scaleY(0.3) scaleX(0.8); }
+  20%  { opacity: 0.95; transform: translateY(0px) scaleY(1.05) scaleX(1.1); }
+  50%  { opacity: 0.95; transform: translateY(-12px) scaleY(1.25) scaleX(0.95); }
+  80%  { opacity: 0.75; transform: translateY(-4px) scaleY(0.9) scaleX(1.08); }
+  100% { opacity: 0; transform: translateY(20px) scaleY(0.2); }
+}
+
+#mod-merit .burn-ember {
+  position: absolute;
+  bottom: 6px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #FDE047;
+  box-shadow: 0 0 10px #F97316, 0 0 18px #EF4444;
+  opacity: 0;
+  animation: emberFloatUp 1.45s ease-out forwards;
+}
+
+@keyframes emberFloatUp {
+  0%   { opacity: 1; transform: translate(0, 0) scale(1); }
+  60%  { opacity: 0.9; transform: translate(var(--ex, 16px), -75px) scale(0.85); }
+  100% { opacity: 0; transform: translate(calc(var(--ex, 16px) * 1.6), -135px) scale(0.2); }
+}
+
+/* 碎纸机高压钛合金刀辊入口 */
+#mod-merit .shred-slot-bar {
+  position: relative;
+  max-width: 476px;
+  height: 30px;
+  margin: 0 auto;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #475569 0%, #1E293B 45%, #0F172A 100%);
+  border: 2px solid #64748B;
+  z-index: 6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  overflow: hidden;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+#mod-merit .shred-roller-teeth {
+  position: absolute;
+  left: 16px;
+  right: 16px;
+  top: 2px;
+  height: 5px;
+  background: repeating-linear-gradient(
+    90deg,
+    #94A3B8 0px,
+    #94A3B8 6px,
+    #0F172A 6px,
+    #0F172A 12px
+  );
+  opacity: 0.55;
+}
+
+#mod-merit .shred-machine-stage.vibrating .shred-roller-teeth {
+  animation: teethSpin 0.12s linear infinite;
+  opacity: 0.95;
+}
+
+@keyframes teethSpin {
+  from { background-position: 0 0; }
+  to   { background-position: 24px 0; }
+}
+
+#mod-merit .shred-led {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #10B981;
+  box-shadow: 0 0 8px #10B981;
+  flex-shrink: 0;
+  z-index: 2;
+}
+
+#mod-merit .shred-machine-stage.vibrating .shred-led {
+  background: #EF4444;
+  box-shadow: 0 0 12px #EF4444;
+}
+
+#mod-merit .shred-slot-title {
+  position: relative;
+  z-index: 2;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 1.5px;
+  color: #E2E8F0;
+}
+
+/* 下半部：透明集屑视窗（真实接住从刀口吐出的带字碎纸条） */
+#mod-merit .shred-fx-box {
+  position: relative;
+  height: 132px;
+  max-width: 452px;
+  margin: 0 auto;
+  border-radius: 0 0 14px 14px;
+  background: rgba(15, 23, 42, 0.55);
+  border: 1.5px solid rgba(100, 116, 139, 0.35);
+  border-top: none;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 10px 12px;
+  box-sizing: border-box;
+}
+
+html[data-theme="light"] #mod-merit .shred-fx-box {
+  background: rgba(15, 23, 42, 0.08);
+}
+
+#mod-merit .shred-bin-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(148, 163, 184, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
+  background-size: 16px 16px;
+  pointer-events: none;
+}
+
+#mod-merit .shred-strips-container {
+  position: absolute;
+  top: 0;
+  left: 16px;
+  right: 16px;
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 3px;
+  pointer-events: none;
+  z-index: 2;
+}
+
+/* 每一根裁切出来的碎纸条：带有红头边与用户输入的真实残字！ */
+#mod-merit .shred-strip {
+  flex: 1;
+  max-width: 22px;
+  height: 108px;
+  background:
+    repeating-linear-gradient(180deg, #FFFDF9 0px, #FFFDF9 14px, #E2E8F0 14px, #E2E8F0 15px);
+  border-top: 4px solid #E11D48;
+  border-left: 1px solid rgba(148, 163, 184, 0.35);
+  border-right: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 0 0 3px 3px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
+  color: #0F172A;
+  font-size: 11px;
+  font-weight: 900;
+  line-height: 1.25;
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 4px;
+  box-sizing: border-box;
+  transform: translateY(-115%);
+  opacity: 0;
+}
+
+#mod-merit .shred-strips-container.active .shred-strip {
+  animation: realisticStripExtrude 1.68s cubic-bezier(0.28, 0.08, 0.35, 1) forwards;
+  animation-delay: var(--delay, 0s);
+}
+
+@keyframes realisticStripExtrude {
+  0% {
+    opacity: 1;
+    transform: translateY(-108%) rotate(0deg);
+  }
+  58% {
+    opacity: 1;
+    transform: translateY(-4%) translateX(var(--dx, 0px)) rotate(var(--rotMid, 2deg));
+  }
+  82% {
+    opacity: 1;
+    transform: translateY(34%) translateX(calc(var(--dx, 0px) * 1.4)) rotate(var(--rotEnd, -6deg));
+  }
+  100% {
+    opacity: 0.18;
+    transform: translateY(72%) translateX(calc(var(--dx, 0px) * 1.8)) rotate(var(--rotEnd, -10deg)) scaleY(0.85);
+  }
+}
+
+/* 飞溅的细碎纸屑粒子 */
+#mod-merit .shred-crumb {
+  position: absolute;
+  top: 2px;
+  width: 7px;
+  height: 9px;
+  background: #FFFDF9;
+  border-radius: 1px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
+  z-index: 3;
+  animation: crumbFall 1.25s ease-in forwards;
+}
+
+@keyframes crumbFall {
+  0%   { opacity: 1; transform: translate(0, -8px) rotate(0deg); }
+  100% { opacity: 0; transform: translate(var(--cx, 20px), 118px) rotate(var(--cr, 220deg)); }
+}
+
+#mod-merit .shred-result-msg {
+  position: relative;
+  z-index: 4;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: var(--mr-emerald);
+  text-align: center;
+  background: rgba(15, 23, 42, 0.72);
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+}
+
+html[data-theme="light"] #mod-merit .shred-result-msg {
+  background: rgba(255, 255, 255, 0.9);
+}
+
+#mod-merit .shred-actions-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+@media (max-width: 480px) {
+  #mod-merit .shred-actions-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+#mod-merit .mr-btn-destroy {
+  padding: 13px 16px;
+  border-radius: 14px;
+  font-size: 14px;
+  font-weight: 900;
+  border: none;
+  cursor: pointer;
+  color: #FFF;
+  transition: transform 0.16s ease, box-shadow 0.2s ease;
+}
+
+#mod-merit .mr-btn-destroy.shred {
+  background: linear-gradient(135deg, #3B82F6, #1D4ED8);
+  box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
+}
+
+#mod-merit .mr-btn-destroy.burn {
+  background: linear-gradient(135deg, #F43F5E, #EA580C);
+  box-shadow: 0 8px 20px rgba(244, 63, 94, 0.3);
+}
+
+#mod-merit .mr-btn-destroy:hover {
+  transform: translateY(-1px);
+}
+
+/* 底部生成功德凭证按钮 */
+#mod-merit .mr-footer-actions {
+  margin-top: 20px;
+}
+
+#mod-merit .mr-btn-poster {
+  width: 100%;
+  padding: 15px 20px;
+  border-radius: 16px;
+  border: none;
+  background: linear-gradient(135deg, #F59E0B, #D97706);
+  color: #111827;
+  font-size: 15px;
+  font-weight: 900;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  box-shadow: 0 10px 26px rgba(245, 158, 11, 0.3);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+#mod-merit .mr-btn-poster:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 32px rgba(245, 158, 11, 0.42);
 }
 
 
@@ -6527,14 +7774,9 @@ html[data-theme="light"] .sbti-dim-badge.lvl-L {
             <span class="tab-label-short">风水</span>
           </button>
           <button class="nav-tab" data-mod="tarot">
-            <span class="tab-icon">🔮</span>
-            <span class="tab-label-full">赛博塔罗</span>
-            <span class="tab-label-short">塔罗</span>
-          </button>
-          <button class="nav-tab" data-mod="lingqian">
-            <span class="tab-icon">🎋</span>
-            <span class="tab-label-full">东方灵签</span>
-            <span class="tab-label-short">灵签</span>
+            <span class="tab-icon">☯️</span>
+            <span class="tab-label-full">东西玄学</span>
+            <span class="tab-label-short">玄学</span>
           </button>
           <button class="nav-tab" data-mod="decision">
             <span class="tab-icon">🪙</span>
@@ -6545,6 +7787,11 @@ html[data-theme="light"] .sbti-dim-badge.lvl-L {
             <span class="tab-icon">⏰</span>
             <span class="tab-label-full">摸鱼时钟</span>
             <span class="tab-label-short">摸鱼</span>
+          </button>
+          <button class="nav-tab" data-mod="merit">
+            <span class="tab-icon">📿</span>
+            <span class="tab-label-full">赛博功德</span>
+            <span class="tab-label-short">功德</span>
           </button>
         </nav>
       </div>
@@ -7358,10 +8605,15 @@ html[data-theme="light"] .sbti-dim-badge.lvl-L {
 
       <!-- 屏幕 2：宣纸朱砂签文揭晓页 -->
       <div class="lq-screen" id="sc-lq-result">
+        <div class="lq-topbar">
+          <button class="lq-backbtn" id="lqBtnBack">← 返回求签筒</button>
+          <span class="lq-topbar-title">🎋 紫竹灵签 · 朱砂解签</span>
+        </div>
+
         <div class="lq-scroll-card">
           <div class="lq-scroll-head">
             <div class="lq-num-badge">
-              <span class="lq-num-sub" id="lqResCatSub">💼 搞钱事业 · 祈愿</span>
+              <span class="lq-num-sub" id="lqResCatSub">💼 搞钱事业 · 诚心祈愿</span>
               <div class="lq-num-title" id="lqResTitle">第一签 · 紫气东来</div>
             </div>
             <div class="lq-rank-stamp" id="lqResRank">上上大吉</div>
@@ -7384,11 +8636,11 @@ html[data-theme="light"] .sbti-dim-badge.lvl-L {
           <div class="lq-tips-box" id="lqResTips">
             <!-- 动态渲染今日宜忌 -->
           </div>
-        </div>
 
-        <div class="lq-result-actions">
-          <button class="lq-btn-act" id="lqBtnAgain">🔄 再求一签</button>
-          <button class="lq-btn-act primary" id="lqBtnSave">📜 保存朱砂灵签图</button>
+          <div class="lq-result-actions">
+            <button class="lq-btn-act" id="lqBtnAgain">🔄 再求一签</button>
+            <button class="lq-btn-act primary" id="lqBtnSave">📜 保存朱砂灵签图</button>
+          </div>
         </div>
       </div>
     </section>
@@ -7398,11 +8650,12 @@ html[data-theme="light"] .sbti-dim-badge.lvl-L {
       <div class="ck-wrap">
         <!-- 顶部状态与快捷工具栏 -->
         <div class="ck-topbar">
-          <div class="ck-status-pill">
-            <span class="ck-status-dot"></span>
-            <span id="ckStatusText">🟢 工位带薪搬砖 · 秒级暴富中</span>
+          <div class="ck-status-pill" id="ckStatusPill">
+            <span class="ck-status-dot" id="ckStatusDot"></span>
+            <span id="ckStatusText">🟢 工位带薪搬砖 · 每一秒都没白挨</span>
           </div>
           <div class="ck-top-actions">
+            <button class="ck-btn-mini" id="ckBtnRestQuick" title="点击快速切换单双休制度">📅 双休制</button>
             <button class="ck-btn-mini" id="ckBtnMask">🙈 隐藏月薪</button>
             <button class="ck-btn-mini" id="ckBtnZen">🖥️ 极简屏保</button>
           </div>
@@ -7420,15 +8673,24 @@ html[data-theme="light"] .sbti-dim-badge.lvl-L {
           <div class="ck-date-line" id="ckDateLine">2026年10月10日 · 设定 ¥ 12,000/月</div>
         </div>
 
-        <!-- 毫秒级实时窝囊费跳字屏 -->
-        <div class="ck-salary-hero">
-          <div class="ck-hero-eyebrow">💰 今日在工位已窝囊赚取 (实时毫秒级跳表)</div>
+        <!-- 实时窝囊费入账大屏 -->
+        <div class="ck-salary-hero" id="ckSalaryHero">
+          <div class="ck-hero-eyebrow" id="ckHeroEyebrow">💰 今日在工位已赚窝囊费</div>
           <div class="ck-money-ticker">
             <span class="ck-currency">¥</span>
             <span class="ck-money-int" id="ckMoneyInt">168</span>
             <span class="ck-money-dec" id="ckMoneyDec">.4285</span>
           </div>
           <div class="ck-rate-sub" id="ckRateSub">日薪 ¥551.7  ·  每秒入账 ¥0.0170  ·  呼吸都在赚钱</div>
+
+          <!-- 加班状态切换栏：正常上下班 / 付费加班 / 无偿加班 -->
+          <div class="ck-overtime-bar" id="ckOvertimeBar">
+            <button type="button" class="ck-ot-btn active" data-ot="none">🏠 正常上下班</button>
+            <button type="button" class="ck-ot-btn paid" data-ot="paid">💸 付费加班</button>
+            <button type="button" class="ck-ot-btn unpaid" data-ot="unpaid">😭 无偿加班</button>
+          </div>
+          <div class="ck-overtime-banner" id="ckOvertimeBanner" style="display:none;"></div>
+
           <div class="ck-equiv-row">
             <span class="ck-equiv-pill">≈ 🧋 <b id="ckEqMilktea">9.3</b> 杯生椰拿铁</span>
             <span class="ck-equiv-pill">≈ 🍗 <b id="ckEqKfc">3.4</b> 顿疯狂星期四</span>
@@ -7458,13 +8720,13 @@ html[data-theme="light"] .sbti-dim-badge.lvl-L {
         <!-- 四大扎心又快乐倒计时沙漏 -->
         <div class="ck-countdown-grid">
           <div class="ck-cd-card">
-            <div class="ck-cd-label"><span>🏃 距离今日下班解放</span></div>
+            <div class="ck-cd-label"><span id="ckCdOffworkLabel">🏃 距离今日下班解放</span></div>
             <div class="ck-cd-val" id="ckCdOffwork">02:45:12</div>
             <div class="ck-cd-bar"><div class="ck-cd-fill" id="ckCdOffworkBar"></div></div>
             <div class="ck-cd-sub" id="ckCdOffworkSub">今日工时已熬过 68.5%</div>
           </div>
           <div class="ck-cd-card">
-            <div class="ck-cd-label"><span>🍻 距离周五下班狂欢</span></div>
+            <div class="ck-cd-label"><span id="ckCdFridayLabel">🍻 距离周五下班狂欢</span></div>
             <div class="ck-cd-val" id="ckCdFriday">0天 02时 45分</div>
             <div class="ck-cd-sub" id="ckCdFridaySub">撑住，胜利的曙光就在前方</div>
           </div>
@@ -7491,8 +8753,15 @@ html[data-theme="light"] .sbti-dim-badge.lvl-L {
               <input type="number" id="ckInpSalary" value="12000" min="100" max="9999999" step="500">
             </div>
             <div class="ck-cfg-item">
-              <label>每月发薪日 (1-31号)</label>
-              <input type="number" id="ckInpPayday" value="15" min="1" max="31">
+              <label>休息制度 (单双休/大小周)</label>
+              <select id="ckInpRestMode">
+                <option value="double">🎉 双休 (周六、周日休)</option>
+                <option value="single_sun">🐂 单休 (仅周日休·周六上班)</option>
+                <option value="bi_small">📅 大小周·本周小周 (周六上班)</option>
+                <option value="bi_big">🏖️ 大小周·本周大周 (休六日)</option>
+                <option value="single_sat">📆 单休 (仅周六休·周日上班)</option>
+                <option value="none">⚙️ 全年无休 / 今日正常排班</option>
+              </select>
             </div>
             <div class="ck-cfg-item">
               <label>上班打卡时间</label>
@@ -7502,11 +8771,161 @@ html[data-theme="light"] .sbti-dim-badge.lvl-L {
               <label>下班解放时间</label>
               <input type="time" id="ckInpEnd" value="18:00">
             </div>
+            <div class="ck-cfg-item">
+              <label>每月发薪日 (1-31号)</label>
+              <input type="number" id="ckInpPayday" value="15" min="1" max="31">
+            </div>
+            <div class="ck-cfg-item">
+              <label>付费加班倍率 (1.5x / 2x / 3x)</label>
+              <select id="ckInpOtRate">
+                <option value="1.5">1.5 倍 (工作日延时加班)</option>
+                <option value="2.0">2.0 倍 (周末休息日加班)</option>
+                <option value="1.0">1.0 倍 (平薪调休折算)</option>
+                <option value="3.0">3.0 倍 (法定节假日加班)</option>
+              </select>
+            </div>
           </div>
         </div>
 
         <div class="ck-bottom-actions">
           <button class="ck-btn-poster" id="ckBtnPoster">📸 生成《今日工位带薪摸鱼战报》并归档</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 模块 9：赛博功德局 · 电子木鱼 & 怨气粉碎机 -->
+    <section id="mod-merit" class="app-module">
+      <div class="mr-wrap">
+        <header class="mr-header">
+          <span class="mr-tag">CYBER MERIT & STRESS RELIEF · 赛博静心所</span>
+          <h1 class="mr-title">赛博功德局</h1>
+          <p class="mr-sub">电子木鱼攒功德 · 减压泡泡治内耗 · 高压碎纸毁怨气</p>
+        </header>
+
+        <!-- 全局功德总览横幅 -->
+        <div class="mr-stats-banner">
+          <div class="mr-stat-box">
+            <span>🪵 今日已攒功德</span>
+            <b id="mrStatToday">0</b>
+          </div>
+          <div class="mr-stat-box">
+            <span>🪷 历史累计功德</span>
+            <b id="mrStatTotal">0</b>
+          </div>
+          <div class="mr-stat-box">
+            <span>🫧 已捏爆泡泡</span>
+            <b id="mrStatPopped">0</b>
+          </div>
+          <div class="mr-stat-box">
+            <span>✨ 当前修行果位</span>
+            <b class="rank-badge" id="mrStatRank">🌱 初级牛马行者</b>
+          </div>
+        </div>
+
+        <!-- 三大解压法器切换 Tabs -->
+        <nav class="mr-subnav">
+          <button class="mr-tab active" data-submod="muyu">🪵 电子木鱼</button>
+          <button class="mr-tab" data-submod="bubble">🫧 减压泡泡纸</button>
+          <button class="mr-tab" data-submod="shredder">🔥 怨气粉碎机</button>
+        </nav>
+
+        <!-- 子法器 1：赛博电子木鱼 -->
+        <div class="mr-substage active" id="mr-sub-muyu">
+          <div class="muyu-controls-row">
+            <div class="muyu-chant-pills">
+              <button class="muyu-pill active" data-chant="✨ 功德 +1 · 烦恼清零" data-val="1">✨ 功德 +1</button>
+              <button class="muyu-pill" data-chant="🤫 甲方闭嘴 +1 · 一稿过" data-val="1">🤫 甲方闭嘴 +1</button>
+              <button class="muyu-pill" data-chant="🐛 Bug退散 +1 · 永不宕机" data-val="1">🐛 Bug退散 +1</button>
+              <button class="muyu-pill" data-chant="💰 暴富功德 +9 · 财源滚滚" data-val="9">💰 暴富 +9</button>
+              <button class="muyu-pill" data-chant="💇 发量 +1 · 发际线焊死" data-val="1">💇 发量 +1</button>
+              <button class="muyu-pill" data-chant="🛡️ 甩锅反弹 +1 · 小人退散" data-val="1">🛡️ 小人退散 +1</button>
+            </div>
+          </div>
+
+          <div class="muyu-stage" id="mrMuyuStage" title="点击或按空格键敲击木鱼">
+            <div class="muyu-float-layer" id="mrMuyuFloatLayer"></div>
+            <div class="muyu-actor" id="mrMuyuSvgBox"></div>
+            <div class="muyu-hint">💡 轻点木鱼或按键盘 <b>[Space 空格键]</b> 敲击攒功德</div>
+          </div>
+
+          <div class="muyu-bottom-bar">
+            <div class="muyu-sound-group">
+              <button class="mr-btn-chip active" data-muyu-sound="wood">🪵 檀木音</button>
+              <button class="mr-btn-chip" data-muyu-sound="bowl">🔔 颂钵音</button>
+              <button class="mr-btn-chip" data-muyu-sound="duck">🦆 功德鸭</button>
+            </div>
+            <button class="mr-btn-auto" id="mrBtnAutoMuyu">⚡ 开启赛博替身自动敲击</button>
+          </div>
+        </div>
+
+        <!-- 子法器 2：无尽减压泡泡纸 -->
+        <div class="mr-substage" id="mr-sub-bubble">
+          <div class="bubble-card">
+            <div class="bubble-top-bar">
+              <div class="bubble-progress-txt" id="mrBubbleSheetProgress">当前整张进度：<b>0 / 36</b> 颗</div>
+              <button class="mr-btn-chip" id="mrBtnNewBubbleSheet">🔄 换一张全新泡泡纸</button>
+            </div>
+            <div class="bubble-grid" id="mrBubbleGrid"></div>
+            <div class="bubble-complete-toast" id="mrBubbleToast">
+              🎉 强迫症大圆满！整张 36 颗泡泡已全部捏爆，点击右上角「换一张」继续爽捏！
+            </div>
+          </div>
+        </div>
+
+        <!-- 子法器 3：怨气碎纸机与赛博火盆 -->
+        <div class="mr-substage" id="mr-sub-shredder">
+          <div class="shred-card">
+            <div class="shred-presets-title">⚡ 一键填入打工人高频破防瞬间（或直接在下方纸条手写）：</div>
+            <div class="shred-presets">
+              <span class="shred-preset-tag">周五下午五点半突然拉会</span>
+              <span class="shred-preset-tag">改了八版最后说还是用第一版</span>
+              <span class="shred-preset-tag">发个“在吗”然后半天不说话</span>
+              <span class="shred-preset-tag">工资不涨活儿倒是翻倍</span>
+              <span class="shred-preset-tag">遇到甩锅侠和抢功精</span>
+              <span class="shred-preset-tag">深夜十一点还在群里艾特全体</span>
+            </div>
+
+            <div class="shred-machine-stage" id="mrShredStage">
+              <!-- 上半部：进纸视窗（底部紧贴滚刀入口，overflow:hidden 实现纸张被滚轴真实吞入裁切） -->
+              <div class="shred-feed-viewport" id="mrShredViewport">
+                <div class="shred-paper-note" id="mrShredPaper">
+                  <div class="shred-paper-head">
+                    <span>💢 今日破防 / 水逆怨气黑名单</span>
+                    <span class="shred-stamp">待物理超度</span>
+                  </div>
+                  <textarea class="shred-textarea" id="mrShredInput" rows="3" maxlength="100" placeholder="写下今天让你烦躁、内耗、破防的人或事，点击下方按钮将其彻底粉碎或烧成赛博灰烬..."></textarea>
+                  <!-- 焚烧时的焦黑碳化遮罩层 -->
+                  <div class="shred-char-overlay" id="mrShredCharOverlay"></div>
+                </div>
+                <!-- 赛博火盆烈焰与火星层（在进纸窗内包裹纸条焚烧） -->
+                <div class="shred-fire-layer" id="mrShredFireLayer"></div>
+              </div>
+
+              <!-- 中部：高压钛合金咬合刀辊横梁 -->
+              <div class="shred-slot-bar" id="mrShredSlotBar">
+                <span class="shred-led" id="mrShredLed"></span>
+                <div class="shred-roller-teeth"></div>
+                <span class="shred-slot-title" id="mrShredSlotTitle">▼ 高压钛合金碎纸刀辊 · 赛博焚化炉 ▼</span>
+              </div>
+
+              <!-- 下半部：透明集屑仓（实时吐出带字迹的碎纸条与灰烬） -->
+              <div class="shred-fx-box" id="mrShredFxBox">
+                <div class="shred-bin-grid"></div>
+                <div class="shred-strips-container" id="mrShredStrips"></div>
+                <div class="shred-pile" id="mrShredPile"></div>
+                <div class="shred-result-msg" id="mrShredResultMsg">等待投喂精神垃圾，每次销毁自动转化 +10 功德</div>
+              </div>
+            </div>
+
+            <div class="shred-actions-row">
+              <button class="mr-btn-destroy shred" id="mrBtnDoShred">⚙️ 投入高压碎纸机切碎</button>
+              <button class="mr-btn-destroy burn" id="mrBtnDoBurn">🔥 丢进赛博火盆烧成灰</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="mr-footer-actions">
+          <button class="mr-btn-poster" id="mrBtnPoster">📸 开具《赛博功德与怨气清运凭证》并归档</button>
         </div>
       </div>
     </section>
@@ -12954,33 +14373,40 @@ if ('serviceWorker' in navigator) {
   ];
 
   const BRANDS = [
-    { name: "喜茶", en: "HEYTEA", emoji: "🍑", color: "#26241f", drink: "多肉葡萄", desc: "你是灵感与潮流本潮。对新鲜事物永远好奇，敢试先锋口味，也愿意为品质买单——朋友圈里的种草机非你莫属。", t: { te: 2, fr: 2, tr: 3, cr: 1, sw: 1, mi: 0, bd: 0 } },
-    { name: "奈雪的茶", en: "NAYUKI", emoji: "🍓", color: "#e0594e", drink: "霸气芝士草莓", desc: "你温柔又精致，生活要有仪式感。喜欢水果的鲜甜与软欧包的柔软，和你做朋友，像喝一口霸气橙子一样元气满满。", t: { fr: 3, sw: 2, mi: 2, tr: 2, cr: 1, bd: 0, te: 0 } },
-    { name: "蜜雪冰城", en: "MIXUE", emoji: "🍦", color: "#e03e2f", drink: "冰鲜柠檬水", desc: "你是快乐源泉本泉！性价比拉满、甜度满分，永远用最简单的快乐感染身边的人。雪王看了都想和你击掌。", t: { bd: 3, sw: 3, cr: 2, fr: 1, tr: 1, mi: 0, te: 0 } },
-    { name: "一点点", en: "YiDianDian", emoji: "🧋", color: "#8a6d3b", drink: "波霸奶茶", desc: "你是经典派掌门人。不跟风、不折腾，波霸奶茶三分糖就是你的舒适区——稳，且永远值得信赖。", t: { mi: 2, te: 2, bd: 2, sw: 1, tr: 1, cr: 0, fr: 0 } },
-    { name: "茶百道", en: "ChaBaiDao", emoji: "🥭", color: "#d97b29", drink: "杨枝甘露", desc: "你随和又有自己的小讲究。芒果西米露还是杨枝甘露，你总能选到最对的那一杯，是朋友眼中靠谱的点单担当。", t: { fr: 2, mi: 2, sw: 2, bd: 2, cr: 1, te: 0, tr: 0 } },
-    { name: "古茗", en: "GUMING", emoji: "🍇", color: "#4e7a3a", drink: "超A芝士葡萄", desc: "你踏实又有惊喜感。平时低调，关键时刻总能拿出超A表现，像芝士葡萄里那层厚厚的芝士，越品越有。", t: { fr: 2, te: 2, bd: 2, sw: 1, mi: 1, cr: 1, tr: 0 } },
-    { name: "沪上阿姨", en: "AUNTEA", emoji: "🍡", color: "#e4577e", drink: "血糯米奶茶", desc: "你是暖胃又暖心的人。血糯米的软糯是你的底色——实在、温暖、管饱，和你相处像冬日里的一杯热奶茶。", t: { mi: 2, te: 2, bd: 2, sw: 1, fr: 1, cr: 0, tr: 0 } },
-    { name: "书亦烧仙草", en: "SHUYI", emoji: "🍮", color: "#8c5a35", drink: "书亦烧仙草", desc: "你是“半杯都是料”的实在人。给朋友的爱永远溢出来，耐心又包容，谁和你在一起都不怕饿着。", t: { mi: 2, sw: 2, bd: 2, te: 1, fr: 1, cr: 0, tr: 0 } },
-    { name: "霸王茶姬", en: "BawangChaji", emoji: "🏮", color: "#b3342c", drink: "伯牙绝弦", desc: "你是东方美学代言人。骨子里有国风的浪漫与大气，伯牙绝弦般的知音情谊，是你对朋友最长情的告白。", t: { te: 3, tr: 2, mi: 1, cr: 1, sw: 0, fr: 0, bd: 0 } },
-    { name: "茶颜悦色", en: "Sexy Tea", emoji: "🎐", color: "#2f6b5a", drink: "幽兰拿铁", desc: "你是文艺青年本青。墨色山水、幽兰拿铁，你爱的是那一口细腻的中式浪漫，安静，却惊艳。", t: { te: 3, mi: 2, tr: 2, sw: 1, cr: 1, fr: 0, bd: 0 } },
-    { name: "CoCo都可", en: "CoCo", emoji: "🥤", color: "#f0a030", drink: "奶茶三兄弟", desc: "你是国民好队友。奶茶三兄弟都认识你——随和、百搭、永远在线，任何局都能轻松融入。", t: { mi: 2, sw: 2, te: 1, bd: 1, cr: 1, fr: 0, tr: 0 } },
-    { name: "益禾堂", en: "Yihetang", emoji: "🍵", color: "#c98a3d", drink: "益禾烤奶", desc: "你是温暖的老朋友。烤奶的焦香是你的安心感，不张扬但一喝就懂，越处越香。", t: { te: 2, bd: 2, mi: 1, sw: 1, cr: 1, fr: 0, tr: 0 } },
-    { name: "甜啦啦", en: "Tianlala", emoji: "🍉", color: "#ef7c4f", drink: "一桶水果茶", desc: "你是元气水果担当。一桶水果茶装得下你的快乐，实在又大方，和你在一起永远不缺笑声。", t: { fr: 2, bd: 2, sw: 2, cr: 1, mi: 0, te: 0, tr: 0 } },
-    { name: "快乐柠檬", en: "Happy Lemon", emoji: "🍋", color: "#e8c93a", drink: "柠檬霸", desc: "你是清爽系代表。酸酸甜甜、干脆利落，心情不好时你就是那杯解腻的柠檬茶，一喝就醒。", t: { cr: 2, fr: 2, sw: 1, bd: 1, te: 1, mi: 0, tr: 0 } },
-    { name: "贡茶", en: "Gong Cha", emoji: "🐼", color: "#8a6b45", drink: "熊猫奶盖茶", desc: "你是奶盖爱好者协会会长。层次分明是你的处世哲学——表面奶盖甜软，内里茶汤清醒。", t: { mi: 2, te: 2, tr: 1, sw: 1, cr: 0, fr: 0, bd: 0 } },
-    { name: "鹿角巷", en: "The Alley", emoji: "🦌", color: "#5c3f28", drink: "黑糖鹿丸鲜奶", desc: "你是颜值与内涵并存的黑糖系。看似高冷，实则甜到心里，慢热却深情，像黑糖鹿丸一样越嚼越香。", t: { mi: 2, sw: 2, tr: 2, te: 1, cr: 0, fr: 0, bd: 0 } },
-    { name: "老虎堂", en: "Tiger Sugar", emoji: "🐯", color: "#b06a33", drink: "波霸厚鲜奶", desc: "你是霸气外露的甜心。虎纹黑糖是你的态度——一眼难忘，入口惊艳，甜得堂堂正正。", t: { mi: 2, sw: 2, tr: 1, bd: 1, te: 0, cr: 0, fr: 0 } },
-    { name: "一芳水果茶", en: "YiFang", emoji: "🍊", color: "#d9794a", drink: "一芳水果茶", desc: "你是自然系文艺派。爱果香爱茶香，拒绝过度加工，做真实的自己，清清爽爽就很迷人。", t: { fr: 3, te: 2, cr: 2, sw: 1, mi: 0, bd: 0, tr: 0 } },
-    { name: "春阳茶事", en: "Chun Yang", emoji: "🌸", color: "#6f9e4f", drink: "黑糖珍珠鲜奶", desc: "你是温润如玉的古早派。春阳般的柔和是你的气场，老派却讲究，淡而有味。", t: { te: 2, cr: 2, fr: 1, mi: 1, sw: 1, bd: 1, tr: 0 } },
-    { name: "厝内小眷村", en: "Cuo Nei", emoji: "🏡", color: "#7d5f45", drink: "眷村奶茶", desc: "你是烟火气里的治愈者。眷村的温度、奶茶的甜糯，和你相处像回到最舒服的老家。", t: { mi: 2, sw: 2, bd: 2, te: 1, cr: 0, fr: 0, tr: 0 } },
-    { name: "柠季", en: "LINLEE", emoji: "🍹", color: "#86bf2e", drink: "手打柠檬茶", desc: "你是清爽利落的行动派。手打柠檬茶是你的解压神器，直接、痛快、不拖泥带水。", t: { cr: 3, fr: 2, bd: 2, te: 1, sw: 0, mi: 0, tr: 0 } },
-    { name: "乐乐茶", en: "LeLe Cha", emoji: "🍫", color: "#e79aa8", drink: "脏脏茶", desc: "你是快乐制造机。脏脏茶的放纵与草莓酪酪的甜蜜你都拿捏，和你在一起，快乐浓度超标。", t: { tr: 2, mi: 2, fr: 2, sw: 2, cr: 0, te: 0, bd: 0 } },
-    { name: "7分甜", en: "7FenTian", emoji: "🥥", color: "#f2a33c", drink: "杨枝甘露", desc: "你是甜蜜刚刚好的小太阳。不齁不淡，分寸感极佳，像杨枝甘露一样层次丰富又讨喜。", t: { fr: 2, sw: 2, cr: 1, bd: 1, mi: 1, te: 0, tr: 0 } },
-    { name: "茉沏", en: "Mo Qi", emoji: "🌼", color: "#7fb8b0", drink: "茉莉奶绿", desc: "你是清雅的白月光。茉莉奶绿般的淡香是你的签名，不争不抢，却让人念念不忘。", t: { te: 2, cr: 1, mi: 1, sw: 1, bd: 1, fr: 1, tr: 0 } },
-    { name: "茶理宜世", en: "ChaLiYiShi", emoji: "🍁", color: "#b5654a", drink: "郁郁幽兰", desc: "你是岭南风的浪漫主义者。烟火与茶香并蓄，懂传统也懂新意，像一盅暖茶，润物无声。", t: { te: 2, tr: 1, sw: 1, mi: 1, fr: 1, cr: 1, bd: 0 } },
-    { name: "茶话弄", en: "ChaHuaNong", emoji: "🎋", color: "#9c7a4a", drink: "桂花引", desc: "你是长安城里的闲雅客。一杯桂花引、一盏长安旧梦，你爱的是那份从容与古意。", t: { te: 2, tr: 2, cr: 1, sw: 1, mi: 1, fr: 0, bd: 0 } }
+    { name: "喜茶", en: "HEYTEA", logo: "assets/milktea/heytea.jpg", emoji: "🍑", color: "#26241f", drink: "多肉葡萄", desc: "你是灵感与潮流本潮。对新鲜事物永远好奇，敢试先锋口味，也愿意为品质买单——朋友圈里的种草机非你莫属。", t: { te: 2, fr: 2, tr: 3, cr: 1, sw: 1, mi: 0, bd: 0 } },
+    { name: "奈雪的茶", en: "NAYUKI", logo: "assets/milktea/nayuki.jpg", emoji: "🍓", color: "#e0594e", drink: "霸气芝士草莓", desc: "你温柔又精致，生活要有仪式感。喜欢水果的鲜甜与软欧包的柔软，和你做朋友，像喝一口霸气橙子一样元气满满。", t: { fr: 3, sw: 2, mi: 2, tr: 2, cr: 1, bd: 0, te: 0 } },
+    { name: "蜜雪冰城", en: "MIXUE", logo: "assets/milktea/mixue.jpg", emoji: "🍦", color: "#e03e2f", drink: "冰鲜柠檬水", desc: "你是快乐源泉本泉！性价比拉满、甜度满分，永远用最简单的快乐感染身边的人。雪王看了都想和你击掌。", t: { bd: 3, sw: 3, cr: 2, fr: 1, tr: 1, mi: 0, te: 0 } },
+    { name: "一点点", en: "YiDianDian", logo: "assets/milktea/yidiandian.jpg", emoji: "🧋", color: "#247d43", drink: "波霸奶茶", desc: "你是经典派掌门人。不跟风、不折腾，波霸奶茶三分糖就是你的舒适区——稳，且永远值得信赖。", t: { mi: 2, te: 2, bd: 2, sw: 1, tr: 1, cr: 0, fr: 0 } },
+    { name: "茶百道", en: "ChaBaiDao", logo: "assets/milktea/chabaidao.jpg", emoji: "🥭", color: "#1d3d8f", drink: "杨枝甘露", desc: "你随和又有自己的小讲究。芒果西米露还是杨枝甘露，你总能选到最对的那一杯，是朋友眼中靠谱的点单担当。", t: { fr: 2, mi: 2, sw: 2, bd: 2, cr: 1, te: 0, tr: 0 } },
+    { name: "古茗", en: "GUMING", logo: "assets/milktea/guming.jpg", emoji: "🍇", color: "#2b2b2b", drink: "超A芝士葡萄", desc: "你踏实又有惊喜感。平时低调，关键时刻总能拿出超A表现，像芝士葡萄里那层厚厚的芝士，越品越有。", t: { fr: 2, te: 2, bd: 2, sw: 1, mi: 1, cr: 1, tr: 0 } },
+    { name: "沪上阿姨", en: "AUNTEA", logo: "assets/milktea/auntea.jpg", emoji: "🍡", color: "#e4577e", drink: "血糯米奶茶", desc: "你是暖胃又暖心的人。血糯米的软糯是你的底色——实在、温暖、管饱，和你相处像冬日里的一杯热奶茶。", t: { mi: 2, te: 2, bd: 2, sw: 1, fr: 1, cr: 0, tr: 0 } },
+    { name: "书亦烧仙草", en: "SHUYI", logo: "assets/milktea/shuyi.jpg", emoji: "🍮", color: "#c92a2a", drink: "书亦烧仙草", desc: "你是“半杯都是料”的实在人。给朋友的爱永远溢出来，耐心又包容，谁和你在一起都不怕饿着。", t: { mi: 2, sw: 2, bd: 2, te: 1, fr: 1, cr: 0, tr: 0 } },
+    { name: "霸王茶姬", en: "CHAGEE", logo: "assets/milktea/chagee.jpg", emoji: "🏮", color: "#b3342c", drink: "伯牙绝弦", desc: "你是东方美学代言人。骨子里有国风的浪漫与大气，伯牙绝弦般的知音情谊，是你对朋友最长情的告白。", t: { te: 3, tr: 2, mi: 1, cr: 1, sw: 0, fr: 0, bd: 0 } },
+    { name: "茶颜悦色", en: "Sexy Tea", logo: "assets/milktea/sexytea.jpg", emoji: "🎐", color: "#8c1d2b", drink: "幽兰拿铁", desc: "你是文艺青年本青。墨色山水、幽兰拿铁，你爱的是那一口细腻的中式浪漫，安静，却惊艳。", t: { te: 3, mi: 2, tr: 2, sw: 1, cr: 1, fr: 0, bd: 0 } },
+    { name: "CoCo都可", en: "CoCo", logo: "assets/milktea/coco.jpg", emoji: "🥤", color: "#e6550d", drink: "奶茶三兄弟", desc: "你是国民好队友。奶茶三兄弟都认识你——随和、百搭、永远在线，任何局都能轻松融入。", t: { mi: 2, sw: 2, te: 1, bd: 1, cr: 1, fr: 0, tr: 0 } },
+    { name: "益禾堂", en: "Yihetang", logo: "assets/milktea/yihetang.jpg", emoji: "🍵", color: "#1b7a43", drink: "益禾烤奶", desc: "你是温暖的老朋友。烤奶的焦香是你的安心感，不张扬但一喝就懂，越处越香。", t: { te: 2, bd: 2, mi: 1, sw: 1, cr: 1, fr: 0, tr: 0 } },
+    { name: "甜啦啦", en: "Tianlala", logo: "assets/milktea/tianlala.jpg", emoji: "🍉", color: "#eab308", drink: "一桶水果茶", desc: "你是元气水果担当。一桶水果茶装得下你的快乐，实在又大方，和你在一起永远不缺笑声。", t: { fr: 2, bd: 2, sw: 2, cr: 1, mi: 0, te: 0, tr: 0 } },
+    { name: "快乐柠檬", en: "Happy Lemon", logo: "assets/milktea/happylemon.jpg", emoji: "🍋", color: "#e8c93a", drink: "柠檬霸", desc: "你是清爽系代表。酸酸甜甜、干脆利落，心情不好时你就是那杯解腻的柠檬茶，一喝就醒。", t: { cr: 2, fr: 2, sw: 1, bd: 1, te: 1, mi: 0, tr: 0 } },
+    { name: "贡茶", en: "Gong Cha", logo: "assets/milktea/gongcha.jpg", emoji: "🐼", color: "#8c2320", drink: "熊猫奶盖茶", desc: "你是奶盖爱好者协会会长。层次分明是你的处世哲学——表面奶盖甜软，内里茶汤清醒。", t: { mi: 2, te: 2, tr: 1, sw: 1, cr: 0, fr: 0, bd: 0 } },
+    { name: "鹿角巷", en: "The Alley", logo: "assets/milktea/thealley.jpg", emoji: "🦌", color: "#5c3f28", drink: "黑糖鹿丸鲜奶", desc: "你是颜值与内涵并存的黑糖系。看似高冷，实则甜到心里，慢热却深情，像黑糖鹿丸一样越嚼越香。", t: { mi: 2, sw: 2, tr: 2, te: 1, cr: 0, fr: 0, bd: 0 } },
+    { name: "老虎堂", en: "Tiger Sugar", logo: "assets/milktea/tigersugar.jpg", emoji: "🐯", color: "#2b2118", drink: "波霸厚鲜奶", desc: "你是霸气外露的甜心。虎纹黑糖是你的态度——一眼难忘，入口惊艳，甜得堂堂正正。", t: { mi: 2, sw: 2, tr: 1, bd: 1, te: 0, cr: 0, fr: 0 } },
+    { name: "一芳水果茶", en: "YiFang", logo: "assets/milktea/yifang.jpg", emoji: "🍊", color: "#b85d38", drink: "一芳水果茶", desc: "你是自然系文艺派。爱果香爱茶香，拒绝过度加工，做真实的自己，清清爽爽就很迷人。", t: { fr: 3, te: 2, cr: 2, sw: 1, mi: 0, bd: 0, tr: 0 } },
+    { name: "春阳茶事", en: "Chun Yang", logo: "assets/milktea/chunyang.jpg", emoji: "🌸", color: "#991b1b", drink: "黑糖珍珠鲜奶", desc: "你是温润如玉的古早派。春阳般的柔和是你的气场，老派却讲究，淡而有味。", t: { te: 2, cr: 2, fr: 1, mi: 1, sw: 1, bd: 1, tr: 0 } },
+    { name: "厝内小眷村", en: "Cuo Nei", logo: "assets/milktea/cuonei.jpg", emoji: "🏡", color: "#8c4a27", drink: "眷村奶茶", desc: "你是烟火气里的治愈者。眷村的温度、奶茶的甜糯，和你相处像回到最舒服的老家。", t: { mi: 2, sw: 2, bd: 2, te: 1, cr: 0, fr: 0, tr: 0 } },
+    { name: "柠季", en: "LINLEE", logo: "assets/milktea/linlee.jpg", emoji: "🍹", color: "#4dbb00", drink: "手打柠檬茶", desc: "你是清爽利落的行动派。手打柠檬茶是你的解压神器，直接、痛快、不拖泥带水。", t: { cr: 3, fr: 2, bd: 2, te: 1, sw: 0, mi: 0, tr: 0 } },
+    { name: "乐乐茶", en: "LELECHA", logo: "assets/milktea/lelecha.jpg", emoji: "🍫", color: "#d67f52", drink: "脏脏茶", desc: "你是快乐制造机。脏脏茶的放纵与草莓酪酪的甜蜜你都拿捏，和你在一起，快乐浓度超标。", t: { tr: 2, mi: 2, fr: 2, sw: 2, cr: 0, te: 0, bd: 0 } },
+    { name: "7分甜", en: "7FenTian", logo: "assets/milktea/7fentian.jpg", emoji: "🥥", color: "#f2c12e", drink: "杨枝甘露", desc: "你是甜蜜刚刚好的小太阳。不齁不淡，分寸感极佳，像杨枝甘露一样层次丰富又讨喜。", t: { fr: 2, sw: 2, cr: 1, bd: 1, mi: 1, te: 0, tr: 0 } },
+    { name: "茉沏", en: "Mo Qi", logo: "assets/milktea/moqi.jpg", emoji: "🌼", color: "#1d5b96", drink: "茉莉奶绿", desc: "你是清雅的白月光。茉莉奶绿般的淡香是你的签名，不争不抢，却让人念念不忘。", t: { te: 2, cr: 1, mi: 1, sw: 1, bd: 1, fr: 1, tr: 0 } },
+    { name: "茶理宜世", en: "ChaLiYiShi", logo: "assets/milktea/chaliyishi.jpg", emoji: "🍁", color: "#173b31", drink: "郁郁幽兰", desc: "你是岭南风的浪漫主义者。烟火与茶香并蓄，懂传统也懂新意，像一盅暖茶，润物无声。", t: { te: 2, tr: 1, sw: 1, mi: 1, fr: 1, cr: 1, bd: 0 } },
+    { name: "茶话弄", en: "ChaHuaNong", logo: "assets/milktea/chahuanong.jpg", emoji: "🎋", color: "#eb5600", drink: "桂花引", desc: "你是长安城里的闲雅客。一杯桂花引、一盏长安旧梦，你爱的是那份从容与古意。", t: { te: 2, tr: 2, cr: 1, sw: 1, mi: 1, fr: 0, bd: 0 } }
   ];
+
+  function resolveBrandLogo(b) {
+    if (!b) return '';
+    if (b.logo) return b.logo;
+    const found = BRANDS.find(item => item.name === b.name);
+    return found ? found.logo : '';
+  }
 
   const QS = [
     { q: "心情低落时，你最想来一杯？", opts: [{ t: "甜到飞起的快乐水", pts: { sw: 2 } }, { t: "清爽解腻的果茶", pts: { cr: 2, fr: 1 } }, { t: "浓郁奶香的热奶茶", pts: { mi: 2 } }, { t: "醇厚回甘的好茶", pts: { te: 2 } }] },
@@ -13021,8 +14447,8 @@ if ('serviceWorker' in navigator) {
       const c = document.createElement('span');
       c.className = 'mt-bchip';
       c.style.background = b.color;
-      c.style.color = ["#e8c93a", "#86bf2e"].includes(b.color) ? "#3a2f1e" : "#fff";
-      c.innerHTML = `<em>${b.emoji}</em>${b.name}`;
+      c.style.color = ["#e8c93a", "#eab308", "#f2c12e"].includes(b.color) ? "#291d0a" : "#fff";
+      c.innerHTML = `<img class="mt-chip-logo" src="${b.logo}" alt="${b.name}" loading="lazy"><span>${b.name}</span>`;
       chipsEl.appendChild(c);
     });
   }
@@ -13123,10 +14549,12 @@ if ('serviceWorker' in navigator) {
     });
 
     const wrap = document.getElementById('mtResWrap');
+    const mainLogo = resolveBrandLogo(b);
+    const secLogo = resolveBrandLogo(second.b);
     wrap.innerHTML = `
       <div class="mt-res-badge">✨ 你的奶茶人格是 ✨</div>
       <div class="mt-res-card" id="mtResCard">
-        <div class="mt-res-disc" style="background:linear-gradient(150deg,${b.color},${b.color}cc)">${b.emoji}</div>
+        <div class="mt-res-disc">${mainLogo ? `<img class="mt-res-logo-img" src="${mainLogo}" alt="${b.name}">` : b.emoji}</div>
         <h2>${b.name}</h2>
         <div class="en">${b.en}</div>
         <div class="mt-drink-tag">招牌 · ${b.drink}</div>
@@ -13137,7 +14565,7 @@ if ('serviceWorker' in navigator) {
         </div>
       </div>
       <div class="mt-runner">
-        <div class="rd" style="background:linear-gradient(150deg,${second.b.color},${second.b.color}bb)">${second.b.emoji}</div>
+        <div class="rd">${secLogo ? `<img class="mt-runner-logo-img" src="${secLogo}" alt="${second.b.name}">` : second.b.emoji}</div>
         <div><b>第二人格 · ${second.b.name}</b><span>隐藏属性：${second.b.drink} 也是你的绝配灵魂饮品</span></div>
       </div>
       <div class="mt-res-foot">
@@ -13178,113 +14606,143 @@ if ('serviceWorker' in navigator) {
     };
   }
 
-  /* 绘制 Canvas 分享海报 */
+  /* 绘制 Canvas 分享海报（支持嵌入真实品牌 Logo） */
   function drawMilkteaShareCard(res) {
     if (!res) return;
-    const cv = document.createElement('canvas');
-    cv.width = 1080;
-    cv.height = 1520;
-    const ctx = cv.getContext('2d');
-    const isDark = document.documentElement.dataset.theme !== 'light';
 
-    // 背景底色
-    ctx.fillStyle = isDark ? '#1a120b' : '#faf3e4';
-    ctx.fillRect(0, 0, 1080, 1520);
+    const renderPosterWithLogo = (logoImg) => {
+      const cv = document.createElement('canvas');
+      cv.width = 1080;
+      cv.height = 1520;
+      const ctx = cv.getContext('2d');
+      const isDark = document.documentElement.dataset.theme !== 'light';
 
-    // 装饰光晕
-    const grad = ctx.createRadialGradient(540, 200, 50, 540, 400, 600);
-    grad.addColorStop(0, 'rgba(232,201,106,0.22)');
-    grad.addColorStop(1, 'transparent');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, 1080, 1520);
+      // 背景底色
+      ctx.fillStyle = isDark ? '#1a120b' : '#faf3e4';
+      ctx.fillRect(0, 0, 1080, 1520);
 
-    // 卡片背景
-    ctx.fillStyle = isDark ? '#241809' : '#fffdf6';
-    ctx.strokeStyle = isDark ? 'rgba(232,201,106,0.3)' : 'rgba(154,116,32,0.35)';
-    ctx.lineWidth = 4;
-    roundRect(ctx, 80, 80, 920, 1360, 40);
-    ctx.fill();
-    ctx.stroke();
+      // 装饰光晕
+      const grad = ctx.createRadialGradient(540, 200, 50, 540, 400, 600);
+      grad.addColorStop(0, 'rgba(232,201,106,0.22)');
+      grad.addColorStop(1, 'transparent');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 1080, 1520);
 
-    // 顶部标头
-    ctx.fillStyle = isDark ? '#b9a17e' : '#8a7352';
-    ctx.font = 'bold 30px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('奶茶人格研究所 · 独家风味档案', 540, 180);
+      // 卡片背景
+      ctx.fillStyle = isDark ? '#241809' : '#fffdf6';
+      ctx.strokeStyle = isDark ? 'rgba(232,201,106,0.3)' : 'rgba(154,116,32,0.35)';
+      ctx.lineWidth = 4;
+      roundRect(ctx, 80, 80, 920, 1360, 40);
+      ctx.fill();
+      ctx.stroke();
 
-    // Emoji 图标圆形
-    ctx.fillStyle = res.b.color || '#e8c96a';
-    ctx.beginPath();
-    ctx.arc(540, 320, 90, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.font = '84px sans-serif';
-    ctx.fillText(res.b.emoji, 540, 350);
-
-    // 品牌大名
-    ctx.fillStyle = isDark ? '#f7ead6' : '#4a3620';
-    ctx.font = 'bold 64px sans-serif';
-    ctx.fillText(res.b.name, 540, 480);
-
-    // 英文名
-    ctx.fillStyle = isDark ? '#b9a17e' : '#8a7352';
-    ctx.font = 'bold 28px sans-serif';
-    ctx.fillText(res.b.en, 540, 530);
-
-    // 招牌饮品胶囊
-    ctx.fillStyle = '#e8c96a';
-    roundRect(ctx, 360, 565, 360, 54, 27);
-    ctx.fill();
-    ctx.fillStyle = '#241809';
-    ctx.font = 'bold 30px sans-serif';
-    ctx.fillText(`招牌 · ${res.b.drink}`, 540, 603);
-
-    // 描述框
-    ctx.fillStyle = isDark ? '#33230f' : '#f6ead2';
-    roundRect(ctx, 140, 660, 800, 180, 24);
-    ctx.fill();
-    ctx.fillStyle = isDark ? '#e8c96a' : '#7a5c18';
-    ctx.font = '32px sans-serif';
-    ctx.textAlign = 'left';
-    wrapText(ctx, res.b.desc, 180, 725, 720, 48);
-
-    // 7 维属性条
-    ctx.fillStyle = isDark ? '#b9a17e' : '#8a7352';
-    ctx.font = 'bold 28px sans-serif';
-    ctx.fillText(`🧬 人格七维画像 (契合度 ${res.pct}%)`, 140, 895);
-
-    let barY = 940;
-    res.traits.forEach(t => {
-      const v = res.scores[t.k];
+      // 顶部标头
       ctx.fillStyle = isDark ? '#b9a17e' : '#8a7352';
-      ctx.font = 'bold 26px sans-serif';
-      ctx.fillText(`${t.e} ${t.n}`, 140, barY + 22);
+      ctx.font = 'bold 30px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('奶茶人格研究所 · 独家风味档案', 540, 180);
 
-      ctx.fillStyle = isDark ? '#33230f' : '#ead9b4';
-      roundRect(ctx, 280, barY, 600, 24, 12);
-      ctx.fill();
+      // 真实品牌 Logo 圆形徽章
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(540, 320, 92, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.clip();
+      if (logoImg) {
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(448, 228, 184, 184);
+        ctx.drawImage(logoImg, 448, 228, 184, 184);
+      } else {
+        ctx.fillStyle = res.b.color || '#e8c96a';
+        ctx.fillRect(448, 228, 184, 184);
+        ctx.font = '84px sans-serif';
+        ctx.fillText(res.b.emoji, 540, 350);
+      }
+      ctx.restore();
 
-      const fillW = Math.min(600, (v / 12) * 600);
-      ctx.fillStyle = '#e8c96a';
-      roundRect(ctx, 280, barY, fillW, 24, 12);
-      ctx.fill();
+      // 圆形金边外环
+      ctx.beginPath();
+      ctx.arc(540, 320, 92, 0, Math.PI * 2);
+      ctx.strokeStyle = '#e8c96a';
+      ctx.lineWidth = 5;
+      ctx.stroke();
 
+      // 品牌大名
       ctx.fillStyle = isDark ? '#f7ead6' : '#4a3620';
-      ctx.font = 'bold 22px sans-serif';
-      ctx.fillText(String(v), 900, barY + 22);
-      barY += 52;
-    });
+      ctx.font = 'bold 64px sans-serif';
+      ctx.fillText(res.b.name, 540, 480);
 
-    // 底部第二人格
-    ctx.fillStyle = isDark ? '#8a7352' : '#b3a076';
-    ctx.font = '24px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(`第二人格：${res.second.emoji} ${res.second.name} · 隐藏本命：${res.second.drink}`, 540, 1360);
+      // 英文名
+      ctx.fillStyle = isDark ? '#b9a17e' : '#8a7352';
+      ctx.font = 'bold 28px sans-serif';
+      ctx.fillText(res.b.en, 540, 530);
 
-    // 下载图片
-    const a = document.createElement('a');
-    a.download = `奶茶人格_${res.b.name}.png`;
-    a.href = cv.toDataURL('image/png');
-    a.click();
+      // 招牌饮品胶囊
+      ctx.fillStyle = '#e8c96a';
+      roundRect(ctx, 360, 565, 360, 54, 27);
+      ctx.fill();
+      ctx.fillStyle = '#241809';
+      ctx.font = 'bold 30px sans-serif';
+      ctx.fillText(`招牌 · ${res.b.drink}`, 540, 603);
+
+      // 描述框
+      ctx.fillStyle = isDark ? '#33230f' : '#f6ead2';
+      roundRect(ctx, 140, 660, 800, 180, 24);
+      ctx.fill();
+      ctx.fillStyle = isDark ? '#e8c96a' : '#7a5c18';
+      ctx.font = '32px sans-serif';
+      ctx.textAlign = 'left';
+      wrapText(ctx, res.b.desc, 180, 725, 720, 48);
+
+      // 7 维属性条
+      ctx.fillStyle = isDark ? '#b9a17e' : '#8a7352';
+      ctx.font = 'bold 28px sans-serif';
+      ctx.fillText(`🧬 人格七维画像 (契合度 ${res.pct}%)`, 140, 895);
+
+      let barY = 940;
+      res.traits.forEach(t => {
+        const v = res.scores[t.k];
+        ctx.fillStyle = isDark ? '#b9a17e' : '#8a7352';
+        ctx.font = 'bold 26px sans-serif';
+        ctx.fillText(`${t.e} ${t.n}`, 140, barY + 22);
+
+        ctx.fillStyle = isDark ? '#33230f' : '#ead9b4';
+        roundRect(ctx, 280, barY, 600, 24, 12);
+        ctx.fill();
+
+        const fillW = Math.min(600, (v / 12) * 600);
+        ctx.fillStyle = '#e8c96a';
+        roundRect(ctx, 280, barY, fillW, 24, 12);
+        ctx.fill();
+
+        ctx.fillStyle = isDark ? '#f7ead6' : '#4a3620';
+        ctx.font = 'bold 22px sans-serif';
+        ctx.fillText(String(v), 900, barY + 22);
+        barY += 52;
+      });
+
+      // 底部第二人格
+      ctx.fillStyle = isDark ? '#8a7352' : '#b3a076';
+      ctx.font = '24px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(`第二人格：${res.second.name} · 隐藏本命：${res.second.drink}`, 540, 1360);
+
+      // 下载图片
+      const a = document.createElement('a');
+      a.download = `奶茶人格_${res.b.name}.png`;
+      a.href = cv.toDataURL('image/png');
+      a.click();
+    };
+
+    const logoSrc = resolveBrandLogo(res.b);
+    if (logoSrc) {
+      const img = new Image();
+      img.onload = () => renderPosterWithLogo(img);
+      img.onerror = () => renderPosterWithLogo(null);
+      img.src = logoSrc;
+    } else {
+      renderPosterWithLogo(null);
+    }
   }
 
   function roundRect(ctx, x, y, w, h, r) {
@@ -13359,6 +14817,8 @@ if ('serviceWorker' in navigator) {
     lastResult = res;
     const b = res.b;
     const second = res.second || {};
+    const mainLogo = resolveBrandLogo(b);
+    const secLogo = resolveBrandLogo(second);
     const pct = res.pct || 88;
     const scores = res.scores || {};
     let bars = "";
@@ -13372,7 +14832,7 @@ if ('serviceWorker' in navigator) {
     wrap.innerHTML = `
       <div class="mt-res-badge">✨ 你的奶茶人格是 ✨</div>
       <div class="mt-res-card" id="mtResCard">
-        <div class="mt-res-disc" style="background:linear-gradient(150deg,${b.color},${b.color}cc)">${b.emoji}</div>
+        <div class="mt-res-disc">${mainLogo ? `<img class="mt-res-logo-img" src="${mainLogo}" alt="${b.name}">` : b.emoji}</div>
         <h2>${b.name}</h2>
         <div class="en">${b.en || ''}</div>
         <div class="mt-drink-tag">招牌 · ${b.drink}</div>
@@ -13383,7 +14843,7 @@ if ('serviceWorker' in navigator) {
         </div>
       </div>
       <div class="mt-runner">
-        <div class="rd" style="background:linear-gradient(150deg,${second.color || '#fff'},${second.color || '#fff'}bb)">${second.emoji || '✨'}</div>
+        <div class="rd">${secLogo ? `<img class="mt-runner-logo-img" src="${secLogo}" alt="${second.name || ''}">` : (second.emoji || '✨')}</div>
         <div><b>第二人格 · ${second.name || '探索中'}</b><span>隐藏属性：${second.drink || ''} 也是你的绝配灵魂饮品</span></div>
       </div>
       <div class="mt-res-foot">
@@ -15174,10 +16634,10 @@ if ('serviceWorker' in navigator) {
       var stageStartTime = performance.now();
       function paint(k) {
         stageStartTime = performance.now();
-        el.innerHTML = hud('<b>第一关 · 简单反应</b>', '有效 ' + valid.length + '/5') +
-          '<div class="rz-stage" id="rz"><div class="rz-count">' + (valid.length ? '上次 ' + valid[valid.length - 1] + ' ms' : '&nbsp;') + '</div>' +
-          '<div class="rz-big" id="big">⏳ 屏息以待…</div>' +
-          '<div class="rz-sub" id="sub">屏幕变红的一瞬间，立即点它！</div></div>';
+        el.innerHTML = hud('<b>第一关 · 简单反应（变红即点）</b>', '有效 ' + valid.length + '/5') +
+          '<div class="rz-stage rz-pure-wait" id="rz"><div class="rz-count">' + (valid.length ? '上次 ' + valid[valid.length - 1] + ' ms' : '&nbsp;') + '</div>' +
+          '<div class="rz-big" id="big"></div>' +
+          '<div class="rz-sub" id="sub"></div></div>';
         var st = el.querySelector('#rz');
         if (st) st.addEventListener('pointerdown', onTap);
         arm();
@@ -15185,29 +16645,28 @@ if ('serviceWorker' in navigator) {
       function arm() {
         armed = false;
         var big = el.querySelector('#big'), sub = el.querySelector('#sub'), st = el.querySelector('#rz');
-        if (big) big.textContent = '⏳ 屏息以待…';
-        if (sub) { sub.className = 'rz-sub'; sub.textContent = '屏幕变红的一瞬间，立即点它！'; }
-        if (st) st.classList.remove('gorun');
+        if (big) big.textContent = '';
+        if (sub) { sub.className = 'rz-sub'; sub.textContent = ''; }
+        if (st) { st.classList.remove('gorun'); st.classList.add('rz-pure-wait'); }
         waitId = later(function () {
           if (destroyed) return;
           armed = true; t0 = performance.now();
-          var s = el.querySelector('#rz'); if (s) s.classList.add('gorun');
-          var b = el.querySelector('#big'); if (b) b.textContent = '点！';
-          var u = el.querySelector('#sub'); if (u) u.textContent = '';
+          var s = el.querySelector('#rz');
+          if (s) { s.classList.remove('rz-pure-wait'); s.classList.add('gorun'); }
           if (window.SFX && window.SFX.go) window.SFX.go();
         }, 1200 + Math.random() * 2200);
       }
       function onTap(e) {
-        if (performance.now() - stageStartTime < 280) return; // 280ms 手势防抖保护：避免点“开始”的手指残余手势被误判为抢跑
+        if (performance.now() - stageStartTime < 280) return; // 280ms 手势防抖保护
         if (!armed) {   // 抢跑
           clearTimeout(waitId);
           fouls++;
           if (window.SFX && window.SFX.foul) window.SFX.foul();
-          var s = el.querySelector('#rz'), u = el.querySelector('#sub');
-          if (u) { u.className = 'rz-sub'; u.innerHTML = '<span class="rz-warn" style="color:#f87171;font-weight:700">抢跑！等变红再点，重新测试中…</span>'; }
+          var u = el.querySelector('#sub');
+          if (u) { u.className = 'rz-sub'; u.innerHTML = '<span class="rz-warn" style="color:#f87171;font-weight:700">抢跑！等背景变红再点</span>'; }
           if (fouls >= 2) {
             valid = []; shown = 0; fouls = 0;
-            if (u) u.innerHTML = '<span class="rz-warn" style="color:#f87171;font-weight:700">连续抢跑，本关作废重测！</span>';
+            if (u) u.innerHTML = '<span class="rz-warn" style="color:#f87171;font-weight:700">连续抢跑，本关重测！</span>';
           }
           later(function () { if (valid.length < 5) { shown = valid.length; paint(); } }, 900);
           return;
@@ -15216,12 +16675,12 @@ if ('serviceWorker' in navigator) {
         var dt = Math.round(performance.now() - t0);
         valid.push(dt); fouls = 0;
         if (window.SFX && window.SFX.select) window.SFX.select();
-        var u = el.querySelector('#sub');
-        if (u) u.textContent = dt + ' ms';
+        var b = el.querySelector('#big');
+        if (b) b.textContent = dt + ' ms';
         later(function () {
           if (valid.length >= 5) { S1 = valid; stageSummary(1); }
           else paint();
-        }, 750);
+        }, 700);
       }
       paint();
     }
@@ -15234,12 +16693,12 @@ if ('serviceWorker' in navigator) {
       tp.forEach(function (i) { traps[i] = true; });
       var i = 0, t0 = 0, answered = false, toId = 0;
       function paint() {
-        el.innerHTML = hud('<b>第二关 · 选择反应</b>', (i + 1) + '/' + N) +
-          '<div class="rz-stage" style="padding:20px 14px"><div class="rz-banner" id="ban">规则交换!红右 · 绿左</div>' +
-          '<div class="rz-sub" style="margin:2px 0 12px;color:#7E786C" id="cue">盯住中间的点</div>' +
+        el.innerHTML = hud('<b>第二关 · 选择反应（红左·绿右）</b>', (i + 1) + '/' + N) +
+          '<div class="rz-stage" style="padding:20px 14px"><div class="rz-banner" id="ban">⚠️ 规则反转：红右 · 绿左</div>' +
+          '<div class="rz-cue-slot" id="cue"><span class="dot" style="width:64px;height:64px;display:inline-block;border-radius:50%;background:#2E2A3B;"></span></div>' +
           '<div class="rz-halves">' +
-          '<div class="rz-half" id="L"><div class="dot" id="dL"></div><span>左半区</span></div>' +
-          '<div class="rz-half" id="R"><div class="dot" id="dR"></div><span>右半区</span></div>' +
+          '<div class="rz-half" id="L"><span>左半区</span></div>' +
+          '<div class="rz-half" id="R"><span>右半区</span></div>' +
           '</div></div>';
         el.querySelector('#L').addEventListener('pointerdown', function () { answer('L'); });
         el.querySelector('#R').addEventListener('pointerdown', function () { answer('R'); });
@@ -15250,9 +16709,8 @@ if ('serviceWorker' in navigator) {
         var isRed = Math.random() < 0.5;
         var trap = !!traps[i];
         var need = isRed ? (trap ? 'R' : 'L') : (trap ? 'L' : 'R');
-        var dot = el.querySelector('#dL'); // 点显示在中央 cue 位置
         var cue = el.querySelector('#cue');
-        if (cue) cue.innerHTML = '<span class="dot ' + (isRed ? 'red' : 'green') + '" style="width:64px;height:64px"></span>';
+        if (cue) cue.innerHTML = '<span class="dot ' + (isRed ? 'red' : 'green') + '" style="width:64px;height:64px;display:inline-block;border-radius:50%;background:' + (isRed ? '#E23B2E' : '#2FBF6B') + ';box-shadow:0 0 24px ' + (isRed ? 'rgba(226,59,46,0.55)' : 'rgba(47,191,107,0.5)') + ';"></span>';
         var ban = el.querySelector('#ban');
         if (trap && ban) ban.classList.add('show');
         t0 = performance.now(); answered = false;
@@ -15300,18 +16758,20 @@ if ('serviceWorker' in navigator) {
       if (seq[0] === 'nogo') { var f = seq.indexOf('go'); seq[f] = 'nogo'; seq[0] = 'go'; }
       var i = 0, t0 = 0, answered = false, toId = 0;
       function paint() {
-        el.innerHTML = hud('<b>第三关 · 冲动控制</b>', (i + 1) + '/' + N) +
-          '<div class="rz-stage" id="st"><div class="rz-count">Go ' + S3.goRts.length + '</div>' +
-          '<div class="rz-big" id="big">准备</div><div class="rz-sub" id="sub">绿点快按 · 红点忍住</div></div>';
+        el.innerHTML = hud('<b>第三关 · 冲动控制（绿按·红忍）</b>', (i + 1) + '/' + N) +
+          '<div class="rz-stage rz-pure-wait" id="st"><div class="rz-count">Go ' + S3.goRts.length + '</div>' +
+          '<div class="rz-big" id="big"></div><div class="rz-sub" id="sub"></div></div>';
         el.querySelector('#st').addEventListener('pointerdown', onTap);
         later(show, 700 + Math.random() * 900);
       }
       function show() {
         if (destroyed) return;
         var g = seq[i] === 'go';
-        var st = el.querySelector('#st'), big = el.querySelector('#big');
-        if (st) st.classList.add(g ? 'gozone' : 'gorun');
-        if (big) big.textContent = g ? '按!' : '忍';
+        var st = el.querySelector('#st');
+        if (st) {
+          st.classList.remove('rz-pure-wait');
+          st.classList.add(g ? 'gozone' : 'gorun');
+        }
         t0 = performance.now(); answered = false;
         if (window.SFX && window.SFX.tick) window.SFX.tick();
         toId = later(function () {
@@ -15328,10 +16788,10 @@ if ('serviceWorker' in navigator) {
         if (g) {
           var dt = Math.round(performance.now() - t0);
           S3.goRts.push(dt); if (window.SFX && window.SFX.select) window.SFX.select();
-          var u = el.querySelector('#sub'); if (u) u.textContent = dt + ' ms';
+          var b = el.querySelector('#big'); if (b) b.textContent = dt + ' ms';
         } else {
           S3.falseHit++; if (window.SFX && window.SFX.foul) window.SFX.foul();
-          var u2 = el.querySelector('#sub'); if (u2) u2.innerHTML = '<span class="rz-warn">没忍住…</span>';
+          var u2 = el.querySelector('#sub'); if (u2) u2.innerHTML = '<span class="rz-warn" style="color:#fff;font-weight:800;font-size:20px;">没忍住！红屏不能点</span>';
         }
         later(next, 550);
       }
@@ -15469,17 +16929,13 @@ if ('serviceWorker' in navigator) {
       var oddIdx = Math.floor(Math.random() * n * n);
 
       var box = el.querySelector('#gridbox');
-      var gw = Math.min(box.clientWidth || 320, 440);
-      var cell = Math.floor((gw - 6 - (n - 1) * 4) / n);
       var grid = document.createElement('div');
       grid.className = 'cl-grid';
-      grid.style.width = (cell * n + (n - 1) * 4 + 12) + 'px';
+      grid.style.gridTemplateColumns = 'repeat(' + n + ', minmax(0, 1fr))';
       for (var i = 0; i < n * n; i++) {
         (function (idx) {
           var cellEl = document.createElement('div');
           cellEl.className = 'cl-cell';
-          cellEl.style.width = cell + 'px';
-          cellEl.style.height = cell + 'px';
           cellEl.style.background = idx === oddIdx ? odd1 : base;
           cellEl.addEventListener('pointerdown', function () { pick(idx === oddIdx, cellEl); });
           grid.appendChild(cellEl);
@@ -17609,7 +19065,7 @@ if ('serviceWorker' in navigator) {
     const box = document.getElementById('lqCylinderSvgBox');
     if (!box) return;
     box.innerHTML = `
-      <svg viewBox="0 0 160 220" width="150" height="206" style="filter: drop-shadow(0 12px 24px rgba(0,0,0,0.45));">
+      <svg viewBox="0 -38 160 252" width="166" height="232" style="filter: drop-shadow(0 12px 24px rgba(0,0,0,0.45)); overflow: visible;">
         <defs>
           <linearGradient id="g_lq_bamboo" x1="0" y1="0" x2="1" y2="0">
             <stop offset="0%" stop-color="#7F1D1D"/>
@@ -17626,30 +19082,58 @@ if ('serviceWorker' in navigator) {
             <stop offset="0%" stop-color="#FDE68A"/>
             <stop offset="100%" stop-color="#D97706"/>
           </linearGradient>
+          <linearGradient id="g_lq_stick_back" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#D97706"/>
+            <stop offset="100%" stop-color="#92400E"/>
+          </linearGradient>
         </defs>
-        <!-- 签筒内簇拥的竹签群 -->
+        <!-- 1. 签筒后壁内口与深色桶腔（绘制在最底层，位于所有竹签后方） -->
+        <ellipse cx="80" cy="72" rx="46" ry="13" fill="#220303" stroke="url(#g_lq_gold)" stroke-width="2.5"/>
+        <ellipse cx="80" cy="74" rx="42" ry="10" fill="#120101"/>
+
+        <!-- 2. 签筒内簇拥的竹签群（插在后壁之后、前壁之前，下半截伸入桶腔 y=110 被前壁自然遮挡） -->
         <g id="lqSticksBundle">
-          <rect x="46" y="18" width="10" height="80" rx="4" transform="rotate(-10 50 70)" fill="url(#g_lq_stick)" stroke="#92400E" stroke-width="1"/>
-          <rect x="60" y="10" width="10" height="85" rx="4" transform="rotate(-4 65 70)" fill="url(#g_lq_stick)" stroke="#92400E" stroke-width="1"/>
-          <rect x="75" y="8" width="11" height="88" rx="4" fill="url(#g_lq_stick)" stroke="#92400E" stroke-width="1"/>
-          <rect x="90" y="12" width="10" height="84" rx="4" transform="rotate(5 95 70)" fill="url(#g_lq_stick)" stroke="#92400E" stroke-width="1"/>
-          <rect x="104" y="20" width="10" height="78" rx="4" transform="rotate(11 108 70)" fill="url(#g_lq_stick)" stroke="#92400E" stroke-width="1"/>
-          <!-- 红头点缀 -->
-          <rect x="75" y="8" width="11" height="14" rx="3" fill="#E11D48"/>
-          <rect x="60" y="10" width="10" height="12" rx="3" transform="rotate(-4 65 70)" fill="#E11D48"/>
-          <rect x="90" y="12" width="10" height="12" rx="3" transform="rotate(5 95 70)" fill="#E11D48"/>
+          <!-- 后排竹签 -->
+          <rect x="53" y="22" width="9" height="86" rx="3.5" transform="rotate(-7 57 76)" fill="url(#g_lq_stick_back)" stroke="#78350F" stroke-width="1"/>
+          <rect x="68" y="16" width="9" height="90" rx="3.5" transform="rotate(-2 72 76)" fill="url(#g_lq_stick_back)" stroke="#78350F" stroke-width="1"/>
+          <rect x="84" y="17" width="9" height="89" rx="3.5" transform="rotate(3 88 76)" fill="url(#g_lq_stick_back)" stroke="#78350F" stroke-width="1"/>
+          <rect x="97" y="23" width="9" height="85" rx="3.5" transform="rotate(8 101 76)" fill="url(#g_lq_stick_back)" stroke="#78350F" stroke-width="1"/>
+          <!-- 前排主竹签 -->
+          <rect x="46" y="24" width="10" height="88" rx="4" transform="rotate(-11 50 78)" fill="url(#g_lq_stick)" stroke="#92400E" stroke-width="1"/>
+          <rect x="60" y="14" width="10" height="94" rx="4" transform="rotate(-4 65 78)" fill="url(#g_lq_stick)" stroke="#92400E" stroke-width="1"/>
+          <rect x="75" y="11" width="11" height="96" rx="4" fill="url(#g_lq_stick)" stroke="#92400E" stroke-width="1"/>
+          <rect x="90" y="15" width="10" height="93" rx="4" transform="rotate(5 95 78)" fill="url(#g_lq_stick)" stroke="#92400E" stroke-width="1"/>
+          <rect x="104" y="25" width="10" height="86" rx="4" transform="rotate(11 108 78)" fill="url(#g_lq_stick)" stroke="#92400E" stroke-width="1"/>
+          <!-- 朱砂红头点缀 -->
+          <rect x="46" y="24" width="10" height="11" rx="3" transform="rotate(-11 50 78)" fill="#E11D48"/>
+          <rect x="60" y="14" width="10" height="12" rx="3" transform="rotate(-4 65 78)" fill="#E11D48"/>
+          <rect x="75" y="11" width="11" height="14" rx="3" fill="#E11D48"/>
+          <rect x="90" y="15" width="10" height="12" rx="3" transform="rotate(5 95 78)" fill="#E11D48"/>
+          <rect x="104" y="25" width="10" height="11" rx="3" transform="rotate(11 108 78)" fill="#E11D48"/>
         </g>
-        <!-- 签筒后壁内口 -->
-        <ellipse cx="80" cy="72" rx="46" ry="12" fill="#2A0505" stroke="url(#g_lq_gold)" stroke-width="2.5"/>
-        <!-- 雕花朱漆签筒桶身 -->
-        <path d="M34,72 L40,192 C40,202 58,208 80,208 C102,208 120,202 120,192 L126,72 C126,80 105,84 80,84 C55,84 34,80 34,72 Z" fill="url(#g_lq_bamboo)" stroke="#7F1D1D" stroke-width="1.5"/>
+
+        <!-- 3. 摇出时从签筒内部升起的那支天命灵签（夹在桶口内，下端被前壁桶口自然遮挡） -->
+        <g id="lqSvgFlyingStick" class="lq-svg-flying-stick">
+          <rect x="70" y="8" width="20" height="118" rx="6" fill="url(#g_lq_stick)" stroke="#78350F" stroke-width="1.5"/>
+          <rect x="72" y="10" width="16" height="18" rx="4" fill="#E11D48"/>
+          <text id="lqSvgStickText" x="80" y="42" font-size="11" font-weight="900" fill="#78350F" text-anchor="middle" font-family="serif">
+            <tspan x="80" dy="0">第</tspan>
+            <tspan x="80" dy="13">一</tspan>
+            <tspan x="80" dy="13">签</tspan>
+          </text>
+        </g>
+
+        <!-- 4. 雕花朱漆签筒前壁桶身（覆盖在竹签下半截之上，形成真实「签在筒内」的物理遮挡关系） -->
+        <path d="M34,72 L40,192 C40,202 58,208 80,208 C102,208 120,202 120,192 L126,72 C126,81 105,85 80,85 C55,85 34,81 34,72 Z" fill="url(#g_lq_bamboo)" stroke="#7F1D1D" stroke-width="1.5"/>
+        <!-- 签筒前唇鎏金口沿弧线 -->
+        <path d="M34,72 C34,81 55,85 80,85 C105,85 126,81 126,72" fill="none" stroke="url(#g_lq_gold)" stroke-width="2.6" stroke-linecap="round"/>
         <!-- 鎏金箍环 -->
-        <path d="M35,92 Q80,102 125,92" fill="none" stroke="url(#g_lq_gold)" stroke-width="4"/>
+        <path d="M35,94 Q80,104 125,94" fill="none" stroke="url(#g_lq_gold)" stroke-width="4"/>
         <path d="M39,176 Q80,186 121,176" fill="none" stroke="url(#g_lq_gold)" stroke-width="4"/>
         <!-- 筒身中央牌匾 -->
-        <rect x="62" y="106" width="36" height="60" rx="6" fill="#450A0A" stroke="url(#g_lq_gold)" stroke-width="2"/>
-        <text x="80" y="132" font-size="15" font-weight="900" fill="#FDE68A" text-anchor="middle" font-family="serif">有求</text>
-        <text x="80" y="154" font-size="15" font-weight="900" fill="#FDE68A" text-anchor="middle" font-family="serif">必应</text>
+        <rect x="62" y="107" width="36" height="60" rx="6" fill="#450A0A" stroke="url(#g_lq_gold)" stroke-width="2"/>
+        <text x="80" y="133" font-size="15" font-weight="900" fill="#FDE68A" text-anchor="middle" font-family="serif">有求</text>
+        <text x="80" y="155" font-size="15" font-weight="900" fill="#FDE68A" text-anchor="middle" font-family="serif">必应</text>
       </svg>
     `;
   }
@@ -17660,12 +19144,12 @@ if ('serviceWorker' in navigator) {
 
     const btn = document.getElementById('lqBtnShake');
     const cyl = document.getElementById('lqCylinderWrap');
-    const flyStick = document.getElementById('lqFlyingStick');
-    const stickTxt = document.getElementById('lqStickText');
+    const svgFlyStick = document.getElementById('lqSvgFlyingStick');
+    const svgStickTxt = document.getElementById('lqSvgStickText');
     const hint = document.getElementById('lqStageHint');
 
     if (btn) btn.disabled = true;
-    if (flyStick) flyStick.classList.remove('dropped');
+    if (svgFlyStick) svgFlyStick.classList.remove('dropped');
     if (cyl) cyl.classList.add('shaking');
     if (hint) hint.textContent = '🎋 正在摇晃紫竹签筒，聆听神明指引……';
 
@@ -17683,32 +19167,37 @@ if ('serviceWorker' in navigator) {
 
     // 随机抽取一支灵签
     const picked = STICKS[Math.floor(Math.random() * STICKS.length)];
-    if (stickTxt) stickTxt.textContent = picked.no;
+    if (svgStickTxt) {
+      const chars = String(picked.no).split('');
+      svgStickTxt.innerHTML = chars
+        .map((ch, idx) => `<tspan x="80" dy="${idx === 0 ? 0 : 12}">${ch}</tspan>`)
+        .join('');
+    }
 
     setTimeout(() => {
       clearInterval(soundTimer);
       if (cyl) cyl.classList.remove('shaking');
-      if (flyStick) flyStick.classList.add('dropped');
+      if (svgFlyStick) svgFlyStick.classList.add('dropped');
       if (window.SFX && window.SFX.bell) window.SFX.bell(true);
-      if (hint) hint.textContent = `✨ 灵签已落：${picked.no} · 正在展开宣纸签文……`;
+      if (hint) hint.textContent = `✨ 灵签已出：${picked.no} · 正在展开宣纸签文……`;
 
       setTimeout(() => {
         isShaking = false;
         if (btn) btn.disabled = false;
-        if (flyStick) flyStick.classList.remove('dropped');
+        if (svgFlyStick) svgFlyStick.classList.remove('dropped');
         if (hint) hint.textContent = '轻点签筒或下方按钮，诚心摇出今日灵签';
         renderResult(picked);
-      }, 900);
+      }, 950);
     }, 1450);
   }
 
   function renderResult(stick, isRestored = false) {
     const wishInput = document.getElementById('lqWishInput');
+    const rawWish = wishInput ? wishInput.value.trim() : '';
+    const catName = isRestored && stick.catName ? stick.catName : CATEGORIES[curCategory].name;
     const wish = isRestored && stick.wish
       ? stick.wish
-      : ((wishInput && wishInput.value.trim()) || CATEGORIES[curCategory].name);
-
-    const catName = isRestored && stick.catName ? stick.catName : CATEGORIES[curCategory].name;
+      : (rawWish || '');
 
     lastStickRecord = {
       ...stick,
@@ -17726,7 +19215,11 @@ if ('serviceWorker' in navigator) {
     const interpEl = document.getElementById('lqResInterp');
     const tipsEl = document.getElementById('lqResTips');
 
-    if (subEl) subEl.textContent = `${catName} · 祈愿：${wish}`;
+    if (subEl) {
+      subEl.textContent = wish && wish !== catName
+        ? `${catName} · 祈愿：${wish}`
+        : `${catName} · 诚心祈愿`;
+    }
     if (titleEl) titleEl.textContent = `${stick.no} · ${stick.title}`;
     if (rankEl) rankEl.textContent = stick.rank;
     if (poemEl) poemEl.innerHTML = stick.poem.join('<br>');
@@ -17926,7 +19419,15 @@ if ('serviceWorker' in navigator) {
     const cylWrap = document.getElementById('lqCylinderWrap');
     if (cylWrap) cylWrap.onclick = startShake;
 
-    // 绑定结果页按钮
+    // 绑定结果页按钮与顶部返回键
+    const btnBack = document.getElementById('lqBtnBack');
+    if (btnBack) {
+      btnBack.onclick = () => {
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        showScreen('sc-lq-home');
+      };
+    }
+
     const btnAgain = document.getElementById('lqBtnAgain');
     if (btnAgain) {
       btnAgain.onclick = () => {
@@ -17979,16 +19480,30 @@ if ('serviceWorker' in navigator) {
 (function () {
   'use strict';
 
-  const STORAGE_KEY = 'juice_clock_config_v1';
+  const STORAGE_KEY = 'juice_clock_config_v2';
+
+  const REST_MODE_META = {
+    double:     { label: '📅 双休制',     workDays: 21.75, desc: '双休(六日休)' },
+    single_sun: { label: '🐂 单休(休日)', workDays: 26,    desc: '单休(仅周日休)' },
+    bi_small:   { label: '📅 大小周(小)', workDays: 24,    desc: '本周小周(周六上班)' },
+    bi_big:     { label: '🏖️ 大小周(大)', workDays: 24,    desc: '本周大周(六日休)' },
+    single_sat: { label: '📆 单休(休六)', workDays: 26,    desc: '单休(仅周六休)' },
+    none:       { label: '⚙️ 全勤排班',   workDays: 30,    desc: '今日正常排班' }
+  };
 
   let cfg = {
     monthlySalary: 12000,
-    workDays: 21.75,
+    restMode: 'double',
+    otRate: 1.5,
     startTime: '09:00',
     endTime: '18:00',
     payday: 15,
     maskSalary: false
   };
+
+  // 加班状态：'none' (正常上下班) | 'paid' (付费加班) | 'unpaid' (无偿加班)
+  let overtimeMode = 'none';
+  let otStartMs = 0;
 
   // 带薪摸鱼专项计时状态
   let isSlacking = false;
@@ -18000,7 +19515,7 @@ if ('serviceWorker' in navigator) {
 
   function loadConfig() {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
+      const saved = localStorage.getItem(STORAGE_KEY) || localStorage.getItem('juice_clock_config_v1');
       if (saved) {
         cfg = { ...cfg, ...JSON.parse(saved) };
       }
@@ -18023,9 +19538,27 @@ if ('serviceWorker' in navigator) {
     };
   }
 
+  function isDateRestDay(dateObj, mode) {
+    const d = dateObj.getDay(); // 0 = 周日, 6 = 周六
+    switch (mode) {
+      case 'single_sun':
+      case 'bi_small':
+        return d === 0; // 仅周日休息，周六正常上班
+      case 'single_sat':
+        return d === 6; // 仅周六休息，周日正常上班
+      case 'none':
+        return false;   // 全勤排班
+      case 'double':
+      case 'bi_big':
+      default:
+        return d === 0 || d === 6; // 周六、周日均休息
+    }
+  }
+
   function getRates() {
     const salary = Math.max(100, Number(cfg.monthlySalary) || 12000);
-    const days = Math.max(1, Number(cfg.workDays) || 21.75);
+    const meta = REST_MODE_META[cfg.restMode] || REST_MODE_META.double;
+    const days = meta.workDays;
     const dailySalary = salary / days;
 
     const st = parseHm(cfg.startTime, 9, 0);
@@ -18034,12 +19567,31 @@ if ('serviceWorker' in navigator) {
     if (workMinutes <= 0) workMinutes = 540; // 默认 9 小时
     const workSeconds = workMinutes * 60;
     const perSecond = dailySalary / workSeconds;
+    const otMult = Math.max(1, Number(cfg.otRate) || 1.5);
 
-    return { salary, days, dailySalary, st, et, workSeconds, perSecond };
+    return { salary, days, dailySalary, st, et, workSeconds, perSecond, otMult, restDesc: meta.desc };
   }
 
   function pad2(n) {
     return String(Math.floor(Math.max(0, n))).padStart(2, '0');
+  }
+
+  function formatDurationHMS(sec) {
+    const s = Math.max(0, Math.floor(sec));
+    const hh = Math.floor(s / 3600);
+    const mm = Math.floor((s % 3600) / 60);
+    const ss = s % 60;
+    return `${pad2(hh)}:${pad2(mm)}:${pad2(ss)}`;
+  }
+
+  function formatDurationCN(sec) {
+    const s = Math.max(0, Math.floor(sec));
+    const hh = Math.floor(s / 3600);
+    const mm = Math.floor((s % 3600) / 60);
+    const ss = s % 60;
+    if (hh > 0) return `${hh}小时${mm}分${ss}秒`;
+    if (mm > 0) return `${mm}分${ss}秒`;
+    return `${ss}秒`;
   }
 
   function getNextHoliday(now) {
@@ -18066,9 +19618,28 @@ if ('serviceWorker' in navigator) {
     return { name: '元旦假期', days: 30 };
   }
 
+  // 计算当前加班已持续的秒数
+  function getOvertimeSeconds(now, todayIsRest, startOfTodayWork, endOfTodayWork) {
+    if (overtimeMode === 'none') return 0;
+    if (!todayIsRest && now > endOfTodayWork) {
+      // 工作日已过下班点：自动从下班点开始累计加班时长（若手动开启更早则取较大值）
+      const sinceOffwork = (now - endOfTodayWork) / 1000;
+      const sinceClick = otStartMs ? (Date.now() - otStartMs) / 1000 : 0;
+      return Math.max(sinceOffwork, sinceClick);
+    }
+    if (todayIsRest && now >= startOfTodayWork) {
+      // 休息日加班：如果当前在常规上班时段之后，默认从今日上班打卡点或手动点击点计算
+      const sinceClick = otStartMs ? (Date.now() - otStartMs) / 1000 : 0;
+      const sinceMorning = (now - startOfTodayWork) / 1000;
+      return Math.max(sinceClick, Math.min(sinceMorning, 3600 * 12));
+    }
+    return otStartMs ? Math.max(0, (Date.now() - otStartMs) / 1000) : 0;
+  }
+
   function updateTick() {
     const now = new Date();
     const rates = getRates();
+    const todayIsRest = isDateRestDay(now, cfg.restMode);
 
     // 1. 翻页时钟更新
     const hhEl = document.getElementById('ckFlipHH');
@@ -18083,42 +19654,94 @@ if ('serviceWorker' in navigator) {
     const weekNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
     if (dateEl) {
       const salaryDisplay = cfg.maskSalary ? '¥ *****/月' : `¥ ${rates.salary.toLocaleString()}/月`;
-      dateEl.textContent = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日 · ${weekNames[now.getDay()]} · 设定 ${salaryDisplay}`;
+      dateEl.textContent = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日 · ${weekNames[now.getDay()]} (${rates.restDesc}) · 设定 ${salaryDisplay}`;
     }
 
-    // 2. 计算今日工时进度与实时已赚窝囊费
+    // 2. 计算今日工时进度与实时已赚窝囊费（严禁下班后或休息日无故乱加钱！）
     const startOfTodayWork = new Date(now.getFullYear(), now.getMonth(), now.getDate(), rates.st.h, rates.st.m, 0, 0);
     const endOfTodayWork = new Date(now.getFullYear(), now.getMonth(), now.getDate(), rates.et.h, rates.et.m, 0, 0);
 
-    let earnedToday = 0;
+    let baseEarnedToday = 0;
     let progressPct = 0;
-    let statusText = '🟢 工位带薪搬砖计薪中';
+    let statusText = '🟢 工位带薪搬砖中';
+    let eyebrowText = '💰 今日在工位已赚窝囊费';
+    let rateSubText = `日薪 ¥${rates.dailySalary.toFixed(1)}  ·  每秒入账 ¥${rates.perSecond.toFixed(4)}  ·  呼吸都在赚钱`;
 
-    if (now < startOfTodayWork) {
-      // 早于上班时间：展示昨日余温或呼吸模拟跳字
-      const secSinceMidnight = (now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds()) + now.getMilliseconds() / 1000;
-      earnedToday = secSinceMidnight * rates.perSecond * 0.25;
+    if (todayIsRest) {
+      // 今天是休息日：正班薪资为 0，不再跳字加钱
+      baseEarnedToday = 0;
+      progressPct = 100;
+      statusText = '🏖️ 今日休假不计薪 · 尽情享受生活';
+      eyebrowText = '🏖️ 今日休假中 · 工位正班计薪已暂停';
+      rateSubText = `休息日正班不计薪 (日薪标准 ¥${rates.dailySalary.toFixed(1)}) · 如被叫去加班请点下方按钮`;
+    } else if (now < startOfTodayWork) {
+      // 工作日早于上班打卡时间：正班薪资为 0
+      baseEarnedToday = 0;
       progressPct = 0;
-      statusText = '🌅 尚未到岗 · 赛博预热计薪中';
+      statusText = '🌅 尚未到岗打卡 · 等待到点计薪';
+      eyebrowText = `🌅 尚未到 ${cfg.startTime} 上班时间 · 到点自动开始计薪`;
+      rateSubText = `日薪 ¥${rates.dailySalary.toFixed(1)}  ·  到岗后每秒入账 ¥${rates.perSecond.toFixed(4)}`;
     } else if (now <= endOfTodayWork) {
+      // 工作日正常上班时段：实时增加窝囊费
       const elapsedSec = (now - startOfTodayWork) / 1000;
-      earnedToday = elapsedSec * rates.perSecond;
+      baseEarnedToday = elapsedSec * rates.perSecond;
       progressPct = Math.min(100, (elapsedSec / rates.workSeconds) * 100);
       if (now.getHours() === 12) {
-        statusText = '🍱 午休干饭回血 · 照常计薪中';
+        statusText = '🍱 午休干饭回血 · 照常带薪入账中';
       } else {
-        statusText = '🟢 工位带薪搬砖 · 秒级暴富中';
+        statusText = '🟢 工位带薪搬砖 · 每一秒都没白挨';
+      }
+      eyebrowText = '💰 今日在工位已赚窝囊费';
+      rateSubText = `日薪 ¥${rates.dailySalary.toFixed(1)}  ·  每秒入账 +¥${rates.perSecond.toFixed(4)}  ·  呼吸都在赚钱`;
+    } else {
+      // 工作日已过下班时间：正班薪资封顶停止跳字！除非开启「付费加班」
+      baseEarnedToday = rates.dailySalary;
+      progressPct = 100;
+      statusText = '🛑 已到点下班 · 今日正班窝囊费已封顶';
+      eyebrowText = `🎉 已过 ${cfg.endTime} 下班时间 · 今日正班薪资已全额入袋`;
+      rateSubText = `今日正班日薪 ¥${rates.dailySalary.toFixed(1)} 已封顶 (每秒 +¥0.0000) · 若还在工位请点下方加班按钮`;
+    }
+
+    // 处理加班模式（付费加班 vs 无偿加班）
+    let earnedToday = baseEarnedToday;
+    const otSec = getOvertimeSeconds(now, todayIsRest, startOfTodayWork, endOfTodayWork);
+    const otBannerEl = document.getElementById('ckOvertimeBanner');
+
+    if (overtimeMode === 'paid') {
+      const otEarned = otSec * rates.perSecond * rates.otMult;
+      earnedToday = baseEarnedToday + otEarned;
+      statusText = `💸 付费加班搞钱中 (${rates.otMult}倍计薪)`;
+      eyebrowText = todayIsRest
+        ? `💸 休息日付费加班中 (${rates.otMult}倍加班费实时入账)`
+        : `💸 延时付费加班中 (正班薪资 + ${rates.otMult}倍加班费)`;
+      rateSubText = `加班每秒入账 +¥${(rates.perSecond * rates.otMult).toFixed(4)}  ·  已加班 ${formatDurationCN(otSec)}  ·  加班费 +¥${otEarned.toFixed(2)}`;
+      if (otBannerEl) {
+        otBannerEl.style.display = 'block';
+        otBannerEl.className = 'ck-overtime-banner paid';
+        otBannerEl.textContent = `💸 付费加班计薪中：按 ${rates.otMult} 倍时薪折算，已累计加班 ${formatDurationCN(otSec)}，额外多赚 +¥${otEarned.toFixed(3)}！`;
+      }
+    } else if (overtimeMode === 'unpaid') {
+      // 无偿加班：一分钱都不增加！实时展示白送给老板的免费劳动价值
+      earnedToday = baseEarnedToday;
+      const freeLaborVal = otSec * rates.perSecond;
+      statusText = '😭 无偿加班用爱发电 · 薪资已冻结';
+      eyebrowText = '😭 无偿加班大冤种状态 · 窝囊费停止增加';
+      rateSubText = `当前每秒入账 +¥0.0000 (纯纯用爱发电)  ·  正班薪资锁定 ¥${baseEarnedToday.toFixed(2)}`;
+      if (otBannerEl) {
+        otBannerEl.style.display = 'block';
+        otBannerEl.className = 'ck-overtime-banner unpaid';
+        otBannerEl.textContent = `😭 无偿加班用爱发电中 (+¥0.0000/秒)：已白送老板 ${formatDurationCN(otSec)}，相当于无偿倒贴工时价值 ¥${freeLaborVal.toFixed(2)}！快收拾书包跑路吧！`;
       }
     } else {
-      // 已过下班时间：正班满额 + 赛博加班呼吸微跳动，确保任何时刻打开都有毫秒跳字快感
-      const overSec = (now - endOfTodayWork) / 1000;
-      earnedToday = rates.dailySalary + overSec * rates.perSecond * 0.35;
-      progressPct = 100;
-      statusText = '🎉 今日正班窝囊费已满额 · 赛博延时跳表中';
+      if (otBannerEl) {
+        otBannerEl.style.display = 'none';
+      }
     }
 
     const statusTxtEl = document.getElementById('ckStatusText');
+    const eyebrowEl = document.getElementById('ckHeroEyebrow');
     if (statusTxtEl) statusTxtEl.textContent = statusText;
+    if (eyebrowEl) eyebrowEl.textContent = eyebrowText;
 
     const intPart = Math.floor(earnedToday);
     const decPart = (earnedToday - intPart).toFixed(4).substring(1); // .xxxx
@@ -18129,9 +19752,7 @@ if ('serviceWorker' in navigator) {
 
     if (intEl) intEl.textContent = intPart.toLocaleString();
     if (decEl) decEl.textContent = decPart;
-    if (rateSubEl) {
-      rateSubEl.textContent = `日薪 ¥${rates.dailySalary.toFixed(1)}  ·  每秒入账 ¥${rates.perSecond.toFixed(4)}  ·  呼吸都在赚钱`;
-    }
+    if (rateSubEl) rateSubEl.textContent = rateSubText;
 
     // 3. 快乐等价物换算
     const milkteaCount = (earnedToday / 18).toFixed(1);
@@ -18156,50 +19777,113 @@ if ('serviceWorker' in navigator) {
     const slackTimeEl = document.getElementById('ckSlackTime');
     const slackEarnedEl = document.getElementById('ckSlackEarnedVal');
     if (slackTimeEl) {
-      const sh = Math.floor(slackSec / 3600);
-      const sm = Math.floor((slackSec % 3600) / 60);
-      const ss = Math.floor(slackSec % 60);
-      slackTimeEl.textContent = `${pad2(sh)}:${pad2(sm)}:${pad2(ss)}`;
+      slackTimeEl.textContent = formatDurationHMS(slackSec);
     }
     if (slackEarnedEl) {
       slackEarnedEl.textContent = `¥ ${slackMoney.toFixed(3)}`;
     }
 
-    // 5. 四大扎心倒计时更新
-    // (a) 距离今日下班
+    // 5. 四大扎心倒计时更新（严格根据单双休制度统一状态，绝不自相矛盾！）
+    const cdOffLabel = document.getElementById('ckCdOffworkLabel');
     const cdOffEl = document.getElementById('ckCdOffwork');
     const cdOffBar = document.getElementById('ckCdOffworkBar');
     const cdOffSub = document.getElementById('ckCdOffworkSub');
-    if (now < endOfTodayWork && now >= startOfTodayWork) {
-      const remSec = Math.max(0, Math.floor((endOfTodayWork - now) / 1000));
-      const rh = Math.floor(remSec / 3600);
-      const rm = Math.floor((remSec % 3600) / 60);
-      const rs = remSec % 60;
-      if (cdOffEl) cdOffEl.textContent = `${pad2(rh)}:${pad2(rm)}:${pad2(rs)}`;
-      if (cdOffBar) cdOffBar.style.width = `${progressPct.toFixed(1)}%`;
-      if (cdOffSub) cdOffSub.textContent = `今日工时已熬过 ${progressPct.toFixed(1)}%`;
-    } else {
-      if (cdOffEl) cdOffEl.textContent = '00:00:00';
-      if (cdOffBar) cdOffBar.style.width = '100%';
-      if (cdOffSub) cdOffSub.textContent = '🎉 恭喜！当前处于下班自由时间';
-    }
 
-    // (b) 距离周五下班
+    const cdFriLabel = document.getElementById('ckCdFridayLabel');
     const cdFriEl = document.getElementById('ckCdFriday');
     const cdFriSub = document.getElementById('ckCdFridaySub');
-    const dayOfWeek = now.getDay(); // 0 is Sun, 6 is Sat
-    if (dayOfWeek === 0 || dayOfWeek === 6 || (dayOfWeek === 5 && now >= endOfTodayWork)) {
-      if (cdFriEl) cdFriEl.textContent = '周末狂欢中';
-      if (cdFriSub) cdFriSub.textContent = '🍻 尽情享受周末，禁止思考工作！';
+
+    if (todayIsRest) {
+      // 今日是休息日
+      if (overtimeMode === 'none') {
+        if (cdOffLabel) cdOffLabel.textContent = '🏖️ 今日休假状态';
+        if (cdOffEl) cdOffEl.textContent = '今日休假中';
+        if (cdOffBar) cdOffBar.style.width = '100%';
+        if (cdOffSub) cdOffSub.textContent = `当前为${rates.restDesc}，今天不用打卡上班！`;
+
+        if (cdFriLabel) cdFriLabel.textContent = '🎉 周末狂欢状态';
+        if (cdFriEl) cdFriEl.textContent = '周末狂欢中';
+        if (cdFriSub) cdFriSub.textContent = '🍻 好好享受属于你的自由假期，禁止思考工作！';
+      } else {
+        if (cdOffLabel) cdOffLabel.textContent = overtimeMode === 'paid' ? '💸 休息日付费加班中' : '😭 休息日无偿加班中';
+        if (cdOffEl) cdOffEl.textContent = formatDurationHMS(otSec);
+        if (cdOffBar) cdOffBar.style.width = '100%';
+        if (cdOffSub) {
+          cdOffSub.textContent = overtimeMode === 'paid'
+            ? `已按 ${rates.otMult} 倍计薪加班 ${formatDurationCN(otSec)}，早点收工休息`
+            : '🚨 休息日无偿加班 ¥0/秒，建议立刻合上电脑逃跑！';
+        }
+
+        if (cdFriLabel) cdFriLabel.textContent = '😭 周末被抓来加班';
+        if (cdFriEl) cdFriEl.textContent = '周末泡汤中';
+        if (cdFriSub) cdFriSub.textContent = '本来该在被窝狂欢，结果在工位当牛马';
+      }
     } else {
-      const daysToFri = 5 - dayOfWeek;
-      const friEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + daysToFri, rates.et.h, rates.et.m, 0);
-      const diffSec = Math.max(0, Math.floor((friEnd - now) / 1000));
-      const fd = Math.floor(diffSec / 86400);
-      const fh = Math.floor((diffSec % 86400) / 3600);
-      const fm = Math.floor((diffSec % 3600) / 60);
-      if (cdFriEl) cdFriEl.textContent = `${fd}天 ${pad2(fh)}时 ${pad2(fm)}分`;
-      if (cdFriSub) cdFriSub.textContent = '撑住，胜利的曙光就在前方';
+      // 今日是正常工作日
+      if (now < startOfTodayWork) {
+        const waitSec = Math.max(0, Math.floor((startOfTodayWork - now) / 1000));
+        if (cdOffLabel) cdOffLabel.textContent = '🌅 距离今日上班打卡';
+        if (cdOffEl) cdOffEl.textContent = formatDurationHMS(waitSec);
+        if (cdOffBar) cdOffBar.style.width = '0%';
+        if (cdOffSub) cdOffSub.textContent = `今日 ${cfg.startTime} 准时开工，先喝杯咖啡喘口气`;
+      } else if (now <= endOfTodayWork) {
+        const remSec = Math.max(0, Math.floor((endOfTodayWork - now) / 1000));
+        if (cdOffLabel) cdOffLabel.textContent = '🏃 距离今日下班解放';
+        if (cdOffEl) cdOffEl.textContent = formatDurationHMS(remSec);
+        if (cdOffBar) cdOffBar.style.width = `${progressPct.toFixed(1)}%`;
+        if (cdOffSub) cdOffSub.textContent = `今日工时已熬过 ${progressPct.toFixed(1)}%，再撑 ${Math.ceil(remSec / 60)} 分钟解放`;
+      } else {
+        // 已过今日下班点
+        if (overtimeMode === 'none') {
+          if (cdOffLabel) cdOffLabel.textContent = '🏃 今日下班状态';
+          if (cdOffEl) cdOffEl.textContent = '已到点下班';
+          if (cdOffBar) cdOffBar.style.width = '100%';
+          if (cdOffSub) cdOffSub.textContent = `🎉 已过 ${cfg.endTime} 下班时间，快背上书包合法溜号！`;
+        } else {
+          if (cdOffLabel) cdOffLabel.textContent = overtimeMode === 'paid' ? '💸 下班后延时加班' : '😭 下班后无偿加班';
+          if (cdOffEl) cdOffEl.textContent = formatDurationHMS(otSec);
+          if (cdOffBar) cdOffBar.style.width = '100%';
+          if (cdOffSub) {
+            cdOffSub.textContent = overtimeMode === 'paid'
+              ? `💸 正在累计 ${rates.otMult} 倍延时加班费，注意身体`
+              : '😭 无偿加班一分钱不加，快关电脑跑路吧！';
+          }
+        }
+      }
+
+      // 计算距离本轮周末放假还有多久（根据单休/双休自动识别周五下班或周六下班）
+      if (cfg.restMode === 'none') {
+        if (cdFriLabel) cdFriLabel.textContent = '🐂 全勤排班状态';
+        if (cdFriEl) cdFriEl.textContent = '全年无休模式';
+        if (cdFriSub) cdFriSub.textContent = '可在下方设置切换为「双休」或「单休」';
+      } else {
+        const dayOfWeek = now.getDay(); // 1..6 (0已被如果是休假拦截，若是single_sat则周日是工作日)
+        const isSatWork = (cfg.restMode === 'single_sun' || cfg.restMode === 'bi_small');
+        const targetWeekendDay = isSatWork ? 6 : 5; // 单休/小周盼周六下班，双休/大周盼周五下班
+        const targetDayName = isSatWork ? '周六' : '周五';
+
+        if (cdFriLabel) cdFriLabel.textContent = `🍻 距离${targetDayName}下班狂欢`;
+
+        if (dayOfWeek === targetWeekendDay && now >= endOfTodayWork) {
+          if (overtimeMode === 'none') {
+            if (cdFriEl) cdFriEl.textContent = '周末狂欢中';
+            if (cdFriSub) cdFriSub.textContent = `🎉 熬完${targetDayName}最后一班岗，正式进入周末假期！`;
+          } else {
+            if (cdFriEl) cdFriEl.textContent = '周末夜加班中';
+            if (cdFriSub) cdFriSub.textContent = `😭 都到${targetDayName}下班点了还在工位加班！`;
+          }
+        } else {
+          let daysToTarget = targetWeekendDay - dayOfWeek;
+          if (daysToTarget < 0) daysToTarget += 7;
+          const wkEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + daysToTarget, rates.et.h, rates.et.m, 0);
+          const diffSec = Math.max(0, Math.floor((wkEnd - now) / 1000));
+          const fd = Math.floor(diffSec / 86400);
+          const fh = Math.floor((diffSec % 86400) / 3600);
+          const fm = Math.floor((diffSec % 3600) / 60);
+          if (cdFriEl) cdFriEl.textContent = `${fd}天 ${pad2(fh)}时 ${pad2(fm)}分`;
+          if (cdFriSub) cdFriSub.textContent = `距离${targetDayName} ${cfg.endTime} 下班放假，撑住就是胜利`;
+        }
+      }
     }
 
     // (c) 距离下次发薪日
@@ -18415,11 +20099,50 @@ if ('serviceWorker' in navigator) {
     const inpPayday = document.getElementById('ckInpPayday');
     const inpStart = document.getElementById('ckInpStart');
     const inpEnd = document.getElementById('ckInpEnd');
+    const inpRestMode = document.getElementById('ckInpRestMode');
+    const inpOtRate = document.getElementById('ckInpOtRate');
+    const btnRestQuick = document.getElementById('ckBtnRestQuick');
+
+    function syncRestUi() {
+      const meta = REST_MODE_META[cfg.restMode] || REST_MODE_META.double;
+      if (inpRestMode) inpRestMode.value = cfg.restMode in REST_MODE_META ? cfg.restMode : 'double';
+      if (btnRestQuick) btnRestQuick.textContent = meta.label;
+    }
 
     if (inpSalary) {
       inpSalary.value = cfg.monthlySalary;
       inpSalary.oninput = () => {
         cfg.monthlySalary = Math.max(100, Number(inpSalary.value) || 12000);
+        saveConfig();
+        updateTick();
+      };
+    }
+    if (inpRestMode) {
+      syncRestUi();
+      inpRestMode.onchange = () => {
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        cfg.restMode = inpRestMode.value || 'double';
+        syncRestUi();
+        saveConfig();
+        updateTick();
+      };
+    }
+    if (btnRestQuick) {
+      syncRestUi();
+      const cycleOrder = ['double', 'single_sun', 'bi_small', 'bi_big', 'none'];
+      btnRestQuick.onclick = () => {
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        const curIdx = cycleOrder.indexOf(cfg.restMode);
+        cfg.restMode = cycleOrder[(curIdx + 1) % cycleOrder.length];
+        syncRestUi();
+        saveConfig();
+        updateTick();
+      };
+    }
+    if (inpOtRate) {
+      inpOtRate.value = String(cfg.otRate || 1.5);
+      inpOtRate.onchange = () => {
+        cfg.otRate = Number(inpOtRate.value) || 1.5;
         saveConfig();
         updateTick();
       };
@@ -18448,6 +20171,29 @@ if ('serviceWorker' in navigator) {
         updateTick();
       };
     }
+
+    // 加班模式切换按钮 (正常上下班 / 付费加班 / 无偿加班)
+    document.querySelectorAll('.ck-ot-btn').forEach(btn => {
+      btn.onclick = () => {
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        const mode = btn.dataset.ot || 'none';
+        overtimeMode = mode;
+        if (mode !== 'none') {
+          otStartMs = Date.now();
+          // 若在休息日开启付费加班，默认将加班倍率贴心设为 2.0（若之前为 1.5）
+          const todayRest = isDateRestDay(new Date(), cfg.restMode);
+          if (mode === 'paid' && todayRest && Number(cfg.otRate) === 1.5) {
+            cfg.otRate = 2.0;
+            if (inpOtRate) inpOtRate.value = '2.0';
+            saveConfig();
+          }
+        } else {
+          otStartMs = 0;
+        }
+        document.querySelectorAll('.ck-ot-btn').forEach(b => b.classList.toggle('active', b === btn));
+        updateTick();
+      };
+    });
 
     // 隐私隐藏开关
     const btnMask = document.getElementById('ckBtnMask');
@@ -18533,6 +20279,830 @@ if ('serviceWorker' in navigator) {
     restore,
     toggleSlacking,
     drawClockPoster
+  };
+})();
+
+
+/* ====== js/modules/merit.js ====== */
+/* =========================================================
+   模块 9：赛博功德局 · 电子木鱼 & 怨气粉碎机 (Cyber Merit & Stress Relief)
+   三大解压法器：电子木鱼 / 无尽减压泡泡纸 / 怨气碎纸机与火盆
+   ========================================================= */
+
+(function () {
+  'use strict';
+
+  const STORAGE_KEY = 'juice_merit_state_v1';
+
+  let state = {
+    todayMerit: 0,
+    totalMerit: 0,
+    poppedCount: 0,
+    shreddedCount: 0,
+    lastDate: ''
+  };
+
+  let curSubmod = 'muyu';
+  let curChant = '功德 +1';
+  let curChantVal = 1;
+  let curSoundMode = 'wood'; // 'wood' | 'bowl' | 'duck'
+  let autoTimer = null;
+  let isPointerDownOnBubbles = false;
+  let isDestroying = false;
+
+  // Web Audio 合成器上下文
+  let audioCtx = null;
+  function getAudioCtx() {
+    if (!audioCtx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) audioCtx = new AC();
+    }
+    if (audioCtx && audioCtx.state === 'suspended') {
+      audioCtx.resume().catch(() => {});
+    }
+    return audioCtx;
+  }
+
+  function isSfxMuted() {
+    return window.SFX && typeof window.SFX.isMuted === 'function' && window.SFX.isMuted();
+  }
+
+  // 合成逼真木鱼 / 颂钵 / 功德鸭 / 捏泡泡 / 碎纸音效
+  function playMeritSound(type) {
+    if (isSfxMuted()) return;
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    const now = ctx.currentTime;
+
+    if (type === 'wood') {
+      // 檀木鱼：低频空腔共鸣 + 瞬态木槌敲击
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(195, now);
+      osc1.frequency.exponentialRampToValueAtTime(142, now + 0.14);
+
+      osc2.type = 'triangle';
+      osc2.frequency.setValueAtTime(585, now);
+      osc2.frequency.exponentialRampToValueAtTime(290, now + 0.06);
+
+      gain.gain.setValueAtTime(0.45, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+
+      osc1.connect(gain);
+      osc2.connect(gain);
+      gain.connect(ctx.destination);
+      osc1.start(now);
+      osc2.start(now);
+      osc1.stop(now + 0.19);
+      osc2.stop(now + 0.19);
+    } else if (type === 'bowl') {
+      // 藏式静心颂钵：悠长空灵泛音
+      [432, 648, 864].forEach((freq, idx) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, now);
+        const startVol = [0.28, 0.14, 0.07][idx];
+        gain.gain.setValueAtTime(startVol, now);
+        gain.gain.exponentialRampToValueAtTime(0.0008, now + 1.15);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 1.2);
+      });
+    } else if (type === 'duck') {
+      // 赛博功德鸭：滑音谐振
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(520, now);
+      osc.frequency.linearRampToValueAtTime(780, now + 0.06);
+      osc.frequency.exponentialRampToValueAtTime(340, now + 0.18);
+      gain.gain.setValueAtTime(0.18, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.19);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.2);
+    } else if (type === 'pop') {
+      // 塑料泡泡清脆爆破音（随机微调音高）
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      const baseFreq = 320 + Math.random() * 180;
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(baseFreq, now);
+      osc.frequency.exponentialRampToValueAtTime(baseFreq * 2.6, now + 0.045);
+      gain.gain.setValueAtTime(0.32, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.055);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.06);
+    } else if (type === 'goldpop') {
+      // 黄金泡泡暴击音效
+      [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(f, now + i * 0.04);
+        gain.gain.setValueAtTime(0.22, now + i * 0.04);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.04 + 0.22);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now + i * 0.04);
+        osc.stop(now + i * 0.04 + 0.24);
+      });
+    } else if (type === 'shred') {
+      // 拟真碎纸机音效：低频电机嗡鸣 + 连续带节奏的纸张刀片咬合切割声 (1.5秒)
+      const dur = 1.5;
+      const motor = ctx.createOscillator();
+      const motorGain = ctx.createGain();
+      motor.type = 'sawtooth';
+      motor.frequency.setValueAtTime(118, now);
+      motor.frequency.linearRampToValueAtTime(104, now + dur);
+      motorGain.gain.setValueAtTime(0.06, now);
+      motorGain.gain.exponentialRampToValueAtTime(0.005, now + dur);
+      motor.connect(motorGain);
+      motorGain.connect(ctx.destination);
+      motor.start(now);
+      motor.stop(now + dur);
+
+      const bufferSize = Math.floor(ctx.sampleRate * dur);
+      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        const t = i / ctx.sampleRate;
+        const pulse = 0.55 + 0.45 * Math.sin(t * 68);
+        data[i] = (Math.random() * 2 - 1) * pulse;
+      }
+      const noise = ctx.createBufferSource();
+      noise.buffer = buffer;
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(1350, now);
+      filter.Q.setValueAtTime(1.8, now);
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.24, now);
+      gain.gain.setValueAtTime(0.24, now + dur * 0.8);
+      gain.gain.exponentialRampToValueAtTime(0.008, now + dur);
+      noise.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+      noise.start(now);
+    } else if (type === 'burn') {
+      // 拟真火焰焚烧噼啪声：低沉火浪呼啸 + 高频火星爆裂噼啪声 (1.55秒)
+      const dur = 1.55;
+      const bufferSize = Math.floor(ctx.sampleRate * dur);
+      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        const crackle = Math.random() > 0.985 ? (Math.random() * 2 - 1) * 2.8 : (Math.random() * 2 - 1) * 0.45;
+        data[i] = crackle * Math.exp(-i / (ctx.sampleRate * 1.1));
+      }
+      const noise = ctx.createBufferSource();
+      noise.buffer = buffer;
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(680, now);
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.32, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + dur);
+      noise.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+      noise.start(now);
+    }
+  }
+
+  function loadState() {
+    const todayStr = new Date().toISOString().slice(0, 10);
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        state = { ...state, ...parsed };
+      }
+    } catch (e) {}
+    if (state.lastDate !== todayStr) {
+      state.todayMerit = 0;
+      state.lastDate = todayStr;
+      saveState();
+    }
+  }
+
+  function saveState() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    } catch (e) {}
+  }
+
+  function getMeritRank(total) {
+    if (total >= 10000) return '👑 大威天龙功德神';
+    if (total >= 3000) return '🪷 赛博无上活佛';
+    if (total >= 1000) return '🧘 人间清醒禅师';
+    if (total >= 300) return '📿 工位静心大师';
+    if (total >= 88) return '🕯️ 情绪稳定居士';
+    return '🌱 初级牛马行者';
+  }
+
+  function updateStatsBanner() {
+    const elToday = document.getElementById('mrStatToday');
+    const elTotal = document.getElementById('mrStatTotal');
+    const elPopped = document.getElementById('mrStatPopped');
+    const elRank = document.getElementById('mrStatRank');
+
+    if (elToday) elToday.textContent = state.todayMerit.toLocaleString();
+    if (elTotal) elTotal.textContent = state.totalMerit.toLocaleString();
+    if (elPopped) elPopped.textContent = state.poppedCount.toLocaleString();
+    if (elRank) elRank.textContent = getMeritRank(state.totalMerit);
+  }
+
+  function addMerit(amount) {
+    state.todayMerit += amount;
+    state.totalMerit += amount;
+    saveState();
+    updateStatsBanner();
+  }
+
+  // 渲染高光檀木鎏金电子木鱼与木槌 SVG
+  function renderMuyuSvg() {
+    const box = document.getElementById('mrMuyuSvgBox');
+    if (!box) return;
+    box.innerHTML = `
+      <div class="muyu-ripple"></div>
+      <svg viewBox="0 0 220 180" width="200" height="164" style="filter: drop-shadow(0 14px 24px rgba(0,0,0,0.45));">
+        <defs>
+          <radialGradient id="g_muyu_body" cx="38%" cy="30%" r="70%">
+            <stop offset="0%" stop-color="#FDE68A"/>
+            <stop offset="28%" stop-color="#D97706"/>
+            <stop offset="72%" stop-color="#92400E"/>
+            <stop offset="100%" stop-color="#451A03"/>
+          </radialGradient>
+          <linearGradient id="g_muyu_pad" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#991B1B"/>
+            <stop offset="50%" stop-color="#DC2626"/>
+            <stop offset="100%" stop-color="#7F1D1D"/>
+          </linearGradient>
+        </defs>
+        <!-- 锦缎莲花坐垫 -->
+        <ellipse cx="110" cy="152" rx="76" ry="18" fill="url(#g_muyu_pad)" stroke="#F59E0B" stroke-width="2.5"/>
+        <ellipse cx="110" cy="148" rx="64" ry="12" fill="none" stroke="rgba(253,230,138,0.45)" stroke-width="1.5" stroke-dasharray="6 4"/>
+        <!-- 木鱼饱满圆润主体 -->
+        <path d="M38,108 C34,58 68,28 112,28 C158,28 186,60 182,108 C180,138 152,150 110,150 C68,150 40,138 38,108 Z" fill="url(#g_muyu_body)" stroke="#78350F" stroke-width="2"/>
+        <!-- 顶部温润高光 -->
+        <ellipse cx="92" cy="54" rx="34" ry="13" transform="rotate(-10 92 54)" fill="rgba(255,255,255,0.28)"/>
+        <!-- 木鱼共鸣音槽与鱼目雕刻 -->
+        <path d="M40,106 Q110,122 178,104" fill="none" stroke="#290F02" stroke-width="9" stroke-linecap="round"/>
+        <path d="M42,106 Q110,122 176,104" fill="none" stroke="#451A03" stroke-width="4" stroke-linecap="round"/>
+        <circle cx="62" cy="105" r="9" fill="#290F02" stroke="#F59E0B" stroke-width="2"/>
+        <circle cx="62" cy="105" r="3.5" fill="#FDE68A"/>
+        <!-- 赛博梵文金印纹饰 -->
+        <text x="114" y="86" font-size="16" font-weight="900" fill="rgba(254,243,199,0.55)" text-anchor="middle" letter-spacing="3">CYBER ZEN</text>
+      </svg>
+      <div class="muyu-mallet">
+        <svg viewBox="0 0 100 100" width="92" height="92">
+          <line x1="25" y1="25" x2="82" y2="82" stroke="#B45309" stroke-width="8" stroke-linecap="round"/>
+          <circle cx="22" cy="22" r="15" fill="#F59E0B" stroke="#FEF3C7" stroke-width="2"/>
+        </svg>
+      </div>
+    `;
+  }
+
+  function knockMuyu(clientX, clientY) {
+    playMeritSound(curSoundMode);
+    if (navigator.vibrate) {
+      try { navigator.vibrate(10); } catch (e) {}
+    }
+
+    addMerit(curChantVal);
+
+    const actor = document.getElementById('mrMuyuSvgBox');
+    if (actor) {
+      actor.classList.remove('hit');
+      void actor.offsetWidth;
+      actor.classList.add('hit');
+      setTimeout(() => actor.classList.remove('hit'), 110);
+    }
+
+    // 生成飘字
+    const layer = document.getElementById('mrMuyuFloatLayer');
+    const stage = document.getElementById('mrMuyuStage');
+    if (layer && stage) {
+      const rect = stage.getBoundingClientRect();
+      let x = rect.width / 2 + (Math.random() * 60 - 30);
+      let y = rect.height * 0.36;
+      if (typeof clientX === 'number' && clientX > 0) {
+        x = Math.min(rect.width - 50, Math.max(50, clientX - rect.left));
+        y = Math.min(rect.height - 60, Math.max(40, clientY - rect.top - 20));
+      }
+
+      const item = document.createElement('div');
+      item.className = 'muyu-float-item';
+      item.style.left = `${x}px`;
+      item.style.top = `${y}px`;
+      item.textContent = curChant;
+      layer.appendChild(item);
+      setTimeout(() => item.remove(), 960);
+    }
+  }
+
+  function toggleAutoKnock() {
+    const btn = document.getElementById('mrBtnAutoMuyu');
+    if (autoTimer) {
+      clearInterval(autoTimer);
+      autoTimer = null;
+      if (btn) {
+        btn.classList.remove('running');
+        btn.textContent = '⚡ 开启赛博替身自动敲击';
+      }
+    } else {
+      knockMuyu();
+      autoTimer = setInterval(() => {
+        const mod = document.getElementById('mod-merit');
+        if (!mod || !mod.classList.contains('active') || curSubmod !== 'muyu') return;
+        knockMuyu();
+      }, 650);
+      if (btn) {
+        btn.classList.add('running');
+        btn.textContent = '⏸️ 赛博替身自动攒功德中...';
+      }
+    }
+  }
+
+  /* =========================================================
+     子模式 2：无尽减压泡泡纸 (Bubble Wrap)
+     ========================================================= */
+  const POP_WORDS = ['爽!', '噗!', '解压+1', '内耗-1', '舒坦', '波~', '焦虑-1'];
+  let sheetPopped = 0;
+  const SHEET_TOTAL = 36;
+
+  function renderBubbleSheet() {
+    const grid = document.getElementById('mrBubbleGrid');
+    const toast = document.getElementById('mrBubbleToast');
+    if (!grid) return;
+
+    sheetPopped = 0;
+    if (toast) toast.classList.remove('show');
+    updateBubbleProgress();
+
+    // 随机选 2 颗作为黄金暴击泡泡
+    const goldIdx1 = Math.floor(Math.random() * SHEET_TOTAL);
+    let goldIdx2 = Math.floor(Math.random() * SHEET_TOTAL);
+    if (goldIdx2 === goldIdx1) goldIdx2 = (goldIdx1 + 7) % SHEET_TOTAL;
+
+    grid.innerHTML = '';
+    for (let i = 0; i < SHEET_TOTAL; i++) {
+      const btn = document.createElement('button');
+      const isGold = i === goldIdx1 || i === goldIdx2;
+      btn.className = 'bubble-cell' + (isGold ? ' golden' : '');
+      btn.dataset.gold = isGold ? '1' : '0';
+      btn.setAttribute('aria-label', isGold ? '黄金减压泡泡' : '减压泡泡');
+
+      btn.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        isPointerDownOnBubbles = true;
+        popBubbleCell(btn);
+      });
+
+      btn.addEventListener('pointerenter', () => {
+        if (isPointerDownOnBubbles) {
+          popBubbleCell(btn);
+        }
+      });
+
+      grid.appendChild(btn);
+    }
+  }
+
+  function popBubbleCell(cell) {
+    if (!cell || cell.classList.contains('popped')) return;
+    cell.classList.add('popped');
+    const isGold = cell.dataset.gold === '1';
+
+    if (isGold) {
+      playMeritSound('goldpop');
+      cell.textContent = '暴富!';
+      addMerit(10);
+    } else {
+      playMeritSound('pop');
+      cell.textContent = POP_WORDS[Math.floor(Math.random() * POP_WORDS.length)];
+      addMerit(1);
+    }
+
+    if (navigator.vibrate) {
+      try { navigator.vibrate(isGold ? [15, 30, 20] : 8); } catch (e) {}
+    }
+
+    sheetPopped++;
+    state.poppedCount++;
+    saveState();
+    updateStatsBanner();
+    updateBubbleProgress();
+
+    if (sheetPopped >= SHEET_TOTAL) {
+      const toast = document.getElementById('mrBubbleToast');
+      if (toast) toast.classList.add('show');
+      if (window.SFX && window.SFX.reveal) window.SFX.reveal();
+    }
+  }
+
+  function updateBubbleProgress() {
+    const el = document.getElementById('mrBubbleSheetProgress');
+    if (el) {
+      el.innerHTML = `当前整张进度：<b>${sheetPopped} / ${SHEET_TOTAL}</b> 颗（支持按住滑动连环捏爆）`;
+    }
+  }
+
+  /* =========================================================
+     子模式 3：怨气碎纸机 & 赛博火盆 (Shredder)
+     ========================================================= */
+  const SHRED_QUOTES = [
+    '✨ 粉碎完成！该破防事项已从宇宙时间线彻底抹除，功德 +10！',
+    '🔥 焚化完毕！所有水逆与甩锅晦气已反弹回始作俑者，功德 +10！',
+    '⚡ 赛博超度成功！今日份精神内耗已转化为纯正摸鱼能量，功德 +10！',
+    '🛡️ 物理级销毁达成！没人能再拿这件事消耗你的乳腺与发际线！'
+  ];
+
+  function triggerDestroy(mode) {
+    if (isDestroying) return;
+    const stage = document.getElementById('mrShredStage');
+    const note = document.getElementById('mrShredPaper');
+    const textarea = document.getElementById('mrShredInput');
+    const stripsBox = document.getElementById('mrShredStrips');
+    const fireLayer = document.getElementById('mrShredFireLayer');
+    const fxBox = document.getElementById('mrShredFxBox');
+    const slotTitle = document.getElementById('mrShredSlotTitle');
+    const msgEl = document.getElementById('mrShredResultMsg');
+
+    if (!note || !textarea) return;
+    const textVal = textarea.value.trim() || '不可名状的上班怨气与精神内耗';
+    // 如果用户没写字，把默认字填进纸条，让用户亲眼看着字被切碎/烧掉！
+    if (!textarea.value.trim()) {
+      textarea.value = textVal;
+    }
+
+    isDestroying = true;
+    playMeritSound(mode === 'burn' ? 'burn' : 'shred');
+    if (navigator.vibrate) {
+      try { navigator.vibrate([30, 50, 30, 50, 40]); } catch (e) {}
+    }
+
+    if (stage) stage.classList.add('vibrating');
+
+    if (mode === 'burn') {
+      if (slotTitle) slotTitle.textContent = '🔥 赛博三昧真火高温焚化炉运转中 🔥';
+      if (msgEl) msgEl.textContent = '🔥 正在启动三昧真火将怨气烧成赛博灰烬……';
+      note.classList.add('burning');
+
+      // 在进纸视窗生成多束升腾烈焰与飞舞火星
+      if (fireLayer) {
+        fireLayer.innerHTML = '';
+        for (let i = 0; i < 12; i++) {
+          const tongue = document.createElement('div');
+          tongue.className = 'burn-flame-tongue';
+          tongue.style.left = `${4 + i * 8 + (Math.random() * 4 - 2)}%`;
+          tongue.style.animationDelay = `${(Math.random() * 0.22).toFixed(2)}s`;
+          fireLayer.appendChild(tongue);
+        }
+        for (let j = 0; j < 26; j++) {
+          const ember = document.createElement('div');
+          ember.className = 'burn-ember';
+          ember.style.left = `${8 + Math.random() * 84}%`;
+          ember.style.setProperty('--ex', `${(Math.random() * 60 - 30).toFixed(1)}px`);
+          ember.style.animationDelay = `${(Math.random() * 0.65).toFixed(2)}s`;
+          fireLayer.appendChild(ember);
+        }
+      }
+    } else {
+      if (slotTitle) slotTitle.textContent = '⚙️ 高压钛合金刀辊高速咬合切碎中 ⚙️';
+      if (msgEl) msgEl.textContent = '⚙️ 正在将破防便签卷入刀辊切成 16 缕碎纸条……';
+      note.classList.add('shredding');
+
+      // 根据用户输入的真实文本生成 16 根带残字的竖向碎纸条，从刀口下方同步吐出
+      if (stripsBox) {
+        stripsBox.classList.remove('active');
+        const cleanChars = textVal.replace(/\s+/g, '');
+        const stripCount = 16;
+        let html = '';
+        for (let i = 0; i < stripCount; i++) {
+          // 每一根纸条截取对应的残字
+          let stripChars = '';
+          for (let r = 0; r < 5; r++) {
+            const chIdx = (i + r * 3) % cleanChars.length;
+            stripChars += cleanChars[chIdx] || '碎';
+          }
+          const delay = ((i % 4) * 0.03 + Math.random() * 0.04).toFixed(2);
+          const dx = ((i - stripCount / 2) * 1.8 + (Math.random() * 6 - 3)).toFixed(1);
+          const rotMid = ((Math.random() * 8 - 4)).toFixed(1);
+          const rotEnd = ((i % 2 === 0 ? 1 : -1) * (5 + Math.random() * 14)).toFixed(1);
+          html += `<div class="shred-strip" style="--delay:${delay}s;--dx:${dx}px;--rotMid:${rotMid}deg;--rotEnd:${rotEnd}deg;">${stripChars}</div>`;
+        }
+        stripsBox.innerHTML = html;
+        void stripsBox.offsetWidth;
+        stripsBox.classList.add('active');
+      }
+
+      // 同时在集屑仓喷溅细碎纸屑颗粒
+      if (fxBox) {
+        fxBox.querySelectorAll('.shred-crumb').forEach(el => el.remove());
+        for (let k = 0; k < 18; k++) {
+          const crumb = document.createElement('div');
+          crumb.className = 'shred-crumb';
+          crumb.style.left = `${12 + Math.random() * 76}%`;
+          crumb.style.setProperty('--cx', `${(Math.random() * 70 - 35).toFixed(1)}px`);
+          crumb.style.setProperty('--cr', `${Math.floor(Math.random() * 360 - 180)}deg`);
+          crumb.style.animationDelay = `${(0.15 + Math.random() * 0.75).toFixed(2)}s`;
+          fxBox.appendChild(crumb);
+        }
+      }
+    }
+
+    setTimeout(() => {
+      if (stage) stage.classList.remove('vibrating');
+      if (slotTitle) slotTitle.textContent = '▼ 高压钛合金碎纸刀辊 · 赛博焚化炉 ▼';
+
+      state.shreddedCount++;
+      addMerit(10);
+      if (window.SFX && window.SFX.reveal) window.SFX.reveal();
+
+      const quote = SHRED_QUOTES[Math.floor(Math.random() * SHRED_QUOTES.length)];
+      if (msgEl) msgEl.textContent = `【已清运 ${state.shreddedCount} 件】${quote}`;
+
+      // 恢复空白新便签纸
+      note.classList.remove('shredding', 'burning');
+      if (stripsBox) {
+        stripsBox.classList.remove('active');
+        stripsBox.innerHTML = '';
+      }
+      if (fireLayer) fireLayer.innerHTML = '';
+      if (fxBox) fxBox.querySelectorAll('.shred-crumb').forEach(el => el.remove());
+
+      textarea.value = '';
+      textarea.placeholder = `上一条「${textVal.slice(0, 12)}…」已彻底粉碎清零！还有什么不爽继续写下来销毁…`;
+      isDestroying = false;
+    }, 1680);
+  }
+
+  /* =========================================================
+     生成《赛博功德与怨气清运凭证》高清分享海报
+     ========================================================= */
+  function drawMeritPoster() {
+    const cv = document.createElement('canvas');
+    cv.width = 1080;
+    cv.height = 1620;
+    const ctx = cv.getContext('2d');
+    const isDark = document.documentElement.dataset.theme !== 'light';
+
+    // 背景
+    ctx.fillStyle = isDark ? '#111018' : '#FAF7F2';
+    ctx.fillRect(0, 0, 1080, 1620);
+
+    // 外框卡片
+    ctx.fillStyle = isDark ? '#1B1926' : '#FFFFFF';
+    ctx.strokeStyle = '#F59E0B';
+    ctx.lineWidth = 5;
+    roundRect(ctx, 80, 80, 920, 1460, 36);
+    ctx.fill();
+    ctx.stroke();
+
+    // 标题
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#F59E0B';
+    ctx.font = '900 26px monospace';
+    ctx.fillText('CYBER MERIT & STRESS RELIEF CERTIFICATE', 540, 175);
+
+    ctx.fillStyle = isDark ? '#FFFFFF' : '#1E1B18';
+    ctx.font = '900 54px system-ui, sans-serif';
+    ctx.fillText('赛博功德与怨气清运凭证', 540, 260);
+
+    // 禅修境界勋章
+    const rankTitle = getMeritRank(state.totalMerit);
+    ctx.fillStyle = 'rgba(245, 158, 11, 0.15)';
+    roundRect(ctx, 310, 305, 460, 68, 34);
+    ctx.fill();
+    ctx.strokeStyle = '#F59E0B';
+    ctx.lineWidth = 2.5;
+    ctx.stroke();
+
+    ctx.fillStyle = '#F59E0B';
+    ctx.font = '900 32px system-ui, sans-serif';
+    ctx.fillText(`当前果位：${rankTitle}`, 540, 351);
+
+    // 三大功德数据格
+    const cards = [
+      { label: '🪵 累计敲击赛博功德', val: `${state.totalMerit}`, unit: '点功德圆满', color: '#F59E0B' },
+      { label: '🫧 累计捏爆减压泡泡', val: `${state.poppedCount}`, unit: '颗焦虑清零', color: '#22D3EE' },
+      { label: '🔥 累计粉碎破防怨气', val: `${state.shreddedCount}`, unit: '件水逆退散', color: '#FB7185' }
+    ];
+
+    cards.forEach((c, idx) => {
+      const y = 430 + idx * 210;
+      ctx.fillStyle = isDark ? '#242134' : '#F3EFE6';
+      roundRect(ctx, 140, y, 800, 180, 24);
+      ctx.fill();
+      ctx.strokeStyle = c.color;
+      ctx.lineWidth = 2.5;
+      ctx.stroke();
+
+      ctx.textAlign = 'left';
+      ctx.fillStyle = c.color;
+      ctx.font = '800 28px system-ui, sans-serif';
+      ctx.fillText(c.label, 185, y + 62);
+
+      ctx.fillStyle = isDark ? '#FFFFFF' : '#111827';
+      ctx.font = '900 64px monospace';
+      ctx.fillText(c.val, 185, y + 142);
+
+      ctx.textAlign = 'right';
+      ctx.fillStyle = isDark ? '#94A3B8' : '#64748B';
+      ctx.font = 'bold 26px system-ui, sans-serif';
+      ctx.fillText(c.unit, 895, y + 135);
+    });
+
+    // 静心箴言
+    ctx.textAlign = 'center';
+    ctx.fillStyle = isDark ? '#E2E8F0' : '#334155';
+    ctx.font = 'bold 28px system-ui, sans-serif';
+    ctx.fillText('「敲最响的赛博木鱼，捏最爽的减压泡泡，烧最烦的破防瞬间」', 540, 1135);
+    ctx.font = '25px system-ui, sans-serif';
+    ctx.fillStyle = isDark ? '#94A3B8' : '#64748B';
+    ctx.fillText('经赛博功德局核验：持证人今日体内怨气已 100% 物理超度，', 540, 1190);
+    ctx.fillText('诸邪退散、Bug 清零、乳腺畅通、财源滚滚！', 540, 1235);
+
+    // 朱砂印章
+    ctx.save();
+    ctx.translate(540, 1355);
+    ctx.rotate(-7 * Math.PI / 180);
+    ctx.strokeStyle = '#E11D48';
+    ctx.lineWidth = 5;
+    roundRect(ctx, -175, -52, 350, 104, 16);
+    ctx.stroke();
+    ctx.fillStyle = '#E11D48';
+    ctx.font = '900 38px system-ui, sans-serif';
+    ctx.fillText('诸邪退散 · 功德无量', 0, 14);
+    ctx.restore();
+
+    ctx.fillStyle = '#94A3B8';
+    ctx.font = '22px monospace';
+    ctx.fillText('灵感人格研究所 · 赛博功德局', 540, 1485);
+
+    const a = document.createElement('a');
+    a.download = `赛博功德凭证_${Date.now()}.png`;
+    a.href = cv.toDataURL('image/png');
+    a.click();
+  }
+
+  function roundRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x + r, y);
+    ctx.lineTo(x + w - r, y);
+    ctx.arcTo(x + w, y, x + w, y + r, r);
+    ctx.lineTo(x + w, y + h - r);
+    ctx.arcTo(x + w, y + h, x + w - r, y + h, r);
+    ctx.lineTo(x + r, y + h);
+    ctx.arcTo(x, y + h, x, y + h - r, r);
+    ctx.lineTo(x, y + r);
+    ctx.arcTo(x, y, x + r, y, r);
+    ctx.closePath();
+  }
+
+  function switchSubmod(sub) {
+    curSubmod = sub;
+    if (window.SFX && window.SFX.tap) window.SFX.tap();
+    document.querySelectorAll('#mod-merit .mr-tab').forEach(t => {
+      t.classList.toggle('active', t.dataset.submod === sub);
+    });
+    document.querySelectorAll('#mod-merit .mr-substage').forEach(s => {
+      s.classList.toggle('active', s.id === `mr-sub-${sub}`);
+    });
+  }
+
+  let isInitialized = false;
+
+  function init() {
+    if (isInitialized) return;
+    isInitialized = true;
+
+    loadState();
+    renderMuyuSvg();
+    renderBubbleSheet();
+    updateStatsBanner();
+
+    // 全局松开指针结束滑动捏泡泡
+    window.addEventListener('pointerup', () => {
+      isPointerDownOnBubbles = false;
+    });
+
+    // 绑定三大子法器切换
+    document.querySelectorAll('#mod-merit .mr-tab').forEach(tab => {
+      tab.onclick = () => switchSubmod(tab.dataset.submod);
+    });
+
+    // 绑定木鱼祈福词条切换
+    document.querySelectorAll('#mod-merit .muyu-pill').forEach(pill => {
+      pill.onclick = () => {
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        curChant = pill.dataset.chant || '功德 +1';
+        curChantVal = parseInt(pill.dataset.val || '1', 10);
+        document.querySelectorAll('#mod-merit .muyu-pill').forEach(p => p.classList.toggle('active', p === pill));
+      };
+    });
+
+    // 绑定木鱼舞台点击
+    const muyuStage = document.getElementById('mrMuyuStage');
+    if (muyuStage) {
+      muyuStage.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        knockMuyu(e.clientX, e.clientY);
+      });
+    }
+
+    // 绑定空格键敲木鱼
+    window.addEventListener('keydown', (e) => {
+      const mod = document.getElementById('mod-merit');
+      if (!mod || !mod.classList.contains('active')) return;
+      if (curSubmod === 'muyu' && e.code === 'Space' && document.activeElement.tagName !== 'TEXTAREA' && document.activeElement.tagName !== 'INPUT') {
+        e.preventDefault();
+        knockMuyu();
+      }
+    });
+
+    // 绑定木鱼音色切换
+    document.querySelectorAll('#mod-merit [data-muyu-sound]').forEach(btn => {
+      btn.onclick = () => {
+        curSoundMode = btn.dataset.muyuSound;
+        playMeritSound(curSoundMode);
+        document.querySelectorAll('#mod-merit [data-muyu-sound]').forEach(b => b.classList.toggle('active', b === btn));
+      };
+    });
+
+    // 绑定自动敲木鱼
+    const btnAuto = document.getElementById('mrBtnAutoMuyu');
+    if (btnAuto) btnAuto.onclick = toggleAutoKnock;
+
+    // 绑定换一张泡泡纸
+    const btnNewSheet = document.getElementById('mrBtnNewBubbleSheet');
+    if (btnNewSheet) {
+      btnNewSheet.onclick = () => {
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        renderBubbleSheet();
+      };
+    }
+
+    // 绑定怨气预设词条点击填入
+    document.querySelectorAll('#mod-merit .shred-preset-tag').forEach(tag => {
+      tag.onclick = () => {
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        const inp = document.getElementById('mrShredInput');
+        if (inp) inp.value = tag.textContent.trim();
+      };
+    });
+
+    // 绑定粉碎与火盆按钮
+    const btnShred = document.getElementById('mrBtnDoShred');
+    if (btnShred) btnShred.onclick = () => triggerDestroy('shred');
+
+    const btnBurn = document.getElementById('mrBtnDoBurn');
+    if (btnBurn) btnBurn.onclick = () => triggerDestroy('burn');
+
+    // 绑定底部开具凭证与归档按钮
+    const btnPoster = document.getElementById('mrBtnPoster');
+    if (btnPoster) {
+      btnPoster.onclick = () => {
+        if (window.SFX && window.SFX.save) window.SFX.save();
+        const rank = getMeritRank(state.totalMerit);
+        if (window.UniversalHistory && typeof window.UniversalHistory.add === 'function') {
+          window.UniversalHistory.add({
+            module: 'merit',
+            title: `${rank} · 功德 ${state.totalMerit}`,
+            subtitle: `捏爆泡泡 ${state.poppedCount} 颗 · 粉碎怨气 ${state.shreddedCount} 件`,
+            color: '#F59E0B',
+            badge: '📿 功德',
+            avatar: '🪵',
+            data: { ...state }
+          });
+        }
+        drawMeritPoster();
+      };
+    }
+  }
+
+  function restore(recordData) {
+    init();
+    if (recordData && typeof recordData.totalMerit === 'number') {
+      state.totalMerit = Math.max(state.totalMerit, recordData.totalMerit);
+      updateStatsBanner();
+    }
+  }
+
+  window.AppMerit = {
+    init,
+    restore,
+    knockMuyu,
+    drawMeritPoster
   };
 })();
 
@@ -18656,6 +21226,10 @@ if ('serviceWorker' in navigator) {
         if (window.AppClock && typeof window.AppClock.restore === 'function' && item.data) {
           window.AppClock.restore(item.data);
         }
+      } else if (mod === 'merit') {
+        if (window.AppMerit && typeof window.AppMerit.restore === 'function' && item.data) {
+          window.AppMerit.restore(item.data);
+        }
       }
     } catch (e) {
       console.warn('restore record error:', e);
@@ -18676,7 +21250,8 @@ if ('serviceWorker' in navigator) {
       tarot: list.filter(r => r.module === 'tarot').length,
       lingqian: list.filter(r => r.module === 'lingqian').length,
       decision: list.filter(r => r.module === 'decision').length,
-      clock: list.filter(r => r.module === 'clock').length
+      clock: list.filter(r => r.module === 'clock').length,
+      merit: list.filter(r => r.module === 'merit').length
     };
 
     // 渲染分类筛选条
@@ -18692,6 +21267,7 @@ if ('serviceWorker' in navigator) {
         <button class="uni-filter-chip ${filterMod === 'lingqian' ? 'active' : ''}" data-mod="lingqian">🎋 灵签 <span class="chip-count">${counts.lingqian}</span></button>
         <button class="uni-filter-chip ${filterMod === 'decision' ? 'active' : ''}" data-mod="decision">🪙 决策 <span class="chip-count">${counts.decision}</span></button>
         <button class="uni-filter-chip ${filterMod === 'clock' ? 'active' : ''}" data-mod="clock">⏰ 摸鱼 <span class="chip-count">${counts.clock}</span></button>
+        <button class="uni-filter-chip ${filterMod === 'merit' ? 'active' : ''}" data-mod="merit">📿 功德 <span class="chip-count">${counts.merit}</span></button>
       `;
 
       filterBar.querySelectorAll('.uni-filter-chip').forEach(btn => {
@@ -18919,6 +21495,8 @@ if ('serviceWorker' in navigator) {
   'use strict';
 
   let currentModule = 'drinks';
+  let lastMysticMod = 'tarot';
+  const ALLOWED_MODS = ['drinks', 'milktea', 'manual', 'fengshui', 'tarot', 'lingqian', 'decision', 'clock', 'merit'];
   const initializedModules = new Set(['drinks']);
 
   function updateGlider(activeTab) {
@@ -18933,17 +21511,21 @@ if ('serviceWorker' in navigator) {
   }
 
   function switchModule(modKey, updateHash = true) {
-    if (!['drinks', 'milktea', 'manual', 'fengshui', 'tarot', 'lingqian', 'decision', 'clock'].includes(modKey)) {
+    if (!ALLOWED_MODS.includes(modKey)) {
       modKey = 'drinks';
+    }
+    if (modKey === 'tarot' || modKey === 'lingqian') {
+      lastMysticMod = modKey;
     }
 
     currentModule = modKey;
     document.documentElement.dataset.activeModule = modKey;
 
+    const hasSeparateLingqianTab = !!document.querySelector('.nav-tab[data-mod="lingqian"]');
     let matchedTab = null;
     // 切换顶栏 Tab 选中状态
     document.querySelectorAll('.nav-tab').forEach(tab => {
-      const isMatch = tab.dataset.mod === modKey;
+      const isMatch = tab.dataset.mod === modKey || (!hasSeparateLingqianTab && modKey === 'lingqian' && tab.dataset.mod === 'tarot');
       tab.classList.toggle('active', isMatch);
       if (isMatch) {
         matchedTab = tab;
@@ -18978,6 +21560,7 @@ if ('serviceWorker' in navigator) {
       if (modKey === 'decision' && window.AppDecision) window.AppDecision.init();
       if (modKey === 'lingqian' && window.AppLingqian) window.AppLingqian.init();
       if (modKey === 'clock' && window.AppClock) window.AppClock.init();
+      if (modKey === 'merit' && window.AppMerit) window.AppMerit.init();
     } else {
       if (modKey === 'manual' && window.AppManual) {
         const body = document.getElementById('sm-homebody');
@@ -18992,7 +21575,7 @@ if ('serviceWorker' in navigator) {
 
   function handleHash() {
     const hash = window.location.hash.replace(/^#\/?/, '').toLowerCase();
-    if (['drinks', 'milktea', 'manual', 'fengshui', 'tarot', 'lingqian', 'decision', 'clock'].includes(hash)) {
+    if (ALLOWED_MODS.includes(hash)) {
       switchModule(hash, false);
     }
   }
@@ -19002,7 +21585,12 @@ if ('serviceWorker' in navigator) {
     document.querySelectorAll('.nav-tab').forEach(tab => {
       tab.addEventListener('click', () => {
         if (window.SFX && window.SFX.tap) window.SFX.tap();
-        switchModule(tab.dataset.mod, true);
+        const hasSeparateLingqianTab = !!document.querySelector('.nav-tab[data-mod="lingqian"]');
+        let targetMod = tab.dataset.mod;
+        if (!hasSeparateLingqianTab && targetMod === 'tarot') {
+          targetMod = lastMysticMod || 'tarot';
+        }
+        switchModule(targetMod, true);
       });
     });
 

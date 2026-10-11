@@ -17,33 +17,40 @@
   ];
 
   const BRANDS = [
-    { name: "喜茶", en: "HEYTEA", emoji: "🍑", color: "#26241f", drink: "多肉葡萄", desc: "你是灵感与潮流本潮。对新鲜事物永远好奇，敢试先锋口味，也愿意为品质买单——朋友圈里的种草机非你莫属。", t: { te: 2, fr: 2, tr: 3, cr: 1, sw: 1, mi: 0, bd: 0 } },
-    { name: "奈雪的茶", en: "NAYUKI", emoji: "🍓", color: "#e0594e", drink: "霸气芝士草莓", desc: "你温柔又精致，生活要有仪式感。喜欢水果的鲜甜与软欧包的柔软，和你做朋友，像喝一口霸气橙子一样元气满满。", t: { fr: 3, sw: 2, mi: 2, tr: 2, cr: 1, bd: 0, te: 0 } },
-    { name: "蜜雪冰城", en: "MIXUE", emoji: "🍦", color: "#e03e2f", drink: "冰鲜柠檬水", desc: "你是快乐源泉本泉！性价比拉满、甜度满分，永远用最简单的快乐感染身边的人。雪王看了都想和你击掌。", t: { bd: 3, sw: 3, cr: 2, fr: 1, tr: 1, mi: 0, te: 0 } },
-    { name: "一点点", en: "YiDianDian", emoji: "🧋", color: "#8a6d3b", drink: "波霸奶茶", desc: "你是经典派掌门人。不跟风、不折腾，波霸奶茶三分糖就是你的舒适区——稳，且永远值得信赖。", t: { mi: 2, te: 2, bd: 2, sw: 1, tr: 1, cr: 0, fr: 0 } },
-    { name: "茶百道", en: "ChaBaiDao", emoji: "🥭", color: "#d97b29", drink: "杨枝甘露", desc: "你随和又有自己的小讲究。芒果西米露还是杨枝甘露，你总能选到最对的那一杯，是朋友眼中靠谱的点单担当。", t: { fr: 2, mi: 2, sw: 2, bd: 2, cr: 1, te: 0, tr: 0 } },
-    { name: "古茗", en: "GUMING", emoji: "🍇", color: "#4e7a3a", drink: "超A芝士葡萄", desc: "你踏实又有惊喜感。平时低调，关键时刻总能拿出超A表现，像芝士葡萄里那层厚厚的芝士，越品越有。", t: { fr: 2, te: 2, bd: 2, sw: 1, mi: 1, cr: 1, tr: 0 } },
-    { name: "沪上阿姨", en: "AUNTEA", emoji: "🍡", color: "#e4577e", drink: "血糯米奶茶", desc: "你是暖胃又暖心的人。血糯米的软糯是你的底色——实在、温暖、管饱，和你相处像冬日里的一杯热奶茶。", t: { mi: 2, te: 2, bd: 2, sw: 1, fr: 1, cr: 0, tr: 0 } },
-    { name: "书亦烧仙草", en: "SHUYI", emoji: "🍮", color: "#8c5a35", drink: "书亦烧仙草", desc: "你是“半杯都是料”的实在人。给朋友的爱永远溢出来，耐心又包容，谁和你在一起都不怕饿着。", t: { mi: 2, sw: 2, bd: 2, te: 1, fr: 1, cr: 0, tr: 0 } },
-    { name: "霸王茶姬", en: "BawangChaji", emoji: "🏮", color: "#b3342c", drink: "伯牙绝弦", desc: "你是东方美学代言人。骨子里有国风的浪漫与大气，伯牙绝弦般的知音情谊，是你对朋友最长情的告白。", t: { te: 3, tr: 2, mi: 1, cr: 1, sw: 0, fr: 0, bd: 0 } },
-    { name: "茶颜悦色", en: "Sexy Tea", emoji: "🎐", color: "#2f6b5a", drink: "幽兰拿铁", desc: "你是文艺青年本青。墨色山水、幽兰拿铁，你爱的是那一口细腻的中式浪漫，安静，却惊艳。", t: { te: 3, mi: 2, tr: 2, sw: 1, cr: 1, fr: 0, bd: 0 } },
-    { name: "CoCo都可", en: "CoCo", emoji: "🥤", color: "#f0a030", drink: "奶茶三兄弟", desc: "你是国民好队友。奶茶三兄弟都认识你——随和、百搭、永远在线，任何局都能轻松融入。", t: { mi: 2, sw: 2, te: 1, bd: 1, cr: 1, fr: 0, tr: 0 } },
-    { name: "益禾堂", en: "Yihetang", emoji: "🍵", color: "#c98a3d", drink: "益禾烤奶", desc: "你是温暖的老朋友。烤奶的焦香是你的安心感，不张扬但一喝就懂，越处越香。", t: { te: 2, bd: 2, mi: 1, sw: 1, cr: 1, fr: 0, tr: 0 } },
-    { name: "甜啦啦", en: "Tianlala", emoji: "🍉", color: "#ef7c4f", drink: "一桶水果茶", desc: "你是元气水果担当。一桶水果茶装得下你的快乐，实在又大方，和你在一起永远不缺笑声。", t: { fr: 2, bd: 2, sw: 2, cr: 1, mi: 0, te: 0, tr: 0 } },
-    { name: "快乐柠檬", en: "Happy Lemon", emoji: "🍋", color: "#e8c93a", drink: "柠檬霸", desc: "你是清爽系代表。酸酸甜甜、干脆利落，心情不好时你就是那杯解腻的柠檬茶，一喝就醒。", t: { cr: 2, fr: 2, sw: 1, bd: 1, te: 1, mi: 0, tr: 0 } },
-    { name: "贡茶", en: "Gong Cha", emoji: "🐼", color: "#8a6b45", drink: "熊猫奶盖茶", desc: "你是奶盖爱好者协会会长。层次分明是你的处世哲学——表面奶盖甜软，内里茶汤清醒。", t: { mi: 2, te: 2, tr: 1, sw: 1, cr: 0, fr: 0, bd: 0 } },
-    { name: "鹿角巷", en: "The Alley", emoji: "🦌", color: "#5c3f28", drink: "黑糖鹿丸鲜奶", desc: "你是颜值与内涵并存的黑糖系。看似高冷，实则甜到心里，慢热却深情，像黑糖鹿丸一样越嚼越香。", t: { mi: 2, sw: 2, tr: 2, te: 1, cr: 0, fr: 0, bd: 0 } },
-    { name: "老虎堂", en: "Tiger Sugar", emoji: "🐯", color: "#b06a33", drink: "波霸厚鲜奶", desc: "你是霸气外露的甜心。虎纹黑糖是你的态度——一眼难忘，入口惊艳，甜得堂堂正正。", t: { mi: 2, sw: 2, tr: 1, bd: 1, te: 0, cr: 0, fr: 0 } },
-    { name: "一芳水果茶", en: "YiFang", emoji: "🍊", color: "#d9794a", drink: "一芳水果茶", desc: "你是自然系文艺派。爱果香爱茶香，拒绝过度加工，做真实的自己，清清爽爽就很迷人。", t: { fr: 3, te: 2, cr: 2, sw: 1, mi: 0, bd: 0, tr: 0 } },
-    { name: "春阳茶事", en: "Chun Yang", emoji: "🌸", color: "#6f9e4f", drink: "黑糖珍珠鲜奶", desc: "你是温润如玉的古早派。春阳般的柔和是你的气场，老派却讲究，淡而有味。", t: { te: 2, cr: 2, fr: 1, mi: 1, sw: 1, bd: 1, tr: 0 } },
-    { name: "厝内小眷村", en: "Cuo Nei", emoji: "🏡", color: "#7d5f45", drink: "眷村奶茶", desc: "你是烟火气里的治愈者。眷村的温度、奶茶的甜糯，和你相处像回到最舒服的老家。", t: { mi: 2, sw: 2, bd: 2, te: 1, cr: 0, fr: 0, tr: 0 } },
-    { name: "柠季", en: "LINLEE", emoji: "🍹", color: "#86bf2e", drink: "手打柠檬茶", desc: "你是清爽利落的行动派。手打柠檬茶是你的解压神器，直接、痛快、不拖泥带水。", t: { cr: 3, fr: 2, bd: 2, te: 1, sw: 0, mi: 0, tr: 0 } },
-    { name: "乐乐茶", en: "LeLe Cha", emoji: "🍫", color: "#e79aa8", drink: "脏脏茶", desc: "你是快乐制造机。脏脏茶的放纵与草莓酪酪的甜蜜你都拿捏，和你在一起，快乐浓度超标。", t: { tr: 2, mi: 2, fr: 2, sw: 2, cr: 0, te: 0, bd: 0 } },
-    { name: "7分甜", en: "7FenTian", emoji: "🥥", color: "#f2a33c", drink: "杨枝甘露", desc: "你是甜蜜刚刚好的小太阳。不齁不淡，分寸感极佳，像杨枝甘露一样层次丰富又讨喜。", t: { fr: 2, sw: 2, cr: 1, bd: 1, mi: 1, te: 0, tr: 0 } },
-    { name: "茉沏", en: "Mo Qi", emoji: "🌼", color: "#7fb8b0", drink: "茉莉奶绿", desc: "你是清雅的白月光。茉莉奶绿般的淡香是你的签名，不争不抢，却让人念念不忘。", t: { te: 2, cr: 1, mi: 1, sw: 1, bd: 1, fr: 1, tr: 0 } },
-    { name: "茶理宜世", en: "ChaLiYiShi", emoji: "🍁", color: "#b5654a", drink: "郁郁幽兰", desc: "你是岭南风的浪漫主义者。烟火与茶香并蓄，懂传统也懂新意，像一盅暖茶，润物无声。", t: { te: 2, tr: 1, sw: 1, mi: 1, fr: 1, cr: 1, bd: 0 } },
-    { name: "茶话弄", en: "ChaHuaNong", emoji: "🎋", color: "#9c7a4a", drink: "桂花引", desc: "你是长安城里的闲雅客。一杯桂花引、一盏长安旧梦，你爱的是那份从容与古意。", t: { te: 2, tr: 2, cr: 1, sw: 1, mi: 1, fr: 0, bd: 0 } }
+    { name: "喜茶", en: "HEYTEA", logo: "assets/milktea/heytea.jpg", emoji: "🍑", color: "#26241f", drink: "多肉葡萄", desc: "你是灵感与潮流本潮。对新鲜事物永远好奇，敢试先锋口味，也愿意为品质买单——朋友圈里的种草机非你莫属。", t: { te: 2, fr: 2, tr: 3, cr: 1, sw: 1, mi: 0, bd: 0 } },
+    { name: "奈雪的茶", en: "NAYUKI", logo: "assets/milktea/nayuki.jpg", emoji: "🍓", color: "#e0594e", drink: "霸气芝士草莓", desc: "你温柔又精致，生活要有仪式感。喜欢水果的鲜甜与软欧包的柔软，和你做朋友，像喝一口霸气橙子一样元气满满。", t: { fr: 3, sw: 2, mi: 2, tr: 2, cr: 1, bd: 0, te: 0 } },
+    { name: "蜜雪冰城", en: "MIXUE", logo: "assets/milktea/mixue.jpg", emoji: "🍦", color: "#e03e2f", drink: "冰鲜柠檬水", desc: "你是快乐源泉本泉！性价比拉满、甜度满分，永远用最简单的快乐感染身边的人。雪王看了都想和你击掌。", t: { bd: 3, sw: 3, cr: 2, fr: 1, tr: 1, mi: 0, te: 0 } },
+    { name: "一点点", en: "YiDianDian", logo: "assets/milktea/yidiandian.jpg", emoji: "🧋", color: "#247d43", drink: "波霸奶茶", desc: "你是经典派掌门人。不跟风、不折腾，波霸奶茶三分糖就是你的舒适区——稳，且永远值得信赖。", t: { mi: 2, te: 2, bd: 2, sw: 1, tr: 1, cr: 0, fr: 0 } },
+    { name: "茶百道", en: "ChaBaiDao", logo: "assets/milktea/chabaidao.jpg", emoji: "🥭", color: "#1d3d8f", drink: "杨枝甘露", desc: "你随和又有自己的小讲究。芒果西米露还是杨枝甘露，你总能选到最对的那一杯，是朋友眼中靠谱的点单担当。", t: { fr: 2, mi: 2, sw: 2, bd: 2, cr: 1, te: 0, tr: 0 } },
+    { name: "古茗", en: "GUMING", logo: "assets/milktea/guming.jpg", emoji: "🍇", color: "#2b2b2b", drink: "超A芝士葡萄", desc: "你踏实又有惊喜感。平时低调，关键时刻总能拿出超A表现，像芝士葡萄里那层厚厚的芝士，越品越有。", t: { fr: 2, te: 2, bd: 2, sw: 1, mi: 1, cr: 1, tr: 0 } },
+    { name: "沪上阿姨", en: "AUNTEA", logo: "assets/milktea/auntea.jpg", emoji: "🍡", color: "#e4577e", drink: "血糯米奶茶", desc: "你是暖胃又暖心的人。血糯米的软糯是你的底色——实在、温暖、管饱，和你相处像冬日里的一杯热奶茶。", t: { mi: 2, te: 2, bd: 2, sw: 1, fr: 1, cr: 0, tr: 0 } },
+    { name: "书亦烧仙草", en: "SHUYI", logo: "assets/milktea/shuyi.jpg", emoji: "🍮", color: "#c92a2a", drink: "书亦烧仙草", desc: "你是“半杯都是料”的实在人。给朋友的爱永远溢出来，耐心又包容，谁和你在一起都不怕饿着。", t: { mi: 2, sw: 2, bd: 2, te: 1, fr: 1, cr: 0, tr: 0 } },
+    { name: "霸王茶姬", en: "CHAGEE", logo: "assets/milktea/chagee.jpg", emoji: "🏮", color: "#b3342c", drink: "伯牙绝弦", desc: "你是东方美学代言人。骨子里有国风的浪漫与大气，伯牙绝弦般的知音情谊，是你对朋友最长情的告白。", t: { te: 3, tr: 2, mi: 1, cr: 1, sw: 0, fr: 0, bd: 0 } },
+    { name: "茶颜悦色", en: "Sexy Tea", logo: "assets/milktea/sexytea.jpg", emoji: "🎐", color: "#8c1d2b", drink: "幽兰拿铁", desc: "你是文艺青年本青。墨色山水、幽兰拿铁，你爱的是那一口细腻的中式浪漫，安静，却惊艳。", t: { te: 3, mi: 2, tr: 2, sw: 1, cr: 1, fr: 0, bd: 0 } },
+    { name: "CoCo都可", en: "CoCo", logo: "assets/milktea/coco.jpg", emoji: "🥤", color: "#e6550d", drink: "奶茶三兄弟", desc: "你是国民好队友。奶茶三兄弟都认识你——随和、百搭、永远在线，任何局都能轻松融入。", t: { mi: 2, sw: 2, te: 1, bd: 1, cr: 1, fr: 0, tr: 0 } },
+    { name: "益禾堂", en: "Yihetang", logo: "assets/milktea/yihetang.jpg", emoji: "🍵", color: "#1b7a43", drink: "益禾烤奶", desc: "你是温暖的老朋友。烤奶的焦香是你的安心感，不张扬但一喝就懂，越处越香。", t: { te: 2, bd: 2, mi: 1, sw: 1, cr: 1, fr: 0, tr: 0 } },
+    { name: "甜啦啦", en: "Tianlala", logo: "assets/milktea/tianlala.jpg", emoji: "🍉", color: "#eab308", drink: "一桶水果茶", desc: "你是元气水果担当。一桶水果茶装得下你的快乐，实在又大方，和你在一起永远不缺笑声。", t: { fr: 2, bd: 2, sw: 2, cr: 1, mi: 0, te: 0, tr: 0 } },
+    { name: "快乐柠檬", en: "Happy Lemon", logo: "assets/milktea/happylemon.jpg", emoji: "🍋", color: "#e8c93a", drink: "柠檬霸", desc: "你是清爽系代表。酸酸甜甜、干脆利落，心情不好时你就是那杯解腻的柠檬茶，一喝就醒。", t: { cr: 2, fr: 2, sw: 1, bd: 1, te: 1, mi: 0, tr: 0 } },
+    { name: "贡茶", en: "Gong Cha", logo: "assets/milktea/gongcha.jpg", emoji: "🐼", color: "#8c2320", drink: "熊猫奶盖茶", desc: "你是奶盖爱好者协会会长。层次分明是你的处世哲学——表面奶盖甜软，内里茶汤清醒。", t: { mi: 2, te: 2, tr: 1, sw: 1, cr: 0, fr: 0, bd: 0 } },
+    { name: "鹿角巷", en: "The Alley", logo: "assets/milktea/thealley.jpg", emoji: "🦌", color: "#5c3f28", drink: "黑糖鹿丸鲜奶", desc: "你是颜值与内涵并存的黑糖系。看似高冷，实则甜到心里，慢热却深情，像黑糖鹿丸一样越嚼越香。", t: { mi: 2, sw: 2, tr: 2, te: 1, cr: 0, fr: 0, bd: 0 } },
+    { name: "老虎堂", en: "Tiger Sugar", logo: "assets/milktea/tigersugar.jpg", emoji: "🐯", color: "#2b2118", drink: "波霸厚鲜奶", desc: "你是霸气外露的甜心。虎纹黑糖是你的态度——一眼难忘，入口惊艳，甜得堂堂正正。", t: { mi: 2, sw: 2, tr: 1, bd: 1, te: 0, cr: 0, fr: 0 } },
+    { name: "一芳水果茶", en: "YiFang", logo: "assets/milktea/yifang.jpg", emoji: "🍊", color: "#b85d38", drink: "一芳水果茶", desc: "你是自然系文艺派。爱果香爱茶香，拒绝过度加工，做真实的自己，清清爽爽就很迷人。", t: { fr: 3, te: 2, cr: 2, sw: 1, mi: 0, bd: 0, tr: 0 } },
+    { name: "春阳茶事", en: "Chun Yang", logo: "assets/milktea/chunyang.jpg", emoji: "🌸", color: "#991b1b", drink: "黑糖珍珠鲜奶", desc: "你是温润如玉的古早派。春阳般的柔和是你的气场，老派却讲究，淡而有味。", t: { te: 2, cr: 2, fr: 1, mi: 1, sw: 1, bd: 1, tr: 0 } },
+    { name: "厝内小眷村", en: "Cuo Nei", logo: "assets/milktea/cuonei.jpg", emoji: "🏡", color: "#8c4a27", drink: "眷村奶茶", desc: "你是烟火气里的治愈者。眷村的温度、奶茶的甜糯，和你相处像回到最舒服的老家。", t: { mi: 2, sw: 2, bd: 2, te: 1, cr: 0, fr: 0, tr: 0 } },
+    { name: "柠季", en: "LINLEE", logo: "assets/milktea/linlee.jpg", emoji: "🍹", color: "#4dbb00", drink: "手打柠檬茶", desc: "你是清爽利落的行动派。手打柠檬茶是你的解压神器，直接、痛快、不拖泥带水。", t: { cr: 3, fr: 2, bd: 2, te: 1, sw: 0, mi: 0, tr: 0 } },
+    { name: "乐乐茶", en: "LELECHA", logo: "assets/milktea/lelecha.jpg", emoji: "🍫", color: "#d67f52", drink: "脏脏茶", desc: "你是快乐制造机。脏脏茶的放纵与草莓酪酪的甜蜜你都拿捏，和你在一起，快乐浓度超标。", t: { tr: 2, mi: 2, fr: 2, sw: 2, cr: 0, te: 0, bd: 0 } },
+    { name: "7分甜", en: "7FenTian", logo: "assets/milktea/7fentian.jpg", emoji: "🥥", color: "#f2c12e", drink: "杨枝甘露", desc: "你是甜蜜刚刚好的小太阳。不齁不淡，分寸感极佳，像杨枝甘露一样层次丰富又讨喜。", t: { fr: 2, sw: 2, cr: 1, bd: 1, mi: 1, te: 0, tr: 0 } },
+    { name: "茉沏", en: "Mo Qi", logo: "assets/milktea/moqi.jpg", emoji: "🌼", color: "#1d5b96", drink: "茉莉奶绿", desc: "你是清雅的白月光。茉莉奶绿般的淡香是你的签名，不争不抢，却让人念念不忘。", t: { te: 2, cr: 1, mi: 1, sw: 1, bd: 1, fr: 1, tr: 0 } },
+    { name: "茶理宜世", en: "ChaLiYiShi", logo: "assets/milktea/chaliyishi.jpg", emoji: "🍁", color: "#173b31", drink: "郁郁幽兰", desc: "你是岭南风的浪漫主义者。烟火与茶香并蓄，懂传统也懂新意，像一盅暖茶，润物无声。", t: { te: 2, tr: 1, sw: 1, mi: 1, fr: 1, cr: 1, bd: 0 } },
+    { name: "茶话弄", en: "ChaHuaNong", logo: "assets/milktea/chahuanong.jpg", emoji: "🎋", color: "#eb5600", drink: "桂花引", desc: "你是长安城里的闲雅客。一杯桂花引、一盏长安旧梦，你爱的是那份从容与古意。", t: { te: 2, tr: 2, cr: 1, sw: 1, mi: 1, fr: 0, bd: 0 } }
   ];
+
+  function resolveBrandLogo(b) {
+    if (!b) return '';
+    if (b.logo) return b.logo;
+    const found = BRANDS.find(item => item.name === b.name);
+    return found ? found.logo : '';
+  }
 
   const QS = [
     { q: "心情低落时，你最想来一杯？", opts: [{ t: "甜到飞起的快乐水", pts: { sw: 2 } }, { t: "清爽解腻的果茶", pts: { cr: 2, fr: 1 } }, { t: "浓郁奶香的热奶茶", pts: { mi: 2 } }, { t: "醇厚回甘的好茶", pts: { te: 2 } }] },
@@ -84,8 +91,8 @@
       const c = document.createElement('span');
       c.className = 'mt-bchip';
       c.style.background = b.color;
-      c.style.color = ["#e8c93a", "#86bf2e"].includes(b.color) ? "#3a2f1e" : "#fff";
-      c.innerHTML = `<em>${b.emoji}</em>${b.name}`;
+      c.style.color = ["#e8c93a", "#eab308", "#f2c12e"].includes(b.color) ? "#291d0a" : "#fff";
+      c.innerHTML = `<img class="mt-chip-logo" src="${b.logo}" alt="${b.name}" loading="lazy"><span>${b.name}</span>`;
       chipsEl.appendChild(c);
     });
   }
@@ -186,10 +193,12 @@
     });
 
     const wrap = document.getElementById('mtResWrap');
+    const mainLogo = resolveBrandLogo(b);
+    const secLogo = resolveBrandLogo(second.b);
     wrap.innerHTML = `
       <div class="mt-res-badge">✨ 你的奶茶人格是 ✨</div>
       <div class="mt-res-card" id="mtResCard">
-        <div class="mt-res-disc" style="background:linear-gradient(150deg,${b.color},${b.color}cc)">${b.emoji}</div>
+        <div class="mt-res-disc">${mainLogo ? `<img class="mt-res-logo-img" src="${mainLogo}" alt="${b.name}">` : b.emoji}</div>
         <h2>${b.name}</h2>
         <div class="en">${b.en}</div>
         <div class="mt-drink-tag">招牌 · ${b.drink}</div>
@@ -200,7 +209,7 @@
         </div>
       </div>
       <div class="mt-runner">
-        <div class="rd" style="background:linear-gradient(150deg,${second.b.color},${second.b.color}bb)">${second.b.emoji}</div>
+        <div class="rd">${secLogo ? `<img class="mt-runner-logo-img" src="${secLogo}" alt="${second.b.name}">` : second.b.emoji}</div>
         <div><b>第二人格 · ${second.b.name}</b><span>隐藏属性：${second.b.drink} 也是你的绝配灵魂饮品</span></div>
       </div>
       <div class="mt-res-foot">
@@ -241,113 +250,143 @@
     };
   }
 
-  /* 绘制 Canvas 分享海报 */
+  /* 绘制 Canvas 分享海报（支持嵌入真实品牌 Logo） */
   function drawMilkteaShareCard(res) {
     if (!res) return;
-    const cv = document.createElement('canvas');
-    cv.width = 1080;
-    cv.height = 1520;
-    const ctx = cv.getContext('2d');
-    const isDark = document.documentElement.dataset.theme !== 'light';
 
-    // 背景底色
-    ctx.fillStyle = isDark ? '#1a120b' : '#faf3e4';
-    ctx.fillRect(0, 0, 1080, 1520);
+    const renderPosterWithLogo = (logoImg) => {
+      const cv = document.createElement('canvas');
+      cv.width = 1080;
+      cv.height = 1520;
+      const ctx = cv.getContext('2d');
+      const isDark = document.documentElement.dataset.theme !== 'light';
 
-    // 装饰光晕
-    const grad = ctx.createRadialGradient(540, 200, 50, 540, 400, 600);
-    grad.addColorStop(0, 'rgba(232,201,106,0.22)');
-    grad.addColorStop(1, 'transparent');
-    ctx.fillStyle = grad;
-    ctx.fillRect(0, 0, 1080, 1520);
+      // 背景底色
+      ctx.fillStyle = isDark ? '#1a120b' : '#faf3e4';
+      ctx.fillRect(0, 0, 1080, 1520);
 
-    // 卡片背景
-    ctx.fillStyle = isDark ? '#241809' : '#fffdf6';
-    ctx.strokeStyle = isDark ? 'rgba(232,201,106,0.3)' : 'rgba(154,116,32,0.35)';
-    ctx.lineWidth = 4;
-    roundRect(ctx, 80, 80, 920, 1360, 40);
-    ctx.fill();
-    ctx.stroke();
+      // 装饰光晕
+      const grad = ctx.createRadialGradient(540, 200, 50, 540, 400, 600);
+      grad.addColorStop(0, 'rgba(232,201,106,0.22)');
+      grad.addColorStop(1, 'transparent');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 1080, 1520);
 
-    // 顶部标头
-    ctx.fillStyle = isDark ? '#b9a17e' : '#8a7352';
-    ctx.font = 'bold 30px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('奶茶人格研究所 · 独家风味档案', 540, 180);
+      // 卡片背景
+      ctx.fillStyle = isDark ? '#241809' : '#fffdf6';
+      ctx.strokeStyle = isDark ? 'rgba(232,201,106,0.3)' : 'rgba(154,116,32,0.35)';
+      ctx.lineWidth = 4;
+      roundRect(ctx, 80, 80, 920, 1360, 40);
+      ctx.fill();
+      ctx.stroke();
 
-    // Emoji 图标圆形
-    ctx.fillStyle = res.b.color || '#e8c96a';
-    ctx.beginPath();
-    ctx.arc(540, 320, 90, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.font = '84px sans-serif';
-    ctx.fillText(res.b.emoji, 540, 350);
-
-    // 品牌大名
-    ctx.fillStyle = isDark ? '#f7ead6' : '#4a3620';
-    ctx.font = 'bold 64px sans-serif';
-    ctx.fillText(res.b.name, 540, 480);
-
-    // 英文名
-    ctx.fillStyle = isDark ? '#b9a17e' : '#8a7352';
-    ctx.font = 'bold 28px sans-serif';
-    ctx.fillText(res.b.en, 540, 530);
-
-    // 招牌饮品胶囊
-    ctx.fillStyle = '#e8c96a';
-    roundRect(ctx, 360, 565, 360, 54, 27);
-    ctx.fill();
-    ctx.fillStyle = '#241809';
-    ctx.font = 'bold 30px sans-serif';
-    ctx.fillText(`招牌 · ${res.b.drink}`, 540, 603);
-
-    // 描述框
-    ctx.fillStyle = isDark ? '#33230f' : '#f6ead2';
-    roundRect(ctx, 140, 660, 800, 180, 24);
-    ctx.fill();
-    ctx.fillStyle = isDark ? '#e8c96a' : '#7a5c18';
-    ctx.font = '32px sans-serif';
-    ctx.textAlign = 'left';
-    wrapText(ctx, res.b.desc, 180, 725, 720, 48);
-
-    // 7 维属性条
-    ctx.fillStyle = isDark ? '#b9a17e' : '#8a7352';
-    ctx.font = 'bold 28px sans-serif';
-    ctx.fillText(`🧬 人格七维画像 (契合度 ${res.pct}%)`, 140, 895);
-
-    let barY = 940;
-    res.traits.forEach(t => {
-      const v = res.scores[t.k];
+      // 顶部标头
       ctx.fillStyle = isDark ? '#b9a17e' : '#8a7352';
-      ctx.font = 'bold 26px sans-serif';
-      ctx.fillText(`${t.e} ${t.n}`, 140, barY + 22);
+      ctx.font = 'bold 30px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('奶茶人格研究所 · 独家风味档案', 540, 180);
 
-      ctx.fillStyle = isDark ? '#33230f' : '#ead9b4';
-      roundRect(ctx, 280, barY, 600, 24, 12);
-      ctx.fill();
+      // 真实品牌 Logo 圆形徽章
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(540, 320, 92, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.clip();
+      if (logoImg) {
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(448, 228, 184, 184);
+        ctx.drawImage(logoImg, 448, 228, 184, 184);
+      } else {
+        ctx.fillStyle = res.b.color || '#e8c96a';
+        ctx.fillRect(448, 228, 184, 184);
+        ctx.font = '84px sans-serif';
+        ctx.fillText(res.b.emoji, 540, 350);
+      }
+      ctx.restore();
 
-      const fillW = Math.min(600, (v / 12) * 600);
-      ctx.fillStyle = '#e8c96a';
-      roundRect(ctx, 280, barY, fillW, 24, 12);
-      ctx.fill();
+      // 圆形金边外环
+      ctx.beginPath();
+      ctx.arc(540, 320, 92, 0, Math.PI * 2);
+      ctx.strokeStyle = '#e8c96a';
+      ctx.lineWidth = 5;
+      ctx.stroke();
 
+      // 品牌大名
       ctx.fillStyle = isDark ? '#f7ead6' : '#4a3620';
-      ctx.font = 'bold 22px sans-serif';
-      ctx.fillText(String(v), 900, barY + 22);
-      barY += 52;
-    });
+      ctx.font = 'bold 64px sans-serif';
+      ctx.fillText(res.b.name, 540, 480);
 
-    // 底部第二人格
-    ctx.fillStyle = isDark ? '#8a7352' : '#b3a076';
-    ctx.font = '24px sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(`第二人格：${res.second.emoji} ${res.second.name} · 隐藏本命：${res.second.drink}`, 540, 1360);
+      // 英文名
+      ctx.fillStyle = isDark ? '#b9a17e' : '#8a7352';
+      ctx.font = 'bold 28px sans-serif';
+      ctx.fillText(res.b.en, 540, 530);
 
-    // 下载图片
-    const a = document.createElement('a');
-    a.download = `奶茶人格_${res.b.name}.png`;
-    a.href = cv.toDataURL('image/png');
-    a.click();
+      // 招牌饮品胶囊
+      ctx.fillStyle = '#e8c96a';
+      roundRect(ctx, 360, 565, 360, 54, 27);
+      ctx.fill();
+      ctx.fillStyle = '#241809';
+      ctx.font = 'bold 30px sans-serif';
+      ctx.fillText(`招牌 · ${res.b.drink}`, 540, 603);
+
+      // 描述框
+      ctx.fillStyle = isDark ? '#33230f' : '#f6ead2';
+      roundRect(ctx, 140, 660, 800, 180, 24);
+      ctx.fill();
+      ctx.fillStyle = isDark ? '#e8c96a' : '#7a5c18';
+      ctx.font = '32px sans-serif';
+      ctx.textAlign = 'left';
+      wrapText(ctx, res.b.desc, 180, 725, 720, 48);
+
+      // 7 维属性条
+      ctx.fillStyle = isDark ? '#b9a17e' : '#8a7352';
+      ctx.font = 'bold 28px sans-serif';
+      ctx.fillText(`🧬 人格七维画像 (契合度 ${res.pct}%)`, 140, 895);
+
+      let barY = 940;
+      res.traits.forEach(t => {
+        const v = res.scores[t.k];
+        ctx.fillStyle = isDark ? '#b9a17e' : '#8a7352';
+        ctx.font = 'bold 26px sans-serif';
+        ctx.fillText(`${t.e} ${t.n}`, 140, barY + 22);
+
+        ctx.fillStyle = isDark ? '#33230f' : '#ead9b4';
+        roundRect(ctx, 280, barY, 600, 24, 12);
+        ctx.fill();
+
+        const fillW = Math.min(600, (v / 12) * 600);
+        ctx.fillStyle = '#e8c96a';
+        roundRect(ctx, 280, barY, fillW, 24, 12);
+        ctx.fill();
+
+        ctx.fillStyle = isDark ? '#f7ead6' : '#4a3620';
+        ctx.font = 'bold 22px sans-serif';
+        ctx.fillText(String(v), 900, barY + 22);
+        barY += 52;
+      });
+
+      // 底部第二人格
+      ctx.fillStyle = isDark ? '#8a7352' : '#b3a076';
+      ctx.font = '24px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(`第二人格：${res.second.name} · 隐藏本命：${res.second.drink}`, 540, 1360);
+
+      // 下载图片
+      const a = document.createElement('a');
+      a.download = `奶茶人格_${res.b.name}.png`;
+      a.href = cv.toDataURL('image/png');
+      a.click();
+    };
+
+    const logoSrc = resolveBrandLogo(res.b);
+    if (logoSrc) {
+      const img = new Image();
+      img.onload = () => renderPosterWithLogo(img);
+      img.onerror = () => renderPosterWithLogo(null);
+      img.src = logoSrc;
+    } else {
+      renderPosterWithLogo(null);
+    }
   }
 
   function roundRect(ctx, x, y, w, h, r) {
@@ -422,6 +461,8 @@
     lastResult = res;
     const b = res.b;
     const second = res.second || {};
+    const mainLogo = resolveBrandLogo(b);
+    const secLogo = resolveBrandLogo(second);
     const pct = res.pct || 88;
     const scores = res.scores || {};
     let bars = "";
@@ -435,7 +476,7 @@
     wrap.innerHTML = `
       <div class="mt-res-badge">✨ 你的奶茶人格是 ✨</div>
       <div class="mt-res-card" id="mtResCard">
-        <div class="mt-res-disc" style="background:linear-gradient(150deg,${b.color},${b.color}cc)">${b.emoji}</div>
+        <div class="mt-res-disc">${mainLogo ? `<img class="mt-res-logo-img" src="${mainLogo}" alt="${b.name}">` : b.emoji}</div>
         <h2>${b.name}</h2>
         <div class="en">${b.en || ''}</div>
         <div class="mt-drink-tag">招牌 · ${b.drink}</div>
@@ -446,7 +487,7 @@
         </div>
       </div>
       <div class="mt-runner">
-        <div class="rd" style="background:linear-gradient(150deg,${second.color || '#fff'},${second.color || '#fff'}bb)">${second.emoji || '✨'}</div>
+        <div class="rd">${secLogo ? `<img class="mt-runner-logo-img" src="${secLogo}" alt="${second.name || ''}">` : (second.emoji || '✨')}</div>
         <div><b>第二人格 · ${second.name || '探索中'}</b><span>隐藏属性：${second.drink || ''} 也是你的绝配灵魂饮品</span></div>
       </div>
       <div class="mt-res-foot">

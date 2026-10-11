@@ -57,6 +57,12 @@ html[data-active-module="clock"] {
   --mod-ac-glow: rgba(250, 204, 21, 0.35);
   --mod-ambient: rgba(250, 204, 21, 0.06);
 }
+html[data-active-module="merit"] {
+  --mod-ac: #F59E0B;
+  --mod-ac-ink: #241200;
+  --mod-ac-glow: rgba(245, 158, 11, 0.35);
+  --mod-ambient: rgba(245, 158, 11, 0.06);
+}
 
 #global-header {
   position: fixed;
@@ -278,6 +284,7 @@ html {
 #mod-decision,
 #mod-lingqian,
 #mod-clock,
+#mod-merit,
 .app-module {
   position: absolute !important;
   inset: 0 !important;
@@ -297,12 +304,13 @@ html {
 #mod-decision.active,
 #mod-lingqian.active,
 #mod-clock.active,
+#mod-merit.active,
 .app-module.active {
   display: flex !important;
   pointer-events: auto !important;
 }
 
-@media (max-width: 1120px) {
+@media (max-width: 1280px) {
   .nav-tab {
     padding: 6px 10px;
     font-size: 12.5px;

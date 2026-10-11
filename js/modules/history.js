@@ -135,6 +135,10 @@
         if (window.AppMerit && typeof window.AppMerit.restore === 'function' && item.data) {
           window.AppMerit.restore(item.data);
         }
+      } else if (mod === 'lifeguide') {
+        if (window.AppLifeguide && typeof window.AppLifeguide.restore === 'function' && item.data) {
+          window.AppLifeguide.restore(item.data);
+        }
       }
     } catch (e) {
       console.warn('restore record error:', e);
@@ -156,7 +160,8 @@
       lingqian: list.filter(r => r.module === 'lingqian').length,
       decision: list.filter(r => r.module === 'decision').length,
       clock: list.filter(r => r.module === 'clock').length,
-      merit: list.filter(r => r.module === 'merit').length
+      merit: list.filter(r => r.module === 'merit').length,
+      lifeguide: list.filter(r => r.module === 'lifeguide').length
     };
 
     // 渲染分类筛选条
@@ -173,6 +178,7 @@
         <button class="uni-filter-chip ${filterMod === 'decision' ? 'active' : ''}" data-mod="decision">🪙 决策 <span class="chip-count">${counts.decision}</span></button>
         <button class="uni-filter-chip ${filterMod === 'clock' ? 'active' : ''}" data-mod="clock">⏰ 摸鱼 <span class="chip-count">${counts.clock}</span></button>
         <button class="uni-filter-chip ${filterMod === 'merit' ? 'active' : ''}" data-mod="merit">📿 功德 <span class="chip-count">${counts.merit}</span></button>
+        <button class="uni-filter-chip ${filterMod === 'lifeguide' ? 'active' : ''}" data-mod="lifeguide">🛡️ 清醒 <span class="chip-count">${counts.lifeguide}</span></button>
       `;
 
       filterBar.querySelectorAll('.uni-filter-chip').forEach(btn => {

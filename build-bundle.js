@@ -23,7 +23,8 @@ const cssFiles = [
   'css/modules/decision.css',
   'css/modules/lingqian.css',
   'css/modules/clock.css',
-  'css/modules/merit.css'
+  'css/modules/merit.css',
+  'css/modules/lifeguide.css'
 ];
 
 let mergedCss = '\n/* ====== 全局模块样式合并集 ====== */\n';
@@ -58,6 +59,7 @@ const jsFiles = [
   'js/modules/lingqian.js',
   'js/modules/clock.js',
   'js/modules/merit.js',
+  'js/modules/lifeguide.js',
   'js/modules/history.js',
   'js/modules/router.js'
 ];

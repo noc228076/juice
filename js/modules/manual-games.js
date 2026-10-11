@@ -358,7 +358,15 @@
         '<div class="rz-sub" style="margin-top:12px">找出颜色不同的那一块</div>';
     }
 
+    function clearFloatMsgs() {
+      document.querySelectorAll('.floatmsg').forEach(function (n) {
+        if (n && n.parentNode) n.remove();
+      });
+    }
+
     function startLevel() {
+      if (destroyed || dying) return;
+      if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
       paintHUD();
       var n = gridN(lv);
       var d = deltaFor(lv);
@@ -398,7 +406,7 @@
       var bar = el.querySelector('#tt');
       var lastTick = 9;
       (function tickFrame() {
-        if (destroyed) return;
+        if (destroyed || dying) return;
         var left = LIMIT - (performance.now() - tStart);
         if (bar) bar.style.width = Math.max(0, left / LIMIT * 100) + '%';
         var sec = Math.ceil(left / 1000);
@@ -410,8 +418,9 @@
     }
 
     function pick(ok, cellEl) {
-      if (dying) return;
+      if (dying || destroyed) return;
       if (ok) {
+        if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
         if (window.SFX && window.SFX.stage) window.SFX.stage();
         lv++;
         startLevel();
@@ -421,23 +430,34 @@
         if (cellEl) { cellEl.classList.add('cl-wrong'); cellEl.style.outline = '3px solid #E23B2E'; }
         var h = el.querySelector('.hearts');
         if (h) h.outerHTML = heartsHTML(lives, LIVES);
-        floatMsg(lives > 0 ? '答错!还剩 ' + lives + ' 条命' : '命尽……');
-        if (lives <= 0) { dying = true; later(end, 700); }
+        floatMsg(lives > 0 ? '答错！还剩 ' + lives + ' 条命' : '命尽……');
+        if (lives <= 0) {
+          dying = true;
+          if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
+          later(end, 700);
+        }
       }
     }
     function timeout() {
-      if (dying) return;
+      if (dying || destroyed) return;
+      if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
       if (window.SFX && window.SFX.wrong) window.SFX.wrong();
       lives--;
       var h = el.querySelector('.hearts');
       if (h) h.outerHTML = heartsHTML(lives, LIVES);
-      floatMsg('超时!还剩 ' + lives + ' 条命');
-      if (lives <= 0) { dying = true; later(end, 700); }
-      else startLevel();
+      floatMsg(lives > 0 ? '超时！还剩 ' + lives + ' 条命' : '超时！命尽……');
+      if (lives <= 0) {
+        dying = true;
+        later(end, 700);
+      } else {
+        startLevel();
+      }
     }
 
     function end() {
       clearTimers();
+      if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
+      clearFloatMsgs();
       var passed = lv - 1; // 完成关数
       var certs = window.SM_DATA.color.certs;
       var cert = certs[0];
@@ -459,11 +479,14 @@
     }
 
     function floatMsg(txt) {
+      clearFloatMsgs();
       var m = document.createElement('div');
       m.className = 'floatmsg';
       m.textContent = txt;
-      document.body.appendChild(m);
-      later(function () { m.remove(); }, 1100);
+      el.appendChild(m);
+      setTimeout(function () {
+        if (m && m.parentNode) m.remove();
+      }, 650);
     }
 
     lives = LIVES; lv = 1;
@@ -472,7 +495,8 @@
       destroy: function () {
         destroyed = true;
         clearTimers();
-        if (rafId) cancelAnimationFrame(rafId);
+        if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
+        clearFloatMsgs();
       }
     };
   };

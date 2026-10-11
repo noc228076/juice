@@ -3409,19 +3409,20 @@ html[data-theme="light"] #mod-manual {
 }
 
 .floatmsg {
-  position: fixed;
+  position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background: rgba(20, 18, 28, 0.92);
+  background: rgba(20, 18, 28, 0.94);
   color: #FFF;
   border: 1.5px solid #E23B2E;
   padding: 10px 20px;
   border-radius: 99px;
   font-size: 14px;
   font-weight: 800;
-  z-index: 9999;
+  z-index: 30;
   pointer-events: none;
+  white-space: nowrap;
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
 }
 
@@ -16962,7 +16963,15 @@ if ('serviceWorker' in navigator) {
         '<div class="rz-sub" style="margin-top:12px">找出颜色不同的那一块</div>';
     }
 
+    function clearFloatMsgs() {
+      document.querySelectorAll('.floatmsg').forEach(function (n) {
+        if (n && n.parentNode) n.remove();
+      });
+    }
+
     function startLevel() {
+      if (destroyed || dying) return;
+      if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
       paintHUD();
       var n = gridN(lv);
       var d = deltaFor(lv);
@@ -17002,7 +17011,7 @@ if ('serviceWorker' in navigator) {
       var bar = el.querySelector('#tt');
       var lastTick = 9;
       (function tickFrame() {
-        if (destroyed) return;
+        if (destroyed || dying) return;
         var left = LIMIT - (performance.now() - tStart);
         if (bar) bar.style.width = Math.max(0, left / LIMIT * 100) + '%';
         var sec = Math.ceil(left / 1000);
@@ -17014,8 +17023,9 @@ if ('serviceWorker' in navigator) {
     }
 
     function pick(ok, cellEl) {
-      if (dying) return;
+      if (dying || destroyed) return;
       if (ok) {
+        if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
         if (window.SFX && window.SFX.stage) window.SFX.stage();
         lv++;
         startLevel();
@@ -17025,23 +17035,34 @@ if ('serviceWorker' in navigator) {
         if (cellEl) { cellEl.classList.add('cl-wrong'); cellEl.style.outline = '3px solid #E23B2E'; }
         var h = el.querySelector('.hearts');
         if (h) h.outerHTML = heartsHTML(lives, LIVES);
-        floatMsg(lives > 0 ? '答错!还剩 ' + lives + ' 条命' : '命尽……');
-        if (lives <= 0) { dying = true; later(end, 700); }
+        floatMsg(lives > 0 ? '答错！还剩 ' + lives + ' 条命' : '命尽……');
+        if (lives <= 0) {
+          dying = true;
+          if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
+          later(end, 700);
+        }
       }
     }
     function timeout() {
-      if (dying) return;
+      if (dying || destroyed) return;
+      if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
       if (window.SFX && window.SFX.wrong) window.SFX.wrong();
       lives--;
       var h = el.querySelector('.hearts');
       if (h) h.outerHTML = heartsHTML(lives, LIVES);
-      floatMsg('超时!还剩 ' + lives + ' 条命');
-      if (lives <= 0) { dying = true; later(end, 700); }
-      else startLevel();
+      floatMsg(lives > 0 ? '超时！还剩 ' + lives + ' 条命' : '超时！命尽……');
+      if (lives <= 0) {
+        dying = true;
+        later(end, 700);
+      } else {
+        startLevel();
+      }
     }
 
     function end() {
       clearTimers();
+      if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
+      clearFloatMsgs();
       var passed = lv - 1; // 完成关数
       var certs = window.SM_DATA.color.certs;
       var cert = certs[0];
@@ -17063,11 +17084,14 @@ if ('serviceWorker' in navigator) {
     }
 
     function floatMsg(txt) {
+      clearFloatMsgs();
       var m = document.createElement('div');
       m.className = 'floatmsg';
       m.textContent = txt;
-      document.body.appendChild(m);
-      later(function () { m.remove(); }, 1100);
+      el.appendChild(m);
+      setTimeout(function () {
+        if (m && m.parentNode) m.remove();
+      }, 650);
     }
 
     lives = LIVES; lv = 1;
@@ -17076,7 +17100,8 @@ if ('serviceWorker' in navigator) {
       destroy: function () {
         destroyed = true;
         clearTimers();
-        if (rafId) cancelAnimationFrame(rafId);
+        if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
+        clearFloatMsgs();
       }
     };
   };
@@ -17797,6 +17822,10 @@ if ('serviceWorker' in navigator) {
   }
 
   function showResult(t, res) {
+    if (state.gameCtl && state.gameCtl.destroy) {
+      state.gameCtl.destroy();
+      state.gameCtl = null;
+    }
     state.mode = 'result';
     state.result = res;
     var extra = { no: reportNo(), t: Date.now() };
@@ -17825,7 +17854,7 @@ if ('serviceWorker' in navigator) {
     var rhome = document.getElementById('rhome');
     if (rhome) rhome.onclick = function () { renderHome(); showScreen('scr-sm-home'); };
     var rretry = document.getElementById('rretry');
-    if (rretry) rretry.onclick = function () { openCover(t); };
+    if (rretry) rretry.onclick = function () { openTest(t.id); };
     var rsave = document.getElementById('rsave');
     if (rsave) rsave.onclick = function () {
       if (window.buildShareCard) {
@@ -17840,6 +17869,10 @@ if ('serviceWorker' in navigator) {
   }
 
   function openGame(t) {
+    if (state.gameCtl && state.gameCtl.destroy) {
+      state.gameCtl.destroy();
+      state.gameCtl = null;
+    }
     state.mode = 'game';
     var isReaction = t.id === 'reaction';
     var scrId = isReaction ? 'scr-sm-reaction' : 'scr-sm-color';
@@ -17856,7 +17889,10 @@ if ('serviceWorker' in navigator) {
     if (backBtn) {
       backBtn.onclick = function () {
         if (window.SFX && window.SFX.tap) window.SFX.tap();
-        if (state.gameCtl && state.gameCtl.destroy) state.gameCtl.destroy();
+        if (state.gameCtl && state.gameCtl.destroy) {
+          state.gameCtl.destroy();
+          state.gameCtl = null;
+        }
         renderHome();
         showScreen('scr-sm-home');
       };
@@ -17908,12 +17944,27 @@ if ('serviceWorker' in navigator) {
     showScreen('scr-sm-home');
   }
 
+  function stopActiveGame() {
+    document.querySelectorAll('.floatmsg').forEach(function (n) {
+      if (n && n.parentNode) n.remove();
+    });
+    if (state.gameCtl && state.gameCtl.destroy) {
+      state.gameCtl.destroy();
+      state.gameCtl = null;
+      if (state.mode === 'game') {
+        renderHome();
+        showScreen('scr-sm-home');
+      }
+    }
+  }
+
   window.AppManual = {
     init,
     renderHome,
     openTest,
     showScreen,
-    restore
+    restore,
+    stopActiveGame
   };
 
   if (document.readyState === 'loading') {
@@ -21570,6 +21621,10 @@ if ('serviceWorker' in navigator) {
     }
     if (modKey === 'tarot' || modKey === 'lingqian') {
       lastMysticMod = modKey;
+    }
+
+    if (modKey !== 'manual' && window.AppManual && typeof window.AppManual.stopActiveGame === 'function') {
+      window.AppManual.stopActiveGame();
     }
 
     currentModule = modKey;

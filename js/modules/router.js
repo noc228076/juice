@@ -30,6 +30,10 @@
       lastMysticMod = modKey;
     }
 
+    if (modKey !== 'manual' && window.AppManual && typeof window.AppManual.stopActiveGame === 'function') {
+      window.AppManual.stopActiveGame();
+    }
+
     currentModule = modKey;
     document.documentElement.dataset.activeModule = modKey;
 

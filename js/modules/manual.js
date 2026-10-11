@@ -250,6 +250,10 @@
   }
 
   function showResult(t, res) {
+    if (state.gameCtl && state.gameCtl.destroy) {
+      state.gameCtl.destroy();
+      state.gameCtl = null;
+    }
     state.mode = 'result';
     state.result = res;
     var extra = { no: reportNo(), t: Date.now() };
@@ -278,7 +282,7 @@
     var rhome = document.getElementById('rhome');
     if (rhome) rhome.onclick = function () { renderHome(); showScreen('scr-sm-home'); };
     var rretry = document.getElementById('rretry');
-    if (rretry) rretry.onclick = function () { openCover(t); };
+    if (rretry) rretry.onclick = function () { openTest(t.id); };
     var rsave = document.getElementById('rsave');
     if (rsave) rsave.onclick = function () {
       if (window.buildShareCard) {
@@ -293,6 +297,10 @@
   }
 
   function openGame(t) {
+    if (state.gameCtl && state.gameCtl.destroy) {
+      state.gameCtl.destroy();
+      state.gameCtl = null;
+    }
     state.mode = 'game';
     var isReaction = t.id === 'reaction';
     var scrId = isReaction ? 'scr-sm-reaction' : 'scr-sm-color';
@@ -309,7 +317,10 @@
     if (backBtn) {
       backBtn.onclick = function () {
         if (window.SFX && window.SFX.tap) window.SFX.tap();
-        if (state.gameCtl && state.gameCtl.destroy) state.gameCtl.destroy();
+        if (state.gameCtl && state.gameCtl.destroy) {
+          state.gameCtl.destroy();
+          state.gameCtl = null;
+        }
         renderHome();
         showScreen('scr-sm-home');
       };
@@ -361,12 +372,27 @@
     showScreen('scr-sm-home');
   }
 
+  function stopActiveGame() {
+    document.querySelectorAll('.floatmsg').forEach(function (n) {
+      if (n && n.parentNode) n.remove();
+    });
+    if (state.gameCtl && state.gameCtl.destroy) {
+      state.gameCtl.destroy();
+      state.gameCtl = null;
+      if (state.mode === 'game') {
+        renderHome();
+        showScreen('scr-sm-home');
+      }
+    }
+  }
+
   window.AppManual = {
     init,
     renderHome,
     openTest,
     showScreen,
-    restore
+    restore,
+    stopActiveGame
   };
 
   if (document.readyState === 'loading') {

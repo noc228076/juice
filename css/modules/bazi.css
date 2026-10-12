@@ -164,7 +164,11 @@ html[data-theme="light"] .bz-eyebrow {
   font-size: 11.5px;
   font-weight: 800;
   letter-spacing: 1.5px;
-  color: var(--tx-faint);
+  color: #CBD5E1;
+}
+
+html[data-theme="light"] .bz-top-switch-label {
+  color: var(--tx-dim);
 }
 
 /* 历法类型切换 */
@@ -235,10 +239,14 @@ html[data-theme="light"] .bz-eyebrow {
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 1px;
-  color: var(--tx-dim);
+  color: #CBD5E1;
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+html[data-theme="light"] .bz-wheel-col-title {
+  color: var(--tx-dim);
 }
 
 .bz-wheel-select {
@@ -248,6 +256,7 @@ html[data-theme="light"] .bz-eyebrow {
   border: 1.5px solid var(--line);
   background: var(--btn-ghost-bg);
   color: var(--tx);
+  color-scheme: dark;
   font-size: 13px;
   font-weight: 800;
   font-family: inherit;
@@ -263,6 +272,10 @@ html[data-theme="light"] .bz-eyebrow {
   padding-right: 30px;
 }
 
+html[data-theme="light"] .bz-wheel-select {
+  color-scheme: light;
+}
+
 .bz-wheel-select:focus {
   border-color: #F59E0B;
   box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.22);
@@ -270,11 +283,16 @@ html[data-theme="light"] .bz-eyebrow {
 }
 
 .bz-wheel-select option {
-  background: var(--card-solid);
-  color: var(--tx);
+  background-color: #161822 !important;
+  color: #F8FAFC !important;
   font-size: 13px;
   font-weight: 700;
   padding: 8px;
+}
+
+html[data-theme="light"] .bz-wheel-select option {
+  background-color: #FFFFFF !important;
+  color: #171A14 !important;
 }
 
 /* 实时双历法对照同步条 */
@@ -406,6 +424,10 @@ html[data-theme="light"] .bz-gender-btn.active[data-gender="0"] {
 
 .bz-solar-hint {
   font-size: 11px;
+  color: #94A0B8;
+}
+
+html[data-theme="light"] .bz-solar-hint {
   color: var(--tx-faint);
 }
 
@@ -439,6 +461,10 @@ html[data-theme="light"] .bz-gender-btn.active[data-gender="0"] {
 .bz-solar-sublabel {
   font-size: 11px;
   font-weight: 700;
+  color: #CBD5E1;
+}
+
+html[data-theme="light"] .bz-solar-sublabel {
   color: var(--tx-dim);
 }
 
@@ -446,13 +472,29 @@ html[data-theme="light"] .bz-gender-btn.active[data-gender="0"] {
 .bz-solar-search-input {
   padding: 8px 12px;
   border-radius: 10px;
-  background: var(--card);
-  border: 1px solid var(--line);
+  background: var(--card-solid);
+  border: 1px solid var(--line-strong);
   color: var(--tx);
+  color-scheme: dark;
   font-size: 12.5px;
   font-family: inherit;
   outline: none;
   transition: border-color 0.2s;
+}
+
+html[data-theme="light"] .bz-solar-select,
+html[data-theme="light"] .bz-solar-search-input {
+  color-scheme: light;
+}
+
+.bz-solar-select option {
+  background-color: #161822 !important;
+  color: #F8FAFC !important;
+}
+
+html[data-theme="light"] .bz-solar-select option {
+  background-color: #FFFFFF !important;
+  color: #171A14 !important;
 }
 
 .bz-solar-select:focus,
@@ -557,25 +599,34 @@ html[data-theme="light"] .bz-gender-btn.active[data-gender="0"] {
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 1.5px;
-  color: var(--tx-faint);
+  color: #A8B1C2;
   margin-right: 4px;
+}
+
+html[data-theme="light"] .bz-preset-label {
+  color: var(--tx-faint);
 }
 
 .bz-btn-chip {
   padding: 6px 12px;
   border-radius: 999px;
   font-size: 11.5px;
-  font-weight: 700;
+  font-weight: 800;
   background: var(--btn-ghost-bg);
-  color: var(--tx-dim);
-  border: 1px solid var(--line);
+  color: #E2E8F0;
+  border: 1px solid var(--line-strong);
   cursor: pointer;
   transition: all 0.2s;
 }
 
+html[data-theme="light"] .bz-btn-chip {
+  color: var(--tx-dim);
+  border-color: var(--line);
+}
+
 .bz-btn-chip:hover {
   color: var(--tx);
-  border-color: var(--line-strong);
+  border-color: #F59E0B;
   background: var(--card);
 }
 
@@ -585,8 +636,8 @@ html[data-theme="light"] .bz-gender-btn.active[data-gender="0"] {
   padding: 16px 24px;
   border-radius: 14px;
   border: none;
-  background: linear-gradient(135deg, #F59E0B 0%, #D97706 45%, #B45309 100%);
-  color: #000;
+  background: linear-gradient(135deg, #FBBF24 0%, #F59E0B 50%, #D97706 100%);
+  color: #1A1200;
   font-size: 16px;
   font-weight: 950;
   letter-spacing: 2px;
@@ -719,8 +770,12 @@ html[data-theme="light"] .bz-gender-btn.active[data-gender="0"] {
 .bz-verdict-cell-lbl {
   font-size: 11px;
   font-weight: 800;
-  color: var(--tx-faint);
+  color: #94A0B8;
   letter-spacing: 1px;
+}
+
+html[data-theme="light"] .bz-verdict-cell-lbl {
+  color: var(--tx-dim);
 }
 
 .bz-verdict-cell-val {
@@ -922,25 +977,37 @@ html[data-theme="light"] .bz-gender-btn.active[data-gender="0"] {
   width: 90px;
   background: var(--btn-ghost-bg) !important;
   font-size: 12px !important;
-  color: var(--tx-faint) !important;
+  color: #CBD5E1 !important;
   font-weight: 800 !important;
+}
+
+html[data-theme="light"] .bz-th-lbl {
+  color: var(--tx-dim) !important;
 }
 
 .bz-th-col-sub {
   font-size: 10px;
   font-weight: normal;
   display: block;
-  color: var(--tx-faint);
+  color: #94A0B8;
   margin-top: 2px;
+}
+
+html[data-theme="light"] .bz-th-col-sub {
+  color: var(--tx-faint);
 }
 
 /* 属性标签列 (首列) */
 .bz-td-lbl {
   background: var(--btn-ghost-bg);
   font-size: 11.5px;
-  font-weight: 800;
-  color: var(--tx-dim);
+  font-weight: 900;
+  color: var(--tx);
   white-space: nowrap;
+}
+
+html[data-theme="light"] .bz-td-lbl {
+  color: var(--tx);
 }
 
 /* ★ 日柱 (命主自身) 黄金高亮列 */
@@ -1167,6 +1234,10 @@ html[data-theme="light"] .bg-wx-jin {
 .bz-dayun-age {
   font-size: 11px;
   font-weight: 800;
+  color: #94A0B8;
+}
+
+html[data-theme="light"] .bz-dayun-age {
   color: var(--tx-faint);
 }
 

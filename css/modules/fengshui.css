@@ -165,6 +165,7 @@ html[data-theme="light"] #mod-fengshui {
   border: 1.5px solid var(--line);
   background: var(--card);
   color: var(--tx);
+  color-scheme: dark;
   font-size: 13.5px;
   font-family: inherit;
   outline: none;
@@ -172,6 +173,21 @@ html[data-theme="light"] #mod-fengshui {
   cursor: pointer;
   box-sizing: border-box;
 }
+
+html[data-theme="light"] #mod-fengshui select {
+  color-scheme: light;
+}
+
+#mod-fengshui select option {
+  background-color: #161822 !important;
+  color: #F8FAFC !important;
+}
+
+html[data-theme="light"] #mod-fengshui select option {
+  background-color: #FFFFFF !important;
+  color: #171A14 !important;
+}
+
 #mod-fengshui select:focus {
   border-color: var(--fs-gold);
 }

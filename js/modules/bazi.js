@@ -870,7 +870,7 @@
             const humanTag = SHISHEN_HUMAN_TAG[item.shishenGan] || item.shishenGan;
             return `<td class="${isDay ? 'bz-col-day bz-td-day' : ''}">
               <b style="color:${isDay ? '#FBBF24' : 'var(--tx)'};font-size:13px;">${item.shishenGan}</b>
-              <span style="font-size:10px;color:var(--tx-faint);display:block;">${humanTag}</span>
+              <span style="font-size:10.5px;color:var(--tx-dim);display:block;margin-top:1px;">${humanTag}</span>
             </td>`;
           }).join('')}
         </tr>
@@ -925,7 +925,7 @@
           <td class="bz-td-lbl">十二长生</td>
           ${p.map((item, idx) => {
             const isDay = idx === 1;
-            return `<td class="${isDay ? 'bz-col-day bz-td-day' : ''}" style="font-size:12px;font-weight:700;">
+            return `<td class="${isDay ? 'bz-col-day bz-td-day' : ''}" style="font-size:12px;font-weight:700;color:var(--tx);">
               ${item.diShi}
             </td>`;
           }).join('')}
@@ -936,7 +936,7 @@
           <td class="bz-td-lbl">纳音五行</td>
           ${p.map((item, idx) => {
             const isDay = idx === 1;
-            return `<td class="${isDay ? 'bz-col-day bz-td-day' : ''}" style="font-size:12px;color:var(--tx-dim);">
+            return `<td class="${isDay ? 'bz-col-day bz-td-day' : ''}" style="font-size:12px;color:var(--tx);font-weight:600;">
               ${item.nayin}
             </td>`;
           }).join('')}
@@ -947,7 +947,7 @@
           <td class="bz-td-lbl">空亡旬空</td>
           ${p.map((item, idx) => {
             const isDay = idx === 1;
-            return `<td class="${isDay ? 'bz-col-day bz-td-day' : ''}" style="font-size:11px;color:var(--tx-faint);">
+            return `<td class="${isDay ? 'bz-col-day bz-td-day' : ''}" style="font-size:11.5px;color:var(--tx-dim);font-weight:600;">
               ${item.xunKong}
             </td>`;
           }).join('')}

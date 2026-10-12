@@ -2001,7 +2001,10 @@ html[data-theme="light"] #mod-tarot .pcard .back {
   display: block;
 }
 #mod-tarot .face {
-  position: relative;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   transform: rotateY(180deg);
   background: linear-gradient(165deg, #fffdf4, #f3e7c4);
   border: 2px solid var(--tr-gold3);
@@ -2014,11 +2017,14 @@ html[data-theme="light"] #mod-tarot .pcard .back {
   border-radius: 18px;
   overflow: hidden;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+  box-sizing: border-box;
 }
 #mod-tarot .face .tr-face-container {
   position: relative;
   width: 100%;
   height: 100%;
+  border-radius: 16px;
+  overflow: hidden;
 }
 #mod-tarot .face .tr-face-base {
   width: 100%;
@@ -2033,11 +2039,15 @@ html[data-theme="light"] #mod-tarot .pcard .back {
 #mod-tarot .face .tr-face-art-wrap {
   position: absolute;
   inset: 0;
+  width: 100%;
+  height: 100%;
   z-index: 2;
   display: flex;
   align-items: center;
   justify-content: center;
   background: transparent;
+  border-radius: 16px;
+  overflow: hidden;
   transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 #mod-tarot .face .tr-face-art-wrap.is-rev {
@@ -2046,11 +2056,11 @@ html[data-theme="light"] #mod-tarot .pcard .back {
 #mod-tarot .face .tr-face-art-img {
   width: 100%;
   height: 100%;
-  object-fit: contain;
+  object-fit: cover;
   display: block;
   opacity: 0;
   transition: opacity 0.35s ease;
-  background: #140f2e;
+  border-radius: 16px;
 }
 #mod-tarot .face .tr-face-art-img.is-loaded {
   opacity: 1;
@@ -2203,7 +2213,7 @@ html[data-theme="light"] #mod-tarot .pcard .back {
 #mod-tarot .tr-card-frame {
   width: 100%;
   max-width: 280px;
-  aspect-ratio: 3 / 5;
+  aspect-ratio: 2 / 3;
   border-radius: 18px;
   padding: 10px;
   box-sizing: border-box;
@@ -2564,9 +2574,9 @@ html[data-theme="light"] #mod-tarot .tr-info-desc {
 }
 
 /* =========================================================
-   桌面端自适应终极优化 (min-width: 900px)
+   桌面端与平板端自适应布局优化 (min-width: 768px)
    ========================================================= */
-@media (min-width: 900px) {
+@media (min-width: 768px) {
   #mod-tarot .tr-screen {
     max-width: 680px;
     padding: 16px 20px calc(36px + env(safe-area-inset-bottom));
@@ -17755,7 +17765,16 @@ const SFX = (function () {
 
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./sw.js').catch(() => {});
+    navigator.serviceWorker.register('./sw.js').then((reg) => {
+      reg.update().catch(() => {});
+    }).catch(() => {});
+  });
+  let refreshing = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!refreshing) {
+      refreshing = true;
+      window.location.reload();
+    }
   });
 }
 </script>

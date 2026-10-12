@@ -1,5 +1,5 @@
-/* 饮料人格研究所 & 八合一赛博实验矩阵 — 离线瞬开 Service Worker v19 */
-const CACHE_NAME = 'juice-persona-v19';
+/* 饮料人格研究所 & 八合一赛博实验矩阵 — 离线瞬开 Service Worker v21 */
+const CACHE_NAME = 'juice-persona-v21';
 const ASSETS = [
   './',
   './index.html',
@@ -7,7 +7,29 @@ const ASSETS = [
   './favicon.png',
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',
-  './assets/icons/icon-maskable.png'
+  './assets/icons/icon-maskable.png',
+  './assets/tarot/card_0.jpg',
+  './assets/tarot/card_1.jpg',
+  './assets/tarot/card_2.jpg',
+  './assets/tarot/card_3.jpg',
+  './assets/tarot/card_4.jpg',
+  './assets/tarot/card_5.jpg',
+  './assets/tarot/card_6.jpg',
+  './assets/tarot/card_7.jpg',
+  './assets/tarot/card_8.jpg',
+  './assets/tarot/card_9.jpg',
+  './assets/tarot/card_10.jpg',
+  './assets/tarot/card_11.jpg',
+  './assets/tarot/card_12.jpg',
+  './assets/tarot/card_13.jpg',
+  './assets/tarot/card_14.jpg',
+  './assets/tarot/card_15.jpg',
+  './assets/tarot/card_16.jpg',
+  './assets/tarot/card_17.jpg',
+  './assets/tarot/card_18.jpg',
+  './assets/tarot/card_19.jpg',
+  './assets/tarot/card_20.jpg',
+  './assets/tarot/card_21.jpg'
 ];
 
 self.addEventListener('install', (e) => {

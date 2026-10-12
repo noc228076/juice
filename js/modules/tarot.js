@@ -226,8 +226,8 @@
         ${cardData.image ? `
           <div class="tr-face-art-wrap ${cardData.isRev ? 'is-rev' : ''}">
             <img src="${cardData.image}" alt="${cardData.name}" class="tr-face-art-img"
-                 onload="this.classList.add('is-loaded')"
-                 onerror="this.parentElement.style.display='none'">
+                 loading="eager" decoding="async"
+                 onerror="this.style.display='none'">
           </div>
         ` : ''}
       </div>
@@ -319,8 +319,8 @@
               ${c.image ? `
                 <div class="tr-card-painting-wrap ${c.isRev ? 'is-rev' : ''}">
                   <img src="${c.image}" alt="${c.name}" class="tr-card-painting-img"
-                       onload="this.classList.add('is-loaded')"
-                       onerror="this.parentElement.style.display='none'">
+                       loading="eager" decoding="async"
+                       onerror="this.style.display='none'">
                 </div>
               ` : ''}
             </div>
@@ -395,8 +395,8 @@
                 ${c.image ? `
                   <div class="tr-card-painting-wrap ${c.isRev ? 'is-rev' : ''}">
                     <img src="${c.image}" alt="${c.name}" class="tr-card-painting-img"
-                         onload="this.classList.add('is-loaded')"
-                         onerror="this.parentElement.style.display='none'">
+                         loading="eager" decoding="async"
+                         onerror="this.style.display='none'">
                   </div>
                 ` : ''}
               </div>
@@ -457,46 +457,77 @@
   }
 
   function drawTarotShareCard(data) {
-    if (!data || !data.items || !data.items.length) return;
+    if (!data || !data.items || !data.items.length) {
+      alert('请先完成翻牌占卜后再保存结果');
+      return;
+    }
 
     const btnSave = document.getElementById('trBtnSave');
-    const origText = btnSave ? btnSave.textContent : '';
+    const origText = btnSave ? btnSave.textContent : '📜 保存占卜签';
     if (btnSave) {
       btnSave.textContent = '⏳ 正在生成高清画报...';
       btnSave.disabled = true;
     }
 
-    // 预加载所有卡牌立绘（优先复用页面 DOM 中已渲染就绪的图片，相对路径不加 crossOrigin 杜绝跨域阻断）
-    const imagePromises = data.items.map(it => {
-      return new Promise(resolve => {
-        if (!it.card.image) return resolve(null);
-        const domImg = document.querySelector(`img[src="${it.card.image}"]`);
-        if (domImg && domImg.complete && domImg.naturalWidth > 0) {
-          return resolve(domImg);
-        }
-        const img = new Image();
-        if (it.card.image.startsWith('http')) {
-          img.crossOrigin = 'anonymous';
-        }
-        img.onload = () => resolve(img);
-        img.onerror = () => {
-          console.warn('Share card image load failed:', it.card.image);
-          resolve(null);
-        };
-        img.src = it.card.image;
+    // 安全加载图片：使用 fetch 转换为本地 Blob URL，彻底杜绝 Canvas Tainted 跨域污染
+    const loadImgSafe = (url) => {
+      return new Promise((resolve) => {
+        if (!url) return resolve(null);
+        fetch(url)
+          .then(res => {
+            if (!res.ok) throw new Error('Fetch status ' + res.status);
+            return res.blob();
+          })
+          .then(blob => {
+            const blobUrl = URL.createObjectURL(blob);
+            const img = new Image();
+            img.onload = () => resolve({ img, blobUrl });
+            img.onerror = () => {
+              URL.revokeObjectURL(blobUrl);
+              resolve(null);
+            };
+            img.src = blobUrl;
+          })
+          .catch(() => {
+            // fetch 失败时回退到普通 Image 对象加载
+            const img = new Image();
+            img.onload = () => resolve({ img, blobUrl: null });
+            img.onerror = () => resolve(null);
+            img.src = url;
+          });
       });
-    });
+    };
 
-    Promise.all(imagePromises).then(images => {
-      try {
-        renderSharePoster(data, images);
-      } finally {
+    const imagePromises = data.items.map(it => loadImgSafe(it.card.image));
+
+    Promise.all(imagePromises)
+      .then(loadedList => {
+        const images = loadedList.map(item => item ? item.img : null);
+        const blobUrls = loadedList.map(item => item ? item.blobUrl : null).filter(Boolean);
+        try {
+          renderSharePoster(data, images);
+        } catch (err) {
+          console.warn('Poster export with images threw error, fallback to vector poster:', err);
+          renderSharePoster(data, data.items.map(() => null));
+        } finally {
+          blobUrls.forEach(u => URL.revokeObjectURL(u));
+        }
+      })
+      .catch(err => {
+        console.error('Share card image loading error:', err);
+        try {
+          renderSharePoster(data, data.items.map(() => null));
+        } catch (e) {
+          console.error('Fallback render also failed:', e);
+          alert('生成画报失败，请稍后重试');
+        }
+      })
+      .finally(() => {
         if (btnSave) {
           btnSave.textContent = origText;
           btnSave.disabled = false;
         }
-      }
-    });
+      });
   }
 
   function renderSharePoster(data, images) {
@@ -806,10 +837,80 @@
     ctx.fillStyle = '#5c5484';
     ctx.fillText('探索潜意识的宇宙边界 · 长按保存图片', 540, cv.height - 76);
 
-    const a = document.createElement('a');
-    a.download = `赛博塔罗_${first.card.name}.png`;
-    a.href = cv.toDataURL('image/png');
-    a.click();
+    let dataUrl = '';
+    try {
+      dataUrl = cv.toDataURL('image/png');
+    } catch (exportErr) {
+      console.warn('Canvas toDataURL failed:', exportErr);
+      throw exportErr;
+    }
+
+    const filename = `赛博塔罗_${first.card.name}.png`;
+
+    // 1. 尝试触发自动下载（PC 端即时保存）
+    try {
+      const a = document.createElement('a');
+      a.download = filename;
+      a.href = dataUrl;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch (dlErr) {
+      console.warn('Auto download triggered exception:', dlErr);
+    }
+
+    // 2. 弹出全屏高清画报预览弹窗（移动端长按保存，桌面端亦可二次下载）
+    showPosterModal(dataUrl, filename);
+  }
+
+  function showPosterModal(dataUrl, filename) {
+    let modal = document.getElementById('trPosterModal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'trPosterModal';
+      modal.className = 'tr-poster-modal';
+      modal.innerHTML = `
+        <div class="tr-poster-backdrop"></div>
+        <div class="tr-poster-dialog">
+          <button class="tr-poster-close" title="关闭">✕</button>
+          <div class="tr-poster-scroll">
+            <img class="tr-poster-img" src="" alt="赛博塔罗命运画报">
+          </div>
+          <div class="tr-poster-actions">
+            <p class="tr-poster-hint">📱 手机端长按上方图片可直接保存到相册</p>
+            <button class="tr-poster-dl-btn">💾 保存 / 下载高清画报</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+
+      const closeBtn = modal.querySelector('.tr-poster-close');
+      const backdrop = modal.querySelector('.tr-poster-backdrop');
+      const close = () => {
+        modal.style.display = 'none';
+      };
+      closeBtn.onclick = close;
+      backdrop.onclick = close;
+    }
+
+    const img = modal.querySelector('.tr-poster-img');
+    img.src = dataUrl;
+
+    const dlBtn = modal.querySelector('.tr-poster-dl-btn');
+    dlBtn.onclick = () => {
+      try {
+        const a = document.createElement('a');
+        a.download = filename || '赛博塔罗_命运画报.png';
+        a.href = dataUrl;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      } catch (e) {
+        console.error('Download click failed:', e);
+      }
+    };
+
+    modal.style.display = 'flex';
   }
 
   function roundRect(ctx, x, y, w, h, r) {
@@ -945,6 +1046,22 @@
       btnBackResult.onclick = () => {
         if (window.SFX && window.SFX.tap) window.SFX.tap();
         showScreen('sc-tr-home');
+      };
+    }
+
+    const btnSave = document.getElementById('trBtnSave');
+    if (btnSave) {
+      btnSave.onclick = () => {
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        drawTarotShareCard(lastTarotResult);
+      };
+    }
+
+    const btnAgain = document.getElementById('trBtnAgain');
+    if (btnAgain) {
+      btnAgain.onclick = () => {
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        startTest();
       };
     }
   }

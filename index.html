@@ -1898,17 +1898,20 @@ html[data-theme="light"] .tr-fan-name {
   justify-content: center;
 }
 #mod-tarot .pcard .back {
-  background: linear-gradient(160deg, #332a6b, #1c1544 70%);
-  border: 1.5px solid var(--tr-gold3);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  background: transparent;
+  border: none;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+  padding: 0;
+  overflow: hidden;
+  border-radius: 10px;
 }
 html[data-theme="light"] #mod-tarot .pcard .back {
-  background: linear-gradient(160deg, #e4d7bf, #c9b996 70%);
-  border-color: #9a7420;
+  box-shadow: 0 4px 14px rgba(154, 116, 32, 0.25);
 }
 #mod-tarot .pcard .back svg {
-  width: 72% !important;
-  height: 72% !important;
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
 }
 
 #mod-tarot .pcard.picked {
@@ -1982,15 +1985,19 @@ html[data-theme="light"] #mod-tarot .pcard .back {
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4);
 }
 #mod-tarot .fback {
-  background: linear-gradient(160deg, #332a6b, #1c1544 75%);
-  border: 2px solid var(--tr-gold3);
+  background: transparent;
+  border: none;
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
 }
 #mod-tarot .fback svg {
-  width: 64% !important;
-  height: 64% !important;
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
 }
 #mod-tarot .face {
   transform: rotateY(180deg);
@@ -11233,17 +11240,17 @@ html[data-theme="light"] .sbti-dim-badge.lvl-L {
           <button type="button" class="ew-switch-btn east" data-ew-jump="lingqian">🎋 东方灵签</button>
           <button type="button" class="ew-switch-btn bazi" data-ew-jump="bazi">📜 生辰八字</button>
         </div>
-        <h1 class="logo">塔罗占卜</h1>
-        <div class="sub">大阿卡那 · 二十二张启示之牌</div>
+        <h1 class="logo">赛博潮玩塔罗</h1>
+        <div class="sub">大阿卡那 · 盲盒灵性映射与时空指引</div>
         <div class="orn">✦ ✦ ✦</div>
         <div class="spread-grid">
           <div class="spread sel" id="trSpOne">
             <div class="ico">🔮</div>
-            <b>单张指引</b><span>一牌一问 · 今日启示</span>
+            <b>单张盲盒</b><span>一牌一问 · 今日手办签</span>
           </div>
           <div class="spread" id="trSpThree">
             <div class="ico">🃏</div>
-            <b>三张运势</b><span>过去 · 现在 · 未来</span>
+            <b>三张盲盒</b><span>过去 · 现在 · 未来</span>
           </div>
         </div>
 
@@ -11272,13 +11279,13 @@ html[data-theme="light"] .sbti-dim-badge.lvl-L {
               </div>
             </div>
           </div>
-          <div class="tr-fan-hint">✦ 牌意万千 · 唯心映现 ✦</div>
+          <div class="tr-fan-hint">✦ 潮玩手办卡 · 抽取你的专属星辰神谕 ✦</div>
         </div>
         <div class="intro">
-          静心凝神，默念你的困惑或心愿，然后洗牌、抽取属于你的启示之牌。塔罗不是预言，而是一面照见潜意识的镜子。
+          静心凝神，默念你的困惑或心愿。每个盲盒都是宇宙潜意识给你准备的神秘潮玩手办卡牌。
         </div>
         <div class="home-btns">
-          <button class="tr-btn" id="trBtnStart">开 始 占 卜</button>
+          <button class="tr-btn" id="trBtnStart">开 启 命 运 盲 盒</button>
         </div>
         <div class="disc">本应用仅供娱乐与自我反思，请理性看待占卜结果。</div>
       </div>
@@ -11287,16 +11294,16 @@ html[data-theme="light"] .sbti-dim-badge.lvl-L {
         <div class="topbar">
           <button class="tr-iconbtn" id="trBtnBackPick" title="返回主页">←</button>
           <div class="pick-head" style="flex:1;margin-bottom:0">
-            <b>洗牌抽牌</b>
-            <p id="trPickHint">轻点牌背，抽取你的指引</p>
+            <b>拆盒选牌</b>
+            <p id="trPickHint">轻点牌背，锁定你的专属潮玩卡</p>
           </div>
           <div style="width:38px"></div>
         </div>
         <div class="deck" id="trDeck"></div>
-        <div class="disc" id="trShufNote" style="display:none;color:var(--tr-gold);">正在洗牌……</div>
+        <div class="disc" id="trShufNote" style="display:none;color:var(--tr-gold);">正在摇晃洗牌……</div>
         <div class="pick-foot">
-          <button class="tr-btn ghost" id="trBtnShuffle" style="flex:1">洗 牌</button>
-          <button class="tr-btn" id="trBtnReveal" style="flex:1.6" disabled>解 牌</button>
+          <button class="tr-btn ghost" id="trBtnShuffle" style="flex:1">重 新 洗 牌</button>
+          <button class="tr-btn" id="trBtnReveal" style="flex:1.6" disabled>拆 盒 解 牌</button>
         </div>
       </div>
 
@@ -11304,7 +11311,7 @@ html[data-theme="light"] .sbti-dim-badge.lvl-L {
         <div class="topbar" style="margin-bottom:10px;">
           <button class="tr-iconbtn" id="trBtnBackReveal" title="返回重新选牌">←</button>
           <div class="pick-head" style="flex:1;margin-bottom:0">
-            <b style="font-size:16px">启示之牌</b>
+            <b style="font-size:16px">拆盒启示</b>
           </div>
           <div style="width:38px"></div>
         </div>
@@ -11324,7 +11331,7 @@ html[data-theme="light"] .sbti-dim-badge.lvl-L {
           </div>
           <div class="reveal-btns">
             <button class="tr-btn ghost" id="trRvPrev" style="display:none">上一张</button>
-            <button class="tr-btn" id="trRvNext">查看总结</button>
+            <button class="tr-btn" id="trRvNext">查看完整解读</button>
           </div>
         </div>
       </div>
@@ -11333,16 +11340,16 @@ html[data-theme="light"] .sbti-dim-badge.lvl-L {
         <div class="topbar" style="margin-bottom:12px;">
           <button class="tr-iconbtn" id="trBtnBackResult" title="返回主页">←</button>
           <div class="pick-head" style="flex:1;margin-bottom:0">
-            <b>占卜总结</b>
+            <b>盲盒拆箱手办报告</b>
           </div>
           <div style="width:38px"></div>
         </div>
         <div id="trSummaryBox" class="summary"></div>
         <div id="trResultList" class="result-list"></div>
         <div class="home-btns tr-result-actions" style="display:flex;flex-wrap:wrap;gap:12px;">
-          <button class="tr-btn ghost" id="trBtnSave" style="flex:1">📜 保存占卜签</button>
+          <button class="tr-btn ghost" id="trBtnSave" style="flex:1">📸 保存盲盒海报</button>
           <button class="tr-btn ghost" id="trBtnHome" style="flex:1">返回主页</button>
-          <button class="tr-btn" id="trBtnAgain" style="flex:1.2">再 占 一 次</button>
+          <button class="tr-btn" id="trBtnAgain" style="flex:1.2">再 拆 一 盒</button>
         </div>
       </div>
     </section>
@@ -27595,31 +27602,58 @@ if ('serviceWorker' in navigator) {
     20: `<path d="M88 30 L 70 60 H 90 Z"/><path d="M70 60 V 72"/><circle cx="42" cy="38" r="9"/><path d="M42 29 V 20 M36 33 L 28 30 M48 33 L 56 30"/>`,
     21: `<ellipse cx="60" cy="62" rx="34" ry="28"/><path d="M52 62 m -9 0 a 9 9 0 1 0 18 0 a 9 9 0 1 0 -18 0"/><circle cx="60" cy="28" r="3" fill="#b08a2e" stroke="none"/><circle cx="60" cy="96" r="3" fill="#b08a2e" stroke="none"/>`
   };
-  const CARD_BACK = svg(`<circle cx="60" cy="60" r="42"/><circle cx="60" cy="60" r="30"/><circle cx="60" cy="60" r="16"/><path d="M60 18 V 34 M60 86 V 102 M18 60 H 34 M86 60 H 102 M30 30 L 41 41 M79 79 L 90 90 M90 30 L 79 41 M41 79 L 30 90"/><circle cx="60" cy="60" r="4" fill="#e8c96a" stroke="none"/>`);
+  const CARD_BACK = `<svg viewBox="0 0 160 240" fill="none" xmlns="http://www.w3.org/2000/svg" class="tr-cardback-svg">
+  <defs>
+    <radialGradient id="trBgGrad" cx="50%" cy="50%" r="65%">
+      <stop offset="0%" stop-color="#352870"/>
+      <stop offset="60%" stop-color="#1b143c"/>
+      <stop offset="100%" stop-color="#0e0a24"/>
+    </radialGradient>
+    <linearGradient id="trGoldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fff2c2"/>
+      <stop offset="50%" stop-color="#d4af37"/>
+      <stop offset="100%" stop-color="#9a7420"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="156" height="236" rx="14" fill="url(#trBgGrad)" stroke="url(#trGoldGrad)" stroke-width="2.5"/>
+  <rect x="8" y="8" width="144" height="224" rx="10" fill="none" stroke="url(#trGoldGrad)" stroke-width="1" stroke-dasharray="3 3" opacity="0.6"/>
+  <path d="M14 14 L24 14 M14 14 L14 24 M146 14 L136 14 M146 14 L146 24 M14 226 L24 226 M14 226 L14 216 M146 226 L136 226 M146 226 L146 216" stroke="url(#trGoldGrad)" stroke-width="1.8" stroke-linecap="round"/>
+  <circle cx="80" cy="120" r="44" stroke="url(#trGoldGrad)" stroke-width="1.2" opacity="0.35"/>
+  <circle cx="80" cy="120" r="32" stroke="url(#trGoldGrad)" stroke-width="1.8"/>
+  <circle cx="80" cy="120" r="20" stroke="url(#trGoldGrad)" stroke-width="1" stroke-dasharray="4 3" opacity="0.7"/>
+  <path d="M80 94 L83 113 L102 110 L87 122 L98 138 L81 127 L70 142 L72 124 L56 117 L74 112 Z" fill="url(#trGoldGrad)"/>
+  <circle cx="80" cy="120" r="5" fill="#fff9db"/>
+  <path d="M80 54 L82 62 L90 64 L82 66 L80 74 L78 66 L70 64 L78 62 Z" fill="url(#trGoldGrad)"/>
+  <path d="M80 166 L82 174 L90 176 L82 178 L80 186 L78 178 L70 176 L78 174 Z" fill="url(#trGoldGrad)"/>
+  <circle cx="44" cy="120" r="3" fill="url(#trGoldGrad)"/>
+  <circle cx="116" cy="120" r="3" fill="url(#trGoldGrad)"/>
+  <text x="80" y="44" font-size="7.5" font-family="-apple-system,sans-serif" font-weight="900" letter-spacing="3" fill="url(#trGoldGrad)" text-anchor="middle" opacity="0.9">✦ POP ARCANA ✦</text>
+  <text x="80" y="206" font-size="7" font-family="-apple-system,sans-serif" font-weight="800" letter-spacing="2" fill="url(#trGoldGrad)" text-anchor="middle" opacity="0.8">BLIND BOX</text>
+</svg>`;
   const ROMAN = ["0", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII", "XIII", "XIV", "XV", "XVI", "XVII", "XVIII", "XIX", "XX", "XXI"];
   const CARDS = [
-    { no: 0, name: "愚者", en: "The Fool", upKw: "新的开始 · 自由 · 冒险", up: "象征一段崭新的旅程与无限可能。放下顾虑，跟随内心，勇敢踏出第一步——但也要留意脚下的悬崖，给热情加上一点谨慎。", revKw: "鲁莽 · 逃避 · 缺乏规划", rev: "提醒你三思而后行，避免冲动行事。或许你在逃避责任，或对风险视而不见，请先看清脚下的路。" },
-    { no: 1, name: "魔术师", en: "The Magician", upKw: "创造力 · 行动力 · 资源整合", up: "你拥有实现目标所需的一切资源与才能。专注与信念将助你把想法变为现实，此刻正是施展的时刻。", revKw: "欺骗 · 计划不周 · 才能被浪费", rev: "小心华而不实与自我怀疑。你可能未善用自身才能，或有人在误导你，回归本质，去伪存真。" },
-    { no: 2, name: "女祭司", en: "The High Priestess", upKw: "直觉 · 智慧 · 潜意识", up: "静心聆听内心的声音。答案藏在表象之下，信任你的直觉与内在智慧，不必急于向外寻求。", revKw: "忽视直觉 · 秘密 · 肤浅", rev: "你可能忽略了重要的内在信号，或被表象蒙蔽。给自己留出独处与反思的时间，答案自会浮现。" },
-    { no: 3, name: "女皇", en: "The Empress", upKw: "丰饶 · 滋养 · 创造力", up: "象征丰盛与爱的能量。关注自我关怀，让创造力自然生长，也用心滋养身边的人。", revKw: "依赖 · 停滞 · 自我忽视", rev: "你可能过度付出而忽略了自己，或创造力受阻。重新建立内在的平衡与安全感，先照顾好自己。" },
+    { no: 0, name: "愚者", en: "The Fool", image: "assets/tarot/card_0.jpg", upKw: "新的开始 · 自由 · 冒险", up: "象征一段崭新的旅程与无限可能。放下顾虑，跟随内心，勇敢踏出第一步——但也要留意脚下的悬崖，给热情加上一点谨慎。", revKw: "鲁莽 · 逃避 · 缺乏规划", rev: "提醒你三思而后行，避免冲动行事。或许你在逃避责任，或对风险视而不见，请先看清脚下的路。" },
+    { no: 1, name: "魔术师", en: "The Magician", image: "assets/tarot/card_1.jpg", upKw: "创造力 · 行动力 · 资源整合", up: "你拥有实现目标所需的一切资源与才能。专注与信念将助你把想法变为现实，此刻正是施展的时刻。", revKw: "欺骗 · 计划不周 · 才能被浪费", rev: "小心华而不实与自我怀疑。你可能未善用自身才能，或有人在误导你，回归本质，去伪存真。" },
+    { no: 2, name: "女祭司", en: "The High Priestess", image: "assets/tarot/card_2.jpg", upKw: "直觉 · 智慧 · 潜意识", up: "静心聆听内心的声音。答案藏在表象之下，信任你的直觉与内在智慧，不必急于向外寻求。", revKw: "忽视直觉 · 秘密 · 肤浅", rev: "你可能忽略了重要的内在信号，或被表象蒙蔽。给自己留出独处与反思的时间，答案自会浮现。" },
+    { no: 3, name: "女皇", en: "The Empress", image: "assets/tarot/card_3.jpg", upKw: "丰饶 · 滋养 · 创造力", up: "象征丰盛与爱的能量。关注自我关怀，让创造力自然生长，也用心滋养身边的人。", revKw: "依赖 · 停滞 · 自我忽视", rev: "你可能过度付出而忽略了自己，或创造力受阻。重新建立内在的平衡与安全感，先照顾好自己。" },
     { no: 4, name: "皇帝", en: "The Emperor", upKw: "权威 · 秩序 · 稳定", up: "建立结构与规则，以坚定而负责任的姿态掌控局面。纪律带来力量，稳扎稳打方能致远。", revKw: "固执 · 控制欲 · 僵化", rev: "过度的控制或教条会让你失去弹性。学会放下执念，倾听他人的声音，刚柔并济。" },
     { no: 5, name: "教皇", en: "The Hierophant", upKw: "传统 · 信仰 · 导师", up: "寻求可靠的知识与指引。遵循既定规范，或向值得信赖的长者请教，智慧在传承中发光。", revKw: "教条 · 质疑 · 反叛", rev: "你开始质疑旧有的规则与权威。打破束缚、找到属于自己的信念，正是成长的开始。" },
-    { no: 6, name: "恋人", en: "The Lovers", upKw: "爱 · 联结 · 选择", up: "象征深刻的联结与重要的抉择。听从内心，让爱与真诚指引方向，值得的选择不怕等待。", revKw: "失衡 · 分离 · 犹豫", rev: "关系或选择中出现了裂痕。检视自己的价值观，别因恐惧而逃避沟通，坦诚是最好的桥梁。" },
+    { no: 6, name: "恋人", en: "The Lovers", image: "assets/tarot/card_6.jpg", upKw: "爱 · 联结 · 选择", up: "象征深刻的联结与重要的抉择。听从内心，让爱与真诚指引方向，值得的选择不怕等待。", revKw: "失衡 · 分离 · 犹豫", rev: "关系或选择中出现了裂痕。检视自己的价值观，别因恐惧而逃避沟通，坦诚是最好的桥梁。" },
     { no: 7, name: "战车", en: "The Chariot", upKw: "意志 · 胜利 · 前进", up: "凭借坚定的意志与自律，你能够克服障碍、驶向胜利。方向已明，握紧缰绳向前。", revKw: "失控 · 方向迷失 · 鲁莽", rev: "或许你被外物牵着走，或方向模糊。先稳住自己，再决定往哪里去，慢即是快。" },
     { no: 8, name: "力量", en: "Strength", upKw: "勇气 · 耐心 · 内在力量", up: "真正的力量来自温柔与坚韧。以耐心驯服内心的猛兽，而非强硬对抗——柔能克刚。", revKw: "自我怀疑 · 软弱 · 压抑", rev: "你可能低估了自己，或情绪在暗中消耗你。温柔地接纳脆弱，力量会重新聚集。" },
     { no: 9, name: "隐士", en: "The Hermit", upKw: "内省 · 独处 · 寻求智慧", up: "退一步，进入安静。独处不是孤独，而是为自己点亮一盏灯，看清真正重要的东西。", revKw: "孤立 · 逃避 · 过度封闭", rev: "独处变成了隔绝。适时走出自己的洞穴，向值得信任的人伸出手。" },
-    { no: 10, name: "命运之轮", en: "Wheel of Fortune", upKw: "转机 · 循环 · 好运", up: "命运的车轮正在转动，机遇随之而来。顺应变化，把握时机的节拍，顺势而为。", revKw: "停滞 · 厄运 · 抗拒变化", rev: "某些循环似乎卡住了。放下抗拒，变化的契机往往藏在转折之中。" },
+    { no: 10, name: "命运之轮", en: "Wheel of Fortune", image: "assets/tarot/card_10.jpg", upKw: "转机 · 循环 · 好运", up: "命运的车轮正在转动，机遇随之而来。顺应变化，把握时机的节拍，顺势而为。", revKw: "停滞 · 厄运 · 抗拒变化", rev: "某些循环似乎卡住了。放下抗拒，变化的契机往往藏在转折之中。" },
     { no: 11, name: "正义", en: "Justice", upKw: "公正 · 真相 · 因果", up: "一切自有其平衡。诚实面对事实，以公平之心做出决定，问心无愧便是最好的结果。", revKw: "偏见 · 失衡 · 逃避责任", rev: "可能有失公允，或你在回避某个真相。检视自己的立场，重新校准天平。" },
     { no: 12, name: "倒吊人", en: "The Hanged Man", upKw: "换位思考 · 牺牲 · 沉淀", up: "换个角度看世界，暂时的停顿是必要的修行。放下执念，收获意想不到的洞见。", revKw: "无谓牺牲 · 拖延 · 僵持", rev: "停滞让你疲惫。审视自己是否在无谓地消耗，该放手时就放手。" },
-    { no: 13, name: "死神", en: "Death", upKw: "结束 · 蜕变 · 新生", up: "一个阶段正在终结，为新生腾出空间。结束并非坏事，而是重生的开始，坦然告别。", revKw: "抗拒改变 · 停滞 · 恐惧", rev: "你紧抓着旧物不放，恐惧改变，却也让生命失去流动。允许告别，才能拥抱新的可能。" },
+    { no: 13, name: "死神", en: "Death", image: "assets/tarot/card_13.jpg", upKw: "结束 · 蜕变 · 新生", up: "一个阶段正在终结，为新生腾出空间。结束并非坏事，而是重生的开始，坦然告别。", revKw: "抗拒改变 · 停滞 · 恐惧", rev: "你紧抓着旧物不放，恐惧改变，却也让生命失去流动。允许告别，才能拥抱新的可能。" },
     { no: 14, name: "节制", en: "Temperance", upKw: "平衡 · 调和 · 中庸", up: "以耐心与温和调和极端，细水长流。现在不宜急躁，宜稳步前行，静待花开。", revKw: "失衡 · 过度 · 急躁", rev: "生活失去平衡，或情绪过载。慢下来，找回自己的节奏与尺度，张弛有度。" },
     { no: 15, name: "恶魔", en: "The Devil", image: "assets/tarot/card_15.jpg", upKw: "束缚 · 欲望 · 诱惑", up: "觉察那些无形的束缚——欲望、执念或依赖。看见它，便是挣脱的开始。", revKw: "挣脱 · 觉醒 · 重获自由", rev: "你正在挣脱枷锁，重拾主动权。阴影散去，力量回到你的手中。" },
     { no: 16, name: "高塔", en: "The Tower", upKw: "剧变 · 真相 · 崩塌", up: "旧有的结构骤然瓦解，震撼却也真实。崩塌之处，正是重建的起点，直面真相。", revKw: "危机解除 · 延迟的变革", rev: "最坏的时刻或许已经过去。改变虽迟但到，别回避必要的调整。" },
-    { no: 17, name: "星星", en: "The Star", upKw: "希望 · 疗愈 · 灵感", up: "风暴过后，星光重现。怀抱希望，相信未来，你许下的愿望正在路上。", revKw: "失望 · 失去信心 · 迷茫", rev: "暂时的低谷让你怀疑方向。别忘了，星光一直都在，只是被云遮住了一时。" },
-    { no: 18, name: "月亮", en: "The Moon", upKw: "幻觉 · 不安 · 潜意识", up: "前路朦胧，情绪翻涌。此时不宜轻信表象，静待云雾散去，再做判断。", revKw: "真相浮现 · 疑虑消解", rev: "迷雾正在散去，看清真相的时刻临近。内心的不安将逐渐平复，请再耐心一点。" },
-    { no: 19, name: "太阳", en: "The Sun", upKw: "成功 · 喜悦 · 生命力", up: "阳光普照，一切明朗而丰盛。这是充满活力与成就的时刻，尽情绽放你的光彩。", revKw: "短暂阴云 · 乐观过度", rev: "热情稍减或计划延迟，但太阳从未消失。调整心态，光明就在云层之后。"},
+    { no: 17, name: "星星", en: "The Star", image: "assets/tarot/card_17.jpg", upKw: "希望 · 疗愈 · 灵感", up: "风暴过后，星光重现。怀抱希望，相信未来，你许下的愿望正在路上。", revKw: "失望 · 失去信心 · 迷茫", rev: "暂时的低谷让你怀疑方向。别忘了，星光一直都在，只是被云遮住了一时。" },
+    { no: 18, name: "月亮", en: "The Moon", image: "assets/tarot/card_18.jpg", upKw: "幻觉 · 不安 · 潜意识", up: "前路朦胧，情绪翻涌。此时不宜轻信表象，静待云雾散去，再做判断。", revKw: "真相浮现 · 疑虑消解", rev: "迷雾正在散去，看清真相的时刻临近。内心的不安将逐渐平复，请再耐心一点。" },
+    { no: 19, name: "太阳", en: "The Sun", image: "assets/tarot/card_19.jpg", upKw: "成功 · 喜悦 · 生命力", up: "阳光普照，一切明朗而丰盛。这是充满活力与成就的时刻，尽情绽放你的光彩。", revKw: "短暂阴云 · 乐观过度", rev: "热情稍减或计划延迟，但太阳从未消失。调整心态，光明就在云层之后。"},
     { no: 20, name: "审判", en: "Judgement", upKw: "觉醒 · 复盘 · 新生", up: "往事被重新审视，你听见内心的召唤。宽恕与复盘之后，迎来崭新的篇章。", revKw: "自我怀疑 · 逃避回顾", rev: "你或许不愿面对过去。但唯有诚实回望，才能真正向前，和解从接纳开始。" },
-    { no: 21, name: "世界", en: "The World", upKw: "圆满 · 完成 · 成就", up: "一个周期圆满落幕，你站在完整的此刻。庆祝所成，然后欣然开启新的篇章。", revKw: "未竟之事 · 停滞收尾", rev: "还差最后一口气。别让细节与犹豫拖住圆满，完成它，才能抵达下一程。" }
+    { no: 21, name: "世界", en: "The World", image: "assets/tarot/card_21.jpg", upKw: "圆满 · 完成 · 成就", up: "一个周期圆满落幕，你站在完整的此刻。庆祝所成，然后欣然开启新的篇章。", revKw: "未竟之事 · 停滞收尾", rev: "还差最后一口气。别让细节与犹豫拖住圆满，完成它，才能抵达下一程。" }
   ];
 
   let curSpread = "one"; // "one" | "three"
@@ -28069,7 +28103,7 @@ if ('serviceWorker' in navigator) {
 
     ctx.fillStyle = '#e8c96a';
     ctx.font = 'bold 18px sans-serif';
-    ctx.fillText('✦ 赛博秘境 · 塔罗档案馆 ✦', 540, 112);
+    ctx.fillText('✦ 赛博秘境 · 潮玩盲盒档案馆 ✦', 540, 112);
 
     ctx.fillStyle = '#f8df8c';
     ctx.font = 'bold 44px Georgia, "PingFang SC", serif';
@@ -28077,7 +28111,7 @@ if ('serviceWorker' in navigator) {
 
     ctx.fillStyle = '#a99fd4';
     ctx.font = '20px sans-serif';
-    ctx.fillText('大阿卡那 · 潜意识灵性映射与时空指引', 540, 236);
+    ctx.fillText('大阿卡那 · 盲盒灵性映射与时空指引', 540, 236);
 
     ctx.strokeStyle = 'rgba(232, 201, 106, 0.3)';
     ctx.lineWidth = 1;
@@ -28128,15 +28162,23 @@ if ('serviceWorker' in navigator) {
         }
         ctx.restore();
       } else {
-        // Fallback 绘制古典矢量塔罗牌面
-        ctx.fillStyle = '#1b143c';
+        // Fallback 绘制优雅潮玩卡面
+        ctx.fillStyle = '#1e1445';
         roundRect(ctx, cardX, cardY, cardW, cardH, cardR);
         ctx.fill();
-        ctx.fillStyle = '#e8c96a';
+        ctx.fillStyle = 'rgba(232, 201, 106, 0.12)';
+        roundRect(ctx, cardX + 24, cardY + 24, cardW - 48, cardH - 48, 16);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(232, 201, 106, 0.45)';
+        ctx.stroke();
+        ctx.fillStyle = '#fce494';
         ctx.font = 'bold 36px Georgia, serif';
-        ctx.fillText(ROMAN[first.card.no], 540, cardY + 70);
-        ctx.font = '28px sans-serif';
+        ctx.fillText(ROMAN[first.card.no], 540, cardY + 90);
+        ctx.font = 'bold 36px sans-serif';
         ctx.fillText(first.card.name, 540, cardY + cardH / 2);
+        ctx.font = '22px Georgia, serif';
+        ctx.fillStyle = '#c4b5fd';
+        ctx.fillText(first.card.en, 540, cardY + cardH / 2 + 50);
       }
 
       // 状态徽标 (正位/逆位)

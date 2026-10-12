@@ -410,17 +410,20 @@ html[data-theme="light"] .tr-fan-name {
   justify-content: center;
 }
 #mod-tarot .pcard .back {
-  background: linear-gradient(160deg, #332a6b, #1c1544 70%);
-  border: 1.5px solid var(--tr-gold3);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+  background: transparent;
+  border: none;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+  padding: 0;
+  overflow: hidden;
+  border-radius: 10px;
 }
 html[data-theme="light"] #mod-tarot .pcard .back {
-  background: linear-gradient(160deg, #e4d7bf, #c9b996 70%);
-  border-color: #9a7420;
+  box-shadow: 0 4px 14px rgba(154, 116, 32, 0.25);
 }
 #mod-tarot .pcard .back svg {
-  width: 72% !important;
-  height: 72% !important;
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
 }
 
 #mod-tarot .pcard.picked {
@@ -494,15 +497,19 @@ html[data-theme="light"] #mod-tarot .pcard .back {
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4);
 }
 #mod-tarot .fback {
-  background: linear-gradient(160deg, #332a6b, #1c1544 75%);
-  border: 2px solid var(--tr-gold3);
+  background: transparent;
+  border: none;
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: 18px;
+  overflow: hidden;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
 }
 #mod-tarot .fback svg {
-  width: 64% !important;
-  height: 64% !important;
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
 }
 #mod-tarot .face {
   transform: rotateY(180deg);

@@ -1,5 +1,5 @@
-/* 饮料人格研究所 & 八合一赛博实验矩阵 — 离线瞬开 Service Worker v22 */
-const CACHE_NAME = 'juice-persona-v22';
+/* 饮料人格研究所 & 八合一赛博实验矩阵 — 离线瞬开 Service Worker v23 */
+const CACHE_NAME = 'juice-persona-v23';
 const ASSETS = [
   './',
   './index.html',
@@ -35,7 +35,10 @@ const ASSETS = [
 self.addEventListener('install', (e) => {
   e.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(ASSETS))
+      // 逐条预缓存：单个文件失败不再让整个 install 失败（否则新 SW 永远激活不了）
+      .then((cache) => Promise.all(
+        ASSETS.map((url) => cache.add(url).catch(() => {}))
+      ))
       .then(() => self.skipWaiting())
   );
 });
@@ -61,7 +64,7 @@ self.addEventListener('fetch', (e) => {
         .then((res) => {
           if (res && res.status === 200) {
             const clone = res.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(e.request, clone));
+            caches.open(CACHE_NAME).then((cache) => cache.put(e.request, clone)).catch(() => {});
           }
           return res;
         })
@@ -76,7 +79,7 @@ self.addEventListener('fetch', (e) => {
       const networkFetch = fetch(e.request).then((res) => {
         if (res && res.status === 200) {
           const clone = res.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(e.request, clone));
+          caches.open(CACHE_NAME).then((cache) => cache.put(e.request, clone)).catch(() => {});
         }
         return res;
       }).catch(() => cached);

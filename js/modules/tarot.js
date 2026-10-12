@@ -57,8 +57,8 @@
   <path d="M80 166 L82 174 L90 176 L82 178 L80 186 L78 178 L70 176 L78 174 Z" fill="url(#trGoldGrad)"/>
   <circle cx="44" cy="120" r="3" fill="url(#trGoldGrad)"/>
   <circle cx="116" cy="120" r="3" fill="url(#trGoldGrad)"/>
-  <text x="80" y="44" font-size="7.5" font-family="-apple-system,sans-serif" font-weight="900" letter-spacing="3" fill="url(#trGoldGrad)" text-anchor="middle" opacity="0.9">✦ POP ARCANA ✦</text>
-  <text x="80" y="206" font-size="7" font-family="-apple-system,sans-serif" font-weight="800" letter-spacing="2" fill="url(#trGoldGrad)" text-anchor="middle" opacity="0.8">BLIND BOX</text>
+  <text x="80" y="44" font-size="7.5" font-family="-apple-system,sans-serif" font-weight="900" letter-spacing="3" fill="url(#trGoldGrad)" text-anchor="middle" opacity="0.9">✦ ARCANUM ✦</text>
+  <text x="80" y="206" font-size="7" font-family="-apple-system,sans-serif" font-weight="800" letter-spacing="2" fill="url(#trGoldGrad)" text-anchor="middle" opacity="0.8">CYBER DESTINY</text>
 </svg>`;
   const ROMAN = ["0", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII", "XIII", "XIV", "XV", "XVI", "XVII", "XVIII", "XIX", "XX", "XXI"];
   const CARDS = [
@@ -146,14 +146,28 @@
     document.querySelectorAll('#trDeck .pcard').forEach(c => {
       c.onclick = () => {
         const i = +c.dataset.i;
-        if (picks.includes(i)) {
-          picks = picks.filter(x => x !== i);
-          c.classList.remove('picked');
+        if (max === 1) {
+          // 单张模式：点击任意新牌直接即刻切换选中，无需先手动取消
+          if (picks.includes(i)) {
+            picks = [];
+            c.classList.remove('picked');
+          } else {
+            document.querySelectorAll('#trDeck .pcard.picked').forEach(el => el.classList.remove('picked'));
+            picks = [i];
+            c.classList.add('picked');
+            if (window.SFX && window.SFX.tap) window.SFX.tap();
+          }
         } else {
-          if (picks.length >= max) return;
-          if (window.SFX && window.SFX.tap) window.SFX.tap();
-          picks.push(i);
-          c.classList.add('picked');
+          // 多张模式（三张）
+          if (picks.includes(i)) {
+            picks = picks.filter(x => x !== i);
+            c.classList.remove('picked');
+          } else {
+            if (picks.length >= max) return;
+            if (window.SFX && window.SFX.tap) window.SFX.tap();
+            picks.push(i);
+            c.classList.add('picked');
+          }
         }
         updatePickState();
       };
@@ -199,24 +213,25 @@
 
     fback.innerHTML = CARD_BACK;
     const svgCode = S[cardData.no] || `<circle cx="60" cy="60" r="30"/>`;
-    if (cardData.image) {
-      face.classList.add('has-art-img');
-      face.innerHTML = `
-        <div class="tr-face-art-wrap ${cardData.isRev ? 'is-rev' : ''}">
-          <img src="${cardData.image}" alt="${cardData.name}" class="tr-face-art-img">
+    face.innerHTML = `
+      <div class="tr-face-container">
+        <div class="tr-face-base">
+          <div class="num">${ROMAN[cardData.no]}</div>
+          <div class="emblem" style="${cardData.isRev ? 'transform:rotate(180deg);' : ''}">${svg(svgCode)}</div>
+          <div class="nm">
+            <b>${cardData.name}</b>
+            <span>${cardData.en}</span>
+          </div>
         </div>
-      `;
-    } else {
-      face.classList.remove('has-art-img');
-      face.innerHTML = `
-        <div class="num">${ROMAN[cardData.no]}</div>
-        <div class="emblem" style="${cardData.isRev ? 'transform:rotate(180deg);' : ''}">${svg(svgCode)}</div>
-        <div class="nm">
-          <b>${cardData.name}</b>
-          <span>${cardData.en}</span>
-        </div>
-      `;
-    }
+        ${cardData.image ? `
+          <div class="tr-face-art-wrap ${cardData.isRev ? 'is-rev' : ''}">
+            <img src="${cardData.image}" alt="${cardData.name}" class="tr-face-art-img"
+                 onload="this.classList.add('is-loaded')"
+                 onerror="this.parentElement.style.display='none'">
+          </div>
+        ` : ''}
+      </div>
+    `;
 
     document.getElementById('rvPos').textContent = pos;
     const badge = document.getElementById('rvBadge');
@@ -284,29 +299,30 @@
         resultList.innerHTML = `
           <div class="tr-single-hero">
             <div class="tr-card-frame ${c.isRev ? 'is-rev' : ''} ${c.image ? 'has-art' : ''}">
+              <div class="tr-card-inner">
+                <div class="tr-card-corner tl">✦</div>
+                <div class="tr-card-corner tr">✦</div>
+                <div class="tr-card-corner bl">✦</div>
+                <div class="tr-card-corner br">✦</div>
+                <div class="tr-card-head">
+                  <span class="tr-card-num">${ROMAN[c.no]}</span>
+                  <span class="tr-card-state-tag ${c.isRev ? 'rev' : 'up'}">${c.isRev ? '逆 位' : '正 位'}</span>
+                </div>
+                <div class="tr-card-art">
+                  ${svg(svgCode)}
+                </div>
+                <div class="tr-card-foot">
+                  <div class="tr-card-name">${c.name}</div>
+                  <div class="tr-card-en">${c.en}</div>
+                </div>
+              </div>
               ${c.image ? `
                 <div class="tr-card-painting-wrap ${c.isRev ? 'is-rev' : ''}">
-                  <img src="${c.image}" alt="${c.name}" class="tr-card-painting-img">
+                  <img src="${c.image}" alt="${c.name}" class="tr-card-painting-img"
+                       onload="this.classList.add('is-loaded')"
+                       onerror="this.parentElement.style.display='none'">
                 </div>
-              ` : `
-                <div class="tr-card-inner">
-                  <div class="tr-card-corner tl">✦</div>
-                  <div class="tr-card-corner tr">✦</div>
-                  <div class="tr-card-corner bl">✦</div>
-                  <div class="tr-card-corner br">✦</div>
-                  <div class="tr-card-head">
-                    <span class="tr-card-num">${ROMAN[c.no]}</span>
-                    <span class="tr-card-state-tag ${c.isRev ? 'rev' : 'up'}">${c.isRev ? '逆 位' : '正 位'}</span>
-                  </div>
-                  <div class="tr-card-art">
-                    ${svg(svgCode)}
-                  </div>
-                  <div class="tr-card-foot">
-                    <div class="tr-card-name">${c.name}</div>
-                    <div class="tr-card-en">${c.en}</div>
-                  </div>
-                </div>
-              `}
+              ` : ''}
             </div>
 
             <div class="tr-single-info">
@@ -363,25 +379,26 @@
               </div>
               
               <div class="tr-card-frame sm ${c.isRev ? 'is-rev' : ''} ${c.image ? 'has-art' : ''}">
+                <div class="tr-card-inner">
+                  <div class="tr-card-head">
+                    <span class="tr-card-num">${ROMAN[c.no]}</span>
+                    <span class="tr-card-state-tag ${c.isRev ? 'rev' : 'up'}">${c.isRev ? '逆位' : '正位'}</span>
+                  </div>
+                  <div class="tr-card-art">
+                    ${svg(svgCode)}
+                  </div>
+                  <div class="tr-card-foot">
+                    <div class="tr-card-name">${c.name}</div>
+                    <div class="tr-card-en">${c.en}</div>
+                  </div>
+                </div>
                 ${c.image ? `
                   <div class="tr-card-painting-wrap ${c.isRev ? 'is-rev' : ''}">
-                    <img src="${c.image}" alt="${c.name}" class="tr-card-painting-img">
+                    <img src="${c.image}" alt="${c.name}" class="tr-card-painting-img"
+                         onload="this.classList.add('is-loaded')"
+                         onerror="this.parentElement.style.display='none'">
                   </div>
-                ` : `
-                  <div class="tr-card-inner">
-                    <div class="tr-card-head">
-                      <span class="tr-card-num">${ROMAN[c.no]}</span>
-                      <span class="tr-card-state-tag ${c.isRev ? 'rev' : 'up'}">${c.isRev ? '逆位' : '正位'}</span>
-                    </div>
-                    <div class="tr-card-art">
-                      ${svg(svgCode)}
-                    </div>
-                    <div class="tr-card-foot">
-                      <div class="tr-card-name">${c.name}</div>
-                      <div class="tr-card-en">${c.en}</div>
-                    </div>
-                  </div>
-                `}
+                ` : ''}
               </div>
 
               <div class="tr-trio-body">
@@ -533,7 +550,7 @@
 
     ctx.fillStyle = '#e8c96a';
     ctx.font = 'bold 18px sans-serif';
-    ctx.fillText('✦ 赛博秘境 · 潮玩盲盒档案馆 ✦', 540, 112);
+    ctx.fillText('✦ 赛博秘境 · 塔罗命运档案馆 ✦', 540, 112);
 
     ctx.fillStyle = '#f8df8c';
     ctx.font = 'bold 44px Georgia, "PingFang SC", serif';
@@ -541,7 +558,7 @@
 
     ctx.fillStyle = '#a99fd4';
     ctx.font = '20px sans-serif';
-    ctx.fillText('大阿卡那 · 盲盒灵性映射与时空指引', 540, 236);
+    ctx.fillText('大阿卡那 · 二十二张启示之牌', 540, 236);
 
     ctx.strokeStyle = 'rgba(232, 201, 106, 0.3)';
     ctx.lineWidth = 1;
@@ -774,7 +791,7 @@
     ctx.textAlign = 'center';
     ctx.fillStyle = '#7a70a8';
     ctx.font = '19px sans-serif';
-    ctx.fillText('✦ 精神状态测试研究所 · 赛博秘境档案馆 ✦', 540, cv.height - 110);
+    ctx.fillText('✦ 精神状态测试研究所 · 赛博塔罗档案馆 ✦', 540, cv.height - 110);
 
     ctx.font = '16px sans-serif';
     ctx.fillStyle = '#5c5484';
@@ -815,7 +832,17 @@
     ctx.fillText(line, x, y);
   }
 
+  function preloadTarotImages() {
+    CARDS.forEach(c => {
+      if (c.image) {
+        const img = new Image();
+        img.src = c.image;
+      }
+    });
+  }
+
   function init() {
+    preloadTarotImages();
     const spOne = document.getElementById('trSpOne');
     const spThree = document.getElementById('trSpThree');
     if (spOne && spThree) {

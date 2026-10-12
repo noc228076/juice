@@ -2000,6 +2000,7 @@ html[data-theme="light"] #mod-tarot .pcard .back {
   display: block;
 }
 #mod-tarot .face {
+  position: relative;
   transform: rotateY(180deg);
   background: linear-gradient(165deg, #fffdf4, #f3e7c4);
   border: 2px solid var(--tr-gold3);
@@ -2007,32 +2008,50 @@ html[data-theme="light"] #mod-tarot .pcard .back {
   flex-direction: column;
   align-items: center;
   justify-content: space-between;
-  padding: 16px 12px;
-  color: #2c2413;
-}
-#mod-tarot .face.has-art-img {
   padding: 0;
-  border: 2px solid var(--tr-gold3);
+  color: #2c2413;
   border-radius: 18px;
   overflow: hidden;
-  background: #140f2e;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
 }
-#mod-tarot .face.has-art-img .tr-face-art-wrap {
+#mod-tarot .face .tr-face-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+#mod-tarot .face .tr-face-base {
   width: 100%;
   height: 100%;
   display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 12px;
+  box-sizing: border-box;
+}
+#mod-tarot .face .tr-face-art-wrap {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
   align-items: center;
   justify-content: center;
+  background: transparent;
   transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
-#mod-tarot .face.has-art-img .tr-face-art-wrap.is-rev {
+#mod-tarot .face .tr-face-art-wrap.is-rev {
   transform: rotate(180deg);
 }
-#mod-tarot .face.has-art-img .tr-face-art-img {
+#mod-tarot .face .tr-face-art-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   display: block;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+#mod-tarot .face .tr-face-art-img.is-loaded {
+  opacity: 1;
 }
 #mod-tarot .face .num {
   font-size: 15px;
@@ -2212,21 +2231,20 @@ html[data-theme="light"] #mod-tarot .tr-card-frame {
 }
 
 #mod-tarot .tr-card-frame.has-art {
-  padding: 0;
-  border-radius: 18px;
   overflow: hidden;
   border: 2px solid var(--tr-gold3);
   box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5), inset 0 0 16px rgba(232, 201, 106, 0.15);
 }
-#mod-tarot .tr-card-frame.sm.has-art {
-  border-radius: 14px;
-}
 #mod-tarot .tr-card-painting-wrap {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
   width: 100%;
   height: 100%;
   display: flex;
   align-items: center;
   justify-content: center;
+  background: transparent;
   transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 #mod-tarot .tr-card-painting-wrap.is-rev {
@@ -2237,6 +2255,11 @@ html[data-theme="light"] #mod-tarot .tr-card-frame {
   height: 100%;
   object-fit: cover;
   display: block;
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+#mod-tarot .tr-card-painting-img.is-loaded {
+  opacity: 1;
 }
 
 #mod-tarot .tr-card-inner {
@@ -11240,17 +11263,17 @@ html[data-theme="light"] .sbti-dim-badge.lvl-L {
           <button type="button" class="ew-switch-btn east" data-ew-jump="lingqian">🎋 东方灵签</button>
           <button type="button" class="ew-switch-btn bazi" data-ew-jump="bazi">📜 生辰八字</button>
         </div>
-        <h1 class="logo">赛博潮玩塔罗</h1>
-        <div class="sub">大阿卡那 · 盲盒灵性映射与时空指引</div>
+        <h1 class="logo">赛博塔罗</h1>
+        <div class="sub">大阿卡那 · 二十二张启示之牌</div>
         <div class="orn">✦ ✦ ✦</div>
         <div class="spread-grid">
           <div class="spread sel" id="trSpOne">
             <div class="ico">🔮</div>
-            <b>单张盲盒</b><span>一牌一问 · 今日手办签</span>
+            <b>单张指引</b><span>一牌一问 · 今日启示</span>
           </div>
           <div class="spread" id="trSpThree">
             <div class="ico">🃏</div>
-            <b>三张盲盒</b><span>过去 · 现在 · 未来</span>
+            <b>三张运势</b><span>过去 · 现在 · 未来</span>
           </div>
         </div>
 
@@ -11279,13 +11302,13 @@ html[data-theme="light"] .sbti-dim-badge.lvl-L {
               </div>
             </div>
           </div>
-          <div class="tr-fan-hint">✦ 潮玩手办卡 · 抽取你的专属星辰神谕 ✦</div>
+          <div class="tr-fan-hint">✦ 默念心中的疑问 · 倾听潜意识的回响 ✦</div>
         </div>
         <div class="intro">
-          静心凝神，默念你的困惑或心愿。每个盲盒都是宇宙潜意识给你准备的神秘潮玩手办卡牌。
+          静心凝神，默念你的困惑或心愿。二十二张大阿卡那将为你揭示隐秘的因果与前行的方向。
         </div>
         <div class="home-btns">
-          <button class="tr-btn" id="trBtnStart">开 启 命 运 盲 盒</button>
+          <button class="tr-btn" id="trBtnStart">开 始 占 卜</button>
         </div>
         <div class="disc">本应用仅供娱乐与自我反思，请理性看待占卜结果。</div>
       </div>
@@ -11294,16 +11317,16 @@ html[data-theme="light"] .sbti-dim-badge.lvl-L {
         <div class="topbar">
           <button class="tr-iconbtn" id="trBtnBackPick" title="返回主页">←</button>
           <div class="pick-head" style="flex:1;margin-bottom:0">
-            <b>拆盒选牌</b>
-            <p id="trPickHint">轻点牌背，锁定你的专属潮玩卡</p>
+            <b>洗牌抽牌</b>
+            <p id="trPickHint">轻点牌背，选出属于你的启示之牌</p>
           </div>
           <div style="width:38px"></div>
         </div>
         <div class="deck" id="trDeck"></div>
-        <div class="disc" id="trShufNote" style="display:none;color:var(--tr-gold);">正在摇晃洗牌……</div>
+        <div class="disc" id="trShufNote" style="display:none;color:var(--tr-gold);">正在洗牌中……</div>
         <div class="pick-foot">
           <button class="tr-btn ghost" id="trBtnShuffle" style="flex:1">重 新 洗 牌</button>
-          <button class="tr-btn" id="trBtnReveal" style="flex:1.6" disabled>拆 盒 解 牌</button>
+          <button class="tr-btn" id="trBtnReveal" style="flex:1.6" disabled>解 牌</button>
         </div>
       </div>
 
@@ -11311,7 +11334,7 @@ html[data-theme="light"] .sbti-dim-badge.lvl-L {
         <div class="topbar" style="margin-bottom:10px;">
           <button class="tr-iconbtn" id="trBtnBackReveal" title="返回重新选牌">←</button>
           <div class="pick-head" style="flex:1;margin-bottom:0">
-            <b style="font-size:16px">拆盒启示</b>
+            <b style="font-size:16px">命运启示</b>
           </div>
           <div style="width:38px"></div>
         </div>
@@ -11340,16 +11363,16 @@ html[data-theme="light"] .sbti-dim-badge.lvl-L {
         <div class="topbar" style="margin-bottom:12px;">
           <button class="tr-iconbtn" id="trBtnBackResult" title="返回主页">←</button>
           <div class="pick-head" style="flex:1;margin-bottom:0">
-            <b>盲盒拆箱手办报告</b>
+            <b>塔罗占卜报告</b>
           </div>
           <div style="width:38px"></div>
         </div>
         <div id="trSummaryBox" class="summary"></div>
         <div id="trResultList" class="result-list"></div>
         <div class="home-btns tr-result-actions" style="display:flex;flex-wrap:wrap;gap:12px;">
-          <button class="tr-btn ghost" id="trBtnSave" style="flex:1">📸 保存盲盒海报</button>
+          <button class="tr-btn ghost" id="trBtnSave" style="flex:1">📜 保存占卜签</button>
           <button class="tr-btn ghost" id="trBtnHome" style="flex:1">返回主页</button>
-          <button class="tr-btn" id="trBtnAgain" style="flex:1.2">再 拆 一 盒</button>
+          <button class="tr-btn" id="trBtnAgain" style="flex:1.2">再 占 一 次</button>
         </div>
       </div>
     </section>
@@ -27627,8 +27650,8 @@ if ('serviceWorker' in navigator) {
   <path d="M80 166 L82 174 L90 176 L82 178 L80 186 L78 178 L70 176 L78 174 Z" fill="url(#trGoldGrad)"/>
   <circle cx="44" cy="120" r="3" fill="url(#trGoldGrad)"/>
   <circle cx="116" cy="120" r="3" fill="url(#trGoldGrad)"/>
-  <text x="80" y="44" font-size="7.5" font-family="-apple-system,sans-serif" font-weight="900" letter-spacing="3" fill="url(#trGoldGrad)" text-anchor="middle" opacity="0.9">✦ POP ARCANA ✦</text>
-  <text x="80" y="206" font-size="7" font-family="-apple-system,sans-serif" font-weight="800" letter-spacing="2" fill="url(#trGoldGrad)" text-anchor="middle" opacity="0.8">BLIND BOX</text>
+  <text x="80" y="44" font-size="7.5" font-family="-apple-system,sans-serif" font-weight="900" letter-spacing="3" fill="url(#trGoldGrad)" text-anchor="middle" opacity="0.9">✦ ARCANUM ✦</text>
+  <text x="80" y="206" font-size="7" font-family="-apple-system,sans-serif" font-weight="800" letter-spacing="2" fill="url(#trGoldGrad)" text-anchor="middle" opacity="0.8">CYBER DESTINY</text>
 </svg>`;
   const ROMAN = ["0", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII", "XIII", "XIV", "XV", "XVI", "XVII", "XVIII", "XIX", "XX", "XXI"];
   const CARDS = [
@@ -27716,14 +27739,28 @@ if ('serviceWorker' in navigator) {
     document.querySelectorAll('#trDeck .pcard').forEach(c => {
       c.onclick = () => {
         const i = +c.dataset.i;
-        if (picks.includes(i)) {
-          picks = picks.filter(x => x !== i);
-          c.classList.remove('picked');
+        if (max === 1) {
+          // 单张模式：点击任意新牌直接即刻切换选中，无需先手动取消
+          if (picks.includes(i)) {
+            picks = [];
+            c.classList.remove('picked');
+          } else {
+            document.querySelectorAll('#trDeck .pcard.picked').forEach(el => el.classList.remove('picked'));
+            picks = [i];
+            c.classList.add('picked');
+            if (window.SFX && window.SFX.tap) window.SFX.tap();
+          }
         } else {
-          if (picks.length >= max) return;
-          if (window.SFX && window.SFX.tap) window.SFX.tap();
-          picks.push(i);
-          c.classList.add('picked');
+          // 多张模式（三张）
+          if (picks.includes(i)) {
+            picks = picks.filter(x => x !== i);
+            c.classList.remove('picked');
+          } else {
+            if (picks.length >= max) return;
+            if (window.SFX && window.SFX.tap) window.SFX.tap();
+            picks.push(i);
+            c.classList.add('picked');
+          }
         }
         updatePickState();
       };
@@ -27769,24 +27806,25 @@ if ('serviceWorker' in navigator) {
 
     fback.innerHTML = CARD_BACK;
     const svgCode = S[cardData.no] || `<circle cx="60" cy="60" r="30"/>`;
-    if (cardData.image) {
-      face.classList.add('has-art-img');
-      face.innerHTML = `
-        <div class="tr-face-art-wrap ${cardData.isRev ? 'is-rev' : ''}">
-          <img src="${cardData.image}" alt="${cardData.name}" class="tr-face-art-img">
+    face.innerHTML = `
+      <div class="tr-face-container">
+        <div class="tr-face-base">
+          <div class="num">${ROMAN[cardData.no]}</div>
+          <div class="emblem" style="${cardData.isRev ? 'transform:rotate(180deg);' : ''}">${svg(svgCode)}</div>
+          <div class="nm">
+            <b>${cardData.name}</b>
+            <span>${cardData.en}</span>
+          </div>
         </div>
-      `;
-    } else {
-      face.classList.remove('has-art-img');
-      face.innerHTML = `
-        <div class="num">${ROMAN[cardData.no]}</div>
-        <div class="emblem" style="${cardData.isRev ? 'transform:rotate(180deg);' : ''}">${svg(svgCode)}</div>
-        <div class="nm">
-          <b>${cardData.name}</b>
-          <span>${cardData.en}</span>
-        </div>
-      `;
-    }
+        ${cardData.image ? `
+          <div class="tr-face-art-wrap ${cardData.isRev ? 'is-rev' : ''}">
+            <img src="${cardData.image}" alt="${cardData.name}" class="tr-face-art-img"
+                 onload="this.classList.add('is-loaded')"
+                 onerror="this.parentElement.style.display='none'">
+          </div>
+        ` : ''}
+      </div>
+    `;
 
     document.getElementById('rvPos').textContent = pos;
     const badge = document.getElementById('rvBadge');
@@ -27854,29 +27892,30 @@ if ('serviceWorker' in navigator) {
         resultList.innerHTML = `
           <div class="tr-single-hero">
             <div class="tr-card-frame ${c.isRev ? 'is-rev' : ''} ${c.image ? 'has-art' : ''}">
+              <div class="tr-card-inner">
+                <div class="tr-card-corner tl">✦</div>
+                <div class="tr-card-corner tr">✦</div>
+                <div class="tr-card-corner bl">✦</div>
+                <div class="tr-card-corner br">✦</div>
+                <div class="tr-card-head">
+                  <span class="tr-card-num">${ROMAN[c.no]}</span>
+                  <span class="tr-card-state-tag ${c.isRev ? 'rev' : 'up'}">${c.isRev ? '逆 位' : '正 位'}</span>
+                </div>
+                <div class="tr-card-art">
+                  ${svg(svgCode)}
+                </div>
+                <div class="tr-card-foot">
+                  <div class="tr-card-name">${c.name}</div>
+                  <div class="tr-card-en">${c.en}</div>
+                </div>
+              </div>
               ${c.image ? `
                 <div class="tr-card-painting-wrap ${c.isRev ? 'is-rev' : ''}">
-                  <img src="${c.image}" alt="${c.name}" class="tr-card-painting-img">
+                  <img src="${c.image}" alt="${c.name}" class="tr-card-painting-img"
+                       onload="this.classList.add('is-loaded')"
+                       onerror="this.parentElement.style.display='none'">
                 </div>
-              ` : `
-                <div class="tr-card-inner">
-                  <div class="tr-card-corner tl">✦</div>
-                  <div class="tr-card-corner tr">✦</div>
-                  <div class="tr-card-corner bl">✦</div>
-                  <div class="tr-card-corner br">✦</div>
-                  <div class="tr-card-head">
-                    <span class="tr-card-num">${ROMAN[c.no]}</span>
-                    <span class="tr-card-state-tag ${c.isRev ? 'rev' : 'up'}">${c.isRev ? '逆 位' : '正 位'}</span>
-                  </div>
-                  <div class="tr-card-art">
-                    ${svg(svgCode)}
-                  </div>
-                  <div class="tr-card-foot">
-                    <div class="tr-card-name">${c.name}</div>
-                    <div class="tr-card-en">${c.en}</div>
-                  </div>
-                </div>
-              `}
+              ` : ''}
             </div>
 
             <div class="tr-single-info">
@@ -27933,25 +27972,26 @@ if ('serviceWorker' in navigator) {
               </div>
               
               <div class="tr-card-frame sm ${c.isRev ? 'is-rev' : ''} ${c.image ? 'has-art' : ''}">
+                <div class="tr-card-inner">
+                  <div class="tr-card-head">
+                    <span class="tr-card-num">${ROMAN[c.no]}</span>
+                    <span class="tr-card-state-tag ${c.isRev ? 'rev' : 'up'}">${c.isRev ? '逆位' : '正位'}</span>
+                  </div>
+                  <div class="tr-card-art">
+                    ${svg(svgCode)}
+                  </div>
+                  <div class="tr-card-foot">
+                    <div class="tr-card-name">${c.name}</div>
+                    <div class="tr-card-en">${c.en}</div>
+                  </div>
+                </div>
                 ${c.image ? `
                   <div class="tr-card-painting-wrap ${c.isRev ? 'is-rev' : ''}">
-                    <img src="${c.image}" alt="${c.name}" class="tr-card-painting-img">
+                    <img src="${c.image}" alt="${c.name}" class="tr-card-painting-img"
+                         onload="this.classList.add('is-loaded')"
+                         onerror="this.parentElement.style.display='none'">
                   </div>
-                ` : `
-                  <div class="tr-card-inner">
-                    <div class="tr-card-head">
-                      <span class="tr-card-num">${ROMAN[c.no]}</span>
-                      <span class="tr-card-state-tag ${c.isRev ? 'rev' : 'up'}">${c.isRev ? '逆位' : '正位'}</span>
-                    </div>
-                    <div class="tr-card-art">
-                      ${svg(svgCode)}
-                    </div>
-                    <div class="tr-card-foot">
-                      <div class="tr-card-name">${c.name}</div>
-                      <div class="tr-card-en">${c.en}</div>
-                    </div>
-                  </div>
-                `}
+                ` : ''}
               </div>
 
               <div class="tr-trio-body">
@@ -28103,7 +28143,7 @@ if ('serviceWorker' in navigator) {
 
     ctx.fillStyle = '#e8c96a';
     ctx.font = 'bold 18px sans-serif';
-    ctx.fillText('✦ 赛博秘境 · 潮玩盲盒档案馆 ✦', 540, 112);
+    ctx.fillText('✦ 赛博秘境 · 塔罗命运档案馆 ✦', 540, 112);
 
     ctx.fillStyle = '#f8df8c';
     ctx.font = 'bold 44px Georgia, "PingFang SC", serif';
@@ -28111,7 +28151,7 @@ if ('serviceWorker' in navigator) {
 
     ctx.fillStyle = '#a99fd4';
     ctx.font = '20px sans-serif';
-    ctx.fillText('大阿卡那 · 盲盒灵性映射与时空指引', 540, 236);
+    ctx.fillText('大阿卡那 · 二十二张启示之牌', 540, 236);
 
     ctx.strokeStyle = 'rgba(232, 201, 106, 0.3)';
     ctx.lineWidth = 1;
@@ -28344,7 +28384,7 @@ if ('serviceWorker' in navigator) {
     ctx.textAlign = 'center';
     ctx.fillStyle = '#7a70a8';
     ctx.font = '19px sans-serif';
-    ctx.fillText('✦ 精神状态测试研究所 · 赛博秘境档案馆 ✦', 540, cv.height - 110);
+    ctx.fillText('✦ 精神状态测试研究所 · 赛博塔罗档案馆 ✦', 540, cv.height - 110);
 
     ctx.font = '16px sans-serif';
     ctx.fillStyle = '#5c5484';
@@ -28385,7 +28425,17 @@ if ('serviceWorker' in navigator) {
     ctx.fillText(line, x, y);
   }
 
+  function preloadTarotImages() {
+    CARDS.forEach(c => {
+      if (c.image) {
+        const img = new Image();
+        img.src = c.image;
+      }
+    });
+  }
+
   function init() {
+    preloadTarotImages();
     const spOne = document.getElementById('trSpOne');
     const spThree = document.getElementById('trSpThree');
     if (spOne && spThree) {

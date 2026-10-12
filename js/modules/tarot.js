@@ -596,7 +596,7 @@
     ctx.font = 'bold 44px Georgia, "PingFang SC", serif';
     ctx.fillText('命 运 启 示 录', 540, 192);
 
-    ctx.fillStyle = '#a99fd4';
+    ctx.fillStyle = '#c9c0ee';
     ctx.font = '20px sans-serif';
     ctx.fillText('大阿卡那 · 二十二张启示之牌', 540, 236);
 
@@ -698,7 +698,7 @@
       ctx.stroke();
 
       ctx.fillStyle = '#e8c96a';
-      ctx.font = 'bold 22px sans-serif';
+      ctx.font = 'bold 24px sans-serif';
       ctx.fillText(`🔑 核心指引：${first.kw}`, 540, 1030);
 
       // 解读内容框
@@ -724,8 +724,8 @@
       ctx.stroke();
 
       ctx.fillStyle = '#ede7ff';
-      ctx.font = '23px/1.8 "PingFang SC", "Microsoft YaHei", sans-serif';
-      wrapText(ctx, first.txt, 150, descBoxY + 120, 780, 40);
+      ctx.font = '26px/1.8 "PingFang SC", "Microsoft YaHei", sans-serif';
+      wrapText(ctx, first.txt, 150, descBoxY + 122, 780, 46);
 
       // 金句条
       const quoteY = descBoxY + 280;
@@ -740,7 +740,7 @@
       ctx.fillText('“', 170, quoteY + 45);
 
       ctx.fillStyle = '#d8cef6';
-      ctx.font = 'italic 21px "PingFang SC", sans-serif';
+      ctx.font = 'italic 23px "PingFang SC", sans-serif';
       ctx.fillText('顺应内心的真实感召，走好当下的每一步。', 210, quoteY + 48);
       ctx.fillText('束缚你的从来不是深渊，而是不敢放下的执念。', 210, quoteY + 84);
     } else {
@@ -796,11 +796,11 @@
         // 牌位与名称标签
         ctx.textAlign = 'center';
         ctx.fillStyle = '#fce494';
-        ctx.font = 'bold 22px sans-serif';
+        ctx.font = 'bold 24px sans-serif';
         ctx.fillText(`【${it.pos}】${it.card.name} · ${it.card.isRev ? '逆位' : '正位'}`, cx + cardW / 2, cardY + cardH + 34);
 
-        ctx.fillStyle = '#a99fd4';
-        ctx.font = '16px sans-serif';
+        ctx.fillStyle = '#c9c0ee';
+        ctx.font = '17px sans-serif';
         ctx.fillText(it.kw, cx + cardW / 2, cardY + cardH + 62);
       });
 
@@ -808,7 +808,7 @@
       let descTop = 790;
       data.items.forEach(it => {
         ctx.fillStyle = 'rgba(26, 20, 54, 0.85)';
-        roundRect(ctx, 110, descTop, 860, 230, 20);
+        roundRect(ctx, 110, descTop, 860, 250, 20);
         ctx.fill();
         ctx.strokeStyle = 'rgba(232, 201, 106, 0.35)';
         ctx.lineWidth = 1.5;
@@ -816,25 +816,25 @@
 
         ctx.textAlign = 'left';
         ctx.fillStyle = '#e8c96a';
-        ctx.font = 'bold 22px sans-serif';
-        ctx.fillText(`✦ ${it.pos} · ${it.card.name} (${it.card.isRev ? '逆位' : '正位'})`, 150, descTop + 46);
+        ctx.font = 'bold 25px sans-serif';
+        ctx.fillText(`✦ ${it.pos} · ${it.card.name} (${it.card.isRev ? '逆位' : '正位'})`, 150, descTop + 48);
 
         ctx.fillStyle = '#ede7ff';
-        ctx.font = '20px/1.7 "PingFang SC", sans-serif';
-        wrapText(ctx, it.txt, 150, descTop + 90, 780, 36);
+        ctx.font = '26px/1.7 "PingFang SC", sans-serif';
+        wrapText(ctx, it.txt, 150, descTop + 96, 780, 46);
 
-        descTop += 255;
+        descTop += 275;
       });
     }
 
     // 4. 底部 Footer
     ctx.textAlign = 'center';
-    ctx.fillStyle = '#7a70a8';
+    ctx.fillStyle = '#b3a9e0';
     ctx.font = '19px sans-serif';
     ctx.fillText('✦ 精神状态测试研究所 · 赛博塔罗档案馆 ✦', 540, cv.height - 110);
 
     ctx.font = '16px sans-serif';
-    ctx.fillStyle = '#5c5484';
+    ctx.fillStyle = '#9a91c6';
     ctx.fillText('探索潜意识的宇宙边界 · 长按保存图片', 540, cv.height - 76);
 
     let dataUrl = '';

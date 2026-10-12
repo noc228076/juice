@@ -90,11 +90,21 @@ html[data-theme="light"] .ew-mystic-bar {
   font-weight: 800;
 }
 
+.ew-switch-btn.active.bazi {
+  background: rgba(245, 158, 11, 0.2);
+  color: #F59E0B;
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  font-weight: 800;
+}
+
 html[data-theme="light"] .ew-switch-btn.active.west {
   color: #7E22CE;
 }
 html[data-theme="light"] .ew-switch-btn.active.east {
   color: #BE123C;
+}
+html[data-theme="light"] .ew-switch-btn.active.bazi {
+  color: #B45309;
 }
 
 /* ============ 屏幕容器切换 ============ */
@@ -106,7 +116,7 @@ html[data-theme="light"] .ew-switch-btn.active.east {
   display: none;
   flex-direction: column;
   box-sizing: border-box;
-  max-width: 580px;
+  max-width: 600px;
   margin: 0 auto;
   padding: 16px 20px calc(36px + env(safe-area-inset-bottom));
 }
@@ -225,18 +235,18 @@ html[data-theme="light"] .ew-switch-btn.active.east {
 /* 紫竹雕花签筒舞台 */
 .lq-cylinder-stage {
   position: relative;
-  height: 256px;
+  height: 220px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  margin: 4px 0 12px;
+  margin: 4px 0 10px;
 }
 
 .lq-cylinder-wrap {
   position: relative;
-  width: 170px;
-  height: 230px;
+  width: 154px;
+  height: 196px;
   display: flex;
   align-items: center;
   justify-content: center;

@@ -571,11 +571,6 @@ html[data-theme="light"] .sbti-dim-badge.lvl-L {
             <span class="tab-label-full">人间清醒</span>
             <span class="tab-label-short">清醒</span>
           </button>
-          <button class="nav-tab" data-mod="bazi">
-            <span class="tab-icon">📜</span>
-            <span class="tab-label-full">八字排盘</span>
-            <span class="tab-label-short">八字</span>
-          </button>
         </nav>
       </div>
     </div>
@@ -1035,9 +1030,9 @@ html[data-theme="light"] .sbti-dim-badge.lvl-L {
     <section id="mod-tarot" class="app-module">
       <div class="tr-screen active" id="sc-tr-home">
         <div class="ew-mystic-bar">
-          <button class="ew-switch-btn active west" data-ew-jump="tarot">🔮 西方塔罗</button>
-          <button class="ew-switch-btn east" data-ew-jump="lingqian">🎋 东方灵签</button>
-          <button class="ew-switch-btn east" data-ew-jump="bazi">📜 生辰八字</button>
+          <button type="button" class="ew-switch-btn active west" data-ew-jump="tarot">🔮 西方塔罗</button>
+          <button type="button" class="ew-switch-btn east" data-ew-jump="lingqian">🎋 东方灵签</button>
+          <button type="button" class="ew-switch-btn bazi" data-ew-jump="bazi">📜 生辰八字</button>
         </div>
         <h1 class="logo">塔罗占卜</h1>
         <div class="sub">大阿卡那 · 二十二张启示之牌</div>
@@ -1051,6 +1046,34 @@ html[data-theme="light"] .sbti-dim-badge.lvl-L {
             <div class="ico">🃏</div>
             <b>三张运势</b><span>过去 · 现在 · 未来</span>
           </div>
+        </div>
+
+        <!-- 3D 浮空牌阵视觉舞台 (与东方签筒、八字轮盘形成高度均衡) -->
+        <div class="tr-deck-fan-stage" id="trFanStage">
+          <div class="tr-fan-container">
+            <div class="tr-fan-card fan-left" title="I · 魔术师 (创造力与无限潜能)">
+              <div class="tr-fan-inner">
+                <span class="tr-fan-num">I</span>
+                <span class="tr-fan-ico">🪄</span>
+                <span class="tr-fan-name">魔术师</span>
+              </div>
+            </div>
+            <div class="tr-fan-card fan-center" title="X · 命运之轮 (周期与当下契机)">
+              <div class="tr-fan-inner">
+                <span class="tr-fan-num">X</span>
+                <span class="tr-fan-ico">☸️</span>
+                <span class="tr-fan-name">命运之轮</span>
+              </div>
+            </div>
+            <div class="tr-fan-card fan-right" title="XVII · 星星 (希望与灵性指引)">
+              <div class="tr-fan-inner">
+                <span class="tr-fan-num">XVII</span>
+                <span class="tr-fan-ico">⭐</span>
+                <span class="tr-fan-name">星星</span>
+              </div>
+            </div>
+          </div>
+          <div class="tr-fan-hint">✦ 牌意万千 · 唯心映现 ✦</div>
         </div>
         <div class="intro">
           静心凝神，默念你的困惑或心愿，然后洗牌、抽取属于你的启示之牌。塔罗不是预言，而是一面照见潜意识的镜子。
@@ -1329,9 +1352,9 @@ html[data-theme="light"] .sbti-dim-badge.lvl-L {
       <div class="lq-screen active" id="sc-lq-home">
         <header class="lq-header">
           <div class="ew-mystic-bar">
-            <button class="ew-switch-btn west" data-ew-jump="tarot">🔮 西方塔罗</button>
-            <button class="ew-switch-btn active east" data-ew-jump="lingqian">🎋 东方灵签</button>
-            <button class="ew-switch-btn east" data-ew-jump="bazi">📜 生辰八字</button>
+            <button type="button" class="ew-switch-btn west" data-ew-jump="tarot">🔮 西方塔罗</button>
+            <button type="button" class="ew-switch-btn active east" data-ew-jump="lingqian">🎋 东方灵签</button>
+            <button type="button" class="ew-switch-btn bazi" data-ew-jump="bazi">📜 生辰八字</button>
           </div>
           <h1 class="lq-title">东方赛博灵签</h1>
           <div class="lq-sub">紫竹摇签 · 朱砂宣纸 · 当代打工人渡劫指南</div>
@@ -1836,21 +1859,53 @@ html[data-theme="light"] .sbti-dim-badge.lvl-L {
           <div class="lg-cards-grid" id="lgLibraryGrid"></div>
         </div>
 
-        <!-- 子模式 3：每日清醒锦囊抽卡 -->
+        <!-- 子模式 3：每日清醒锦囊 (Daily Life Guide Card) -->
         <div class="lg-substage" id="lg-sub-draw">
           <div class="lg-draw-stage">
+            <!-- 锦囊分类切换 -->
             <div class="lg-draw-pools" id="lgDrawPools">
-              <button type="button" class="lg-btn-chip active" data-lgpool="all">🎲 随机全库抽取</button>
-              <button type="button" class="lg-btn-chip" data-lgpool="health">❤️ 抽一张保命急救卡</button>
-              <button type="button" class="lg-btn-chip" data-lgpool="myth">🚫 抽一张防智商税卡</button>
-              <button type="button" class="lg-btn-chip" data-lgpool="legal">⚖️ 抽一张职场/法务护身符</button>
+              <button type="button" class="lg-btn-chip active" data-lgpool="all">🎲 全库锦囊 (36条)</button>
+              <button type="button" class="lg-btn-chip" data-lgpool="health">❤️ 保命与急救 (14条)</button>
+              <button type="button" class="lg-btn-chip" data-lgpool="myth">🚫 智商税避雷 (6条)</button>
+              <button type="button" class="lg-btn-chip" data-lgpool="legal">⚖️ 职场法务与省钱 (16条)</button>
             </div>
 
-            <div class="lg-flashcard" id="lgFlashcard"></div>
+            <!-- 3D 翻转卡牌容器 -->
+            <div class="lg-card-3d-scene" id="lgCardScene">
+              <div class="lg-card-3d-flipper" id="lgCardFlipper">
+                <!-- 卡背 (点击即可翻转开卡) -->
+                <div class="lg-card-face lg-card-back" id="lgCardBack">
+                  <div class="lg-cb-glow"></div>
+                  <div class="lg-cb-border-decor"></div>
+                  <div class="lg-cb-header">
+                    <span class="lg-cb-pill">👝 锦囊密令</span>
+                    <span class="lg-cb-code">NO.LIFELOGIC · 循证妙策</span>
+                  </div>
+                  <div class="lg-cb-center">
+                    <div class="lg-cb-emblem">👝</div>
+                    <div class="lg-cb-title">每日清醒锦囊</div>
+                    <div class="lg-cb-sub">撕碎虚妄 · 循证护体 · 拒缴智商税</div>
+                  </div>
+                  <div class="lg-cb-foot">
+                    <div class="lg-cb-tip">✨ 轻触卡牌正反翻转 · 查阅锦囊 ✨</div>
+                    <div class="lg-cb-stamp">【清醒印鉴】</div>
+                  </div>
+                </div>
 
+                <!-- 卡面 (翻开后呈现核心指南) -->
+                <div class="lg-card-face lg-card-front" id="lgFlashcard"></div>
+              </div>
+            </div>
+
+            <!-- 操作按键区 -->
             <div class="lg-draw-actions">
-              <button type="button" class="btn-ghost" id="lgBtnDrawNext" style="flex:1;min-width:180px;">🎲 再抽一张清醒锦囊</button>
-              <button type="button" class="lg-btn-poster" id="lgBtnDrawPoster" style="flex:1.4;min-width:240px;">📸 保存这张《人间清醒锦囊卡》并归档</button>
+              <button type="button" class="btn-primary lg-draw-btn-main" id="lgBtnDrawNext">
+                <span class="draw-icon">🎲</span>
+                <span class="draw-txt">翻开今日锦囊</span>
+              </button>
+              <button type="button" class="lg-btn-poster" id="lgBtnDrawPoster">
+                <span>📸 保存海报并归档</span>
+              </button>
             </div>
           </div>
         </div>
@@ -1870,11 +1925,11 @@ html[data-theme="light"] .sbti-dim-badge.lvl-L {
     <!-- 模块 11：赛博八字命盘 (Four Pillars of Destiny) -->
     <section id="mod-bazi" class="app-module">
       <div class="bz-wrap">
-        <!-- 东方玄学三大法门一键互跳栏 -->
-        <div class="bz-mystic-bar">
-          <button type="button" class="bz-switch-btn" data-ew-jump="tarot">🔮 西方塔罗</button>
-          <button type="button" class="bz-switch-btn" data-ew-jump="lingqian">🎋 东方灵签</button>
-          <button type="button" class="bz-switch-btn active" data-ew-jump="bazi">📜 赛博八字</button>
+        <!-- 东西玄学三大法门一键互跳栏 -->
+        <div class="ew-mystic-bar">
+          <button type="button" class="ew-switch-btn west" data-ew-jump="tarot">🔮 西方塔罗</button>
+          <button type="button" class="ew-switch-btn east" data-ew-jump="lingqian">🎋 东方灵签</button>
+          <button type="button" class="ew-switch-btn active bazi" data-ew-jump="bazi">📜 生辰八字</button>
         </div>
 
         <header class="bz-header">

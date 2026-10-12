@@ -41,10 +41,12 @@
     document.documentElement.dataset.activeModule = modKey;
 
     const hasSeparateLingqianTab = !!document.querySelector('.nav-tab[data-mod="lingqian"]');
+    const hasSeparateBaziTab = !!document.querySelector('.nav-tab[data-mod="bazi"]');
     let matchedTab = null;
     // 切换顶栏 Tab 选中状态
     document.querySelectorAll('.nav-tab').forEach(tab => {
-      const isMatch = tab.dataset.mod === modKey || (!hasSeparateLingqianTab && modKey === 'lingqian' && tab.dataset.mod === 'tarot');
+      const isMysticSub = (!hasSeparateLingqianTab && modKey === 'lingqian') || (!hasSeparateBaziTab && modKey === 'bazi');
+      const isMatch = tab.dataset.mod === modKey || (isMysticSub && tab.dataset.mod === 'tarot');
       tab.classList.toggle('active', isMatch);
       if (isMatch) {
         matchedTab = tab;
@@ -106,9 +108,8 @@
     document.querySelectorAll('.nav-tab').forEach(tab => {
       tab.addEventListener('click', () => {
         if (window.SFX && window.SFX.tap) window.SFX.tap();
-        const hasSeparateLingqianTab = !!document.querySelector('.nav-tab[data-mod="lingqian"]');
         let targetMod = tab.dataset.mod;
-        if (!hasSeparateLingqianTab && targetMod === 'tarot') {
+        if (targetMod === 'tarot') {
           targetMod = lastMysticMod || 'tarot';
         }
         switchModule(targetMod, true);

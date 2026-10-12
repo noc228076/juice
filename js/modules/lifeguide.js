@@ -693,6 +693,7 @@
   let curSearchKeyword = '';
   let curDrawPool = 'all'; // 'all' | 'health' | 'myth' | 'legal'
   let curDrawnEntry = HANDBOOK_ENTRIES[0];
+  let isCardFlipping = false;
 
   function loadStorage() {
     try {
@@ -727,6 +728,27 @@
     try {
       localStorage.setItem(STORAGE_DONE_KEY, JSON.stringify([...doneEntryIds]));
     } catch (e) {}
+  }
+
+  function getEntryMeta(entry) {
+    if (!entry) {
+      return {
+        badge: '🅰️ 循证实操',
+        stamp: '清醒\n实操',
+        color: '#34D399'
+      };
+    }
+    const isMyth = entry.grade === 'MYTH';
+    const isEmergency = entry.cat === 'emergency';
+    const isLegal = entry.cat === 'legal' || entry.cat === 'career';
+
+    return {
+      badge: isMyth
+        ? '🚫 智商税避雷'
+        : (isEmergency ? '🚨 救命硬核' : (isLegal ? '⚖️ 维权护身' : '🅰️ 循证实操')),
+      stamp: isMyth ? '破妄\n避坑' : (isEmergency ? '救命\n铁律' : '清醒\n实操'),
+      color: isMyth ? '#FB7185' : (isEmergency ? '#F59E0B' : '#34D399')
+    };
   }
 
   /* =========================================================
@@ -1015,44 +1037,40 @@
     });
   }
 
-  function renderDrawCard(animate = false) {
+  function renderDrawCard(forceFront = false) {
     const cardEl = document.getElementById('lgFlashcard');
+    const flipper = document.getElementById('lgCardFlipper');
     if (!cardEl || !curDrawnEntry) return;
 
-    if (animate) {
-      cardEl.classList.remove('flip-anim');
-      void cardEl.offsetWidth;
-      cardEl.classList.add('flip-anim');
-    }
-
     const entry = curDrawnEntry;
-    const isMyth = entry.grade === 'MYTH';
+    const meta = getEntryMeta(entry);
     const isDone = doneEntryIds.has(entry.id);
-    const gradeLabel = isMyth
-      ? '🚫 反面清单·智商税避雷'
-      : (entry.grade === 'A' ? '🅰️ 证据等级 A · 顶刊/现行法条' : '🅱️ 证据等级 B · 临床共识');
+
+    cardEl.className = 'lg-card-face lg-card-front';
+    cardEl.style.borderColor = meta.color;
 
     cardEl.innerHTML = `
       <div class="lg-fc-ribbon">
-        <div class="lg-entry-badges">
-          <span class="lg-badge grade-${entry.grade}">${gradeLabel}</span>
+        <div class="lg-entry-badges" style="align-items:center;gap:8px;">
+          <span class="lg-badge" style="background:${meta.color}22;color:${meta.color};border:1px solid ${meta.color}55;font-weight:800;">${meta.badge}</span>
           <span class="lg-badge cost-tag">${entry.catName}</span>
         </div>
         <span class="lg-fc-no">NO.${entry.id.toUpperCase()} · ${entry.chapter}</span>
       </div>
       <h2 class="lg-fc-title">${entry.title}</h2>
       <div class="lg-fc-box">
-        <span class="lg-fc-box-lbl">🗣️ 【说人话 · 行动处方】 (${entry.cost})</span>
+        <span class="lg-fc-box-lbl" style="color:${meta.color};">🗣️ 【说人话 · 行动处方】 (${entry.cost})</span>
         <div class="lg-fc-box-txt">${entry.plain}</div>
       </div>
       <div class="lg-fc-box">
-        <span class="lg-fc-box-lbl">🔬 【硬核循证收益 / 法律条文依据】</span>
-        <div class="lg-fc-box-txt" style="font-size:13.5px;color:var(--tx-dim);">${entry.evidence}</div>
+        <span class="lg-fc-box-lbl" style="color:${meta.color};">🔬 【硬核循证收益 / 法律条文依据】</span>
+        <div class="lg-fc-box-txt lg-fc-evidence-txt">${entry.evidence}</div>
       </div>
       <div class="lg-fc-source">
         📖 <b>原始文献与法条出处：</b>${entry.source}
       </div>
-      <div style="display:flex;justify-content:flex-end;margin-top:4px;">
+      <div class="lg-fc-stamp" style="border-color:${meta.color};color:${meta.color};">${meta.stamp.replace('\n', '<br>')}</div>
+      <div style="display:flex;justify-content:flex-end;margin-top:4px;position:relative;z-index:3;">
         <button type="button" class="lg-btn-done ${isDone ? 'done' : ''}" id="lgFcBtnDone">
           ${isDone ? '✅ 已收入我的清醒习惯库' : '⭕ 标记为我已掌握/已做到'}
         </button>
@@ -1061,7 +1079,8 @@
 
     const btnDone = document.getElementById('lgFcBtnDone');
     if (btnDone) {
-      btnDone.onclick = () => {
+      btnDone.onclick = (e) => {
+        e.stopPropagation();
         if (window.SFX && window.SFX.tap) window.SFX.tap();
         if (doneEntryIds.has(entry.id)) {
           doneEntryIds.delete(entry.id);
@@ -1069,13 +1088,17 @@
           doneEntryIds.add(entry.id);
         }
         saveDoneStorage();
-        renderDrawCard(false);
+        renderDrawCard(true);
         updateTopStats();
       };
     }
+
+    if (forceFront && flipper) {
+      flipper.classList.add('is-flipped');
+    }
   }
 
-  function drawRandomEntry() {
+  function pickRandomEntry() {
     let pool = HANDBOOK_ENTRIES;
     if (curDrawPool === 'health') {
       pool = HANDBOOK_ENTRIES.filter(e => e.cat === 'health' || e.cat === 'emergency');
@@ -1089,9 +1112,76 @@
     let candidates = pool.filter(e => e.id !== (curDrawnEntry && curDrawnEntry.id));
     if (candidates.length === 0) candidates = pool;
 
-    curDrawnEntry = candidates[Math.floor(Math.random() * candidates.length)];
-    if (window.SFX && window.SFX.shake) window.SFX.shake();
-    renderDrawCard(true);
+    return candidates[Math.floor(Math.random() * candidates.length)];
+  }
+
+  function updateDrawBtnText(isFlipped) {
+    const btn = document.getElementById('lgBtnDrawNext');
+    if (!btn) return;
+    const txt = btn.querySelector('.draw-txt');
+    if (txt) {
+      txt.textContent = isFlipped ? '换一张锦囊' : '翻开今日锦囊';
+    }
+  }
+
+  // 1. 手动单击卡牌：正反面翻转（在背面点击翻开新牌，在正面点击可翻回背面）
+  function toggleCardFlip() {
+    const flipper = document.getElementById('lgCardFlipper');
+    if (!flipper || isCardFlipping) return;
+
+    if (!curDrawnEntry) {
+      curDrawnEntry = pickRandomEntry();
+      renderDrawCard(false);
+    }
+
+    if (window.SFX && window.SFX.tarotFlip) {
+      window.SFX.tarotFlip();
+    }
+
+    isCardFlipping = true;
+    const isNowFlipped = !flipper.classList.contains('is-flipped');
+    flipper.classList.toggle('is-flipped', isNowFlipped);
+    updateDrawBtnText(isNowFlipped);
+
+    setTimeout(() => {
+      isCardFlipping = false;
+    }, 320);
+  }
+
+  // 2. 点击“换一张锦囊”：把牌翻到背面，后台装入新牌，等待手动单击卡片翻转出现新牌
+  function prepareNextCard() {
+    const flipper = document.getElementById('lgCardFlipper');
+    if (isCardFlipping) return;
+
+    const next = pickRandomEntry();
+
+    if (window.SFX && window.SFX.tarotFlip) {
+      window.SFX.tarotFlip();
+    }
+
+    if (!flipper) {
+      curDrawnEntry = next;
+      renderDrawCard(true);
+      return;
+    }
+
+    // 若当前在正面状态：把牌翻到背面，半途载入新牌，停在背面等待手动翻开
+    if (flipper.classList.contains('is-flipped')) {
+      isCardFlipping = true;
+      flipper.classList.remove('is-flipped');
+      updateDrawBtnText(false);
+      setTimeout(() => {
+        curDrawnEntry = next;
+        renderDrawCard(false);
+        isCardFlipping = false;
+      }, 240);
+      return;
+    }
+
+    // 若当前已经在背面：直接换入新牌，保持背面，用户随时点击翻开
+    curDrawnEntry = next;
+    renderDrawCard(false);
+    updateDrawBtnText(false);
   }
 
   /* =========================================================
@@ -1305,13 +1395,14 @@
     if (!curDrawnEntry) return;
     if (window.SFX && window.SFX.done) window.SFX.done();
     const entry = curDrawnEntry;
+    const meta = getEntryMeta(entry);
 
     if (window.UniversalHistory && typeof window.UniversalHistory.add === 'function') {
       window.UniversalHistory.add({
         module: 'lifeguide',
         title: `清醒锦囊：${entry.title}`,
         subtitle: `${entry.catName} · ${entry.chapter}`,
-        color: entry.grade === 'MYTH' ? '#FB7185' : '#34D399',
+        color: meta.color,
         badge: '💊 清醒锦囊',
         avatar: '💊',
         data: {
@@ -1336,15 +1427,12 @@
     ctx.fillStyle = '#151C28';
     ctx.fill();
     ctx.lineWidth = 3;
-    ctx.strokeStyle = entry.grade === 'MYTH' ? 'rgba(251, 113, 133, 0.5)' : 'rgba(52, 211, 153, 0.45)';
+    ctx.strokeStyle = meta.color;
     ctx.stroke();
 
-    ctx.fillStyle = entry.grade === 'MYTH' ? '#FB7185' : '#34D399';
+    ctx.fillStyle = meta.color;
     ctx.font = 'bold 24px "MiSans", "PingFang SC", sans-serif';
-    const badgeStr = entry.grade === 'MYTH'
-      ? '🚫 反面清单 · 智商税粉碎锦囊'
-      : `🅰️ 循证等级 ${entry.grade} · 高性价比生存锦囊`;
-    ctx.fillText(badgeStr, 116, 142);
+    ctx.fillText(`${meta.badge}  ·  NO.${entry.id.toUpperCase()}`, 116, 142);
 
     ctx.fillStyle = '#64748B';
     ctx.font = 'bold 22px "MiSans", "PingFang SC", sans-serif';
@@ -1388,6 +1476,26 @@
     ctx.fillStyle = '#94A3B8';
     ctx.font = '22px "MiSans", "PingFang SC", sans-serif';
     wrapCanvasText(ctx, `📖 原始出处：${entry.source}`, 116, nextY, 848, 34, 2);
+
+    // 右下角专属朱红/金色篆刻印章
+    ctx.save();
+    ctx.translate(880, 1270);
+    ctx.rotate((-12 * Math.PI) / 180);
+    roundRect(ctx, -52, -52, 104, 104, 12);
+    ctx.strokeStyle = meta.color;
+    ctx.lineWidth = 3.5;
+    ctx.stroke();
+    roundRect(ctx, -46, -46, 92, 92, 8);
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.fillStyle = meta.color;
+    ctx.font = 'bold 22px "MiSans", "PingFang SC", "Microsoft YaHei", sans-serif';
+    ctx.textAlign = 'center';
+    const stampLines = meta.stamp.split('\n');
+    ctx.fillText(stampLines[0] || '清醒', 0, -10);
+    ctx.fillText(stampLines[1] || '实操', 0, 24);
+    ctx.textAlign = 'left';
+    ctx.restore();
 
     ctx.fillStyle = '#64748B';
     ctx.font = '20px "MiSans", "PingFang SC", sans-serif';
@@ -1437,6 +1545,7 @@
         curDrawnEntry = found;
         switchSubMod('draw');
         renderDrawCard(true);
+        updateDrawBtnText(true);
       }
     }
   }
@@ -1530,7 +1639,7 @@
       });
     }
 
-    // 每日清醒锦囊抽卡池与按钮
+    // 每日清醒锦囊卡池与按钮
     document.querySelectorAll('#lgDrawPools .lg-btn-chip').forEach(chip => {
       chip.addEventListener('click', () => {
         if (window.SFX && window.SFX.tap) window.SFX.tap();
@@ -1538,23 +1647,41 @@
         document.querySelectorAll('#lgDrawPools .lg-btn-chip').forEach(c => {
           c.classList.toggle('active', c.dataset.lgpool === curDrawPool);
         });
-        drawRandomEntry();
+        prepareNextCard();
       });
     });
 
     const btnDrawNext = document.getElementById('lgBtnDrawNext');
     const btnDrawPoster = document.getElementById('lgBtnDrawPoster');
+    const cardFlipper = document.getElementById('lgCardFlipper');
+
     if (btnDrawNext) {
-      btnDrawNext.addEventListener('click', drawRandomEntry);
+      btnDrawNext.addEventListener('click', () => {
+        const flipper = document.getElementById('lgCardFlipper');
+        if (flipper && !flipper.classList.contains('is-flipped')) {
+          toggleCardFlip();
+        } else {
+          prepareNextCard();
+        }
+      });
     }
     if (btnDrawPoster) {
       btnDrawPoster.addEventListener('click', exportFlashcardPoster);
+    }
+    if (cardFlipper) {
+      cardFlipper.addEventListener('click', (e) => {
+        if (e && e.target && typeof e.target.closest === 'function' && e.target.closest('#lgFcBtnDone')) return;
+        toggleCardFlip();
+      });
     }
 
     // 初始渲染
     updateTopStats();
     renderAuditView();
     renderLibraryView();
+    if (!curDrawnEntry) {
+      curDrawnEntry = pickRandomEntry();
+    }
     renderDrawCard(false);
   }
 

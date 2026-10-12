@@ -297,6 +297,8 @@ html {
 #mod-lingqian,
 #mod-clock,
 #mod-merit,
+#mod-lifeguide,
+#mod-bazi,
 .app-module {
   position: absolute !important;
   inset: 0 !important;
@@ -317,6 +319,8 @@ html {
 #mod-lingqian.active,
 #mod-clock.active,
 #mod-merit.active,
+#mod-lifeguide.active,
+#mod-bazi.active,
 .app-module.active {
   display: flex !important;
   pointer-events: auto !important;

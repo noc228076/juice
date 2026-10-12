@@ -165,11 +165,16 @@ html[data-theme="light"] .lg-stat-val.accent {
   display: none;
   flex-direction: column;
   gap: 18px;
-  animation: qin 0.3s ease;
 }
 
 .lg-substage.active {
   display: flex;
+  animation: lgSubstageIn 0.3s ease forwards;
+}
+
+@keyframes lgSubstageIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* =========================================================
@@ -863,47 +868,312 @@ html[data-theme="light"] .lg-btn-done.done {
 }
 
 /* =========================================================
-   子模式 3：每日清醒锦囊抽卡 (Flashcard Draw)
+   子模式 3：每日清醒锦囊抽卡 (Gacha Draw & Card Flip System)
    ========================================================= */
 .lg-draw-stage {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 18px;
-  max-width: 640px;
+  max-width: 680px;
   width: 100%;
   margin: 0 auto;
 }
 
+/* 锦囊分类切换胶囊 */
 .lg-draw-pools {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   flex-wrap: wrap;
   justify-content: center;
+  margin-bottom: 4px;
 }
 
-.lg-flashcard {
+.lg-draw-pools .lg-btn-chip {
+  padding: 9px 16px;
+  font-size: 13px;
+  font-weight: 800;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #E2E8F0;
+  border: 1.5px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+  cursor: pointer;
+}
+
+.lg-draw-pools .lg-btn-chip:hover {
+  color: #FFFFFF;
+  border-color: rgba(255, 255, 255, 0.35);
+  transform: translateY(-1.5px);
+}
+
+.lg-draw-pools .lg-btn-chip.active {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.28) 0%, rgba(225, 29, 72, 0.22) 100%);
+  color: #FEF08A;
+  border-color: #F59E0B;
+  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.35);
+}
+
+html[data-theme="light"] .lg-draw-pools .lg-btn-chip {
+  background: #FFFFFF;
+  color: #334155;
+  border-color: rgba(0, 0, 0, 0.14);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+html[data-theme="light"] .lg-draw-pools .lg-btn-chip.active {
+  background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%);
+  color: #B45309;
+  border-color: #F59E0B;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.22);
+}
+
+/* =========================================================
+   3D 翻转卡牌核心舞台 (Card 3D Flip System)
+   ========================================================= */
+.lg-card-3d-scene {
+  perspective: 1200px;
   width: 100%;
-  background: var(--card-solid);
-  border: 2px solid var(--line-strong);
-  border-radius: var(--r-lg);
-  padding: 28px 26px;
-  box-shadow: var(--shadow);
+  max-width: 540px;
+  min-height: 530px;
+  margin: 0 auto;
+}
+
+.lg-card-3d-flipper {
+  position: relative;
+  width: 100%;
+  min-height: 530px;
+  transform-style: preserve-3d;
+  transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+  cursor: pointer;
+}
+
+.lg-card-3d-flipper.is-flipped {
+  transform: rotateY(180deg);
+}
+
+.lg-card-face {
+  width: 100%;
+  min-height: 530px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: 26px;
+  box-sizing: border-box;
+}
+
+/* =========================================================
+   密封卡背 (Card Back - 朱雀赤金丝缎锦囊 · 华贵生辉)
+   ========================================================= */
+.lg-card-back {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(ellipse at 50% 20%, #B91C36 0%, #881326 48%, #540816 85%, #38050E 100%);
+  border: 2.5px solid #F59E0B;
+  border-radius: 26px;
+  box-shadow: 0 22px 55px rgba(0, 0, 0, 0.65), 0 0 35px rgba(225, 29, 72, 0.4), inset 0 0 60px rgba(245, 158, 11, 0.22);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  justify-content: space-between;
+  padding: 30px 26px;
+  overflow: hidden;
+  animation: lgCardBreath 3.5s ease-in-out infinite;
+}
+
+html[data-theme="light"] .lg-card-back {
+  background: radial-gradient(ellipse at 50% 22%, #BE123C 0%, #9F1239 52%, #700B25 100%);
+  border: 2.5px solid #F59E0B;
+  box-shadow: 0 18px 45px rgba(159, 18, 57, 0.3), 0 0 30px rgba(245, 158, 11, 0.28), inset 0 0 45px rgba(245, 158, 11, 0.22);
+}
+
+@keyframes lgCardBreath {
+  0%, 100% {
+    transform: translateY(0);
+    box-shadow: 0 22px 55px rgba(0, 0, 0, 0.65), 0 0 35px rgba(225, 29, 72, 0.32), inset 0 0 60px rgba(245, 158, 11, 0.16);
+  }
+  50% {
+    transform: translateY(-6px);
+    box-shadow: 0 28px 65px rgba(0, 0, 0, 0.75), 0 0 45px rgba(225, 29, 72, 0.45), inset 0 0 75px rgba(245, 158, 11, 0.24);
+  }
+}
+
+.lg-cb-glow {
+  position: absolute;
+  top: -50px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 340px;
+  height: 220px;
+  background: radial-gradient(circle, rgba(254, 240, 138, 0.32) 0%, rgba(245, 158, 11, 0.16) 50%, transparent 75%);
+  filter: blur(28px);
+  pointer-events: none;
+}
+
+.lg-cb-border-decor {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  border: 1.5px solid rgba(254, 240, 138, 0.45);
+  border-radius: 18px;
+  outline: 1px dashed rgba(254, 240, 138, 0.25);
+  outline-offset: -5px;
+  pointer-events: none;
+}
+
+.lg-cb-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  z-index: 2;
+}
+
+.lg-cb-pill {
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: #FEF08A;
+  background: rgba(254, 240, 138, 0.18);
+  border: 1.2px solid rgba(254, 240, 138, 0.55);
+  padding: 5px 12px;
+  border-radius: 999px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+}
+
+.lg-cb-code {
+  font-size: 11.5px;
+  font-weight: 900;
+  letter-spacing: 2.5px;
+  color: rgba(254, 240, 138, 0.85);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+
+.lg-cb-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+  position: relative;
+  z-index: 2;
+  margin: auto 0;
+}
+
+.lg-cb-emblem {
+  font-size: 60px;
+  width: 106px;
+  height: 106px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle, rgba(254, 240, 138, 0.3) 0%, rgba(245, 158, 11, 0.12) 65%, transparent 100%);
+  border: 2px solid #FCD34D;
+  box-shadow: 0 0 40px rgba(252, 211, 77, 0.45), inset 0 0 25px rgba(252, 211, 77, 0.25);
+  animation: lgPillPulse 2.4s ease-in-out infinite;
+}
+
+@keyframes lgPillPulse {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 10px rgba(252, 211, 77, 0.4));
+  }
+  50% {
+    transform: scale(1.07);
+    filter: drop-shadow(0 0 22px rgba(252, 211, 77, 0.75));
+  }
+}
+
+.lg-cb-title {
+  font-size: 28px;
+  font-weight: 950;
+  letter-spacing: 3px;
+  background: linear-gradient(135deg, #FFFFFF 0%, #FEF08A 35%, #F59E0B 80%, #D97706 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 2px 10px rgba(0, 0, 0, 0.65));
+}
+
+.lg-cb-sub {
+  font-size: 14px;
+  color: #FEF9C3;
+  letter-spacing: 1.5px;
+  font-weight: 700;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+  opacity: 0.95;
+}
+
+.lg-cb-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  z-index: 2;
+  padding-top: 18px;
+  border-top: 1px solid rgba(254, 240, 138, 0.25);
+}
+
+.lg-cb-tip {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #FEF08A;
+  animation: lgTextGlow 1.8s ease-in-out infinite alternate;
+}
+
+@keyframes lgTextGlow {
+  0% {
+    opacity: 0.85;
+    text-shadow: 0 0 6px rgba(254, 240, 138, 0.4);
+  }
+  100% {
+    opacity: 1;
+    text-shadow: 0 0 14px rgba(254, 240, 138, 0.9);
+  }
+}
+
+.lg-cb-stamp {
+  font-size: 11.5px;
+  font-weight: 900;
+  color: #FEF08A;
+  border: 1.5px solid rgba(254, 240, 138, 0.65);
+  background: rgba(159, 18, 57, 0.4);
+  padding: 4px 9px;
+  border-radius: 6px;
+  letter-spacing: 2px;
+  transform: rotate(-5deg);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* =========================================================
+   翻开卡面 (Card Front - 揭晓后的锦囊内签 · 醒目典雅)
+   ========================================================= */
+.lg-card-front {
+  transform: rotateY(180deg);
+  background: radial-gradient(ellipse at 50% 15%, #24222D 0%, #16151D 100%);
+  border: 2px solid rgba(245, 158, 11, 0.55);
+  border-radius: 26px;
+  padding: 28px 24px;
+  box-shadow: 0 22px 55px rgba(0, 0, 0, 0.6), 0 0 35px rgba(245, 158, 11, 0.16);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
   position: relative;
   overflow: hidden;
-  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+  color: #F8FAFC;
 }
 
-.lg-flashcard.flip-anim {
-  animation: lgCardPop 0.38s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-@keyframes lgCardPop {
-  0% { opacity: 0.3; transform: scale(0.94) translateY(10px); }
-  100% { opacity: 1; transform: scale(1) translateY(0); }
+html[data-theme="light"] .lg-card-front {
+  background: #FFFDF9;
+  border: 2px solid rgba(245, 158, 11, 0.55);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.14), 0 0 25px rgba(245, 158, 11, 0.18);
+  color: #1E293B;
 }
 
 .lg-fc-ribbon {
@@ -911,64 +1181,176 @@ html[data-theme="light"] .lg-btn-done.done {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding-bottom: 14px;
-  border-bottom: 1.5px solid var(--line);
+  padding-bottom: 12px;
+  border-bottom: 1.5px solid rgba(255, 255, 255, 0.12);
+}
+
+html[data-theme="light"] .lg-fc-ribbon {
+  border-bottom-color: rgba(0, 0, 0, 0.1);
 }
 
 .lg-fc-no {
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 900;
   letter-spacing: 2px;
-  color: var(--tx-faint);
+  color: #94A3B8;
+}
+
+html[data-theme="light"] .lg-fc-no {
+  color: #64748B;
 }
 
 .lg-fc-title {
-  font-size: clamp(21px, 3.8vw, 27px);
-  font-weight: 900;
-  color: var(--tx);
+  font-size: clamp(21px, 3.8vw, 25px);
+  font-weight: 950;
+  color: #FFFFFF;
   line-height: 1.35;
+  margin: 0;
+  letter-spacing: 0.5px;
+}
+
+html[data-theme="light"] .lg-fc-title {
+  color: #0F172A;
 }
 
 .lg-fc-box {
   padding: 14px 16px;
   border-radius: 14px;
-  background: var(--card);
-  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.lg-fc-box-lbl {
-  font-size: 11.5px;
-  font-weight: 800;
-  letter-spacing: 1.5px;
-  color: #34D399;
+html[data-theme="light"] .lg-fc-box {
+  background: #F8FAFC;
+  border-color: rgba(0, 0, 0, 0.08);
 }
 
-html[data-theme="light"] .lg-fc-box-lbl {
-  color: #059669;
+.lg-fc-box-lbl {
+  font-size: 12.5px;
+  font-weight: 900;
+  letter-spacing: 1.2px;
 }
 
 .lg-fc-box-txt {
   font-size: 14.5px;
   line-height: 1.75;
-  color: var(--tx);
+  font-weight: 600;
+  color: #F8FAFC;
+}
+
+.lg-fc-evidence-txt {
+  font-size: 13.5px;
+  color: #E2E8F0;
+  line-height: 1.7;
+}
+
+html[data-theme="light"] .lg-fc-evidence-txt {
+  color: #334155;
 }
 
 .lg-fc-source {
   font-size: 12px;
-  color: var(--tx-dim);
-  line-height: 1.55;
+  color: #94A3B8;
+  line-height: 1.6;
   padding-top: 8px;
-  border-top: 1px dashed var(--line);
+  border-top: 1px dashed rgba(255, 255, 255, 0.12);
+}
+
+html[data-theme="light"] .lg-fc-source {
+  color: #64748B;
+  border-top-color: rgba(0, 0, 0, 0.1);
+}
+
+/* 专属朱红/金色篆刻印章 */
+.lg-fc-stamp {
+  position: absolute;
+  right: 18px;
+  bottom: 56px;
+  width: 66px;
+  height: 66px;
+  border: 2px solid #EF4444;
+  color: #EF4444;
+  background: rgba(239, 68, 68, 0.08);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13.5px;
+  font-weight: 950;
+  line-height: 1.25;
+  text-align: center;
+  transform: rotate(-12deg);
+  opacity: 0.92;
+  pointer-events: none;
+  letter-spacing: 2px;
+  box-shadow: inset 0 0 0 1px rgba(239, 68, 68, 0.4), 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.rarity-ssr-gold .lg-fc-stamp {
+  border-color: #F59E0B;
+  color: #F59E0B;
+  background: rgba(245, 158, 11, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(245, 158, 11, 0.4);
 }
 
 .lg-draw-actions {
   display: flex;
-  gap: 12px;
+  gap: 14px;
   width: 100%;
+  max-width: 540px;
   flex-wrap: wrap;
+  justify-content: center;
+}
+
+.lg-draw-btn-main {
+  flex: 1.2;
+  min-width: 180px;
+  padding: 15px 22px;
+  font-size: 16px;
+  font-weight: 900;
+  background: linear-gradient(135deg, #FDE047 0%, #EAB308 100%);
+  color: #1C1204;
+  box-shadow: 0 8px 24px rgba(234, 179, 8, 0.35);
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.lg-draw-btn-main:hover {
+  filter: brightness(1.08);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(234, 179, 8, 0.45);
+}
+
+.lg-btn-poster {
+  flex: 1.2;
+  min-width: 180px;
+  padding: 15px 22px;
+  font-size: 15px;
+  font-weight: 800;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #F8FAFC;
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+  cursor: pointer;
+}
+
+html[data-theme="light"] .lg-btn-poster {
+  background: #FFFFFF;
+  color: #1E293B;
+  border-color: rgba(0, 0, 0, 0.15);
+}
+
+.lg-btn-poster:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-2px);
 }
 
 /* 底部开源致敬与免责声明 */

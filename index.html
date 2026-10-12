@@ -321,6 +321,8 @@ html {
 #mod-lingqian,
 #mod-clock,
 #mod-merit,
+#mod-lifeguide,
+#mod-bazi,
 .app-module {
   position: absolute !important;
   inset: 0 !important;
@@ -341,6 +343,8 @@ html {
 #mod-lingqian.active,
 #mod-clock.active,
 #mod-merit.active,
+#mod-lifeguide.active,
+#mod-bazi.active,
 .app-module.active {
   display: flex !important;
   pointer-events: auto !important;
@@ -1534,9 +1538,9 @@ html[data-theme="light"] #mod-tarot::before {
   min-height: 100%;
   display: none;
   flex-direction: column;
-  padding: 18px 20px calc(28px + env(safe-area-inset-bottom));
+  padding: 16px 20px calc(36px + env(safe-area-inset-bottom));
   box-sizing: border-box;
-  max-width: 540px;
+  max-width: 600px;
   margin: 0 auto;
 }
 
@@ -1552,10 +1556,11 @@ html[data-theme="light"] #mod-tarot::before {
 
 /* 标题区 */
 #mod-tarot h1.logo {
-  font-size: 34px;
-  letter-spacing: 6px;
+  font-size: 28px;
+  letter-spacing: 4px;
   text-align: center;
-  margin-top: 14px;
+  margin-top: 4px;
+  margin-bottom: 2px;
   background: linear-gradient(120deg, var(--tr-gold3), var(--tr-gold), var(--tr-gold2), var(--tr-gold3));
   -webkit-background-clip: text;
   background-clip: text;
@@ -1565,16 +1570,16 @@ html[data-theme="light"] #mod-tarot::before {
 #mod-tarot .sub {
   text-align: center;
   color: var(--tx-dim);
-  font-size: 13.5px;
-  letter-spacing: 3px;
-  margin-top: 6px;
+  font-size: 13px;
+  letter-spacing: 2px;
+  margin-top: 4px;
 }
 #mod-tarot .orn {
   text-align: center;
   color: var(--tr-gold);
-  font-size: 14px;
-  letter-spacing: 12px;
-  margin: 14px 0 6px;
+  font-size: 13px;
+  letter-spacing: 8px;
+  margin: 8px 0 6px;
   opacity: 0.85;
 }
 
@@ -1622,6 +1627,116 @@ html[data-theme="light"] #mod-tarot::before {
 #mod-tarot .spread span {
   font-size: 11.5px;
   color: var(--tx-dim);
+}
+
+/* 首页 3D 浮空塔罗牌阵舞台 (与东方签筒、八字轮盘形成高度均衡) */
+.tr-deck-fan-stage {
+  position: relative;
+  height: 200px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin: 6px 0 16px;
+  perspective: 1000px;
+}
+
+.tr-fan-container {
+  position: relative;
+  width: 270px;
+  height: 154px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tr-fan-card {
+  position: absolute;
+  width: 92px;
+  height: 144px;
+  border-radius: 12px;
+  background: radial-gradient(circle at 50% 25%, #2A1D54 0%, #150F2C 100%);
+  border: 1.5px solid var(--tr-gold);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45), inset 0 0 15px rgba(232, 201, 106, 0.15);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.35s ease;
+  cursor: pointer;
+  user-select: none;
+}
+
+html[data-theme="light"] .tr-fan-card {
+  background: radial-gradient(circle at 50% 25%, #FFFDF7 0%, #F5ECDB 100%);
+  border-color: #B45309;
+  box-shadow: 0 8px 24px rgba(180, 83, 9, 0.18), inset 0 0 15px rgba(255, 255, 255, 0.8);
+}
+
+.tr-fan-card.fan-left {
+  transform: translateX(-64px) translateY(8px) rotate(-14deg);
+  z-index: 1;
+}
+
+.tr-fan-card.fan-center {
+  transform: translateY(-8px) scale(1.06);
+  z-index: 2;
+  box-shadow: 0 14px 34px rgba(192, 132, 252, 0.35), inset 0 0 20px rgba(232, 201, 106, 0.25);
+  animation: trFanFloat 3.6s ease-in-out infinite;
+}
+
+.tr-fan-card.fan-right {
+  transform: translateX(64px) translateY(8px) rotate(14deg);
+  z-index: 1;
+}
+
+.tr-fan-card:hover {
+  transform: translateY(-16px) scale(1.12);
+  z-index: 10;
+  box-shadow: 0 18px 40px rgba(192, 132, 252, 0.45);
+}
+
+@keyframes trFanFloat {
+  0%, 100% { transform: translateY(-8px) scale(1.06); }
+  50% { transform: translateY(-14px) scale(1.08); }
+}
+
+.tr-fan-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.tr-fan-num {
+  font-size: 11px;
+  font-weight: 900;
+  color: var(--tr-gold);
+  letter-spacing: 1.5px;
+}
+
+.tr-fan-ico {
+  font-size: 32px;
+  filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3));
+}
+
+.tr-fan-name {
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: #F8FAFC;
+}
+
+html[data-theme="light"] .tr-fan-name {
+  color: #3A2F1E;
+}
+
+.tr-fan-hint {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--tx-dim);
+  letter-spacing: 1.5px;
+  margin-top: 10px;
 }
 
 #mod-tarot .intro {
@@ -1888,6 +2003,30 @@ html[data-theme="light"] #mod-tarot .pcard .back {
   padding: 16px 12px;
   color: #2c2413;
 }
+#mod-tarot .face.has-art-img {
+  padding: 0;
+  border: 2px solid var(--tr-gold3);
+  border-radius: 18px;
+  overflow: hidden;
+  background: #140f2e;
+}
+#mod-tarot .face.has-art-img .tr-face-art-wrap {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+#mod-tarot .face.has-art-img .tr-face-art-wrap.is-rev {
+  transform: rotate(180deg);
+}
+#mod-tarot .face.has-art-img .tr-face-art-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
 #mod-tarot .face .num {
   font-size: 15px;
   font-weight: 800;
@@ -2063,6 +2202,34 @@ html[data-theme="light"] #mod-tarot .tr-card-frame {
   max-width: 220px;
   padding: 8px;
   border-radius: 14px;
+}
+
+#mod-tarot .tr-card-frame.has-art {
+  padding: 0;
+  border-radius: 18px;
+  overflow: hidden;
+  border: 2px solid var(--tr-gold3);
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.5), inset 0 0 16px rgba(232, 201, 106, 0.15);
+}
+#mod-tarot .tr-card-frame.sm.has-art {
+  border-radius: 14px;
+}
+#mod-tarot .tr-card-painting-wrap {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+#mod-tarot .tr-card-painting-wrap.is-rev {
+  transform: rotate(180deg);
+}
+#mod-tarot .tr-card-painting-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 #mod-tarot .tr-card-inner {
@@ -2369,26 +2536,13 @@ html[data-theme="light"] #mod-tarot .tr-info-desc {
    ========================================================= */
 @media (min-width: 900px) {
   #mod-tarot .tr-screen {
-    max-width: 1120px;
-    padding: 36px 32px 50px;
+    max-width: 680px;
+    padding: 16px 20px calc(36px + env(safe-area-inset-bottom));
   }
-  #mod-tarot h1.logo {
-    font-size: 44px;
-  }
-  #mod-tarot .spread-grid {
-    max-width: 640px;
-    margin: 24px auto;
-    gap: 20px;
-  }
-  #mod-tarot .intro {
-    max-width: 640px;
-    margin: 0 auto;
-    font-size: 14.5px;
-    padding: 20px 24px;
-  }
-  #mod-tarot .home-btns {
-    max-width: 440px;
-    margin: 24px auto 0;
+  #mod-tarot #sc-tr-pick,
+  #mod-tarot #sc-tr-reveal,
+  #mod-tarot #sc-tr-result {
+    max-width: 1040px;
   }
 
   /* 抽牌矩阵自适应展开 (保证卡牌至少 100px 宽，绝不塌缩) */
@@ -5175,11 +5329,21 @@ html[data-theme="light"] .ew-mystic-bar {
   font-weight: 800;
 }
 
+.ew-switch-btn.active.bazi {
+  background: rgba(245, 158, 11, 0.2);
+  color: #F59E0B;
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  font-weight: 800;
+}
+
 html[data-theme="light"] .ew-switch-btn.active.west {
   color: #7E22CE;
 }
 html[data-theme="light"] .ew-switch-btn.active.east {
   color: #BE123C;
+}
+html[data-theme="light"] .ew-switch-btn.active.bazi {
+  color: #B45309;
 }
 
 /* ============ 屏幕容器切换 ============ */
@@ -5191,7 +5355,7 @@ html[data-theme="light"] .ew-switch-btn.active.east {
   display: none;
   flex-direction: column;
   box-sizing: border-box;
-  max-width: 580px;
+  max-width: 600px;
   margin: 0 auto;
   padding: 16px 20px calc(36px + env(safe-area-inset-bottom));
 }
@@ -5310,18 +5474,18 @@ html[data-theme="light"] .ew-switch-btn.active.east {
 /* 紫竹雕花签筒舞台 */
 .lq-cylinder-stage {
   position: relative;
-  height: 256px;
+  height: 220px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  margin: 4px 0 12px;
+  margin: 4px 0 10px;
 }
 
 .lq-cylinder-wrap {
   position: relative;
-  width: 170px;
-  height: 230px;
+  width: 154px;
+  height: 196px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -7473,11 +7637,16 @@ html[data-theme="light"] .lg-stat-val.accent {
   display: none;
   flex-direction: column;
   gap: 18px;
-  animation: qin 0.3s ease;
 }
 
 .lg-substage.active {
   display: flex;
+  animation: lgSubstageIn 0.3s ease forwards;
+}
+
+@keyframes lgSubstageIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* =========================================================
@@ -8171,47 +8340,312 @@ html[data-theme="light"] .lg-btn-done.done {
 }
 
 /* =========================================================
-   子模式 3：每日清醒锦囊抽卡 (Flashcard Draw)
+   子模式 3：每日清醒锦囊抽卡 (Gacha Draw & Card Flip System)
    ========================================================= */
 .lg-draw-stage {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 18px;
-  max-width: 640px;
+  max-width: 680px;
   width: 100%;
   margin: 0 auto;
 }
 
+/* 锦囊分类切换胶囊 */
 .lg-draw-pools {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   flex-wrap: wrap;
   justify-content: center;
+  margin-bottom: 4px;
 }
 
-.lg-flashcard {
+.lg-draw-pools .lg-btn-chip {
+  padding: 9px 16px;
+  font-size: 13px;
+  font-weight: 800;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #E2E8F0;
+  border: 1.5px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+  cursor: pointer;
+}
+
+.lg-draw-pools .lg-btn-chip:hover {
+  color: #FFFFFF;
+  border-color: rgba(255, 255, 255, 0.35);
+  transform: translateY(-1.5px);
+}
+
+.lg-draw-pools .lg-btn-chip.active {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.28) 0%, rgba(225, 29, 72, 0.22) 100%);
+  color: #FEF08A;
+  border-color: #F59E0B;
+  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.35);
+}
+
+html[data-theme="light"] .lg-draw-pools .lg-btn-chip {
+  background: #FFFFFF;
+  color: #334155;
+  border-color: rgba(0, 0, 0, 0.14);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+html[data-theme="light"] .lg-draw-pools .lg-btn-chip.active {
+  background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%);
+  color: #B45309;
+  border-color: #F59E0B;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.22);
+}
+
+/* =========================================================
+   3D 翻转卡牌核心舞台 (Card 3D Flip System)
+   ========================================================= */
+.lg-card-3d-scene {
+  perspective: 1200px;
   width: 100%;
-  background: var(--card-solid);
-  border: 2px solid var(--line-strong);
-  border-radius: var(--r-lg);
-  padding: 28px 26px;
-  box-shadow: var(--shadow);
+  max-width: 540px;
+  min-height: 530px;
+  margin: 0 auto;
+}
+
+.lg-card-3d-flipper {
+  position: relative;
+  width: 100%;
+  min-height: 530px;
+  transform-style: preserve-3d;
+  transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+  cursor: pointer;
+}
+
+.lg-card-3d-flipper.is-flipped {
+  transform: rotateY(180deg);
+}
+
+.lg-card-face {
+  width: 100%;
+  min-height: 530px;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: 26px;
+  box-sizing: border-box;
+}
+
+/* =========================================================
+   密封卡背 (Card Back - 朱雀赤金丝缎锦囊 · 华贵生辉)
+   ========================================================= */
+.lg-card-back {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(ellipse at 50% 20%, #B91C36 0%, #881326 48%, #540816 85%, #38050E 100%);
+  border: 2.5px solid #F59E0B;
+  border-radius: 26px;
+  box-shadow: 0 22px 55px rgba(0, 0, 0, 0.65), 0 0 35px rgba(225, 29, 72, 0.4), inset 0 0 60px rgba(245, 158, 11, 0.22);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  justify-content: space-between;
+  padding: 30px 26px;
+  overflow: hidden;
+  animation: lgCardBreath 3.5s ease-in-out infinite;
+}
+
+html[data-theme="light"] .lg-card-back {
+  background: radial-gradient(ellipse at 50% 22%, #BE123C 0%, #9F1239 52%, #700B25 100%);
+  border: 2.5px solid #F59E0B;
+  box-shadow: 0 18px 45px rgba(159, 18, 57, 0.3), 0 0 30px rgba(245, 158, 11, 0.28), inset 0 0 45px rgba(245, 158, 11, 0.22);
+}
+
+@keyframes lgCardBreath {
+  0%, 100% {
+    transform: translateY(0);
+    box-shadow: 0 22px 55px rgba(0, 0, 0, 0.65), 0 0 35px rgba(225, 29, 72, 0.32), inset 0 0 60px rgba(245, 158, 11, 0.16);
+  }
+  50% {
+    transform: translateY(-6px);
+    box-shadow: 0 28px 65px rgba(0, 0, 0, 0.75), 0 0 45px rgba(225, 29, 72, 0.45), inset 0 0 75px rgba(245, 158, 11, 0.24);
+  }
+}
+
+.lg-cb-glow {
+  position: absolute;
+  top: -50px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 340px;
+  height: 220px;
+  background: radial-gradient(circle, rgba(254, 240, 138, 0.32) 0%, rgba(245, 158, 11, 0.16) 50%, transparent 75%);
+  filter: blur(28px);
+  pointer-events: none;
+}
+
+.lg-cb-border-decor {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  border: 1.5px solid rgba(254, 240, 138, 0.45);
+  border-radius: 18px;
+  outline: 1px dashed rgba(254, 240, 138, 0.25);
+  outline-offset: -5px;
+  pointer-events: none;
+}
+
+.lg-cb-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  z-index: 2;
+}
+
+.lg-cb-pill {
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: #FEF08A;
+  background: rgba(254, 240, 138, 0.18);
+  border: 1.2px solid rgba(254, 240, 138, 0.55);
+  padding: 5px 12px;
+  border-radius: 999px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+}
+
+.lg-cb-code {
+  font-size: 11.5px;
+  font-weight: 900;
+  letter-spacing: 2.5px;
+  color: rgba(254, 240, 138, 0.85);
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+
+.lg-cb-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+  position: relative;
+  z-index: 2;
+  margin: auto 0;
+}
+
+.lg-cb-emblem {
+  font-size: 60px;
+  width: 106px;
+  height: 106px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(circle, rgba(254, 240, 138, 0.3) 0%, rgba(245, 158, 11, 0.12) 65%, transparent 100%);
+  border: 2px solid #FCD34D;
+  box-shadow: 0 0 40px rgba(252, 211, 77, 0.45), inset 0 0 25px rgba(252, 211, 77, 0.25);
+  animation: lgPillPulse 2.4s ease-in-out infinite;
+}
+
+@keyframes lgPillPulse {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 10px rgba(252, 211, 77, 0.4));
+  }
+  50% {
+    transform: scale(1.07);
+    filter: drop-shadow(0 0 22px rgba(252, 211, 77, 0.75));
+  }
+}
+
+.lg-cb-title {
+  font-size: 28px;
+  font-weight: 950;
+  letter-spacing: 3px;
+  background: linear-gradient(135deg, #FFFFFF 0%, #FEF08A 35%, #F59E0B 80%, #D97706 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 2px 10px rgba(0, 0, 0, 0.65));
+}
+
+.lg-cb-sub {
+  font-size: 14px;
+  color: #FEF9C3;
+  letter-spacing: 1.5px;
+  font-weight: 700;
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6);
+  opacity: 0.95;
+}
+
+.lg-cb-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  z-index: 2;
+  padding-top: 18px;
+  border-top: 1px solid rgba(254, 240, 138, 0.25);
+}
+
+.lg-cb-tip {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #FEF08A;
+  animation: lgTextGlow 1.8s ease-in-out infinite alternate;
+}
+
+@keyframes lgTextGlow {
+  0% {
+    opacity: 0.85;
+    text-shadow: 0 0 6px rgba(254, 240, 138, 0.4);
+  }
+  100% {
+    opacity: 1;
+    text-shadow: 0 0 14px rgba(254, 240, 138, 0.9);
+  }
+}
+
+.lg-cb-stamp {
+  font-size: 11.5px;
+  font-weight: 900;
+  color: #FEF08A;
+  border: 1.5px solid rgba(254, 240, 138, 0.65);
+  background: rgba(159, 18, 57, 0.4);
+  padding: 4px 9px;
+  border-radius: 6px;
+  letter-spacing: 2px;
+  transform: rotate(-5deg);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* =========================================================
+   翻开卡面 (Card Front - 揭晓后的锦囊内签 · 醒目典雅)
+   ========================================================= */
+.lg-card-front {
+  transform: rotateY(180deg);
+  background: radial-gradient(ellipse at 50% 15%, #24222D 0%, #16151D 100%);
+  border: 2px solid rgba(245, 158, 11, 0.55);
+  border-radius: 26px;
+  padding: 28px 24px;
+  box-shadow: 0 22px 55px rgba(0, 0, 0, 0.6), 0 0 35px rgba(245, 158, 11, 0.16);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
   position: relative;
   overflow: hidden;
-  transition: transform 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+  color: #F8FAFC;
 }
 
-.lg-flashcard.flip-anim {
-  animation: lgCardPop 0.38s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-@keyframes lgCardPop {
-  0% { opacity: 0.3; transform: scale(0.94) translateY(10px); }
-  100% { opacity: 1; transform: scale(1) translateY(0); }
+html[data-theme="light"] .lg-card-front {
+  background: #FFFDF9;
+  border: 2px solid rgba(245, 158, 11, 0.55);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.14), 0 0 25px rgba(245, 158, 11, 0.18);
+  color: #1E293B;
 }
 
 .lg-fc-ribbon {
@@ -8219,64 +8653,176 @@ html[data-theme="light"] .lg-btn-done.done {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  padding-bottom: 14px;
-  border-bottom: 1.5px solid var(--line);
+  padding-bottom: 12px;
+  border-bottom: 1.5px solid rgba(255, 255, 255, 0.12);
+}
+
+html[data-theme="light"] .lg-fc-ribbon {
+  border-bottom-color: rgba(0, 0, 0, 0.1);
 }
 
 .lg-fc-no {
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 900;
   letter-spacing: 2px;
-  color: var(--tx-faint);
+  color: #94A3B8;
+}
+
+html[data-theme="light"] .lg-fc-no {
+  color: #64748B;
 }
 
 .lg-fc-title {
-  font-size: clamp(21px, 3.8vw, 27px);
-  font-weight: 900;
-  color: var(--tx);
+  font-size: clamp(21px, 3.8vw, 25px);
+  font-weight: 950;
+  color: #FFFFFF;
   line-height: 1.35;
+  margin: 0;
+  letter-spacing: 0.5px;
+}
+
+html[data-theme="light"] .lg-fc-title {
+  color: #0F172A;
 }
 
 .lg-fc-box {
   padding: 14px 16px;
   border-radius: 14px;
-  background: var(--card);
-  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
   display: flex;
   flex-direction: column;
   gap: 6px;
 }
 
-.lg-fc-box-lbl {
-  font-size: 11.5px;
-  font-weight: 800;
-  letter-spacing: 1.5px;
-  color: #34D399;
+html[data-theme="light"] .lg-fc-box {
+  background: #F8FAFC;
+  border-color: rgba(0, 0, 0, 0.08);
 }
 
-html[data-theme="light"] .lg-fc-box-lbl {
-  color: #059669;
+.lg-fc-box-lbl {
+  font-size: 12.5px;
+  font-weight: 900;
+  letter-spacing: 1.2px;
 }
 
 .lg-fc-box-txt {
   font-size: 14.5px;
   line-height: 1.75;
-  color: var(--tx);
+  font-weight: 600;
+  color: #F8FAFC;
+}
+
+.lg-fc-evidence-txt {
+  font-size: 13.5px;
+  color: #E2E8F0;
+  line-height: 1.7;
+}
+
+html[data-theme="light"] .lg-fc-evidence-txt {
+  color: #334155;
 }
 
 .lg-fc-source {
   font-size: 12px;
-  color: var(--tx-dim);
-  line-height: 1.55;
+  color: #94A3B8;
+  line-height: 1.6;
   padding-top: 8px;
-  border-top: 1px dashed var(--line);
+  border-top: 1px dashed rgba(255, 255, 255, 0.12);
+}
+
+html[data-theme="light"] .lg-fc-source {
+  color: #64748B;
+  border-top-color: rgba(0, 0, 0, 0.1);
+}
+
+/* 专属朱红/金色篆刻印章 */
+.lg-fc-stamp {
+  position: absolute;
+  right: 18px;
+  bottom: 56px;
+  width: 66px;
+  height: 66px;
+  border: 2px solid #EF4444;
+  color: #EF4444;
+  background: rgba(239, 68, 68, 0.08);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13.5px;
+  font-weight: 950;
+  line-height: 1.25;
+  text-align: center;
+  transform: rotate(-12deg);
+  opacity: 0.92;
+  pointer-events: none;
+  letter-spacing: 2px;
+  box-shadow: inset 0 0 0 1px rgba(239, 68, 68, 0.4), 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.rarity-ssr-gold .lg-fc-stamp {
+  border-color: #F59E0B;
+  color: #F59E0B;
+  background: rgba(245, 158, 11, 0.08);
+  box-shadow: inset 0 0 0 1px rgba(245, 158, 11, 0.4);
 }
 
 .lg-draw-actions {
   display: flex;
-  gap: 12px;
+  gap: 14px;
   width: 100%;
+  max-width: 540px;
   flex-wrap: wrap;
+  justify-content: center;
+}
+
+.lg-draw-btn-main {
+  flex: 1.2;
+  min-width: 180px;
+  padding: 15px 22px;
+  font-size: 16px;
+  font-weight: 900;
+  background: linear-gradient(135deg, #FDE047 0%, #EAB308 100%);
+  color: #1C1204;
+  box-shadow: 0 8px 24px rgba(234, 179, 8, 0.35);
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.lg-draw-btn-main:hover {
+  filter: brightness(1.08);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(234, 179, 8, 0.45);
+}
+
+.lg-btn-poster {
+  flex: 1.2;
+  min-width: 180px;
+  padding: 15px 22px;
+  font-size: 15px;
+  font-weight: 800;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  color: #F8FAFC;
+  border: 1.5px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+  cursor: pointer;
+}
+
+html[data-theme="light"] .lg-btn-poster {
+  background: #FFFFFF;
+  color: #1E293B;
+  border-color: rgba(0, 0, 0, 0.15);
+}
+
+.lg-btn-poster:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-2px);
 }
 
 /* 底部开源致敬与免责声明 */
@@ -8376,56 +8922,58 @@ html[data-theme="light"] .lg-credit-footer a {
 }
 
 .bz-wrap {
-  max-width: 1080px;
+  position: relative;
+  z-index: 1;
+  max-width: 720px;
   width: 100%;
+  min-height: 100%;
   margin: 0 auto;
-  padding: calc(var(--sat) + 76px) 20px calc(var(--sab) + 52px);
+  padding: 16px 20px calc(36px + env(safe-area-inset-bottom));
+  box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 16px;
 }
 
-/* 顶部东方玄学合辑互跳栏 */
+/* 顶部东方玄学合辑互跳栏（兼顾旧 class 别名） */
 .bz-mystic-bar {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  margin-bottom: 2px;
+  gap: 4px;
+  margin: 0 auto 10px;
 }
 
 .bz-switch-btn {
-  padding: 8px 16px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
   border-radius: 999px;
-  font-size: 13px;
-  font-weight: 800;
-  letter-spacing: 1px;
+  font-size: 11.5px;
+  font-weight: 700;
   color: var(--tx-dim);
-  background: var(--card);
-  border: 1px solid var(--line);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  transition: all 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
-  white-space: nowrap;
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .bz-switch-btn:hover {
-  border-color: var(--line-strong);
   color: var(--tx);
-  transform: translateY(-1.5px);
 }
 
 .bz-switch-btn.active {
-  background: linear-gradient(135deg, rgba(234, 88, 12, 0.22), rgba(217, 119, 6, 0.22));
-  color: #FB923C;
-  border-color: rgba(249, 115, 22, 0.5);
-  box-shadow: 0 4px 16px rgba(249, 115, 22, 0.2);
+  background: rgba(245, 158, 11, 0.2);
+  color: #F59E0B;
+  border: 1px solid rgba(245, 158, 11, 0.45);
+  font-weight: 800;
 }
 
 html[data-theme="light"] .bz-switch-btn.active {
-  background: rgba(234, 88, 12, 0.12);
-  color: #C2410C;
-  border-color: rgba(234, 88, 12, 0.35);
+  background: rgba(245, 158, 11, 0.15);
+  color: #B45309;
+  border-color: rgba(245, 158, 11, 0.35);
 }
 
 /* 顶部英雄标题区 */
@@ -8434,7 +8982,7 @@ html[data-theme="light"] .bz-switch-btn.active {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .bz-eyebrow {
@@ -8443,8 +8991,8 @@ html[data-theme="light"] .bz-switch-btn.active {
   gap: 6px;
   font-size: 11px;
   font-weight: 800;
-  letter-spacing: 3px;
-  padding: 5px 14px;
+  letter-spacing: 2px;
+  padding: 4px 12px;
   border-radius: 999px;
   background: rgba(245, 158, 11, 0.14);
   color: #FBBF24;
@@ -8458,10 +9006,11 @@ html[data-theme="light"] .bz-eyebrow {
 }
 
 .bz-title {
-  font-size: clamp(30px, 5.2vw, 44px);
-  font-weight: 950;
-  letter-spacing: 3px;
-  line-height: 1.2;
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: 2px;
+  line-height: 1.25;
+  margin: 2px 0;
   background: linear-gradient(120deg, var(--tx) 30%, #F59E0B 70%, var(--ac));
   -webkit-background-clip: text;
   background-clip: text;
@@ -8469,9 +9018,9 @@ html[data-theme="light"] .bz-eyebrow {
 }
 
 .bz-sub {
-  font-size: 13.5px;
+  font-size: 12.5px;
   color: var(--tx-dim);
-  line-height: 1.65;
+  line-height: 1.55;
   max-width: 680px;
 }
 
@@ -10221,11 +10770,6 @@ html[data-theme="light"] .sbti-dim-badge.lvl-L {
             <span class="tab-label-full">人间清醒</span>
             <span class="tab-label-short">清醒</span>
           </button>
-          <button class="nav-tab" data-mod="bazi">
-            <span class="tab-icon">📜</span>
-            <span class="tab-label-full">八字排盘</span>
-            <span class="tab-label-short">八字</span>
-          </button>
         </nav>
       </div>
     </div>
@@ -10685,9 +11229,9 @@ html[data-theme="light"] .sbti-dim-badge.lvl-L {
     <section id="mod-tarot" class="app-module">
       <div class="tr-screen active" id="sc-tr-home">
         <div class="ew-mystic-bar">
-          <button class="ew-switch-btn active west" data-ew-jump="tarot">🔮 西方塔罗</button>
-          <button class="ew-switch-btn east" data-ew-jump="lingqian">🎋 东方灵签</button>
-          <button class="ew-switch-btn east" data-ew-jump="bazi">📜 生辰八字</button>
+          <button type="button" class="ew-switch-btn active west" data-ew-jump="tarot">🔮 西方塔罗</button>
+          <button type="button" class="ew-switch-btn east" data-ew-jump="lingqian">🎋 东方灵签</button>
+          <button type="button" class="ew-switch-btn bazi" data-ew-jump="bazi">📜 生辰八字</button>
         </div>
         <h1 class="logo">塔罗占卜</h1>
         <div class="sub">大阿卡那 · 二十二张启示之牌</div>
@@ -10701,6 +11245,34 @@ html[data-theme="light"] .sbti-dim-badge.lvl-L {
             <div class="ico">🃏</div>
             <b>三张运势</b><span>过去 · 现在 · 未来</span>
           </div>
+        </div>
+
+        <!-- 3D 浮空牌阵视觉舞台 (与东方签筒、八字轮盘形成高度均衡) -->
+        <div class="tr-deck-fan-stage" id="trFanStage">
+          <div class="tr-fan-container">
+            <div class="tr-fan-card fan-left" title="I · 魔术师 (创造力与无限潜能)">
+              <div class="tr-fan-inner">
+                <span class="tr-fan-num">I</span>
+                <span class="tr-fan-ico">🪄</span>
+                <span class="tr-fan-name">魔术师</span>
+              </div>
+            </div>
+            <div class="tr-fan-card fan-center" title="X · 命运之轮 (周期与当下契机)">
+              <div class="tr-fan-inner">
+                <span class="tr-fan-num">X</span>
+                <span class="tr-fan-ico">☸️</span>
+                <span class="tr-fan-name">命运之轮</span>
+              </div>
+            </div>
+            <div class="tr-fan-card fan-right" title="XVII · 星星 (希望与灵性指引)">
+              <div class="tr-fan-inner">
+                <span class="tr-fan-num">XVII</span>
+                <span class="tr-fan-ico">⭐</span>
+                <span class="tr-fan-name">星星</span>
+              </div>
+            </div>
+          </div>
+          <div class="tr-fan-hint">✦ 牌意万千 · 唯心映现 ✦</div>
         </div>
         <div class="intro">
           静心凝神，默念你的困惑或心愿，然后洗牌、抽取属于你的启示之牌。塔罗不是预言，而是一面照见潜意识的镜子。
@@ -10979,9 +11551,9 @@ html[data-theme="light"] .sbti-dim-badge.lvl-L {
       <div class="lq-screen active" id="sc-lq-home">
         <header class="lq-header">
           <div class="ew-mystic-bar">
-            <button class="ew-switch-btn west" data-ew-jump="tarot">🔮 西方塔罗</button>
-            <button class="ew-switch-btn active east" data-ew-jump="lingqian">🎋 东方灵签</button>
-            <button class="ew-switch-btn east" data-ew-jump="bazi">📜 生辰八字</button>
+            <button type="button" class="ew-switch-btn west" data-ew-jump="tarot">🔮 西方塔罗</button>
+            <button type="button" class="ew-switch-btn active east" data-ew-jump="lingqian">🎋 东方灵签</button>
+            <button type="button" class="ew-switch-btn bazi" data-ew-jump="bazi">📜 生辰八字</button>
           </div>
           <h1 class="lq-title">东方赛博灵签</h1>
           <div class="lq-sub">紫竹摇签 · 朱砂宣纸 · 当代打工人渡劫指南</div>
@@ -11486,21 +12058,53 @@ html[data-theme="light"] .sbti-dim-badge.lvl-L {
           <div class="lg-cards-grid" id="lgLibraryGrid"></div>
         </div>
 
-        <!-- 子模式 3：每日清醒锦囊抽卡 -->
+        <!-- 子模式 3：每日清醒锦囊 (Daily Life Guide Card) -->
         <div class="lg-substage" id="lg-sub-draw">
           <div class="lg-draw-stage">
+            <!-- 锦囊分类切换 -->
             <div class="lg-draw-pools" id="lgDrawPools">
-              <button type="button" class="lg-btn-chip active" data-lgpool="all">🎲 随机全库抽取</button>
-              <button type="button" class="lg-btn-chip" data-lgpool="health">❤️ 抽一张保命急救卡</button>
-              <button type="button" class="lg-btn-chip" data-lgpool="myth">🚫 抽一张防智商税卡</button>
-              <button type="button" class="lg-btn-chip" data-lgpool="legal">⚖️ 抽一张职场/法务护身符</button>
+              <button type="button" class="lg-btn-chip active" data-lgpool="all">🎲 全库锦囊 (36条)</button>
+              <button type="button" class="lg-btn-chip" data-lgpool="health">❤️ 保命与急救 (14条)</button>
+              <button type="button" class="lg-btn-chip" data-lgpool="myth">🚫 智商税避雷 (6条)</button>
+              <button type="button" class="lg-btn-chip" data-lgpool="legal">⚖️ 职场法务与省钱 (16条)</button>
             </div>
 
-            <div class="lg-flashcard" id="lgFlashcard"></div>
+            <!-- 3D 翻转卡牌容器 -->
+            <div class="lg-card-3d-scene" id="lgCardScene">
+              <div class="lg-card-3d-flipper" id="lgCardFlipper">
+                <!-- 卡背 (点击即可翻转开卡) -->
+                <div class="lg-card-face lg-card-back" id="lgCardBack">
+                  <div class="lg-cb-glow"></div>
+                  <div class="lg-cb-border-decor"></div>
+                  <div class="lg-cb-header">
+                    <span class="lg-cb-pill">👝 锦囊密令</span>
+                    <span class="lg-cb-code">NO.LIFELOGIC · 循证妙策</span>
+                  </div>
+                  <div class="lg-cb-center">
+                    <div class="lg-cb-emblem">👝</div>
+                    <div class="lg-cb-title">每日清醒锦囊</div>
+                    <div class="lg-cb-sub">撕碎虚妄 · 循证护体 · 拒缴智商税</div>
+                  </div>
+                  <div class="lg-cb-foot">
+                    <div class="lg-cb-tip">✨ 轻触卡牌正反翻转 · 查阅锦囊 ✨</div>
+                    <div class="lg-cb-stamp">【清醒印鉴】</div>
+                  </div>
+                </div>
 
+                <!-- 卡面 (翻开后呈现核心指南) -->
+                <div class="lg-card-face lg-card-front" id="lgFlashcard"></div>
+              </div>
+            </div>
+
+            <!-- 操作按键区 -->
             <div class="lg-draw-actions">
-              <button type="button" class="btn-ghost" id="lgBtnDrawNext" style="flex:1;min-width:180px;">🎲 再抽一张清醒锦囊</button>
-              <button type="button" class="lg-btn-poster" id="lgBtnDrawPoster" style="flex:1.4;min-width:240px;">📸 保存这张《人间清醒锦囊卡》并归档</button>
+              <button type="button" class="btn-primary lg-draw-btn-main" id="lgBtnDrawNext">
+                <span class="draw-icon">🎲</span>
+                <span class="draw-txt">翻开今日锦囊</span>
+              </button>
+              <button type="button" class="lg-btn-poster" id="lgBtnDrawPoster">
+                <span>📸 保存海报并归档</span>
+              </button>
             </div>
           </div>
         </div>
@@ -11520,11 +12124,11 @@ html[data-theme="light"] .sbti-dim-badge.lvl-L {
     <!-- 模块 11：赛博八字命盘 (Four Pillars of Destiny) -->
     <section id="mod-bazi" class="app-module">
       <div class="bz-wrap">
-        <!-- 东方玄学三大法门一键互跳栏 -->
-        <div class="bz-mystic-bar">
-          <button type="button" class="bz-switch-btn" data-ew-jump="tarot">🔮 西方塔罗</button>
-          <button type="button" class="bz-switch-btn" data-ew-jump="lingqian">🎋 东方灵签</button>
-          <button type="button" class="bz-switch-btn active" data-ew-jump="bazi">📜 赛博八字</button>
+        <!-- 东西玄学三大法门一键互跳栏 -->
+        <div class="ew-mystic-bar">
+          <button type="button" class="ew-switch-btn west" data-ew-jump="tarot">🔮 西方塔罗</button>
+          <button type="button" class="ew-switch-btn east" data-ew-jump="lingqian">🎋 东方灵签</button>
+          <button type="button" class="ew-switch-btn active bazi" data-ew-jump="bazi">📜 生辰八字</button>
         </div>
 
         <header class="bz-header">
@@ -25890,18 +26494,78 @@ if ('serviceWorker' in navigator) {
   }
 
   const QS = [
-    { q: "心情低落时，你最想来一杯？", opts: [{ t: "甜到飞起的快乐水", pts: { sw: 2 } }, { t: "清爽解腻的果茶", pts: { cr: 2, fr: 1 } }, { t: "浓郁奶香的热奶茶", pts: { mi: 2 } }, { t: "醇厚回甘的好茶", pts: { te: 2 } }] },
-    { q: "点单时，你的甜度选择？", opts: [{ t: "全糖！快乐至上", pts: { sw: 2 } }, { t: "七分甜刚刚好", pts: { sw: 1, mi: 1 } }, { t: "三分微甜更清爽", pts: { cr: 1, te: 1 } }, { t: "无糖，喝茶本身", pts: { te: 2, cr: 1 } }] },
-    { q: "最爱加什么小料？", opts: [{ t: "波霸珍珠", pts: { mi: 1, sw: 1 } }, { t: "椰果 / 蒟蒻 / 水晶", pts: { cr: 1, fr: 1 } }, { t: "芝士奶盖", pts: { mi: 2, tr: 1 } }, { t: "烧仙草 / 芋圆 / 布丁", pts: { mi: 1, sw: 1, bd: 1 } }] },
-    { q: "夏天你最想喝什么？", opts: [{ t: "冰沙果饮", pts: { cr: 2, fr: 1 } }, { t: "手打柠檬茶", pts: { cr: 2, fr: 1 } }, { t: "冰鲜奶 / 奶昔", pts: { mi: 2 } }, { t: "冷萃纯茶", pts: { te: 2, cr: 1 } }] },
-    { q: "你的点单预算观？", opts: [{ t: "为喜欢的新品，贵点也行", pts: { tr: 2 } }, { t: "精打细算，性价比王道", pts: { bd: 2 } }, { t: "日常口粮要便宜大碗", pts: { bd: 2, sw: 1 } }, { t: "品质优先，值得就好", pts: { tr: 1, te: 1, fr: 1 } }] },
-    { q: "朋友聚会让你点单，你会？", opts: [{ t: "抢鲜网红新品", pts: { tr: 2 } }, { t: "经典招牌稳稳的", pts: { mi: 1, te: 1 } }, { t: "量大管饱一起喝", pts: { bd: 2 } }, { t: "清爽解腻水果茶", pts: { fr: 2, cr: 1 } }] },
-    { q: "选奶茶，你最看重什么？", opts: [{ t: "颜值高能出片", pts: { tr: 2 } }, { t: "口感层次丰富", pts: { mi: 1, te: 1, sw: 1 } }, { t: "解渴解腻一杯爽", pts: { cr: 2, fr: 1 } }, { t: "茶香回甘有底蕴", pts: { te: 2 } }] },
-    { q: "你偏爱哪种奶茶店氛围？", opts: [{ t: "极简设计感", pts: { tr: 2, te: 1 } }, { t: "热闹接地气", pts: { bd: 2 } }, { t: "治愈可爱风", pts: { sw: 2 } }, { t: "新中式国风", pts: { te: 2, tr: 1 } }] },
-    { q: "对“新中式”茶饮怎么看？", opts: [{ t: "国风永远的神", pts: { te: 2, tr: 1 } }, { t: "偶尔来一杯尝鲜", pts: { te: 1 } }, { t: "还是老味道亲切", pts: { mi: 1, bd: 1 } }, { t: "水果茶更合我意", pts: { fr: 2 } }] },
-    { q: "哪种生活状态更像你？", opts: [{ t: "精致探店，仪式感拉满", pts: { tr: 2 } }, { t: "甜甜蜜蜜的小确幸", pts: { sw: 2 } }, { t: "佛系养生，恬淡自洽", pts: { te: 2, cr: 1 } }, { t: "快乐干饭，热气腾腾", pts: { bd: 2 } }] },
-    { q: "选择困难时，你靠什么决定？", opts: [{ t: "看颜值，好看就冲", pts: { tr: 1, sw: 1 } }, { t: "看销量和口碑", pts: { mi: 1, te: 1 } }, { t: "看价格，实惠优先", pts: { bd: 2 } }, { t: "看心情，随缘点单", pts: { cr: 1, fr: 1 } }] },
-    { q: "你的本命饮品画像是？", opts: [{ t: "黑糖珍珠鲜奶系", pts: { mi: 2, sw: 1 } }, { t: "鲜果茶系", pts: { fr: 2, cr: 1 } }, { t: "纯茶 / 奶绿系", pts: { te: 2 } }, { t: "芝士 / 奶盖系", pts: { mi: 2, tr: 1 } }] }
+    { q: "心情低落时，你最想来一杯？", opts: [
+      { t: "甜到飞起的快乐水", pts: { sw: 2 } },
+      { t: "清爽解腻的鲜果茶", pts: { fr: 2, cr: 1 } },
+      { t: "浓郁奶香的热奶茶", pts: { mi: 2, sw: 1 } },
+      { t: "醇厚回甘的原叶纯茶", pts: { te: 2, cr: 1 } }
+    ] },
+    { q: "点单时，你的甜度偏好？", opts: [
+      { t: "全糖！快乐第一位", pts: { sw: 2, bd: 1 } },
+      { t: "七分甜，温润刚好", pts: { sw: 1, mi: 1 } },
+      { t: "三分微甜，果香清爽", pts: { cr: 1, fr: 1 } },
+      { t: "不加糖，品原叶茶香", pts: { te: 2, cr: 1 } }
+    ] },
+    { q: "最爱加什么快乐小料？", opts: [
+      { t: "Q弹波霸珍珠", pts: { mi: 1, sw: 1, bd: 1 } },
+      { t: "多汁果肉 / 椰果 / 脆波波", pts: { fr: 2, cr: 1 } },
+      { t: "绵密厚芝士奶盖", pts: { mi: 2, tr: 1 } },
+      { t: "烧仙草 / 芋泥 / 双皮奶", pts: { mi: 1, bd: 2 } }
+    ] },
+    { q: "盛夏天最想捧在手里的是？", opts: [
+      { t: "满杯鲜果雪顶冰沙", pts: { fr: 2, cr: 1 } },
+      { t: "暴打香水柠檬茶", pts: { cr: 2, fr: 1 } },
+      { t: "冰镇厚乳鲜奶茶", pts: { mi: 2, sw: 1 } },
+      { t: "冷萃乌龙 / 茉莉纯茶", pts: { te: 2, cr: 1 } }
+    ] },
+    { q: "你的点单消费观更接近？", opts: [
+      { t: "联名首发网红新品，贵点也冲", pts: { tr: 2 } },
+      { t: "精打细算领券，性价比才是王道", pts: { bd: 2 } },
+      { t: "日常大杯口粮茶，便宜大碗最香", pts: { bd: 2, sw: 1 } },
+      { t: "注重原叶真果，品质值得买单", pts: { tr: 1, fr: 1, te: 1 } }
+    ] },
+    { q: "朋友聚会让你统一点单，你会？", opts: [
+      { t: "点最新联名周边款拍照", pts: { tr: 2 } },
+      { t: "点经典招牌奶茶不出错", pts: { mi: 1, te: 1, bd: 1 } },
+      { t: "拼团满减大桶装大家畅饮", pts: { bd: 2 } },
+      { t: "多口味鲜果茶每人一杯", pts: { fr: 2, cr: 1 } }
+    ] },
+    { q: "选茶饮时，第一吸引你的是？", opts: [
+      { t: "包装高颜值、杯贴超好看", pts: { tr: 2 } },
+      { t: "饱满果肉与清甜果香", pts: { fr: 2, sw: 1 } },
+      { t: "大口冰爽解渴解腻", pts: { cr: 2, bd: 1 } },
+      { t: "原叶茶汤回甘有底蕴", pts: { te: 2, cr: 1 } }
+    ] },
+    { q: "偏爱的茶饮店空间与氛围？", opts: [
+      { t: "潮流工业风，适合打卡出片", pts: { tr: 2, cr: 1 } },
+      { t: "街角档口热闹接地气", pts: { bd: 2 } },
+      { t: "温馨治愈甜品风", pts: { sw: 2, mi: 1 } },
+      { t: "禅意素雅新中式茶室", pts: { te: 2, tr: 1 } }
+    ] },
+    { q: "对当下“新中式茶饮”的看法？", opts: [
+      { t: "国风原叶茶底永远的神", pts: { te: 2, tr: 1 } },
+      { t: "看重真鲜奶真原叶不科技", pts: { te: 1, mi: 1 } },
+      { t: "还是加料大满贯性价比高", pts: { bd: 2, sw: 1 } },
+      { t: "比起茶更偏爱时令鲜果茶", pts: { fr: 2, cr: 1 } }
+    ] },
+    { q: "哪种生活节奏更像现在的你？", opts: [
+      { t: "打卡探店尝鲜，仪式感拉满", pts: { tr: 2 } },
+      { t: "甜甜蜜蜜，知足常乐的小确幸", pts: { sw: 2 } },
+      { t: "佛系自洽，素简清润", pts: { te: 2, cr: 1 } },
+      { t: "热气腾腾大口干饭，实在过瘾", pts: { bd: 2, sw: 1 } }
+    ] },
+    { q: "选择困难时，决定性因素是？", opts: [
+      { t: "一眼相中的海报新品", pts: { tr: 2 } },
+      { t: "回购百次的经典浓奶招牌", pts: { mi: 2, sw: 1 } },
+      { t: "满减折扣最划算的实惠款", pts: { bd: 2 } },
+      { t: "当天最想吃的新鲜当季水果", pts: { fr: 2, cr: 1 } }
+    ] },
+    { q: "你的本命饮品标签是？", opts: [
+      { t: "黑糖厚乳鲜奶系", pts: { mi: 2, sw: 1 } },
+      { t: "爆汁多肉鲜果茶系", pts: { fr: 2, cr: 1 } },
+      { t: "清幽原叶轻乳茶 / 纯茶系", pts: { te: 2, cr: 1 } },
+      { t: "芝士海盐雪顶系", pts: { mi: 2, tr: 1 } }
+    ] }
   ];
 
   const LETTERS = ["A", "B", "C", "D"];
@@ -26004,8 +26668,12 @@ if ('serviceWorker' in navigator) {
     });
 
     const dots = BRANDS.map(b => {
-      let d = 0;
-      for (const t of TRAITS) d += b.t[t.k] * scores[t.k];
+      let dot = 0, bMag = 0;
+      for (const t of TRAITS) {
+        dot += b.t[t.k] * scores[t.k];
+        bMag += b.t[t.k] * b.t[t.k];
+      }
+      const d = bMag > 0 ? (dot / Math.sqrt(bMag)) : dot;
       return { b, d };
     }).sort((x, y) => y.d - x.d);
 
@@ -26945,7 +27613,7 @@ if ('serviceWorker' in navigator) {
     { no: 12, name: "倒吊人", en: "The Hanged Man", upKw: "换位思考 · 牺牲 · 沉淀", up: "换个角度看世界，暂时的停顿是必要的修行。放下执念，收获意想不到的洞见。", revKw: "无谓牺牲 · 拖延 · 僵持", rev: "停滞让你疲惫。审视自己是否在无谓地消耗，该放手时就放手。" },
     { no: 13, name: "死神", en: "Death", upKw: "结束 · 蜕变 · 新生", up: "一个阶段正在终结，为新生腾出空间。结束并非坏事，而是重生的开始，坦然告别。", revKw: "抗拒改变 · 停滞 · 恐惧", rev: "你紧抓着旧物不放，恐惧改变，却也让生命失去流动。允许告别，才能拥抱新的可能。" },
     { no: 14, name: "节制", en: "Temperance", upKw: "平衡 · 调和 · 中庸", up: "以耐心与温和调和极端，细水长流。现在不宜急躁，宜稳步前行，静待花开。", revKw: "失衡 · 过度 · 急躁", rev: "生活失去平衡，或情绪过载。慢下来，找回自己的节奏与尺度，张弛有度。" },
-    { no: 15, name: "恶魔", en: "The Devil", upKw: "束缚 · 欲望 · 诱惑", up: "觉察那些无形的束缚——欲望、执念或依赖。看见它，便是挣脱的开始。", revKw: "挣脱 · 觉醒 · 重获自由", rev: "你正在挣脱枷锁，重拾主动权。阴影散去，力量回到你的手中。" },
+    { no: 15, name: "恶魔", en: "The Devil", image: "assets/tarot/card_15.jpg", upKw: "束缚 · 欲望 · 诱惑", up: "觉察那些无形的束缚——欲望、执念或依赖。看见它，便是挣脱的开始。", revKw: "挣脱 · 觉醒 · 重获自由", rev: "你正在挣脱枷锁，重拾主动权。阴影散去，力量回到你的手中。" },
     { no: 16, name: "高塔", en: "The Tower", upKw: "剧变 · 真相 · 崩塌", up: "旧有的结构骤然瓦解，震撼却也真实。崩塌之处，正是重建的起点，直面真相。", revKw: "危机解除 · 延迟的变革", rev: "最坏的时刻或许已经过去。改变虽迟但到，别回避必要的调整。" },
     { no: 17, name: "星星", en: "The Star", upKw: "希望 · 疗愈 · 灵感", up: "风暴过后，星光重现。怀抱希望，相信未来，你许下的愿望正在路上。", revKw: "失望 · 失去信心 · 迷茫", rev: "暂时的低谷让你怀疑方向。别忘了，星光一直都在，只是被云遮住了一时。" },
     { no: 18, name: "月亮", en: "The Moon", upKw: "幻觉 · 不安 · 潜意识", up: "前路朦胧，情绪翻涌。此时不宜轻信表象，静待云雾散去，再做判断。", revKw: "真相浮现 · 疑虑消解", rev: "迷雾正在散去，看清真相的时刻临近。内心的不安将逐渐平复，请再耐心一点。" },
@@ -27067,14 +27735,24 @@ if ('serviceWorker' in navigator) {
 
     fback.innerHTML = CARD_BACK;
     const svgCode = S[cardData.no] || `<circle cx="60" cy="60" r="30"/>`;
-    face.innerHTML = `
-      <div class="num">${ROMAN[cardData.no]}</div>
-      <div class="emblem" style="${cardData.isRev ? 'transform:rotate(180deg);' : ''}">${svg(svgCode)}</div>
-      <div class="nm">
-        <b>${cardData.name}</b>
-        <span>${cardData.en}</span>
-      </div>
-    `;
+    if (cardData.image) {
+      face.classList.add('has-art-img');
+      face.innerHTML = `
+        <div class="tr-face-art-wrap ${cardData.isRev ? 'is-rev' : ''}">
+          <img src="${cardData.image}" alt="${cardData.name}" class="tr-face-art-img">
+        </div>
+      `;
+    } else {
+      face.classList.remove('has-art-img');
+      face.innerHTML = `
+        <div class="num">${ROMAN[cardData.no]}</div>
+        <div class="emblem" style="${cardData.isRev ? 'transform:rotate(180deg);' : ''}">${svg(svgCode)}</div>
+        <div class="nm">
+          <b>${cardData.name}</b>
+          <span>${cardData.en}</span>
+        </div>
+      `;
+    }
 
     document.getElementById('rvPos').textContent = pos;
     const badge = document.getElementById('rvBadge');
@@ -27141,24 +27819,30 @@ if ('serviceWorker' in navigator) {
         resultList.className = 'result-list is-single';
         resultList.innerHTML = `
           <div class="tr-single-hero">
-            <div class="tr-card-frame ${c.isRev ? 'is-rev' : ''}">
-              <div class="tr-card-inner">
-                <div class="tr-card-corner tl">✦</div>
-                <div class="tr-card-corner tr">✦</div>
-                <div class="tr-card-corner bl">✦</div>
-                <div class="tr-card-corner br">✦</div>
-                <div class="tr-card-head">
-                  <span class="tr-card-num">${ROMAN[c.no]}</span>
-                  <span class="tr-card-state-tag ${c.isRev ? 'rev' : 'up'}">${c.isRev ? '逆 位' : '正 位'}</span>
+            <div class="tr-card-frame ${c.isRev ? 'is-rev' : ''} ${c.image ? 'has-art' : ''}">
+              ${c.image ? `
+                <div class="tr-card-painting-wrap ${c.isRev ? 'is-rev' : ''}">
+                  <img src="${c.image}" alt="${c.name}" class="tr-card-painting-img">
                 </div>
-                <div class="tr-card-art">
-                  ${svg(svgCode)}
+              ` : `
+                <div class="tr-card-inner">
+                  <div class="tr-card-corner tl">✦</div>
+                  <div class="tr-card-corner tr">✦</div>
+                  <div class="tr-card-corner bl">✦</div>
+                  <div class="tr-card-corner br">✦</div>
+                  <div class="tr-card-head">
+                    <span class="tr-card-num">${ROMAN[c.no]}</span>
+                    <span class="tr-card-state-tag ${c.isRev ? 'rev' : 'up'}">${c.isRev ? '逆 位' : '正 位'}</span>
+                  </div>
+                  <div class="tr-card-art">
+                    ${svg(svgCode)}
+                  </div>
+                  <div class="tr-card-foot">
+                    <div class="tr-card-name">${c.name}</div>
+                    <div class="tr-card-en">${c.en}</div>
+                  </div>
                 </div>
-                <div class="tr-card-foot">
-                  <div class="tr-card-name">${c.name}</div>
-                  <div class="tr-card-en">${c.en}</div>
-                </div>
-              </div>
+              `}
             </div>
 
             <div class="tr-single-info">
@@ -27214,20 +27898,26 @@ if ('serviceWorker' in navigator) {
                 <span class="tr-time-tag">${meta.icon} ${meta.label}</span>
               </div>
               
-              <div class="tr-card-frame sm ${c.isRev ? 'is-rev' : ''}">
-                <div class="tr-card-inner">
-                  <div class="tr-card-head">
-                    <span class="tr-card-num">${ROMAN[c.no]}</span>
-                    <span class="tr-card-state-tag ${c.isRev ? 'rev' : 'up'}">${c.isRev ? '逆位' : '正位'}</span>
+              <div class="tr-card-frame sm ${c.isRev ? 'is-rev' : ''} ${c.image ? 'has-art' : ''}">
+                ${c.image ? `
+                  <div class="tr-card-painting-wrap ${c.isRev ? 'is-rev' : ''}">
+                    <img src="${c.image}" alt="${c.name}" class="tr-card-painting-img">
                   </div>
-                  <div class="tr-card-art">
-                    ${svg(svgCode)}
+                ` : `
+                  <div class="tr-card-inner">
+                    <div class="tr-card-head">
+                      <span class="tr-card-num">${ROMAN[c.no]}</span>
+                      <span class="tr-card-state-tag ${c.isRev ? 'rev' : 'up'}">${c.isRev ? '逆位' : '正位'}</span>
+                    </div>
+                    <div class="tr-card-art">
+                      ${svg(svgCode)}
+                    </div>
+                    <div class="tr-card-foot">
+                      <div class="tr-card-name">${c.name}</div>
+                      <div class="tr-card-en">${c.en}</div>
+                    </div>
                   </div>
-                  <div class="tr-card-foot">
-                    <div class="tr-card-name">${c.name}</div>
-                    <div class="tr-card-en">${c.en}</div>
-                  </div>
-                </div>
+                `}
               </div>
 
               <div class="tr-trio-body">
@@ -27286,53 +27976,337 @@ if ('serviceWorker' in navigator) {
   }
 
   function drawTarotShareCard(data) {
-    if (!data) return;
+    if (!data || !data.items || !data.items.length) return;
+
+    const btnSave = document.getElementById('trBtnSave');
+    const origText = btnSave ? btnSave.textContent : '';
+    if (btnSave) {
+      btnSave.textContent = '⏳ 正在生成高清画报...';
+      btnSave.disabled = true;
+    }
+
+    // 预加载所有卡牌立绘（如已配置）
+    const imagePromises = data.items.map(it => {
+      return new Promise(resolve => {
+        if (!it.card.image) return resolve(null);
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => resolve(img);
+        img.onerror = () => resolve(null);
+        img.src = it.card.image;
+      });
+    });
+
+    Promise.all(imagePromises).then(images => {
+      try {
+        renderSharePoster(data, images);
+      } finally {
+        if (btnSave) {
+          btnSave.textContent = origText;
+          btnSave.disabled = false;
+        }
+      }
+    });
+  }
+
+  function renderSharePoster(data, images) {
+    const isSingle = data.spread === 'one' || data.items.length === 1;
     const cv = document.createElement('canvas');
     cv.width = 1080;
-    cv.height = 1520;
+    cv.height = isSingle ? 1760 : 1920;
     const ctx = cv.getContext('2d');
-    const isDark = document.documentElement.dataset.theme !== 'light';
 
-    ctx.fillStyle = isDark ? '#12102a' : '#f4efe4';
-    ctx.fillRect(0, 0, 1080, 1520);
+    // 1. 底色渐变与星空微光
+    const bgGrad = ctx.createLinearGradient(0, 0, 0, cv.height);
+    bgGrad.addColorStop(0, '#0a0818');
+    bgGrad.addColorStop(0.3, '#140f2e');
+    bgGrad.addColorStop(0.65, '#1b143a');
+    bgGrad.addColorStop(1, '#0c0919');
+    ctx.fillStyle = bgGrad;
+    ctx.fillRect(0, 0, cv.width, cv.height);
 
-    ctx.fillStyle = isDark ? '#1e1845' : '#fffdf6';
-    ctx.strokeStyle = isDark ? 'rgba(232,201,106,0.35)' : 'rgba(154,116,32,0.35)';
-    ctx.lineWidth = 4;
-    roundRect(ctx, 80, 80, 920, 1360, 40);
-    ctx.fill();
+    // 星尘微粒
+    ctx.fillStyle = 'rgba(232, 201, 106, 0.45)';
+    const stars = [
+      [120, 150, 2], [240, 90, 1.5], [890, 140, 2], [960, 220, 1.5],
+      [100, 480, 1.5], [980, 520, 2], [140, 900, 2], [950, 950, 1.5],
+      [110, 1300, 1.5], [960, 1400, 2], [180, cv.height - 80, 2], [880, cv.height - 110, 1.5]
+    ];
+    stars.forEach(([sx, sy, sr]) => {
+      ctx.beginPath();
+      ctx.arc(sx, sy, sr, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    // 2. 双重烫金外框与四角星芒
+    ctx.strokeStyle = 'rgba(232, 201, 106, 0.25)';
+    ctx.lineWidth = 1.5;
+    roundRect(ctx, 40, 40, cv.width - 80, cv.height - 80, 32);
+    ctx.stroke();
+
+    ctx.strokeStyle = 'rgba(232, 201, 106, 0.65)';
+    ctx.lineWidth = 3;
+    roundRect(ctx, 52, 52, cv.width - 104, cv.height - 104, 26);
     ctx.stroke();
 
     ctx.fillStyle = '#e8c96a';
-    ctx.font = 'bold 34px sans-serif';
+    ctx.font = '20px serif';
     ctx.textAlign = 'center';
-    ctx.fillText('赛博塔罗 · 命运启示', 540, 180);
+    ctx.textBaseline = 'middle';
+    ctx.fillText('✦', 76, 76);
+    ctx.fillText('✦', cv.width - 76, 76);
+    ctx.fillText('✦', 76, cv.height - 76);
+    ctx.fillText('✦', cv.width - 76, cv.height - 76);
+
+    // 3. 顶部 Header
+    ctx.textAlign = 'center';
+    ctx.fillStyle = 'rgba(232, 201, 106, 0.16)';
+    roundRect(ctx, 360, 90, 360, 44, 22);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(232, 201, 106, 0.5)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.fillStyle = '#e8c96a';
+    ctx.font = 'bold 18px sans-serif';
+    ctx.fillText('✦ 赛博秘境 · 塔罗档案馆 ✦', 540, 112);
+
+    ctx.fillStyle = '#f8df8c';
+    ctx.font = 'bold 44px Georgia, "PingFang SC", serif';
+    ctx.fillText('命 运 启 示 录', 540, 192);
+
+    ctx.fillStyle = '#a99fd4';
+    ctx.font = '20px sans-serif';
+    ctx.fillText('大阿卡那 · 潜意识灵性映射与时空指引', 540, 236);
+
+    ctx.strokeStyle = 'rgba(232, 201, 106, 0.3)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(280, 260);
+    ctx.lineTo(800, 260);
+    ctx.stroke();
+    ctx.fillStyle = '#e8c96a';
+    ctx.font = '14px serif';
+    ctx.fillText('◆', 540, 260);
 
     const first = data.items[0];
-    ctx.font = 'bold 64px Georgia, serif';
-    ctx.fillText(`${first.card.name} · ${first.card.isRev ? '逆位' : '正位'}`, 540, 280);
 
-    ctx.font = '28px sans-serif';
-    ctx.fillStyle = isDark ? '#a99fd4' : '#8a7a58';
-    ctx.fillText(first.kw, 540, 340);
+    if (isSingle) {
+      // 单张牌布局 (核心立绘突出呈现)
+      const img = images[0];
+      const cardX = 330;
+      const cardY = 290;
+      const cardW = 420;
+      const cardH = 630;
+      const cardR = 20;
 
-    let topY = 410;
-    data.items.forEach(it => {
-      ctx.fillStyle = isDark ? '#2a2160' : '#f6edd8';
-      roundRect(ctx, 140, topY, 800, 240, 20);
+      // 投影与光晕
+      ctx.save();
+      ctx.shadowColor = 'rgba(232, 201, 106, 0.4)';
+      ctx.shadowBlur = 36;
+      ctx.fillStyle = '#181238';
+      roundRect(ctx, cardX - 8, cardY - 8, cardW + 16, cardH + 16, cardR + 4);
       ctx.fill();
+      ctx.restore();
+
+      // 卡牌金边框
+      ctx.strokeStyle = '#d4af37';
+      ctx.lineWidth = 4;
+      roundRect(ctx, cardX - 4, cardY - 4, cardW + 8, cardH + 8, cardR + 2);
+      ctx.stroke();
+
+      if (img) {
+        ctx.save();
+        roundRect(ctx, cardX, cardY, cardW, cardH, cardR);
+        ctx.clip();
+        if (first.card.isRev) {
+          ctx.translate(cardX + cardW / 2, cardY + cardH / 2);
+          ctx.rotate(Math.PI);
+          ctx.drawImage(img, -cardW / 2, -cardH / 2, cardW, cardH);
+        } else {
+          ctx.drawImage(img, cardX, cardY, cardW, cardH);
+        }
+        ctx.restore();
+      } else {
+        // Fallback 绘制古典矢量塔罗牌面
+        ctx.fillStyle = '#1b143c';
+        roundRect(ctx, cardX, cardY, cardW, cardH, cardR);
+        ctx.fill();
+        ctx.fillStyle = '#e8c96a';
+        ctx.font = 'bold 36px Georgia, serif';
+        ctx.fillText(ROMAN[first.card.no], 540, cardY + 70);
+        ctx.font = '28px sans-serif';
+        ctx.fillText(first.card.name, 540, cardY + cardH / 2);
+      }
+
+      // 状态徽标 (正位/逆位)
+      const badgeX = cardX + cardW - 124;
+      const badgeY = cardY + 16;
+      ctx.save();
+      ctx.fillStyle = first.card.isRev ? 'rgba(239, 68, 68, 0.9)' : 'rgba(16, 185, 129, 0.9)';
+      roundRect(ctx, badgeX, badgeY, 108, 38, 19);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 18px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(first.card.isRev ? '逆 位 · REV' : '正 位 · UP', badgeX + 54, badgeY + 20);
+      ctx.restore();
+
+      // 卡牌标题与关键词
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#fce494';
+      ctx.font = 'bold 38px Georgia, "PingFang SC", serif';
+      ctx.fillText(`${ROMAN[first.card.no]} · ${first.card.name} (${first.card.en})`, 540, 975);
+
+      ctx.fillStyle = 'rgba(232, 201, 106, 0.12)';
+      roundRect(ctx, 220, 1005, 640, 48, 24);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(232, 201, 106, 0.45)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
+
+      ctx.fillStyle = '#e8c96a';
+      ctx.font = 'bold 22px sans-serif';
+      ctx.fillText(`🔑 核心指引：${first.kw}`, 540, 1030);
+
+      // 解读内容框
+      const descBoxY = 1085;
+      const descBoxH = 430;
+      ctx.fillStyle = 'rgba(26, 20, 54, 0.85)';
+      roundRect(ctx, 110, descBoxY, 860, descBoxH, 24);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(232, 201, 106, 0.35)';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
 
       ctx.textAlign = 'left';
       ctx.fillStyle = '#e8c96a';
-      ctx.font = 'bold 30px sans-serif';
-      ctx.fillText(`${it.pos} · ${it.card.name} (${it.card.isRev ? '逆位' : '正位'})`, 180, topY + 54);
+      ctx.font = 'bold 24px sans-serif';
+      ctx.fillText('📜 牌意启示解读 (Divine Insight)', 150, descBoxY + 54);
 
-      ctx.fillStyle = isDark ? '#f2ecff' : '#3a2f1e';
-      ctx.font = '24px sans-serif';
-      wrapText(ctx, it.txt, 180, topY + 104, 720, 36);
+      ctx.strokeStyle = 'rgba(232, 201, 106, 0.2)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(150, descBoxY + 74);
+      ctx.lineTo(930, descBoxY + 74);
+      ctx.stroke();
 
-      topY += 270;
-    });
+      ctx.fillStyle = '#ede7ff';
+      ctx.font = '23px/1.8 "PingFang SC", "Microsoft YaHei", sans-serif';
+      wrapText(ctx, first.txt, 150, descBoxY + 120, 780, 40);
+
+      // 金句条
+      const quoteY = descBoxY + 280;
+      ctx.fillStyle = 'rgba(232, 201, 106, 0.08)';
+      roundRect(ctx, 150, quoteY, 780, 110, 16);
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(232, 201, 106, 0.25)';
+      ctx.stroke();
+
+      ctx.fillStyle = '#d4af37';
+      ctx.font = 'bold 36px Georgia, serif';
+      ctx.fillText('“', 170, quoteY + 45);
+
+      ctx.fillStyle = '#d8cef6';
+      ctx.font = 'italic 21px "PingFang SC", sans-serif';
+      ctx.fillText('顺应内心的真实感召，走好当下的每一步。', 210, quoteY + 48);
+      ctx.fillText('束缚你的从来不是深渊，而是不敢放下的执念。', 210, quoteY + 84);
+    } else {
+      // 三牌时间流布局
+      const cardW = 260;
+      const cardH = 390;
+      const gap = 40;
+      const startX = (cv.width - (cardW * 3 + gap * 2)) / 2;
+      const cardY = 290;
+
+      data.items.forEach((it, idx) => {
+        const cx = startX + idx * (cardW + gap);
+        const img = images[idx];
+
+        // 卡牌阴影与边框
+        ctx.save();
+        ctx.shadowColor = 'rgba(232, 201, 106, 0.3)';
+        ctx.shadowBlur = 20;
+        ctx.fillStyle = '#181238';
+        roundRect(ctx, cx, cardY, cardW, cardH, 16);
+        ctx.fill();
+        ctx.restore();
+
+        ctx.strokeStyle = '#d4af37';
+        ctx.lineWidth = 3;
+        roundRect(ctx, cx, cardY, cardW, cardH, 16);
+        ctx.stroke();
+
+        if (img) {
+          ctx.save();
+          roundRect(ctx, cx, cardY, cardW, cardH, 16);
+          ctx.clip();
+          if (it.card.isRev) {
+            ctx.translate(cx + cardW / 2, cardY + cardH / 2);
+            ctx.rotate(Math.PI);
+            ctx.drawImage(img, -cardW / 2, -cardH / 2, cardW, cardH);
+          } else {
+            ctx.drawImage(img, cx, cardY, cardW, cardH);
+          }
+          ctx.restore();
+        } else {
+          ctx.fillStyle = '#1e1644';
+          roundRect(ctx, cx, cardY, cardW, cardH, 16);
+          ctx.fill();
+          ctx.fillStyle = '#e8c96a';
+          ctx.font = 'bold 28px Georgia, serif';
+          ctx.textAlign = 'center';
+          ctx.fillText(ROMAN[it.card.no], cx + cardW / 2, cardY + 60);
+          ctx.font = '22px sans-serif';
+          ctx.fillText(it.card.name, cx + cardW / 2, cardY + cardH / 2);
+        }
+
+        // 牌位与名称标签
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#fce494';
+        ctx.font = 'bold 22px sans-serif';
+        ctx.fillText(`【${it.pos}】${it.card.name} · ${it.card.isRev ? '逆位' : '正位'}`, cx + cardW / 2, cardY + cardH + 34);
+
+        ctx.fillStyle = '#a99fd4';
+        ctx.font = '16px sans-serif';
+        ctx.fillText(it.kw, cx + cardW / 2, cardY + cardH + 62);
+      });
+
+      // 三牌详细解读列表
+      let descTop = 790;
+      data.items.forEach(it => {
+        ctx.fillStyle = 'rgba(26, 20, 54, 0.85)';
+        roundRect(ctx, 110, descTop, 860, 230, 20);
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(232, 201, 106, 0.35)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        ctx.textAlign = 'left';
+        ctx.fillStyle = '#e8c96a';
+        ctx.font = 'bold 22px sans-serif';
+        ctx.fillText(`✦ ${it.pos} · ${it.card.name} (${it.card.isRev ? '逆位' : '正位'})`, 150, descTop + 46);
+
+        ctx.fillStyle = '#ede7ff';
+        ctx.font = '20px/1.7 "PingFang SC", sans-serif';
+        wrapText(ctx, it.txt, 150, descTop + 90, 780, 36);
+
+        descTop += 255;
+      });
+    }
+
+    // 4. 底部 Footer
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#7a70a8';
+    ctx.font = '19px sans-serif';
+    ctx.fillText('✦ 精神状态测试研究所 · 赛博秘境档案馆 ✦', 540, cv.height - 110);
+
+    ctx.font = '16px sans-serif';
+    ctx.fillStyle = '#5c5484';
+    ctx.fillText('探索潜意识的宇宙边界 · 长按保存图片', 540, cv.height - 76);
 
     const a = document.createElement('a');
     a.download = `赛博塔罗_${first.card.name}.png`;
@@ -33392,6 +34366,7 @@ if ('serviceWorker' in navigator) {
   let curSearchKeyword = '';
   let curDrawPool = 'all'; // 'all' | 'health' | 'myth' | 'legal'
   let curDrawnEntry = HANDBOOK_ENTRIES[0];
+  let isCardFlipping = false;
 
   function loadStorage() {
     try {
@@ -33426,6 +34401,27 @@ if ('serviceWorker' in navigator) {
     try {
       localStorage.setItem(STORAGE_DONE_KEY, JSON.stringify([...doneEntryIds]));
     } catch (e) {}
+  }
+
+  function getEntryMeta(entry) {
+    if (!entry) {
+      return {
+        badge: '🅰️ 循证实操',
+        stamp: '清醒\n实操',
+        color: '#34D399'
+      };
+    }
+    const isMyth = entry.grade === 'MYTH';
+    const isEmergency = entry.cat === 'emergency';
+    const isLegal = entry.cat === 'legal' || entry.cat === 'career';
+
+    return {
+      badge: isMyth
+        ? '🚫 智商税避雷'
+        : (isEmergency ? '🚨 救命硬核' : (isLegal ? '⚖️ 维权护身' : '🅰️ 循证实操')),
+      stamp: isMyth ? '破妄\n避坑' : (isEmergency ? '救命\n铁律' : '清醒\n实操'),
+      color: isMyth ? '#FB7185' : (isEmergency ? '#F59E0B' : '#34D399')
+    };
   }
 
   /* =========================================================
@@ -33714,44 +34710,40 @@ if ('serviceWorker' in navigator) {
     });
   }
 
-  function renderDrawCard(animate = false) {
+  function renderDrawCard(forceFront = false) {
     const cardEl = document.getElementById('lgFlashcard');
+    const flipper = document.getElementById('lgCardFlipper');
     if (!cardEl || !curDrawnEntry) return;
 
-    if (animate) {
-      cardEl.classList.remove('flip-anim');
-      void cardEl.offsetWidth;
-      cardEl.classList.add('flip-anim');
-    }
-
     const entry = curDrawnEntry;
-    const isMyth = entry.grade === 'MYTH';
+    const meta = getEntryMeta(entry);
     const isDone = doneEntryIds.has(entry.id);
-    const gradeLabel = isMyth
-      ? '🚫 反面清单·智商税避雷'
-      : (entry.grade === 'A' ? '🅰️ 证据等级 A · 顶刊/现行法条' : '🅱️ 证据等级 B · 临床共识');
+
+    cardEl.className = 'lg-card-face lg-card-front';
+    cardEl.style.borderColor = meta.color;
 
     cardEl.innerHTML = `
       <div class="lg-fc-ribbon">
-        <div class="lg-entry-badges">
-          <span class="lg-badge grade-${entry.grade}">${gradeLabel}</span>
+        <div class="lg-entry-badges" style="align-items:center;gap:8px;">
+          <span class="lg-badge" style="background:${meta.color}22;color:${meta.color};border:1px solid ${meta.color}55;font-weight:800;">${meta.badge}</span>
           <span class="lg-badge cost-tag">${entry.catName}</span>
         </div>
         <span class="lg-fc-no">NO.${entry.id.toUpperCase()} · ${entry.chapter}</span>
       </div>
       <h2 class="lg-fc-title">${entry.title}</h2>
       <div class="lg-fc-box">
-        <span class="lg-fc-box-lbl">🗣️ 【说人话 · 行动处方】 (${entry.cost})</span>
+        <span class="lg-fc-box-lbl" style="color:${meta.color};">🗣️ 【说人话 · 行动处方】 (${entry.cost})</span>
         <div class="lg-fc-box-txt">${entry.plain}</div>
       </div>
       <div class="lg-fc-box">
-        <span class="lg-fc-box-lbl">🔬 【硬核循证收益 / 法律条文依据】</span>
-        <div class="lg-fc-box-txt" style="font-size:13.5px;color:var(--tx-dim);">${entry.evidence}</div>
+        <span class="lg-fc-box-lbl" style="color:${meta.color};">🔬 【硬核循证收益 / 法律条文依据】</span>
+        <div class="lg-fc-box-txt lg-fc-evidence-txt">${entry.evidence}</div>
       </div>
       <div class="lg-fc-source">
         📖 <b>原始文献与法条出处：</b>${entry.source}
       </div>
-      <div style="display:flex;justify-content:flex-end;margin-top:4px;">
+      <div class="lg-fc-stamp" style="border-color:${meta.color};color:${meta.color};">${meta.stamp.replace('\n', '<br>')}</div>
+      <div style="display:flex;justify-content:flex-end;margin-top:4px;position:relative;z-index:3;">
         <button type="button" class="lg-btn-done ${isDone ? 'done' : ''}" id="lgFcBtnDone">
           ${isDone ? '✅ 已收入我的清醒习惯库' : '⭕ 标记为我已掌握/已做到'}
         </button>
@@ -33760,7 +34752,8 @@ if ('serviceWorker' in navigator) {
 
     const btnDone = document.getElementById('lgFcBtnDone');
     if (btnDone) {
-      btnDone.onclick = () => {
+      btnDone.onclick = (e) => {
+        e.stopPropagation();
         if (window.SFX && window.SFX.tap) window.SFX.tap();
         if (doneEntryIds.has(entry.id)) {
           doneEntryIds.delete(entry.id);
@@ -33768,13 +34761,17 @@ if ('serviceWorker' in navigator) {
           doneEntryIds.add(entry.id);
         }
         saveDoneStorage();
-        renderDrawCard(false);
+        renderDrawCard(true);
         updateTopStats();
       };
     }
+
+    if (forceFront && flipper) {
+      flipper.classList.add('is-flipped');
+    }
   }
 
-  function drawRandomEntry() {
+  function pickRandomEntry() {
     let pool = HANDBOOK_ENTRIES;
     if (curDrawPool === 'health') {
       pool = HANDBOOK_ENTRIES.filter(e => e.cat === 'health' || e.cat === 'emergency');
@@ -33788,9 +34785,76 @@ if ('serviceWorker' in navigator) {
     let candidates = pool.filter(e => e.id !== (curDrawnEntry && curDrawnEntry.id));
     if (candidates.length === 0) candidates = pool;
 
-    curDrawnEntry = candidates[Math.floor(Math.random() * candidates.length)];
-    if (window.SFX && window.SFX.shake) window.SFX.shake();
-    renderDrawCard(true);
+    return candidates[Math.floor(Math.random() * candidates.length)];
+  }
+
+  function updateDrawBtnText(isFlipped) {
+    const btn = document.getElementById('lgBtnDrawNext');
+    if (!btn) return;
+    const txt = btn.querySelector('.draw-txt');
+    if (txt) {
+      txt.textContent = isFlipped ? '换一张锦囊' : '翻开今日锦囊';
+    }
+  }
+
+  // 1. 手动单击卡牌：正反面翻转（在背面点击翻开新牌，在正面点击可翻回背面）
+  function toggleCardFlip() {
+    const flipper = document.getElementById('lgCardFlipper');
+    if (!flipper || isCardFlipping) return;
+
+    if (!curDrawnEntry) {
+      curDrawnEntry = pickRandomEntry();
+      renderDrawCard(false);
+    }
+
+    if (window.SFX && window.SFX.tarotFlip) {
+      window.SFX.tarotFlip();
+    }
+
+    isCardFlipping = true;
+    const isNowFlipped = !flipper.classList.contains('is-flipped');
+    flipper.classList.toggle('is-flipped', isNowFlipped);
+    updateDrawBtnText(isNowFlipped);
+
+    setTimeout(() => {
+      isCardFlipping = false;
+    }, 320);
+  }
+
+  // 2. 点击“换一张锦囊”：把牌翻到背面，后台装入新牌，等待手动单击卡片翻转出现新牌
+  function prepareNextCard() {
+    const flipper = document.getElementById('lgCardFlipper');
+    if (isCardFlipping) return;
+
+    const next = pickRandomEntry();
+
+    if (window.SFX && window.SFX.tarotFlip) {
+      window.SFX.tarotFlip();
+    }
+
+    if (!flipper) {
+      curDrawnEntry = next;
+      renderDrawCard(true);
+      return;
+    }
+
+    // 若当前在正面状态：把牌翻到背面，半途载入新牌，停在背面等待手动翻开
+    if (flipper.classList.contains('is-flipped')) {
+      isCardFlipping = true;
+      flipper.classList.remove('is-flipped');
+      updateDrawBtnText(false);
+      setTimeout(() => {
+        curDrawnEntry = next;
+        renderDrawCard(false);
+        isCardFlipping = false;
+      }, 240);
+      return;
+    }
+
+    // 若当前已经在背面：直接换入新牌，保持背面，用户随时点击翻开
+    curDrawnEntry = next;
+    renderDrawCard(false);
+    updateDrawBtnText(false);
   }
 
   /* =========================================================
@@ -34004,13 +35068,14 @@ if ('serviceWorker' in navigator) {
     if (!curDrawnEntry) return;
     if (window.SFX && window.SFX.done) window.SFX.done();
     const entry = curDrawnEntry;
+    const meta = getEntryMeta(entry);
 
     if (window.UniversalHistory && typeof window.UniversalHistory.add === 'function') {
       window.UniversalHistory.add({
         module: 'lifeguide',
         title: `清醒锦囊：${entry.title}`,
         subtitle: `${entry.catName} · ${entry.chapter}`,
-        color: entry.grade === 'MYTH' ? '#FB7185' : '#34D399',
+        color: meta.color,
         badge: '💊 清醒锦囊',
         avatar: '💊',
         data: {
@@ -34035,15 +35100,12 @@ if ('serviceWorker' in navigator) {
     ctx.fillStyle = '#151C28';
     ctx.fill();
     ctx.lineWidth = 3;
-    ctx.strokeStyle = entry.grade === 'MYTH' ? 'rgba(251, 113, 133, 0.5)' : 'rgba(52, 211, 153, 0.45)';
+    ctx.strokeStyle = meta.color;
     ctx.stroke();
 
-    ctx.fillStyle = entry.grade === 'MYTH' ? '#FB7185' : '#34D399';
+    ctx.fillStyle = meta.color;
     ctx.font = 'bold 24px "MiSans", "PingFang SC", sans-serif';
-    const badgeStr = entry.grade === 'MYTH'
-      ? '🚫 反面清单 · 智商税粉碎锦囊'
-      : `🅰️ 循证等级 ${entry.grade} · 高性价比生存锦囊`;
-    ctx.fillText(badgeStr, 116, 142);
+    ctx.fillText(`${meta.badge}  ·  NO.${entry.id.toUpperCase()}`, 116, 142);
 
     ctx.fillStyle = '#64748B';
     ctx.font = 'bold 22px "MiSans", "PingFang SC", sans-serif';
@@ -34087,6 +35149,26 @@ if ('serviceWorker' in navigator) {
     ctx.fillStyle = '#94A3B8';
     ctx.font = '22px "MiSans", "PingFang SC", sans-serif';
     wrapCanvasText(ctx, `📖 原始出处：${entry.source}`, 116, nextY, 848, 34, 2);
+
+    // 右下角专属朱红/金色篆刻印章
+    ctx.save();
+    ctx.translate(880, 1270);
+    ctx.rotate((-12 * Math.PI) / 180);
+    roundRect(ctx, -52, -52, 104, 104, 12);
+    ctx.strokeStyle = meta.color;
+    ctx.lineWidth = 3.5;
+    ctx.stroke();
+    roundRect(ctx, -46, -46, 92, 92, 8);
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.fillStyle = meta.color;
+    ctx.font = 'bold 22px "MiSans", "PingFang SC", "Microsoft YaHei", sans-serif';
+    ctx.textAlign = 'center';
+    const stampLines = meta.stamp.split('\n');
+    ctx.fillText(stampLines[0] || '清醒', 0, -10);
+    ctx.fillText(stampLines[1] || '实操', 0, 24);
+    ctx.textAlign = 'left';
+    ctx.restore();
 
     ctx.fillStyle = '#64748B';
     ctx.font = '20px "MiSans", "PingFang SC", sans-serif';
@@ -34136,6 +35218,7 @@ if ('serviceWorker' in navigator) {
         curDrawnEntry = found;
         switchSubMod('draw');
         renderDrawCard(true);
+        updateDrawBtnText(true);
       }
     }
   }
@@ -34229,7 +35312,7 @@ if ('serviceWorker' in navigator) {
       });
     }
 
-    // 每日清醒锦囊抽卡池与按钮
+    // 每日清醒锦囊卡池与按钮
     document.querySelectorAll('#lgDrawPools .lg-btn-chip').forEach(chip => {
       chip.addEventListener('click', () => {
         if (window.SFX && window.SFX.tap) window.SFX.tap();
@@ -34237,23 +35320,41 @@ if ('serviceWorker' in navigator) {
         document.querySelectorAll('#lgDrawPools .lg-btn-chip').forEach(c => {
           c.classList.toggle('active', c.dataset.lgpool === curDrawPool);
         });
-        drawRandomEntry();
+        prepareNextCard();
       });
     });
 
     const btnDrawNext = document.getElementById('lgBtnDrawNext');
     const btnDrawPoster = document.getElementById('lgBtnDrawPoster');
+    const cardFlipper = document.getElementById('lgCardFlipper');
+
     if (btnDrawNext) {
-      btnDrawNext.addEventListener('click', drawRandomEntry);
+      btnDrawNext.addEventListener('click', () => {
+        const flipper = document.getElementById('lgCardFlipper');
+        if (flipper && !flipper.classList.contains('is-flipped')) {
+          toggleCardFlip();
+        } else {
+          prepareNextCard();
+        }
+      });
     }
     if (btnDrawPoster) {
       btnDrawPoster.addEventListener('click', exportFlashcardPoster);
+    }
+    if (cardFlipper) {
+      cardFlipper.addEventListener('click', (e) => {
+        if (e && e.target && typeof e.target.closest === 'function' && e.target.closest('#lgFcBtnDone')) return;
+        toggleCardFlip();
+      });
     }
 
     // 初始渲染
     updateTopStats();
     renderAuditView();
     renderLibraryView();
+    if (!curDrawnEntry) {
+      curDrawnEntry = pickRandomEntry();
+    }
     renderDrawCard(false);
   }
 
@@ -37190,10 +38291,12 @@ if ('serviceWorker' in navigator) {
     document.documentElement.dataset.activeModule = modKey;
 
     const hasSeparateLingqianTab = !!document.querySelector('.nav-tab[data-mod="lingqian"]');
+    const hasSeparateBaziTab = !!document.querySelector('.nav-tab[data-mod="bazi"]');
     let matchedTab = null;
     // 切换顶栏 Tab 选中状态
     document.querySelectorAll('.nav-tab').forEach(tab => {
-      const isMatch = tab.dataset.mod === modKey || (!hasSeparateLingqianTab && modKey === 'lingqian' && tab.dataset.mod === 'tarot');
+      const isMysticSub = (!hasSeparateLingqianTab && modKey === 'lingqian') || (!hasSeparateBaziTab && modKey === 'bazi');
+      const isMatch = tab.dataset.mod === modKey || (isMysticSub && tab.dataset.mod === 'tarot');
       tab.classList.toggle('active', isMatch);
       if (isMatch) {
         matchedTab = tab;
@@ -37255,9 +38358,8 @@ if ('serviceWorker' in navigator) {
     document.querySelectorAll('.nav-tab').forEach(tab => {
       tab.addEventListener('click', () => {
         if (window.SFX && window.SFX.tap) window.SFX.tap();
-        const hasSeparateLingqianTab = !!document.querySelector('.nav-tab[data-mod="lingqian"]');
         let targetMod = tab.dataset.mod;
-        if (!hasSeparateLingqianTab && targetMod === 'tarot') {
+        if (targetMod === 'tarot') {
           targetMod = lastMysticMod || 'tarot';
         }
         switchModule(targetMod, true);

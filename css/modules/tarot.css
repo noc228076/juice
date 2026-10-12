@@ -471,12 +471,13 @@ html[data-theme="light"] #mod-tarot .pcard .back {
   width: 100%;
 }
 #mod-tarot .bigcard {
-  width: min(260px, 60vw);
-  aspect-ratio: 3/5;
-  min-height: 280px;
+  width: min(270px, 65vw);
+  height: 405px;
+  aspect-ratio: 2 / 3;
   perspective: 1200px;
   position: relative;
   cursor: pointer;
+  flex: none;
 }
 #mod-tarot .bigcard .flip {
   position: absolute;
@@ -557,10 +558,11 @@ html[data-theme="light"] #mod-tarot .pcard .back {
 #mod-tarot .face .tr-face-art-img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   display: block;
   opacity: 0;
   transition: opacity 0.35s ease;
+  background: #140f2e;
 }
 #mod-tarot .face .tr-face-art-img.is-loaded {
   opacity: 1;
@@ -1102,25 +1104,42 @@ html[data-theme="light"] #mod-tarot .tr-info-desc {
     margin: 18px auto 0;
   }
 
-  /* 解牌分屏舞台 */
+  /* 解牌分屏舞台 (桌面端并排展开，保证 280x420 完整 2:3 塔罗比例，绝不塌缩) */
   #mod-tarot .reveal-stage {
     display: grid;
     grid-template-columns: 280px 1fr;
-    gap: 48px;
+    grid-template-rows: auto auto;
+    gap: 20px 48px;
     align-items: center;
-    max-width: 840px;
+    max-width: 860px;
     margin: 20px auto;
   }
   #mod-tarot .bigcard {
     width: 280px;
+    height: 420px;
+    aspect-ratio: 2 / 3;
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    align-self: center;
+    margin: 0 auto;
   }
   #mod-tarot .reading {
     max-width: 100%;
     text-align: left;
+    grid-column: 2;
+    grid-row: 1;
+    margin: 0;
   }
   #mod-tarot .reading .txt {
     font-size: 15px;
     padding: 18px 22px;
+  }
+  #mod-tarot .reveal-btns {
+    grid-column: 2;
+    grid-row: 2;
+    width: 100%;
+    max-width: 100%;
+    margin: 0;
   }
 
   /* 总结头部与卡片严格两端对齐 (1040px) */

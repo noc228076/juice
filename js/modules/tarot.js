@@ -66,23 +66,23 @@
     { no: 1, name: "魔术师", en: "The Magician", image: "assets/tarot/card_1.jpg", upKw: "创造力 · 行动力 · 资源整合", up: "你拥有实现目标所需的一切资源与才能。专注与信念将助你把想法变为现实，此刻正是施展的时刻。", revKw: "欺骗 · 计划不周 · 才能被浪费", rev: "小心华而不实与自我怀疑。你可能未善用自身才能，或有人在误导你，回归本质，去伪存真。" },
     { no: 2, name: "女祭司", en: "The High Priestess", image: "assets/tarot/card_2.jpg", upKw: "直觉 · 智慧 · 潜意识", up: "静心聆听内心的声音。答案藏在表象之下，信任你的直觉与内在智慧，不必急于向外寻求。", revKw: "忽视直觉 · 秘密 · 肤浅", rev: "你可能忽略了重要的内在信号，或被表象蒙蔽。给自己留出独处与反思的时间，答案自会浮现。" },
     { no: 3, name: "女皇", en: "The Empress", image: "assets/tarot/card_3.jpg", upKw: "丰饶 · 滋养 · 创造力", up: "象征丰盛与爱的能量。关注自我关怀，让创造力自然生长，也用心滋养身边的人。", revKw: "依赖 · 停滞 · 自我忽视", rev: "你可能过度付出而忽略了自己，或创造力受阻。重新建立内在的平衡与安全感，先照顾好自己。" },
-    { no: 4, name: "皇帝", en: "The Emperor", upKw: "权威 · 秩序 · 稳定", up: "建立结构与规则，以坚定而负责任的姿态掌控局面。纪律带来力量，稳扎稳打方能致远。", revKw: "固执 · 控制欲 · 僵化", rev: "过度的控制或教条会让你失去弹性。学会放下执念，倾听他人的声音，刚柔并济。" },
-    { no: 5, name: "教皇", en: "The Hierophant", upKw: "传统 · 信仰 · 导师", up: "寻求可靠的知识与指引。遵循既定规范，或向值得信赖的长者请教，智慧在传承中发光。", revKw: "教条 · 质疑 · 反叛", rev: "你开始质疑旧有的规则与权威。打破束缚、找到属于自己的信念，正是成长的开始。" },
+    { no: 4, name: "皇帝", en: "The Emperor", image: "assets/tarot/card_4.jpg", upKw: "权威 · 秩序 · 稳定", up: "建立结构与规则，以坚定而负责任的姿态掌控局面。纪律带来力量，稳扎稳打方能致远。", revKw: "固执 · 控制欲 · 僵化", rev: "过度的控制或教条会让你失去弹性。学会放下执念，倾听他人的声音，刚柔并济。" },
+    { no: 5, name: "教皇", en: "The Hierophant", image: "assets/tarot/card_5.jpg", upKw: "传统 · 信仰 · 导师", up: "寻求可靠的知识与指引。遵循既定规范，或向值得信赖的长者请教，智慧在传承中发光。", revKw: "教条 · 质疑 · 反叛", rev: "你开始质疑旧有的规则与权威。打破束缚、找到属于自己的信念，正是成长的开始。" },
     { no: 6, name: "恋人", en: "The Lovers", image: "assets/tarot/card_6.jpg", upKw: "爱 · 联结 · 选择", up: "象征深刻的联结与重要的抉择。听从内心，让爱与真诚指引方向，值得的选择不怕等待。", revKw: "失衡 · 分离 · 犹豫", rev: "关系或选择中出现了裂痕。检视自己的价值观，别因恐惧而逃避沟通，坦诚是最好的桥梁。" },
-    { no: 7, name: "战车", en: "The Chariot", upKw: "意志 · 胜利 · 前进", up: "凭借坚定的意志与自律，你能够克服障碍、驶向胜利。方向已明，握紧缰绳向前。", revKw: "失控 · 方向迷失 · 鲁莽", rev: "或许你被外物牵着走，或方向模糊。先稳住自己，再决定往哪里去，慢即是快。" },
-    { no: 8, name: "力量", en: "Strength", upKw: "勇气 · 耐心 · 内在力量", up: "真正的力量来自温柔与坚韧。以耐心驯服内心的猛兽，而非强硬对抗——柔能克刚。", revKw: "自我怀疑 · 软弱 · 压抑", rev: "你可能低估了自己，或情绪在暗中消耗你。温柔地接纳脆弱，力量会重新聚集。" },
-    { no: 9, name: "隐士", en: "The Hermit", upKw: "内省 · 独处 · 寻求智慧", up: "退一步，进入安静。独处不是孤独，而是为自己点亮一盏灯，看清真正重要的东西。", revKw: "孤立 · 逃避 · 过度封闭", rev: "独处变成了隔绝。适时走出自己的洞穴，向值得信任的人伸出手。" },
+    { no: 7, name: "战车", en: "The Chariot", image: "assets/tarot/card_7.jpg", upKw: "意志 · 胜利 · 前进", up: "凭借坚定的意志与自律，你能够克服障碍、驶向胜利。方向已明，握紧缰绳向前。", revKw: "失控 · 方向迷失 · 鲁莽", rev: "或许你被外物牵着走，或方向模糊。先稳住自己，再决定往哪里去，慢即是快。" },
+    { no: 8, name: "力量", en: "Strength", image: "assets/tarot/card_8.jpg", upKw: "勇气 · 耐心 · 内在力量", up: "真正的力量来自温柔与坚韧。以耐心驯服内心的猛兽，而非强硬对抗——柔能克刚。", revKw: "自我怀疑 · 软弱 · 压抑", rev: "你可能低估了自己，或情绪在暗中消耗你。温柔地接纳脆弱，力量会重新聚集。" },
+    { no: 9, name: "隐士", en: "The Hermit", image: "assets/tarot/card_9.jpg", upKw: "内省 · 独处 · 寻求智慧", up: "退一步，进入安静。独处不是孤独，而是为自己点亮一盏灯，看清真正重要的东西。", revKw: "孤立 · 逃避 · 过度封闭", rev: "独处变成了隔绝。适时走出自己的洞穴，向值得信任的人伸出手。" },
     { no: 10, name: "命运之轮", en: "Wheel of Fortune", image: "assets/tarot/card_10.jpg", upKw: "转机 · 循环 · 好运", up: "命运的车轮正在转动，机遇随之而来。顺应变化，把握时机的节拍，顺势而为。", revKw: "停滞 · 厄运 · 抗拒变化", rev: "某些循环似乎卡住了。放下抗拒，变化的契机往往藏在转折之中。" },
-    { no: 11, name: "正义", en: "Justice", upKw: "公正 · 真相 · 因果", up: "一切自有其平衡。诚实面对事实，以公平之心做出决定，问心无愧便是最好的结果。", revKw: "偏见 · 失衡 · 逃避责任", rev: "可能有失公允，或你在回避某个真相。检视自己的立场，重新校准天平。" },
-    { no: 12, name: "倒吊人", en: "The Hanged Man", upKw: "换位思考 · 牺牲 · 沉淀", up: "换个角度看世界，暂时的停顿是必要的修行。放下执念，收获意想不到的洞见。", revKw: "无谓牺牲 · 拖延 · 僵持", rev: "停滞让你疲惫。审视自己是否在无谓地消耗，该放手时就放手。" },
+    { no: 11, name: "正义", en: "Justice", image: "assets/tarot/card_11.jpg", upKw: "公正 · 真相 · 因果", up: "一切自有其平衡。诚实面对事实，以公平之心做出决定，问心无愧便是最好的结果。", revKw: "偏见 · 失衡 · 逃避责任", rev: "可能有失公允，或你在回避某个真相。检视自己的立场，重新校准天平。" },
+    { no: 12, name: "倒吊人", en: "The Hanged Man", image: "assets/tarot/card_12.jpg", upKw: "换位思考 · 牺牲 · 沉淀", up: "换个角度看世界，暂时的停顿是必要的修行。放下执念，收获意想不到的洞见。", revKw: "无谓牺牲 · 拖延 · 僵持", rev: "停滞让你疲惫。审视自己是否在无谓地消耗，该放手时就放手。" },
     { no: 13, name: "死神", en: "Death", image: "assets/tarot/card_13.jpg", upKw: "结束 · 蜕变 · 新生", up: "一个阶段正在终结，为新生腾出空间。结束并非坏事，而是重生的开始，坦然告别。", revKw: "抗拒改变 · 停滞 · 恐惧", rev: "你紧抓着旧物不放，恐惧改变，却也让生命失去流动。允许告别，才能拥抱新的可能。" },
-    { no: 14, name: "节制", en: "Temperance", upKw: "平衡 · 调和 · 中庸", up: "以耐心与温和调和极端，细水长流。现在不宜急躁，宜稳步前行，静待花开。", revKw: "失衡 · 过度 · 急躁", rev: "生活失去平衡，或情绪过载。慢下来，找回自己的节奏与尺度，张弛有度。" },
+    { no: 14, name: "节制", en: "Temperance", image: "assets/tarot/card_14.jpg", upKw: "平衡 · 调和 · 中庸", up: "以耐心与温和调和极端，细水长流。现在不宜急躁，宜稳步前行，静待花开。", revKw: "失衡 · 过度 · 急躁", rev: "生活失去平衡，或情绪过载。慢下来，找回自己的节奏与尺度，张弛有度。" },
     { no: 15, name: "恶魔", en: "The Devil", image: "assets/tarot/card_15.jpg", upKw: "束缚 · 欲望 · 诱惑", up: "觉察那些无形的束缚——欲望、执念或依赖。看见它，便是挣脱的开始。", revKw: "挣脱 · 觉醒 · 重获自由", rev: "你正在挣脱枷锁，重拾主动权。阴影散去，力量回到你的手中。" },
-    { no: 16, name: "高塔", en: "The Tower", upKw: "剧变 · 真相 · 崩塌", up: "旧有的结构骤然瓦解，震撼却也真实。崩塌之处，正是重建的起点，直面真相。", revKw: "危机解除 · 延迟的变革", rev: "最坏的时刻或许已经过去。改变虽迟但到，别回避必要的调整。" },
+    { no: 16, name: "高塔", en: "The Tower", image: "assets/tarot/card_16.jpg", upKw: "剧变 · 真相 · 崩塌", up: "旧有的结构骤然瓦解，震撼却也真实。崩塌之处，正是重建的起点，直面真相。", revKw: "危机解除 · 延迟的变革", rev: "最坏的时刻或许已经过去。改变虽迟但到，别回避必要的调整。" },
     { no: 17, name: "星星", en: "The Star", image: "assets/tarot/card_17.jpg", upKw: "希望 · 疗愈 · 灵感", up: "风暴过后，星光重现。怀抱希望，相信未来，你许下的愿望正在路上。", revKw: "失望 · 失去信心 · 迷茫", rev: "暂时的低谷让你怀疑方向。别忘了，星光一直都在，只是被云遮住了一时。" },
     { no: 18, name: "月亮", en: "The Moon", image: "assets/tarot/card_18.jpg", upKw: "幻觉 · 不安 · 潜意识", up: "前路朦胧，情绪翻涌。此时不宜轻信表象，静待云雾散去，再做判断。", revKw: "真相浮现 · 疑虑消解", rev: "迷雾正在散去，看清真相的时刻临近。内心的不安将逐渐平复，请再耐心一点。" },
     { no: 19, name: "太阳", en: "The Sun", image: "assets/tarot/card_19.jpg", upKw: "成功 · 喜悦 · 生命力", up: "阳光普照，一切明朗而丰盛。这是充满活力与成就的时刻，尽情绽放你的光彩。", revKw: "短暂阴云 · 乐观过度", rev: "热情稍减或计划延迟，但太阳从未消失。调整心态，光明就在云层之后。"},
-    { no: 20, name: "审判", en: "Judgement", upKw: "觉醒 · 复盘 · 新生", up: "往事被重新审视，你听见内心的召唤。宽恕与复盘之后，迎来崭新的篇章。", revKw: "自我怀疑 · 逃避回顾", rev: "你或许不愿面对过去。但唯有诚实回望，才能真正向前，和解从接纳开始。" },
+    { no: 20, name: "审判", en: "Judgement", image: "assets/tarot/card_20.jpg", upKw: "觉醒 · 复盘 · 新生", up: "往事被重新审视，你听见内心的召唤。宽恕与复盘之后，迎来崭新的篇章。", revKw: "自我怀疑 · 逃避回顾", rev: "你或许不愿面对过去。但唯有诚实回望，才能真正向前，和解从接纳开始。" },
     { no: 21, name: "世界", en: "The World", image: "assets/tarot/card_21.jpg", upKw: "圆满 · 完成 · 成就", up: "一个周期圆满落幕，你站在完整的此刻。庆祝所成，然后欣然开启新的篇章。", revKw: "未竟之事 · 停滞收尾", rev: "还差最后一口气。别让细节与犹豫拖住圆满，完成它，才能抵达下一程。" }
   ];
 
@@ -466,14 +466,23 @@
       btnSave.disabled = true;
     }
 
-    // 预加载所有卡牌立绘（如已配置）
+    // 预加载所有卡牌立绘（优先复用页面 DOM 中已渲染就绪的图片，相对路径不加 crossOrigin 杜绝跨域阻断）
     const imagePromises = data.items.map(it => {
       return new Promise(resolve => {
         if (!it.card.image) return resolve(null);
+        const domImg = document.querySelector(`img[src="${it.card.image}"]`);
+        if (domImg && domImg.complete && domImg.naturalWidth > 0) {
+          return resolve(domImg);
+        }
         const img = new Image();
-        img.crossOrigin = 'anonymous';
+        if (it.card.image.startsWith('http')) {
+          img.crossOrigin = 'anonymous';
+        }
         img.onload = () => resolve(img);
-        img.onerror = () => resolve(null);
+        img.onerror = () => {
+          console.warn('Share card image load failed:', it.card.image);
+          resolve(null);
+        };
         img.src = it.card.image;
       });
     });

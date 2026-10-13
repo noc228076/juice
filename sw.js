@@ -1,5 +1,5 @@
 /* 饮料人格研究所 & 八合一赛博实验矩阵 — 离线瞬开 Service Worker v25 */
-const CACHE_NAME = 'juice-persona-v25';
+const CACHE_NAME = 'juice-persona-v26';
 const ASSETS = [
   './',
   './index.html',

@@ -299,6 +299,7 @@ html {
 #mod-merit,
 #mod-lifeguide,
 #mod-bazi,
+#mod-daily,
 .app-module {
   position: absolute !important;
   inset: 0 !important;
@@ -322,6 +323,7 @@ html {
 #mod-merit.active,
 #mod-lifeguide.active,
 #mod-bazi.active,
+#mod-daily.active,
 .app-module.active {
   display: block !important;
   pointer-events: auto !important;

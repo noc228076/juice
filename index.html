@@ -17,7 +17,7 @@
 <meta property="og:title" content="饮料人格研究所 · 测测你的精神状态与灵魂特调">
 <meta property="og:description" content="当代年轻人精神状态测试 (SBTI) / 经典 16 型人格 (MBTI) / 16 款灵魂饮料特调，测出你的独家出厂配方与精神病友。">
 <meta property="og:image" content="assets/icons/icon-512.png">
-  <link rel="stylesheet" href="css/app.bundle.css?v=40">
+  <link rel="stylesheet" href="css/app.bundle.css?v=41">
 </head>
 <body>
 <div id="app">
@@ -71,6 +71,11 @@
             <span class="tab-icon">🛡️</span>
             <span class="tab-label-full">人间清醒</span>
             <span class="tab-label-short">清醒</span>
+          </button>
+          <button class="nav-tab" data-mod="daily">
+            <span class="tab-icon">🗞️</span>
+            <span class="tab-label-full">今日风向</span>
+            <span class="tab-label-short">风向</span>
           </button>
         </nav>
       </div>
@@ -1892,6 +1897,167 @@
         </div>
       </div>
     </section>
+
+    <!-- 模块 10：今日风向标 (每日灵感补给站) -->
+    <section id="mod-daily" class="app-module">
+      <div class="daily-container">
+        <!-- 顶部 Hero 导航与时间看板 -->
+        <div class="daily-hero">
+          <div class="daily-hero-badge">🗞️ 每日灵感补给 · 全网风向标</div>
+          <h2>今日风向标 · 灵感补给站</h2>
+          <p class="daily-hero-sub">60秒读懂世界 · 全网热榜追踪 · 必应 4K 壁纸 · 豆瓣高分影视</p>
+
+          <div class="daily-date-bar">
+            <span>📅 <b id="dl60sDateBadge">今日</b></span>
+            <span>|</span>
+            <span class="daily-quote-tip" id="dl60sTip">“ 保持热爱，奔赴山海，生活总会在不经意处给你惊喜。 ”</span>
+          </div>
+
+          <!-- 三合一主 Tab 切换 -->
+          <div class="daily-nav-tabs">
+            <button class="daily-nav-btn active" data-sec="hot">
+              <span>🔥</span>
+              <span>全网热榜 & 60s</span>
+            </button>
+            <button class="daily-nav-btn" data-sec="movie">
+              <span>🎬</span>
+              <span>影视风向 & 选片</span>
+            </button>
+            <button class="daily-nav-btn" data-sec="wallpaper">
+              <span>🖼️</span>
+              <span>每日 4K 壁纸</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 板块 1：全网热榜 & 60s 早报 -->
+        <div class="daily-section active" id="dlSec-hot">
+          <!-- 60秒读懂世界卡片 -->
+          <div class="daily-60s-box">
+            <div class="daily-60s-header">
+              <span class="daily-60s-title">⚡ 每天 60 秒读懂世界</span>
+              <div class="daily-card-tools">
+                <button class="daily-mini-btn" id="dlBtnCopy60s" title="复制早报文本">📋 复制文本</button>
+              </div>
+            </div>
+            <div class="daily-60s-list" id="dl60sList">
+              <!-- 动态加载 15 条早报 -->
+            </div>
+          </div>
+
+          <!-- 平台热搜卡片 -->
+          <div class="daily-card">
+            <div class="daily-card-head">
+              <span class="daily-card-title">🔥 实时热点追踪</span>
+              <div class="daily-card-tools">
+                <span style="font-size:12px;color:var(--tx-dim);">自动每 25 分钟更新</span>
+              </div>
+            </div>
+
+            <!-- 平台切换胶囊 -->
+            <div class="daily-platform-bar">
+              <button class="daily-plat-pill active" data-plat="weibo">🔴 微博热搜</button>
+              <button class="daily-plat-pill" data-plat="zhihu">🔵 知乎热榜</button>
+              <button class="daily-plat-pill" data-plat="bili">📺 B站热搜</button>
+              <button class="daily-plat-pill" data-plat="douyin">🎵 抖音热点</button>
+              <button class="daily-plat-pill" data-plat="rednote">📕 小红书</button>
+              <button class="daily-plat-pill" data-plat="ai-news">🤖 AI 前沿快讯</button>
+              <button class="daily-plat-pill" data-plat="toutiao">📰 今日头条</button>
+            </div>
+
+            <!-- 搜索框 -->
+            <div class="daily-search-bar">
+              <span class="daily-search-icon">🔍</span>
+              <input type="text" class="daily-search-input" id="dlSearchInput" placeholder="输入关键词即时过滤热榜条目..." />
+            </div>
+
+            <!-- 热搜条目列表 -->
+            <div class="daily-hot-list" id="dlHotList">
+              <!-- 动态渲染热搜条目 -->
+            </div>
+          </div>
+        </div>
+
+        <!-- 板块 2：影视风向标 & 心情选片 -->
+        <div class="daily-section" id="dlSec-movie">
+          <!-- 心情特调盲盒选片 -->
+          <div class="daily-movie-mood-box">
+            <div class="daily-mood-head">
+              <span class="daily-mood-title">🎲 心情配片盲盒 · 专属特调推荐</span>
+              <button class="daily-mini-btn" id="dlBtnRandomMood">🎲 随机换一部</button>
+            </div>
+            <p style="font-size:12.5px;color:var(--tx-dim);margin:0 0 10px;">点击你当前的状态或心情，为你抽选一部高分经典与契合的特调饮品：</p>
+            <div class="daily-mood-tags">
+              <button class="daily-mood-btn active" data-mood="laugh">😆 想笑解压</button>
+              <button class="daily-mood-btn" data-mood="brain">🧠 深度烧脑</button>
+              <button class="daily-mood-btn" data-mood="heal">🍵 治愈温暖</button>
+              <button class="daily-mood-btn" data-mood="rush">⚡ 热血刺激</button>
+              <button class="daily-mood-btn" data-mood="work">💼 社畜共鸣</button>
+            </div>
+            <div class="daily-mood-result" id="dlMoodResult">
+              <!-- 动态渲染抽选结果 -->
+            </div>
+          </div>
+
+          <!-- 豆瓣影视榜单 -->
+          <div class="daily-card">
+            <div class="daily-card-head">
+              <span class="daily-card-title">🍿 豆瓣本周高口碑榜</span>
+              <div class="daily-movie-type-bar" style="margin-bottom:0;">
+                <button class="daily-mtype-btn active" data-type="weekly_movie">电影口碑榜</button>
+                <button class="daily-mtype-btn" data-type="tv_chinese">华语热剧</button>
+                <button class="daily-mtype-btn" data-type="tv_global">全球好剧</button>
+              </div>
+            </div>
+
+            <div class="daily-movie-grid" id="dlMovieGrid">
+              <!-- 动态渲染影视网格卡片 -->
+            </div>
+          </div>
+        </div>
+
+        <!-- 板块 3：每日 4K 壁纸馆 -->
+        <div class="daily-section" id="dlSec-wallpaper">
+          <!-- 今日主打壁纸展台 -->
+          <div class="daily-wp-stage">
+            <div class="daily-wp-preview-wrap">
+              <img class="daily-wp-img" id="dlWpMainImg" src="" alt="今日必应壁纸" />
+              <div class="daily-wp-overlay">
+                <span class="daily-wp-badge">🌟 今日必应 4K 甄选摄影</span>
+                <h3 class="daily-wp-title" id="dlWpMainTitle">加载中...</h3>
+                <p class="daily-wp-desc" id="dlWpMainDesc"></p>
+                <div class="daily-wp-meta" id="dlWpMainMeta"></div>
+                <div class="daily-wp-actions">
+                  <a class="daily-wp-btn primary" id="dlWpBtnDownload" href="#" target="_blank" download="bing_wallpaper.jpg">
+                    <span>📥</span>
+                    <span>下载 4K 超清原图</span>
+                  </a>
+                  <button class="daily-wp-btn" id="dlWpBtnSetBg">
+                    <span>🖥️</span>
+                    <span>设为全站沉浸背景</span>
+                  </button>
+                  <button class="daily-wp-btn" id="dlWpBtnPoster">
+                    <span>📱</span>
+                    <span>生成锁屏日签海报</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 近 7 日历史壁纸画廊 -->
+          <div class="daily-card">
+            <div class="daily-wp-gallery-title">
+              <span>🗓️</span>
+              <span>近期必应壁纸时间画廊 (点击可预览并下载)</span>
+            </div>
+            <div class="daily-wp-gallery-grid" id="dlWpGalleryGrid">
+              <!-- 动态渲染历史壁纸网格 -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
   </main>
 
   <!-- 历史档案抽屉浮层 -->
@@ -1918,6 +2084,6 @@
   <canvas id="shareCanvas" width="1080" height="1620" hidden></canvas>
 </div>
 
-  <script defer src="js/app.bundle.js?v=40"></script>
+  <script defer src="js/app.bundle.js?v=41"></script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 /* =========================================================
-   模块 7：东方赛博灵签 (Cyber Oriental Fortune Sticks)
-   与赛博塔罗构成「东西玄学双璧」· 紫竹摇签 · 掷茭印证 · 朱砂宣纸签文
+   模块 7：东方祈福灵签 (Cyber Oriental Fortune Sticks)
+   与命运塔罗构成「东西玄学双璧」· 紫竹摇签 · 掷茭印证 · 朱砂宣纸签文
    ========================================================= */
 
 #mod-lingqian {
@@ -470,7 +470,7 @@ html[data-theme="light"] .lq-xj-item {
   font-weight: 800;
 }
 
-/* 赛博打工人白话解签 */
+/* 现代白话解签 */
 .lq-interp-box {
   display: flex;
   flex-direction: column;

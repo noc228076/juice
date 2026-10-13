@@ -1,6 +1,6 @@
 /* =========================================================
    模块 6：纠结拯救机 (Cyber Decision Oracle)
-   赛博决策局 · 命运大转盘 · 量子抛硬币 · 赛博掷圣杯
+   纠结终结所 · 命运大转盘 · 量子抛硬币 · 祈愿掷圣杯
    ========================================================= */
 
 (function () {
@@ -69,7 +69,7 @@
       '【神级奇迹·立币！】硬币竟然直立在地面！0.5%的绝密概率！宇宙在明确告诉你：不要局限于非此即彼，去打破常规，创造属于你的第三种选择！'
     ],
     bwei_sheng: [
-      '一平一凸，阴阳相济！赛博神明赞许你的意图，时机已经成熟，不必再反复内耗，放手去做便能柳暗花明！',
+      '一平一凸，阴阳相济！神明赞许你的意图，时机已经成熟，不必再反复内耗，放手去做便能柳暗花明！',
       '所求顺遂，大吉大利！天地同力支持你的方向，保持真诚与坚定，好运自会降临。'
     ],
     bwei_xiao: [
@@ -82,17 +82,45 @@
     ],
     bwei_li: [
       '【天地震动·立茭！】罕见圣迹降临！连地心引力都为你让步！你所请示之事将迎来颠覆性转机，破局只在瞬息之间！'
+    ],
+    dice_big: [
+      '点数高昂，气势如虹！宇宙骰子指向【大】——别再瞻前顾后，大胆出击，好运站在果敢者这一边！',
+      '高点暴击！既然骰子已经替你吹响冲锋号，那就把犹豫抛在脑后，立刻执行！'
+    ],
+    dice_small: [
+      '点数内敛，稳字当头！宇宙骰子指向【小】——今日宜收不宜放，省下一分精力与预算，静待更佳时机。',
+      '低点落定，退一步海阔天空。与其勉强硬上，不如顺应点数，给自己留足缓冲余地。'
+    ],
+    dice_leopard: [
+      '【天选豹子·同点暴击！】所有骰子竟然停在同一数字！概率极低的同点暴击已触发，无论你正在想什么，全速冲刺必有奇效！'
+    ],
+    dice_custom: [
+      '点数落定，天意昭然！既然把选择交给了六面宿命，就按掷出的这一项痛快执行，绝不反悔！',
+      '命运指针已落定于该点位，停止内耗，去把这件事稳稳落地吧！'
     ]
   };
 
+  // 六面自定义映射预设
+  const DICE_FACE_PRESETS = {
+    action: ['立刻去干', '再缓一天', '听从直觉', '问问朋友', '换个方案', '天选全都要'],
+    eat: ['火锅/冒菜', '烧烤/炸鸡', '日料/韩料', '粉面/快餐', '轻食/减脂', '奶茶配甜点'],
+    party: ['喝一杯水', '真心话一题', '夸左边的人', '表演个表情包', '免死金牌过', '指定一人喝']
+  };
+
   // 状态变量
-  let curSubMode = 'wheel'; // 'wheel' | 'coin' | 'bwei'
+  let curSubMode = 'wheel'; // 'wheel' | 'coin' | 'dice' | 'bwei'
   let curWheelPreset = 'lunch';
   let wheelItems = [];
   let isSpinningWheel = false;
   let wheelRotationAngle = 0;
   let isFlippingCoin = false;
   let isTossingBwei = false;
+  let isRollingDice = false;
+  let diceCount = 1; // 1 | 2 | 3
+  let diceRule = 'bigsmall'; // 'bigsmall' | 'custom6' | 'points'
+  let curDiceFacePreset = 'action';
+  let diceCustomFaces = [...DICE_FACE_PRESETS.action];
+  let diceValues = [6, 6, 6];
   let lastVerdictRecord = null;
 
   // ================= 辅助函数 =================
@@ -433,7 +461,7 @@
     requestAnimationFrame(frame);
   }
 
-  // ================= 赛博掷圣杯 (Cyber Bwa Bwei) =================
+  // ================= 祈愿掷圣杯 (Cyber Bwa Bwei) =================
   function initBweiSvg() {
     // 渲染精致真实的月牙红木茭杯 SVG
     const leftEl = document.getElementById('bweiLeft');
@@ -500,7 +528,7 @@
     if (btn) btn.disabled = true;
 
     const propInput = document.getElementById('bweiPropositionInput');
-    const proposition = (propInput && propInput.value.trim()) || '向赛博神明禀告心愿';
+    const proposition = (propInput && propInput.value.trim()) || '诚心默念心愿';
 
     if (window.SFX && window.SFX.tarotFlip) window.SFX.tarotFlip();
 
@@ -594,7 +622,7 @@
 
         showReceipt({
           modeKey: 'bwei',
-          modeName: '赛博掷圣杯',
+          modeName: '祈愿掷圣杯',
           proposition: proposition,
           verdict: verdictText,
           comment: comment,
@@ -719,12 +747,12 @@
     ctx.textAlign = 'center';
     ctx.fillStyle = '#10B981';
     ctx.font = '900 24px monospace';
-    ctx.fillText('CYBER DECISION BUREAU · 终局拯救单', 540, curY);
+    ctx.fillText('DECISION LAB · 终局拯救单', 540, curY);
 
     curY += 60;
     ctx.fillStyle = isDark ? '#F3F4F6' : '#111827';
     ctx.font = '900 48px system-ui, sans-serif';
-    ctx.fillText('赛博决策局 · 终局裁定单', 540, curY);
+    ctx.fillText('纠结终结所 · 终局裁定单', 540, curY);
 
     curY += 45;
     ctx.fillStyle = isDark ? '#9CA3AF' : '#6B7280';
@@ -791,7 +819,7 @@
     ctx.textAlign = 'center';
     ctx.fillStyle = '#EF4444';
     ctx.font = '700 20px system-ui, sans-serif';
-    ctx.fillText('⚠️ 强制执行令：本结果受赛博因果律保护，24小时内不可反悔！', 540, curY + 44);
+    ctx.fillText('⚠️ 强制执行令：本结果一经裁定即刻生效，24小时内不可反悔！', 540, curY + 44);
 
     // 签章与条形码
     curY += 120;
@@ -813,7 +841,7 @@
     ctx.textAlign = 'center';
     ctx.fillStyle = '#EF4444';
     ctx.font = '800 18px system-ui, sans-serif';
-    ctx.fillText('赛博决策局', 0, -28);
+    ctx.fillText('纠结终结所', 0, -28);
     ctx.font = '900 26px system-ui, sans-serif';
     ctx.fillText('终局裁定', 0, 8);
     ctx.font = '700 16px monospace';
@@ -833,12 +861,12 @@
     ctx.textAlign = 'center';
     ctx.font = '16px monospace';
     ctx.fillStyle = isDark ? '#9CA3AF' : '#6B7280';
-    ctx.fillText('* CYBER-DECISION-VERDICT *', barW / 2, barH + 25);
+    ctx.fillText('* DECISION-LAB-VERDICT *', barW / 2, barH + 25);
     ctx.restore();
 
     // 导出并下载
     const a = document.createElement('a');
-    a.download = `赛博决策局_终局裁定_${record.caseNo || Date.now()}.png`;
+    a.download = `纠结终结所_终局裁定_${record.caseNo || Date.now()}.png`;
     a.href = cv.toDataURL('image/png');
     a.click();
   }
@@ -887,9 +915,226 @@
     ctx.fillText(line, x, curY);
   }
 
+  // ================= 3D 命运掷骰子 (Cyber 3D Dice) =================
+  const DICE_PIP_POSITIONS = {
+    1: [[2, 2]],
+    2: [[1, 3], [3, 1]],
+    3: [[1, 3], [2, 2], [3, 1]],
+    4: [[1, 1], [1, 3], [3, 1], [3, 3]],
+    5: [[1, 1], [1, 3], [2, 2], [3, 1], [3, 3]],
+    6: [[1, 1], [1, 3], [2, 1], [2, 3], [3, 1], [3, 3]]
+  };
+
+  // 将点数 (1~6) 转为 3D 立方体正面朝向角度
+  function getFaceTargetRot(val) {
+    switch (val) {
+      case 1: return { rx: 0, ry: 0 };
+      case 6: return { rx: 0, ry: 180 };
+      case 2: return { rx: 0, ry: -90 };
+      case 5: return { rx: 0, ry: 90 };
+      case 3: return { rx: -90, ry: 0 };
+      case 4: return { rx: 90, ry: 0 };
+      default: return { rx: 0, ry: 0 };
+    }
+  }
+
+  function buildSingleDieHtml(idx, initVal) {
+    const facesHtml = [1, 2, 3, 4, 5, 6].map(f => {
+      const pips = DICE_PIP_POSITIONS[f].map(([r, c]) =>
+        `<span class="dice-pip" style="grid-row:${r};grid-column:${c};"></span>`
+      ).join('');
+      return `<div class="dice-face face-${f}">${pips}</div>`;
+    }).join('');
+    const rot = getFaceTargetRot(initVal || 6);
+    return `
+      <div class="dice-unit" data-die-idx="${idx}">
+        <div class="dice-tilt-wrap">
+          <div class="dice-cube" id="diceCube_${idx}" style="transform: rotateX(${rot.rx}deg) rotateY(${rot.ry}deg);">
+            ${facesHtml}
+          </div>
+        </div>
+        <div class="dice-unit-shadow" id="diceShadow_${idx}"></div>
+      </div>
+    `;
+  }
+
+  function renderDiceCubes() {
+    const row = document.getElementById('diceCubesRow');
+    if (!row) return;
+    row.setAttribute('data-count', String(diceCount));
+    let html = '';
+    for (let i = 0; i < diceCount; i++) {
+      html += buildSingleDieHtml(i, diceValues[i] || 6);
+    }
+    row.innerHTML = html;
+  }
+
+  function renderDiceFacesEditor() {
+    const grid = document.getElementById('diceFacesGrid');
+    const editor = document.getElementById('diceCustomFacesBox');
+    if (editor) {
+      editor.classList.toggle('show', diceRule === 'custom6');
+    }
+    if (!grid) return;
+    grid.innerHTML = [1, 2, 3, 4, 5, 6].map((pt, i) => `
+      <div class="dice-face-item">
+        <span class="dice-face-badge ${pt === 1 || pt === 4 ? 'is-red' : ''}">${pt}</span>
+        <input type="text" data-face-idx="${i}" value="${diceCustomFaces[i] || ''}" maxlength="10" placeholder="第 ${pt} 点执行...">
+      </div>
+    `).join('');
+
+    grid.querySelectorAll('input').forEach(inp => {
+      inp.oninput = () => {
+        const idx = parseInt(inp.dataset.faceIdx, 10);
+        diceCustomFaces[idx] = inp.value.trim() || `选项 ${idx + 1}`;
+      };
+    });
+  }
+
+  function rollDice() {
+    if (isRollingDice) return;
+    isRollingDice = true;
+
+    const btn = document.getElementById('btnRollDice');
+    if (btn) btn.disabled = true;
+
+    const propInput = document.getElementById('dicePropositionInput');
+    const proposition = (propInput && propInput.value.trim()) || (
+      diceRule === 'custom6' ? '六面宿命骰 · 掷点选一事' :
+      diceRule === 'points' ? ` ${diceCount} 颗骰子点数对决` :
+      '大小单双 · 纠结一掷快决'
+    );
+
+    if (window.SFX && window.SFX.advance) window.SFX.advance();
+
+    // 生成每颗骰子的随机结果 (1~6)
+    const results = [];
+    const targets = [];
+    for (let i = 0; i < diceCount; i++) {
+      const val = 1 + Math.floor(Math.random() * 6);
+      results.push(val);
+      diceValues[i] = val;
+      const base = getFaceTargetRot(val);
+      const spinsX = 3 + Math.floor(Math.random() * 3) + i;
+      const spinsY = 3 + Math.floor(Math.random() * 3) + (2 - i);
+      targets.push({
+        rx: spinsX * 360 + base.rx,
+        ry: spinsY * 360 + base.ry
+      });
+    }
+
+    const banner = document.getElementById('diceLiveBanner');
+    if (banner) banner.textContent = '🎲 命运骰子高速翻滚中...';
+
+    const duration = 1750;
+    const startTime = performance.now();
+    let lastTickStep = -1;
+
+    function frame(now) {
+      const elapsed = now - startTime;
+      const t = Math.min(1, elapsed / duration);
+      const easeT = 1 - Math.pow(1 - t, 2.8);
+
+      // 三段衰减弹跳高度曲线
+      const bounce = Math.abs(Math.sin(t * Math.PI * 2.5)) * (1 - t) * 78;
+
+      const tickStep = Math.floor(t * 10);
+      if (tickStep !== lastTickStep && t < 0.92) {
+        lastTickStep = tickStep;
+        if (window.SFX && window.SFX.tick) window.SFX.tick();
+      }
+
+      for (let i = 0; i < diceCount; i++) {
+        const cube = document.getElementById(`diceCube_${i}`);
+        const shadow = document.getElementById(`diceShadow_${i}`);
+        const curRx = easeT * targets[i].rx;
+        const curRy = easeT * targets[i].ry;
+        const wobbleZ = Math.sin(t * Math.PI * 4 + i) * (1 - t) * 28;
+        if (cube) {
+          cube.style.transform = `translateY(-${bounce}px) rotateX(${curRx}deg) rotateY(${curRy}deg) rotateZ(${wobbleZ}deg)`;
+        }
+        if (shadow) {
+          const sScale = 1 - (bounce / 90) * 0.45;
+          const sOp = 1 - (bounce / 90) * 0.55;
+          shadow.style.transform = `scale(${sScale})`;
+          shadow.style.opacity = sOp;
+        }
+      }
+
+      if (t < 1) {
+        requestAnimationFrame(frame);
+      } else {
+        isRollingDice = false;
+        if (btn) btn.disabled = false;
+
+        if (window.SFX && window.SFX.bell) window.SFX.bell(true);
+        if (window.SFX && window.SFX.reveal) window.SFX.reveal();
+
+        const sum = results.reduce((a, b) => a + b, 0);
+        const maxPossible = diceCount * 6;
+        const minPossible = diceCount * 1;
+        const midPoint = (maxPossible + minPossible) / 2;
+        const isBig = sum > midPoint;
+        const isOdd = sum % 2 === 1;
+        const isLeopard = diceCount >= 2 && results.every(v => v === results[0]);
+
+        const DICE_UNICODES = ['', '⚀', '⚁', '⚂', '⚃', '⚄', '⚅'];
+        const facesStr = results.map(v => `${DICE_UNICODES[v]}${v}`).join(' + ');
+
+        let verdictText = '';
+        let tag = '';
+        let comment = '';
+
+        if (diceRule === 'custom6') {
+          const pickFaceVal = results[0];
+          const chosenAction = diceCustomFaces[pickFaceVal - 1] || `第 ${pickFaceVal} 项`;
+          verdictText = `${DICE_UNICODES[pickFaceVal]} ${pickFaceVal}点 · ${chosenAction}`;
+          tag = '六面宿命骰 · 点数映射裁决';
+          comment = getRandomItem(WITTY_COMMENTS.dice_custom);
+          if (banner) {
+            banner.textContent = `🎲 掷出 ${pickFaceVal} 点 → 【${chosenAction}】`;
+          }
+        } else if (diceRule === 'points') {
+          verdictText = diceCount === 1
+            ? `${DICE_UNICODES[results[0]]} ${results[0]} 点`
+            : `总计 ${sum} 点 (${ results.join('+') })`;
+          tag = isLeopard ? `🔥 ${diceCount}骰同点豹子暴击` : ` ${diceCount}D6 点数定局`;
+          comment = isLeopard
+            ? WITTY_COMMENTS.dice_leopard[0]
+            : (isBig ? getRandomItem(WITTY_COMMENTS.dice_big) : getRandomItem(WITTY_COMMENTS.dice_small));
+          if (banner) {
+            banner.textContent = `🎲 结果：${facesStr} = ${sum} 点 ${isLeopard ? '【🔥豹子！】' : `【${isBig ? '大' : '小'}·${isOdd ? '单' : '双'}】`}`;
+          }
+        } else {
+          // 大小快决
+          const actionLabel = isBig ? '【大 · 果断冲】' : '【小 · 稳一手】';
+          verdictText = `${sum} 点 · ${isBig ? '大 (果断冲)' : '小 (稳一手)'}`;
+          tag = `${diceCount}颗骰子 (${results.join('+')}) · ${isOdd ? '单数' : '双数'}${isLeopard ? ' · 豹子' : ''}`;
+          comment = isLeopard
+            ? WITTY_COMMENTS.dice_leopard[0]
+            : (isBig ? getRandomItem(WITTY_COMMENTS.dice_big) : getRandomItem(WITTY_COMMENTS.dice_small));
+          if (banner) {
+            banner.textContent = `🎲 ${facesStr} = ${sum} 点 ${actionLabel}`;
+          }
+        }
+
+        showReceipt({
+          modeKey: 'dice',
+          modeName: '命运掷骰子',
+          proposition: proposition,
+          verdict: verdictText,
+          comment: comment,
+          tag: tag
+        });
+      }
+    }
+
+    requestAnimationFrame(frame);
+  }
+
   // ================= 子模式切换系统 =================
   function switchSubMode(modeKey) {
-    if (!['wheel', 'coin', 'bwei'].includes(modeKey)) return;
+    if (!['wheel', 'coin', 'dice', 'bwei'].includes(modeKey)) return;
     curSubMode = modeKey;
 
     document.querySelectorAll('.dec-tab').forEach(tab => {
@@ -932,6 +1177,8 @@
 
     initWheelItems();
     initBweiSvg();
+    renderDiceCubes();
+    renderDiceFacesEditor();
 
     // 2. 绑定轮盘事件
     const btnSpin = document.getElementById('btnSpinWheel');
@@ -995,14 +1242,67 @@
       backInp.oninput = () => { backDisp.textContent = backInp.value.trim() || '鸽 / 缓'; };
     }
 
-    // 4. 绑定赛博掷圣杯事件
+    // 4. 绑定3D 命运掷骰子事件
+    const btnRoll = document.getElementById('btnRollDice');
+    if (btnRoll) btnRoll.onclick = rollDice;
+
+    const diceTray = document.getElementById('diceTrayPlate');
+    if (diceTray) diceTray.onclick = rollDice;
+
+    const countGroup = document.getElementById('diceCountGroup');
+    if (countGroup) {
+      countGroup.querySelectorAll('.dice-seg-btn').forEach(btn => {
+        btn.onclick = () => {
+          if (isRollingDice) return;
+          if (window.SFX && window.SFX.tap) window.SFX.tap();
+          diceCount = parseInt(btn.dataset.count, 10) || 1;
+          countGroup.querySelectorAll('.dice-seg-btn').forEach(b => b.classList.toggle('active', b === btn));
+          renderDiceCubes();
+        };
+      });
+    }
+
+    const ruleGroup = document.getElementById('diceRuleGroup');
+    if (ruleGroup) {
+      ruleGroup.querySelectorAll('.dice-seg-btn').forEach(btn => {
+        btn.onclick = () => {
+          if (isRollingDice) return;
+          if (window.SFX && window.SFX.tap) window.SFX.tap();
+          diceRule = btn.dataset.rule || 'bigsmall';
+          ruleGroup.querySelectorAll('.dice-seg-btn').forEach(b => b.classList.toggle('active', b === btn));
+          if (diceRule === 'custom6' && diceCount !== 1) {
+            diceCount = 1;
+            if (countGroup) {
+              countGroup.querySelectorAll('.dice-seg-btn').forEach(b => b.classList.toggle('active', b.dataset.count === '1'));
+            }
+            renderDiceCubes();
+          }
+          renderDiceFacesEditor();
+        };
+      });
+    }
+
+    const facePresets = document.getElementById('diceFacePresets');
+    if (facePresets) {
+      facePresets.querySelectorAll('.dice-face-preset-btn').forEach(btn => {
+        btn.onclick = () => {
+          if (window.SFX && window.SFX.tap) window.SFX.tap();
+          curDiceFacePreset = btn.dataset.fpreset || 'action';
+          facePresets.querySelectorAll('.dice-face-preset-btn').forEach(b => b.classList.toggle('active', b === btn));
+          diceCustomFaces = [...(DICE_FACE_PRESETS[curDiceFacePreset] || DICE_FACE_PRESETS.action)];
+          renderDiceFacesEditor();
+        };
+      });
+    }
+
+    // 5. 绑定祈愿掷圣杯事件
     const btnToss = document.getElementById('btnTossBwei');
     if (btnToss) btnToss.onclick = tossBwei;
 
     const bweiPlate = document.querySelector('.bwei-mat-plate');
     if (bweiPlate) bweiPlate.onclick = tossBwei;
 
-    // 5. 绑定子模式切换
+    // 6. 绑定子模式切换
     document.querySelectorAll('.dec-tab').forEach(tab => {
       tab.onclick = () => {
         if (window.SFX && window.SFX.tap) window.SFX.tap();
@@ -1010,7 +1310,7 @@
       };
     });
 
-    // 6. 模态框与保存图片
+    // 7. 模态框与保存图片
     const btnClose = document.getElementById('btnCloseReceipt');
     if (btnClose) btnClose.onclick = closeReceipt;
 
@@ -1053,6 +1353,7 @@
     closeReceipt,
     spinWheel,
     flipCoin,
+    rollDice,
     tossBwei,
     switchSubMode,
     drawReceiptCanvas

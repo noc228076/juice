@@ -4,6 +4,8 @@
     { "src": "sw.js", "use": "@vercel/static" },
     { "src": "manifest.json", "use": "@vercel/static" },
     { "src": "favicon.png", "use": "@vercel/static" },
+    { "src": "css/**", "use": "@vercel/static" },
+    { "src": "js/**", "use": "@vercel/static" },
     { "src": "assets/**", "use": "@vercel/static" }
   ],
   "headers": [
@@ -17,8 +19,21 @@
       ]
     },
     {
-      "source": "/assets/(.*)",
+      "source": "/index.html",
       "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=0, must-revalidate"
+        }
+      ]
+    },
+    {
+      "source": "/(css|js|assets)/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=86400, stale-while-revalidate=604800"
+        },
         {
           "key": "Access-Control-Allow-Origin",
           "value": "*"

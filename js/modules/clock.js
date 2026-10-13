@@ -519,7 +519,7 @@
     ctx.textAlign = 'center';
     ctx.fillStyle = '#FACC15';
     ctx.font = '900 26px monospace';
-    ctx.fillText('CYBER WORKSTATION SALARY & SLACKING REPORT', 540, 180);
+    ctx.fillText('WORKSTATION SALARY & SLACKING REPORT', 540, 180);
 
     ctx.fillStyle = isDark ? '#FFFFFF' : '#111827';
     ctx.font = '900 54px system-ui, sans-serif';

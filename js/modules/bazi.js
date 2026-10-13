@@ -1,5 +1,5 @@
 /**
- * 赛博八字命理全景命盘 (Cyber BaZi Horoscope)
+ * 生辰八字命理全景命盘 (Cyber BaZi Horoscope)
  * 依赖: 6tail/lunar-javascript (MIT) 与 bazi-cities.js
  * 涵盖：
  * 1. 真太阳时经度校准 (全国 34 省市、370+ 地级市县联动、模糊检索、GPS定位、自定义经度)
@@ -1149,7 +1149,7 @@
     // 顶部篆书大标题
     ctx.fillStyle = '#F59E0B';
     ctx.font = 'bold 22px "MiSans", sans-serif';
-    ctx.fillText('CYBER BAZI HOROSCOPE · 赛博生辰八字全景命书', 104, 128);
+    ctx.fillText('BAZI HOROSCOPE · 生辰八字全景命书', 104, 128);
 
     ctx.fillStyle = '#FEF3C7';
     ctx.font = '900 46px "Noto Serif SC", serif';
@@ -1282,14 +1282,14 @@
     // 底部水印印章
     ctx.fillStyle = '#78716C';
     ctx.font = '17px "MiSans", sans-serif';
-    ctx.fillText('赛博生辰八字研究所 · 仅供文化娱乐参考 · 时来天地皆同力', 104, 1780);
+    ctx.fillText('生辰八字命理馆 · 仅供文化娱乐参考 · 时来天地皆同力', 104, 1780);
 
     // 导出并下载
     const url = canvas.toDataURL('image/png');
     const a = document.createElement('a');
     a.href = url;
     const wxChar = GAN_WUXING[res.dayGan] || '';
-    a.download = `赛博八字全景命书_${res.dayGan}${wxChar}_${res.solarStr.split(' ')[0]}.png`;
+    a.download = `生辰八字全景命书_${res.dayGan}${wxChar}_${res.solarStr.split(' ')[0]}.png`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

@@ -1,5 +1,5 @@
 /* =========================================================
-   模块 9：赛博功德局 · 电子木鱼 & 怨气粉碎机 (Cyber Merit & Stress Relief)
+   模块 9：静心功德局 · 电子木鱼 & 怨气粉碎机 (Cyber Merit & Stress Relief)
    三大解压法器：电子木鱼 / 无尽减压泡泡纸 / 怨气碎纸机与火盆
    ========================================================= */
 
@@ -88,7 +88,7 @@
         osc.stop(now + 1.2);
       });
     } else if (type === 'duck') {
-      // 赛博功德鸭：滑音谐振
+      // 功德小黄鸭：滑音谐振
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.type = 'sawtooth';
@@ -215,7 +215,7 @@
 
   function getMeritRank(total) {
     if (total >= 10000) return '👑 大威天龙功德神';
-    if (total >= 3000) return '🪷 赛博无上活佛';
+    if (total >= 3000) return '🪷 功德圆满活佛';
     if (total >= 1000) return '🧘 人间清醒禅师';
     if (total >= 300) return '📿 工位静心大师';
     if (total >= 88) return '🕯️ 情绪稳定居士';
@@ -273,8 +273,8 @@
         <path d="M42,106 Q110,122 176,104" fill="none" stroke="#451A03" stroke-width="4" stroke-linecap="round"/>
         <circle cx="62" cy="105" r="9" fill="#290F02" stroke="#F59E0B" stroke-width="2"/>
         <circle cx="62" cy="105" r="3.5" fill="#FDE68A"/>
-        <!-- 赛博梵文金印纹饰 -->
-        <text x="114" y="86" font-size="16" font-weight="900" fill="rgba(254,243,199,0.55)" text-anchor="middle" letter-spacing="3">CYBER ZEN</text>
+        <!-- 梵文金印纹饰 -->
+        <text x="114" y="86" font-size="16" font-weight="900" fill="rgba(254,243,199,0.55)" text-anchor="middle" letter-spacing="3">MINDFUL ZEN</text>
       </svg>
       <div class="muyu-mallet">
         <svg viewBox="0 0 100 100" width="92" height="92">
@@ -330,7 +330,7 @@
       autoTimer = null;
       if (btn) {
         btn.classList.remove('running');
-        btn.textContent = '⚡ 开启赛博替身自动敲击';
+        btn.textContent = '⚡ 开启自动连续敲击';
       }
     } else {
       knockMuyu();
@@ -341,7 +341,7 @@
       }, 650);
       if (btn) {
         btn.classList.add('running');
-        btn.textContent = '⏸️ 赛博替身自动攒功德中...';
+        btn.textContent = '⏸️ 自动连续敲击攒功德中...';
       }
     }
   }
@@ -431,12 +431,12 @@
   }
 
   /* =========================================================
-     子模式 3：怨气碎纸机 & 赛博火盆 (Shredder)
+     子模式 3：怨气碎纸机 & 除秽火盆 (Shredder)
      ========================================================= */
   const SHRED_QUOTES = [
     '✨ 粉碎完成！该破防事项已从宇宙时间线彻底抹除，功德 +10！',
     '🔥 焚化完毕！所有水逆与甩锅晦气已反弹回始作俑者，功德 +10！',
-    '⚡ 赛博超度成功！今日份精神内耗已转化为纯正摸鱼能量，功德 +10！',
+    '⚡ 烦恼清除成功！今日份精神内耗已转化为纯正摸鱼能量，功德 +10！',
     '🛡️ 物理级销毁达成！没人能再拿这件事消耗你的乳腺与发际线！'
   ];
 
@@ -467,8 +467,8 @@
     if (stage) stage.classList.add('vibrating');
 
     if (mode === 'burn') {
-      if (slotTitle) slotTitle.textContent = '🔥 赛博三昧真火高温焚化炉运转中 🔥';
-      if (msgEl) msgEl.textContent = '🔥 正在启动三昧真火将怨气烧成赛博灰烬……';
+      if (slotTitle) slotTitle.textContent = '🔥 三昧真火高温焚化炉运转中 🔥';
+      if (msgEl) msgEl.textContent = '🔥 正在启动三昧真火将怨气烧成灰烬……';
       note.classList.add('burning');
 
       // 在进纸视窗生成多束升腾烈焰与飞舞火星
@@ -536,7 +536,7 @@
 
     setTimeout(() => {
       if (stage) stage.classList.remove('vibrating');
-      if (slotTitle) slotTitle.textContent = '▼ 高压钛合金碎纸刀辊 · 赛博焚化炉 ▼';
+      if (slotTitle) slotTitle.textContent = '▼ 高压钛合金碎纸刀辊 · 除秽焚化炉 ▼';
 
       state.shreddedCount++;
       addMerit(10);
@@ -561,7 +561,7 @@
   }
 
   /* =========================================================
-     生成《赛博功德与怨气清运凭证》高清分享海报
+     生成《静心功德与怨气清运凭证》高清分享海报
      ========================================================= */
   function drawMeritPoster() {
     const cv = document.createElement('canvas');
@@ -586,11 +586,11 @@
     ctx.textAlign = 'center';
     ctx.fillStyle = '#F59E0B';
     ctx.font = '900 26px monospace';
-    ctx.fillText('CYBER MERIT & STRESS RELIEF CERTIFICATE', 540, 175);
+    ctx.fillText('MINDFUL MERIT & STRESS RELIEF CERTIFICATE', 540, 175);
 
     ctx.fillStyle = isDark ? '#FFFFFF' : '#1E1B18';
     ctx.font = '900 54px system-ui, sans-serif';
-    ctx.fillText('赛博功德与怨气清运凭证', 540, 260);
+    ctx.fillText('静心功德与怨气清运凭证', 540, 260);
 
     // 禅修境界勋章
     const rankTitle = getMeritRank(state.totalMerit);
@@ -607,7 +607,7 @@
 
     // 三大功德数据格
     const cards = [
-      { label: '🪵 累计敲击赛博功德', val: `${state.totalMerit}`, unit: '点功德圆满', color: '#F59E0B' },
+      { label: '🪵 累计敲击静心功德', val: `${state.totalMerit}`, unit: '点功德圆满', color: '#F59E0B' },
       { label: '🫧 累计捏爆减压泡泡', val: `${state.poppedCount}`, unit: '颗焦虑清零', color: '#22D3EE' },
       { label: '🔥 累计粉碎破防怨气', val: `${state.shreddedCount}`, unit: '件水逆退散', color: '#FB7185' }
     ];
@@ -640,10 +640,10 @@
     ctx.textAlign = 'center';
     ctx.fillStyle = isDark ? '#E2E8F0' : '#334155';
     ctx.font = 'bold 28px system-ui, sans-serif';
-    ctx.fillText('「敲最响的赛博木鱼，捏最爽的减压泡泡，烧最烦的破防瞬间」', 540, 1135);
+    ctx.fillText('「敲最响的电子木鱼，捏最爽的减压泡泡，烧最烦的破防瞬间」', 540, 1135);
     ctx.font = '25px system-ui, sans-serif';
     ctx.fillStyle = isDark ? '#94A3B8' : '#64748B';
-    ctx.fillText('经赛博功德局核验：持证人今日体内怨气已 100% 物理超度，', 540, 1190);
+    ctx.fillText('经静心功德局核验：持证人今日体内怨气已 100% 物理超度，', 540, 1190);
     ctx.fillText('诸邪退散、Bug 清零、乳腺畅通、财源滚滚！', 540, 1235);
 
     // 朱砂印章
@@ -661,10 +661,10 @@
 
     ctx.fillStyle = '#94A3B8';
     ctx.font = '22px monospace';
-    ctx.fillText('灵感人格研究所 · 赛博功德局', 540, 1485);
+    ctx.fillText('灵感人格研究所 · 静心功德局', 540, 1485);
 
     const a = document.createElement('a');
-    a.download = `赛博功德凭证_${Date.now()}.png`;
+    a.download = `静心功德凭证_${Date.now()}.png`;
     a.href = cv.toDataURL('image/png');
     a.click();
   }

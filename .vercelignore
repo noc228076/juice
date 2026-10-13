@@ -3,3 +3,7 @@ scratch
 .git
 .DS_Store
 Thumbs.db
+server.js
+build-bundle.js
+template.html
+AGENT_HANDOVER.md

@@ -1,10 +1,42 @@
-/* 饮料人格研究所 & 八合一赛博实验矩阵 — 离线瞬开 Service Worker v25 */
-const CACHE_NAME = 'juice-persona-v35';
+/* 饮料人格研究所 & 八合一趣味实验矩阵 — 离线瞬开 Service Worker v37 */
+const CACHE_NAME = 'juice-persona-v38';
 const ASSETS = [
   './',
   './index.html',
   './manifest.json',
   './favicon.png',
+  './css/base.css',
+  './css/modules/nav.css',
+  './css/modules/milktea.css',
+  './css/modules/fengshui.css',
+  './css/modules/tarot.css',
+  './css/modules/manual.css',
+  './css/modules/history.css',
+  './css/modules/decision.css',
+  './css/modules/lingqian.css',
+  './css/modules/clock.css',
+  './css/modules/merit.css',
+  './css/modules/lifeguide.css',
+  './css/modules/bazi.css',
+  './js/core-drink.js',
+  './js/sfx.js',
+  './js/libs/lunar.js',
+  './js/modules/milktea.js',
+  './js/modules/fengshui.js',
+  './js/modules/tarot.js',
+  './js/modules/manual-data.js',
+  './js/modules/manual-games.js',
+  './js/modules/manual-report.js',
+  './js/modules/manual.js',
+  './js/modules/decision.js',
+  './js/modules/lingqian.js',
+  './js/modules/clock.js',
+  './js/modules/merit.js',
+  './js/modules/lifeguide.js',
+  './js/modules/bazi-cities.js',
+  './js/modules/bazi.js',
+  './js/modules/history.js',
+  './js/modules/router.js',
   './assets/icons/icon-192.png',
   './assets/icons/icon-512.png',
   './assets/icons/icon-maskable.png',
@@ -35,7 +67,7 @@ const ASSETS = [
 self.addEventListener('install', (e) => {
   e.waitUntil(
     caches.open(CACHE_NAME)
-      // 逐条预缓存：单个文件失败不再让整个 install 失败（否则新 SW 永远激活不了）
+      // 逐条预缓存：单个文件失败不再让整个 install 失败
       .then((cache) => Promise.all(
         ASSETS.map((url) => cache.add(url).catch(() => {}))
       ))
@@ -73,7 +105,7 @@ self.addEventListener('fetch', (e) => {
     return;
   }
 
-  // 其他静态静态资源：缓存优先
+  // 其他静态资源（CSS/JS/图片）：缓存秒开 + 后台静默更新 (Stale-While-Revalidate)
   e.respondWith(
     caches.match(e.request).then((cached) => {
       const networkFetch = fetch(e.request).then((res) => {
@@ -88,4 +120,3 @@ self.addEventListener('fetch', (e) => {
     })
   );
 });
-

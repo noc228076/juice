@@ -1,6 +1,6 @@
 /* =========================================================
    模块 6：纠结拯救机 (Cyber Decision Oracle)
-   赛博决策局 · 命运大转盘 · 量子抛硬币 · 赛博掷圣杯
+   纠结终结所 · 命运大转盘 · 量子抛硬币 · 祈愿掷圣杯
    ========================================================= */
 
 #mod-decision {
@@ -112,12 +112,11 @@ html[data-theme="light"] #mod-decision::before {
   margin: 0;
 }
 
-/* ============ 三合一子模式导航栏 ============ */
+/* ============ 四合一子模式导航栏 ============ */
 .dec-subnav {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
   background: var(--card);
   padding: 5px;
   border-radius: 999px;
@@ -126,12 +125,11 @@ html[data-theme="light"] #mod-decision::before {
 }
 
 .dec-tab {
-  flex: 1;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 8px 12px;
+  gap: 5px;
+  padding: 8px 10px;
   border-radius: 999px;
   font-size: 13px;
   font-weight: 700;
@@ -669,7 +667,7 @@ html[data-theme="light"] .coin-side-edit input {
 }
 
 /* =========================================================
-   子模式 3：赛博掷圣杯 (Cyber Bwa Bwei)
+   子模式 3：祈愿掷圣杯 (Cyber Bwa Bwei)
    ========================================================= */
 .bwei-input-box {
   background: var(--card);
@@ -802,7 +800,375 @@ html[data-theme="light"] .bwei-mat-plate {
 }
 
 /* =========================================================
-   终局裁决单 / 赛博收据模态框 (Receipt Modal)
+   子模式 4：命运掷骰子 (3D Cyber Dice)
+   ========================================================= */
+.dice-config-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 11px;
+}
+
+#dicePropositionInput {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--line);
+  color: var(--tx);
+  font-size: 14px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+html[data-theme="light"] #dicePropositionInput {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+#dicePropositionInput:focus {
+  border-color: var(--dec-ac);
+}
+
+.dice-ctrl-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.dice-ctrl-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--tx-dim);
+  white-space: nowrap;
+}
+
+.dice-seg-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+  justify-content: flex-end;
+}
+
+.dice-seg-btn {
+  flex: 1;
+  max-width: 125px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--tx-dim);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--line);
+  cursor: pointer;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+  text-align: center;
+  user-select: none;
+}
+
+html[data-theme="light"] .dice-seg-btn {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.dice-seg-btn:hover {
+  border-color: var(--dec-ac);
+  color: var(--tx);
+}
+
+.dice-seg-btn.active {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--dec-ac);
+  border-color: var(--dec-ac);
+  font-weight: 800;
+}
+
+/* 六面自定义映射面板 */
+.dice-faces-editor {
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px dashed var(--line);
+}
+
+.dice-faces-editor.show {
+  display: flex;
+}
+
+.dice-faces-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.dice-faces-head span {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--tx-dim);
+}
+
+.dice-face-presets {
+  display: flex;
+  gap: 5px;
+}
+
+.dice-face-preset-btn {
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--tx-dim);
+  background: transparent;
+  border: 1px solid var(--line);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.dice-face-preset-btn:hover,
+.dice-face-preset-btn.active {
+  border-color: var(--dec-ac);
+  color: var(--dec-ac);
+  background: rgba(16, 185, 129, 0.1);
+}
+
+.dice-faces-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 7px 10px;
+}
+
+.dice-face-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dice-face-badge {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  background: rgba(16, 185, 129, 0.14);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: var(--dec-ac);
+  font-size: 12px;
+  font-weight: 900;
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+
+.dice-face-badge.is-red {
+  background: rgba(239, 68, 68, 0.14);
+  border-color: rgba(239, 68, 68, 0.35);
+  color: #EF4444;
+}
+
+.dice-face-item input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 9px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--line);
+  color: var(--tx);
+  font-size: 12px;
+  font-weight: 600;
+  outline: none;
+  box-sizing: border-box;
+}
+
+html[data-theme="light"] .dice-face-item input {
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.dice-face-item input:focus {
+  border-color: var(--dec-ac);
+}
+
+/* 3D 骰子桌面舞台 */
+.dice-stage-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+.dice-tray-plate {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  height: 248px;
+  background: radial-gradient(ellipse at center, rgba(16, 185, 129, 0.14) 0%, rgba(17, 24, 39, 0.78) 100%);
+  border: 1px solid rgba(16, 185, 129, 0.32);
+  border-radius: 22px;
+  box-shadow: inset 0 0 42px rgba(0, 0, 0, 0.45), 0 10px 30px rgba(0, 0, 0, 0.22);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  cursor: pointer;
+  user-select: none;
+}
+
+html[data-theme="light"] .dice-tray-plate {
+  background: radial-gradient(ellipse at center, rgba(209, 250, 229, 0.75) 0%, rgba(243, 244, 246, 0.96) 100%);
+  border-color: rgba(5, 150, 105, 0.28);
+  box-shadow: inset 0 0 30px rgba(16, 185, 129, 0.08), 0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+.dice-tray-ring {
+  position: absolute;
+  inset: 12px;
+  border: 1px dashed rgba(16, 185, 129, 0.26);
+  border-radius: 14px;
+  pointer-events: none;
+}
+
+.dice-cubes-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 38px;
+  width: 100%;
+  height: 170px;
+  perspective: 1100px;
+  z-index: 2;
+}
+
+.dice-cubes-row[data-count="1"] {
+  --dice-size: 92px;
+}
+
+.dice-cubes-row[data-count="2"] {
+  --dice-size: 80px;
+  gap: 40px;
+}
+
+.dice-cubes-row[data-count="3"] {
+  --dice-size: 72px;
+  gap: 26px;
+}
+
+.dice-unit {
+  position: relative;
+  width: var(--dice-size, 84px);
+  height: var(--dice-size, 84px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform-style: preserve-3d;
+}
+
+.dice-tilt-wrap {
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transform: rotateX(-14deg) rotateY(16deg);
+}
+
+.dice-cube {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.08s linear;
+}
+
+.dice-face {
+  position: absolute;
+  inset: 0;
+  border-radius: calc(var(--dice-size, 84px) * 0.18);
+  background: radial-gradient(circle at 32% 28%, #FFFFFF 0%, #F8FAFC 55%, #E2E8F0 100%);
+  border: 2px solid #CBD5E1;
+  box-shadow: inset 0 0 10px rgba(148, 163, 184, 0.35), 0 2px 8px rgba(0, 0, 0, 0.18);
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  padding: calc(var(--dice-size, 84px) * 0.14);
+  box-sizing: border-box;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.dice-face.face-1 { transform: rotateY(0deg) translateZ(calc(var(--dice-size, 84px) / 2)); }
+.dice-face.face-6 { transform: rotateY(180deg) translateZ(calc(var(--dice-size, 84px) / 2)); }
+.dice-face.face-2 { transform: rotateY(90deg) translateZ(calc(var(--dice-size, 84px) / 2)); }
+.dice-face.face-5 { transform: rotateY(-90deg) translateZ(calc(var(--dice-size, 84px) / 2)); }
+.dice-face.face-3 { transform: rotateX(90deg) translateZ(calc(var(--dice-size, 84px) / 2)); }
+.dice-face.face-4 { transform: rotateX(-90deg) translateZ(calc(var(--dice-size, 84px) / 2)); }
+
+.dice-pip {
+  width: 72%;
+  height: 72%;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #334155 0%, #0F172A 100%);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.6), 0 1px 1px rgba(255, 255, 255, 0.8);
+  align-self: center;
+  justify-self: center;
+}
+
+/* 传统一点红与四点红 */
+.dice-face.face-1 .dice-pip {
+  width: 92%;
+  height: 92%;
+  background: radial-gradient(circle at 35% 35%, #F87171 0%, #DC2626 65%, #991B1B 100%);
+  box-shadow: inset 0 2px 3px rgba(0, 0, 0, 0.35), 0 0 8px rgba(239, 68, 68, 0.4);
+}
+
+.dice-face.face-4 .dice-pip {
+  background: radial-gradient(circle at 35% 35%, #F87171 0%, #DC2626 65%, #991B1B 100%);
+}
+
+.dice-unit-shadow {
+  position: absolute;
+  bottom: -22px;
+  width: 78%;
+  height: 14px;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.45) 0%, transparent 72%);
+  border-radius: 50%;
+  pointer-events: none;
+  transition: transform 0.1s linear, opacity 0.1s linear;
+}
+
+.dice-live-banner {
+  position: relative;
+  z-index: 3;
+  margin-top: 6px;
+  padding: 5px 14px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.36);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  color: #ECFDF5;
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+html[data-theme="light"] .dice-live-banner {
+  background: rgba(255, 255, 255, 0.85);
+  color: #065F46;
+  border-color: rgba(5, 150, 105, 0.3);
+}
+
+.dice-action-row {
+  display: flex;
+  justify-content: center;
+}
+
+/* =========================================================
+   终局裁决单 / 收据模态框 (Receipt Modal)
    ========================================================= */
 .dec-modal-backdrop {
   position: fixed;
@@ -1156,7 +1522,7 @@ html[data-theme="light"] .rcpt-comment-box {
 /* =========================================================
    移动端与响应式适配
    ========================================================= */
-@media (max-width: 480px) {
+@media (max-width: 520px) {
   .dec-wrap {
     padding-left: 14px;
     padding-right: 14px;
@@ -1165,10 +1531,16 @@ html[data-theme="light"] .rcpt-comment-box {
   .dec-title {
     font-size: 22px;
   }
+  .dec-subnav {
+    grid-template-columns: repeat(2, 1fr);
+    border-radius: 16px;
+    padding: 6px;
+    gap: 6px;
+  }
   .dec-tab {
-    padding: 7px 8px;
-    font-size: 12px;
-    gap: 4px;
+    padding: 8px 10px;
+    font-size: 12.5px;
+    gap: 5px;
   }
   .wheel-canvas-box {
     width: 280px;
@@ -1195,6 +1567,23 @@ html[data-theme="light"] .rcpt-comment-box {
   }
   .bwei-blocks-area {
     gap: 24px;
+  }
+  .dice-tray-plate {
+    height: 220px;
+  }
+  .dice-cubes-row[data-count="1"] {
+    --dice-size: 82px;
+  }
+  .dice-cubes-row[data-count="2"] {
+    --dice-size: 70px;
+    gap: 28px;
+  }
+  .dice-cubes-row[data-count="3"] {
+    --dice-size: 62px;
+    gap: 18px;
+  }
+  .dice-faces-grid {
+    grid-template-columns: 1fr;
   }
   .dec-receipt-dialog {
     max-width: 340px;

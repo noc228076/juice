@@ -27078,6 +27078,10 @@ if ('serviceWorker' in navigator) {
           cover_4k: item.url.replace('_1920x1080.jpg', '_UHD.jpg')
         };
         renderMainWallpaper(activeWp);
+        if (isSiteBgActive) {
+          applySiteBackground(activeWp.cover_4k || activeWp.cover, activeWp.title);
+          showDailyToast(`✨ 全站背景已切换：${activeWp.title}`);
+        }
         if (window.SFX && window.SFX.tap) window.SFX.tap();
       };
     });
@@ -27086,16 +27090,66 @@ if ('serviceWorker' in navigator) {
   // 设为全站沉浸背景
   function toggleSiteBackground() {
     isSiteBgActive = !isSiteBgActive;
-    const btn = document.getElementById('dlWpBtnSetBg');
-    if (isSiteBgActive && activeWp) {
-      document.body.style.setProperty('--daily-bg-url', `url("${activeWp.cover}")`);
-      document.body.classList.add('has-daily-ambient-bg');
-      if (btn) btn.innerHTML = '✨ 已设为全站背景 (点击取消)';
+    const wpUrl = (activeWp && (activeWp.cover_4k || activeWp.cover)) || FALLBACK_SEEDS.bing.cover;
+    if (isSiteBgActive) {
+      applySiteBackground(wpUrl, activeWp ? activeWp.title : '今日必应壁纸');
+      updateSetBgBtnState();
+      showDailyToast('✨ 已设为全站沉浸背景，已贯通所有模块');
     } else {
-      document.body.classList.remove('has-daily-ambient-bg');
-      if (btn) btn.innerHTML = '🖥️ 设为全站沉浸背景';
+      clearSiteBackground();
+      updateSetBgBtnState();
+      showDailyToast('🖥️ 已恢复默认背景');
     }
     if (window.SFX && window.SFX.tap) window.SFX.tap();
+  }
+
+  function updateSetBgBtnState() {
+    const btn = document.getElementById('dlWpBtnSetBg');
+    if (!btn) return;
+    if (isSiteBgActive) {
+      btn.classList.add('active');
+      btn.innerHTML = '<span>✨</span><span>已设为全站背景 (点击取消)</span>';
+    } else {
+      btn.classList.remove('active');
+      btn.innerHTML = '<span>🖥️</span><span>设为全站沉浸背景</span>';
+    }
+  }
+
+  function applySiteBackground(url, title) {
+    if (!url) return;
+    document.documentElement.style.setProperty('--daily-bg-url', `url("${url}")`);
+    document.body.style.setProperty('--daily-bg-url', `url("${url}")`);
+    document.documentElement.classList.add('has-daily-ambient-bg');
+    document.body.classList.add('has-daily-ambient-bg');
+    const backdrop = document.getElementById('appAmbientBackdrop');
+    if (backdrop) backdrop.style.backgroundImage = `url("${url}")`;
+    try {
+      localStorage.setItem('daily_site_bg_active', 'true');
+      localStorage.setItem('daily_site_bg_url', url);
+      if (title) localStorage.setItem('daily_site_bg_title', title);
+    } catch (_) {}
+  }
+
+  function clearSiteBackground() {
+    document.documentElement.classList.remove('has-daily-ambient-bg');
+    document.body.classList.remove('has-daily-ambient-bg');
+    try {
+      localStorage.removeItem('daily_site_bg_active');
+    } catch (_) {}
+  }
+
+  function showDailyToast(msg) {
+    let t = document.getElementById('dailyToast');
+    if (!t) {
+      t = document.createElement('div');
+      t.id = 'dailyToast';
+      t.className = 'daily-toast-msg';
+      document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => t.classList.remove('show'), 2200);
   }
 
   // 生成锁屏日签海报
@@ -27250,7 +27304,10 @@ if ('serviceWorker' in navigator) {
 
     // 设为全站沉浸背景
     const setBgBtn = document.getElementById('dlWpBtnSetBg');
-    if (setBgBtn) setBgBtn.onclick = toggleSiteBackground;
+    if (setBgBtn) {
+      setBgBtn.onclick = toggleSiteBackground;
+      updateSetBgBtnState();
+    }
 
     // 生成锁屏日签卡
     const posterBtn = document.getElementById('dlWpBtnPoster');
@@ -27267,11 +27324,25 @@ if ('serviceWorker' in navigator) {
     }
   }
 
+  // 恢复已保存的全站背景状态
+  function restoreSavedAmbientBg() {
+    try {
+      const savedActive = localStorage.getItem('daily_site_bg_active') === 'true';
+      const savedUrl = localStorage.getItem('daily_site_bg_url');
+      if (savedActive && savedUrl) {
+        isSiteBgActive = true;
+        applySiteBackground(savedUrl, localStorage.getItem('daily_site_bg_title'));
+      }
+    } catch (_) {}
+  }
+
   function init() {
     const root = document.getElementById('mod-daily');
     if (!root) return;
 
+    restoreSavedAmbientBg();
     bindEvents();
+    updateSetBgBtnState();
     load60sNews();
     loadHotList('weibo');
     loadMovieList('weekly_movie');
@@ -27279,14 +27350,19 @@ if ('serviceWorker' in navigator) {
     pickMoodMovie('laugh');
   }
 
+  // 模块加载即尝试恢复全站背景
+  restoreSavedAmbientBg();
+
   window.AppDaily = {
     init,
+    restoreSavedAmbientBg,
     load60sNews,
     loadHotList,
     loadMovieList,
     loadBingWallpaper
   };
 })();
+
 
 ;
 /* === js/modules/history.js === */

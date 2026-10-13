@@ -875,21 +875,154 @@ html[data-theme="light"] .daily-movie-card {
   margin-top: 2px;
 }
 
-/* 全站沉浸壁纸背景类 */
-body.has-daily-ambient-bg {
-  background-image: var(--daily-bg-url) !important;
-  background-size: cover !important;
-  background-position: center center !important;
-  background-attachment: fixed !important;
+/* ============ 全站 4K 沉浸壁纸背景渲染系统 ============ */
+.app-ambient-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  background-image: var(--daily-bg-url, none);
+  background-size: cover;
+  background-position: center center;
+  background-repeat: no-repeat;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.45s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.6s ease;
+  transform: scale(1.02);
+  will-change: opacity, transform;
 }
-body.has-daily-ambient-bg #modules-viewport {
-  background: rgba(11, 14, 20, 0.78) !important;
-  backdrop-filter: blur(20px) !important;
-  -webkit-backdrop-filter: blur(20px) !important;
+
+.app-ambient-backdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 35%, rgba(11, 14, 20, 0.35) 0%, rgba(11, 14, 20, 0.78) 100%);
+  backdrop-filter: blur(8px) saturate(125%);
+  -webkit-backdrop-filter: blur(8px) saturate(125%);
+  transition: background 0.35s ease;
 }
-html[data-theme="light"] body.has-daily-ambient-bg #modules-viewport {
-  background: rgba(255, 255, 255, 0.82) !important;
+
+html[data-theme="light"] .app-ambient-backdrop::after {
+  background: radial-gradient(circle at 50% 35%, rgba(245, 246, 241, 0.40) 0%, rgba(245, 246, 241, 0.82) 100%);
 }
+
+html.has-daily-ambient-bg .app-ambient-backdrop,
+body.has-daily-ambient-bg .app-ambient-backdrop {
+  opacity: 1;
+  transform: scale(1);
+}
+
+html.has-daily-ambient-bg #app::before,
+body.has-daily-ambient-bg #app::before {
+  opacity: 0.1 !important;
+}
+
+html.has-daily-ambient-bg #global-header,
+body.has-daily-ambient-bg #global-header {
+  background: rgba(11, 12, 16, 0.68) !important;
+  backdrop-filter: blur(24px) saturate(160%) !important;
+  -webkit-backdrop-filter: blur(24px) saturate(160%) !important;
+  border-bottom-color: rgba(255, 255, 255, 0.12) !important;
+}
+html[data-theme="light"].has-daily-ambient-bg #global-header,
+html[data-theme="light"] body.has-daily-ambient-bg #global-header {
+  background: rgba(245, 246, 241, 0.75) !important;
+  border-bottom-color: rgba(20, 24, 18, 0.10) !important;
+}
+
+html.has-daily-ambient-bg #modules-viewport,
+body.has-daily-ambient-bg #modules-viewport,
+html.has-daily-ambient-bg .app-module,
+body.has-daily-ambient-bg .app-module,
+html.has-daily-ambient-bg #mod-drinks,
+body.has-daily-ambient-bg #mod-drinks,
+html.has-daily-ambient-bg #mod-milktea,
+body.has-daily-ambient-bg #mod-milktea,
+html.has-daily-ambient-bg #mod-manual,
+body.has-daily-ambient-bg #mod-manual,
+html.has-daily-ambient-bg #mod-fengshui,
+body.has-daily-ambient-bg #mod-fengshui,
+html.has-daily-ambient-bg #mod-tarot,
+body.has-daily-ambient-bg #mod-tarot,
+html.has-daily-ambient-bg #mod-decision,
+body.has-daily-ambient-bg #mod-decision,
+html.has-daily-ambient-bg #mod-lingqian,
+body.has-daily-ambient-bg #mod-lingqian,
+html.has-daily-ambient-bg #mod-clock,
+body.has-daily-ambient-bg #mod-clock,
+html.has-daily-ambient-bg #mod-merit,
+body.has-daily-ambient-bg #mod-merit,
+html.has-daily-ambient-bg #mod-lifeguide,
+body.has-daily-ambient-bg #mod-lifeguide,
+html.has-daily-ambient-bg #mod-bazi,
+body.has-daily-ambient-bg #mod-bazi,
+html.has-daily-ambient-bg #mod-daily,
+body.has-daily-ambient-bg #mod-daily {
+  background: transparent !important;
+}
+
+html.has-daily-ambient-bg .screen,
+body.has-daily-ambient-bg .screen,
+html.has-daily-ambient-bg #scr-shake,
+body.has-daily-ambient-bg #scr-shake,
+html.has-daily-ambient-bg #scr-result,
+body.has-daily-ambient-bg #scr-result {
+  background: transparent !important;
+}
+
+html.has-daily-ambient-bg .daily-card,
+body.has-daily-ambient-bg .daily-card {
+  background: rgba(18, 20, 27, 0.65) !important;
+  backdrop-filter: blur(16px) saturate(140%) !important;
+  -webkit-backdrop-filter: blur(16px) saturate(140%) !important;
+  border-color: rgba(255, 255, 255, 0.12) !important;
+}
+html[data-theme="light"].has-daily-ambient-bg .daily-card,
+html[data-theme="light"] body.has-daily-ambient-bg .daily-card {
+  background: rgba(255, 255, 255, 0.72) !important;
+  border-color: rgba(20, 24, 18, 0.12) !important;
+}
+
+html.has-daily-ambient-bg .daily-wp-stage,
+body.has-daily-ambient-bg .daily-wp-stage {
+  border-color: rgba(245, 158, 11, 0.45) !important;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4) !important;
+}
+
+/* 按钮激活微调 */
+.daily-wp-btn.active {
+  background: rgba(16, 185, 129, 0.28) !important;
+  border-color: rgba(16, 185, 129, 0.6) !important;
+  color: #6EE7B7 !important;
+  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.35) !important;
+}
+
+/* 轻量全局轻提示组件 */
+.daily-toast-msg {
+  position: fixed;
+  bottom: calc(28px + env(safe-area-inset-bottom));
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: rgba(15, 23, 42, 0.94);
+  color: #F8FAFC;
+  padding: 10px 20px;
+  border-radius: 999px;
+  font-size: 13.5px;
+  font-weight: 700;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+  z-index: 10000;
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  white-space: nowrap;
+}
+.daily-toast-msg.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
 
 /* 骨架屏 */
 .daily-skeleton {

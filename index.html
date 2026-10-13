@@ -17,10 +17,31 @@
 <meta property="og:title" content="饮料人格研究所 · 测测你的精神状态与灵魂特调">
 <meta property="og:description" content="当代年轻人精神状态测试 (SBTI) / 经典 16 型人格 (MBTI) / 16 款灵魂饮料特调，测出你的独家出厂配方与精神病友。">
 <meta property="og:image" content="assets/icons/icon-512.png">
-  <link rel="stylesheet" href="css/app.bundle.css?v=42">
+  <link rel="stylesheet" href="css/app.bundle.css?v=43">
+  <script>
+    (function(){
+      try {
+        if (localStorage.getItem('daily_site_bg_active') === 'true') {
+          var u = localStorage.getItem('daily_site_bg_url');
+          if (u) {
+            document.documentElement.style.setProperty('--daily-bg-url', 'url("' + u + '")');
+            document.documentElement.classList.add('has-daily-ambient-bg');
+            document.addEventListener('DOMContentLoaded', function(){
+              if (document.body) document.body.classList.add('has-daily-ambient-bg');
+              var b = document.getElementById('appAmbientBackdrop');
+              if (b) b.style.backgroundImage = 'url("' + u + '")';
+            });
+          }
+        }
+      } catch(e){}
+    })();
+  </script>
 </head>
 <body>
 <div id="app">
+  <!-- 全站 4K 沉浸壁纸背景渲染层 -->
+  <div id="appAmbientBackdrop" class="app-ambient-backdrop" aria-hidden="true"></div>
+
   <!-- 全局常驻顶栏 (左上角 5 模块胶囊标签 + 右上角控制中枢) -->
   <header id="global-header">
     <div class="global-nav-left">
@@ -2091,6 +2112,6 @@
   <canvas id="shareCanvas" width="1080" height="1620" hidden></canvas>
 </div>
 
-  <script defer src="js/app.bundle.js?v=42"></script>
+  <script defer src="js/app.bundle.js?v=43"></script>
 </body>
 </html>

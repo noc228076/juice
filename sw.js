@@ -1,5 +1,5 @@
-/* 饮料人格研究所 & 八合一趣味实验矩阵 — 离线瞬开 Service Worker v37 */
-const CACHE_NAME = 'juice-persona-v38';
+/* 饮料人格研究所 & 八合一趣味实验矩阵 — 离线瞬开 Service Worker v39 */
+const CACHE_NAME = 'juice-persona-v39';
 const ASSETS = [
   './',
   './index.html',
@@ -88,9 +88,14 @@ self.addEventListener('fetch', (e) => {
   const url = new URL(e.request.url);
   if (url.origin !== self.location.origin) return;
 
-  // HTML 页面或根路径：网络优先，确保上线后第一时间获取最新版本，离线时回退缓存
-  const isHtml = e.request.mode === 'navigate' || url.pathname.endsWith('.html') || url.pathname.endsWith('/');
-  if (isHtml) {
+  // HTML / CSS / JS 核心代码：网络优先，确保上线后手机端刷新第一时间获取最新样式与逻辑，离线时回退缓存
+  const isCodeOrHtml =
+    e.request.mode === 'navigate' ||
+    url.pathname.endsWith('/') ||
+    url.pathname.endsWith('.html') ||
+    url.pathname.endsWith('.css') ||
+    url.pathname.endsWith('.js');
+  if (isCodeOrHtml) {
     e.respondWith(
       fetch(e.request)
         .then((res) => {
@@ -100,7 +105,7 @@ self.addEventListener('fetch', (e) => {
           }
           return res;
         })
-        .catch(() => caches.match(e.request).then((cached) => cached || caches.match('./index.html')))
+        .catch(() => caches.match(e.request).then((cached) => cached || (e.request.mode === 'navigate' ? caches.match('./index.html') : undefined)))
     );
     return;
   }

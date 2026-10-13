@@ -21,7 +21,8 @@
   top: 0;
   left: 50%;
   transform: translateX(-50%);
-  width: 900px;
+  width: 100%;
+  max-width: 900px;
   height: 540px;
   background: radial-gradient(circle at 50% 15%, rgba(168, 85, 247, 0.10) 0%, transparent 68%);
   pointer-events: none;
@@ -42,18 +43,22 @@ html[data-theme="light"] #mod-tarot::before {
   background: radial-gradient(circle at 50% 15%, rgba(200, 160, 80, 0.12) 0%, transparent 68%);
 }
 
-/* ============ 屏幕切换与基础容器 (严格保证 width: 100% 杜绝卡牌坍塌) ============ */
+/* ============ 屏幕切换与基础容器 (严格保证 width: 100% 杜绝卡牌坍塌与移动端滚动截断) ============ */
 #mod-tarot .tr-screen {
   position: relative;
   z-index: 1;
   width: 100%;
-  min-height: 100%;
+  height: auto;
   display: none;
   flex-direction: column;
-  padding: 16px 20px calc(36px + env(safe-area-inset-bottom));
+  padding: 16px 20px calc(44px + env(safe-area-inset-bottom));
   box-sizing: border-box;
   max-width: 600px;
   margin: 0 auto;
+}
+
+#mod-tarot .tr-screen > * {
+  flex-shrink: 0;
 }
 
 #mod-tarot .tr-screen.active {
@@ -806,16 +811,17 @@ html[data-theme="light"] #mod-tarot .pcard .back {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 22px;
+  justify-content: flex-start;
+  gap: 20px;
   width: 100%;
+  height: auto;
+  flex-shrink: 0;
   background: var(--card);
   border: 1.5px solid var(--tr-line);
   border-radius: 26px;
-  padding: 24px 18px;
+  padding: 22px 18px;
   box-sizing: border-box;
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.22), inset 0 0 32px rgba(232, 201, 106, 0.05);
-  overflow: hidden;
 }
 html[data-theme="light"] #mod-tarot .reveal-stage {
   background: linear-gradient(160deg, rgba(255, 253, 247, 0.96), rgba(248, 240, 220, 0.92));
@@ -824,11 +830,9 @@ html[data-theme="light"] #mod-tarot .reveal-stage {
 #mod-tarot .reveal-stage::before {
   content: "";
   position: absolute;
-  top: -120px;
-  left: -100px;
-  width: 440px;
-  height: 440px;
-  background: radial-gradient(circle, rgba(232, 201, 106, 0.12) 0%, transparent 70%);
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(circle at 20% 15%, rgba(232, 201, 106, 0.12) 0%, transparent 65%);
   pointer-events: none;
   z-index: 0;
 }
@@ -849,19 +853,20 @@ html[data-theme="light"] #mod-tarot .reveal-stage {
 #mod-tarot .tr-reveal-card-zone {
   position: relative;
   z-index: 1;
+  width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: 10px;
   flex: none;
 }
 #mod-tarot .tr-card-halo {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 320px;
-  height: 320px;
+  width: min(260px, 68vw);
+  height: min(260px, 68vw);
   transform: translate(-50%, -54%);
   border-radius: 50%;
   border: 1px dashed rgba(232, 201, 106, 0.28);
@@ -877,8 +882,8 @@ html[data-theme="light"] #mod-tarot .reveal-stage {
   border: 1px solid rgba(232, 201, 106, 0.16);
 }
 #mod-tarot .bigcard {
-  width: min(266px, 65vw);
-  height: 399px;
+  width: 200px;
+  height: 300px;
   aspect-ratio: 2 / 3;
   perspective: 1200px;
   position: relative;
@@ -1717,36 +1722,38 @@ html[data-theme="light"] #mod-tarot .tr-info-desc {
     border-radius: 10px;
   }
   #mod-tarot .tr-stepper-track {
-    padding: 8px 6px;
-    gap: 4px;
-  }
-  #mod-tarot .tr-step-pill {
-    padding: 6px 6px;
     gap: 6px;
+  }
+  #mod-tarot .tr-step-item {
+    padding: 8px 8px;
+    gap: 6px;
+    border-radius: 12px;
   }
   #mod-tarot .tr-step-num {
     width: 20px;
     height: 20px;
     font-size: 11px;
   }
-  #mod-tarot .tr-step-label {
-    font-size: 11px;
+  #mod-tarot .tr-step-title {
+    font-size: 11.5px;
   }
-  #mod-tarot .tr-step-state {
+  #mod-tarot .tr-step-title small {
+    display: none;
+  }
+  #mod-tarot .tr-step-sub {
     font-size: 10px;
-  }
-  #mod-tarot .tr-step-connector {
-    max-width: 12px;
   }
   #mod-tarot .reveal-stage {
     padding: 18px 14px;
     gap: 16px;
   }
   #mod-tarot .bigcard {
-    width: min(210px, 60vw);
+    width: 186px;
+    height: 279px;
+    aspect-ratio: 2 / 3;
   }
   #mod-tarot .reading {
-    padding: 16px 14px;
+    padding: 4px 2px;
   }
 }
 
@@ -1846,6 +1853,10 @@ html[data-theme="light"] #mod-tarot .tr-info-desc {
     grid-column: 1;
     width: 290px;
     justify-content: center;
+  }
+  #mod-tarot .tr-card-halo {
+    width: 320px;
+    height: 320px;
   }
   #mod-tarot .bigcard {
     width: 280px;

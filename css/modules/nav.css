@@ -303,10 +303,11 @@ html {
   position: absolute !important;
   inset: 0 !important;
   display: none !important;
-  flex-direction: column !important;
   overflow-y: auto !important;
+  overflow-x: hidden !important;
   scrollbar-gutter: stable;
   -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
   background: var(--bg);
 }
 
@@ -322,7 +323,7 @@ html {
 #mod-lifeguide.active,
 #mod-bazi.active,
 .app-module.active {
-  display: flex !important;
+  display: block !important;
   pointer-events: auto !important;
 }
 

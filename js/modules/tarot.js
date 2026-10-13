@@ -284,16 +284,10 @@
 
     if (cfg.count === 1) {
       if (subEl) subEl.textContent = `${dLabel} · ${cfg.shortName}${qSuffix}`;
-      stepperEl.innerHTML = `
-        <div class="tr-stepper-single">
-          <span>✦ <b>${dLabel}</b></span>
-          <span>|</span>
-          <span>守护星象：<b>${cardData.astro || '群星共鸣'}</b></span>
-          <span>|</span>
-          <span>精神原型：<b>${cardData.pillar || '命运启示'}</b></span>
-        </div>
-      `;
+      stepperEl.style.display = 'none';
+      stepperEl.innerHTML = '';
     } else {
+      stepperEl.style.display = '';
       if (subEl) subEl.textContent = `${dLabel} · ${cfg.name} · 正在揭示第 ${revIdx + 1} / ${cfg.count} 张启示之牌${qSuffix}`;
       stepperEl.innerHTML = `
         <div class="tr-stepper-track">
@@ -339,6 +333,9 @@
     const cfg = getSpreadConfig();
     const pos = cfg.positions[revIdx] || cfg.positions[0];
     const posMeta = cfg.meta[revIdx] || cfg.meta[0] || { name: pos, sub: "命运节点", icon: "✦" };
+
+    const root = document.getElementById('mod-tarot');
+    if (root) root.scrollTop = 0;
 
     renderRevealStepper(cardData);
 

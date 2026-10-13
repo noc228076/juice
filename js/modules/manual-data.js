@@ -575,9 +575,33 @@
         { min: 6, icon: 'brush', name: '色彩达人', text: 'P 图软件的色相条,在你手里是乐器。' },
         { min: 0, icon: 'palette', name: '色彩学徒', text: '眼睛累了是正常的,建议休息一下再来,成绩不保存——这条除外。' }
       ]
+    },
+
+    /* ============ 07 数字合体 2048 ============ */
+    'game-2048': {
+      id: 'game-2048', num: '07', mode: 'interactive', engine: 'game2048',
+      title: '数字合体 2048', en: '2048 PUZZLE',
+      tagline: '滑动合体,测测你的逻辑规划与抗压上限',
+      icon: 'crown', color: '#F59E0B',
+      meta: '经典益智 · 约 3 分钟',
+      intro: [
+        '方寸棋盘，暗藏职场生存与破局智慧。',
+        '每次滑动，相同数字碰撞合二为一：从 2 开始逐步合成 4、8、16……直至 2048 登顶！',
+        '上下左右滑动屏幕、使用键盘方向键或屏幕按键，步步为营。',
+        '无路可走或随时点击【结算判词】，系统将出具属于你的《战略家与空间掌控力说明书》。'
+      ],
+      disclaimer: '本测试仅供娱乐，合出 2048 不代表明天不用上班，但能证明你的大局观确实超凡。',
+      certs: [
+        { min: 2048, icon: 'crown', name: '宇宙级架构师', text: '居然合出了 2048！你的空间掌控力与战略前瞻性已突破天际，乱局之中总能走出神之一手。' },
+        { min: 1024, icon: 'gem', name: '高维战略家', text: '突破 1024！距离终极合体仅一步之遥，你在复杂局面中寻找最优解的直觉极其敏锐。' },
+        { min: 512, icon: 'bolt', name: '老练操盘手', text: '合出 512！布局有条不紊，心态极稳，遇到拥堵卡点总能通过微调化险为夷。' },
+        { min: 256, icon: 'gamepad', name: '精明谋略师', text: '稳步拿下 256！思路清晰，步步为营，已经深谙单角屯兵的核心战术。' },
+        { min: 128, icon: 'medal', name: '潜能进阶者', text: '打出 128！手感在线，节奏良好，再多推演几步，更大的格局就在眼前。' },
+        { min: 0, icon: 'smile', name: '随性合体家', text: '佛系滑动，重在重温经典纯粹的合成乐趣。快乐摸鱼，拒绝焦虑，适度用脑就是最好状态。' }
+      ]
     }
   };
 
   /* 首页章节顺序 */
-  window.SM_ORDER = ['social-battery', 'procrastination', 'slacking', 'night-owl', 'reaction', 'color'];
+  window.SM_ORDER = ['social-battery', 'procrastination', 'slacking', 'night-owl', 'reaction', 'color', 'game-2048'];
 })();

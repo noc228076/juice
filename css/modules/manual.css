@@ -1024,3 +1024,307 @@ html[data-theme="light"] #mod-manual {
     font-size: 68px;
   }
 }
+
+/* ============ 07 数字合体 2048 棋盘与操作样式 ============ */
+#mod-manual .g2048-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  max-width: 440px;
+  margin: 0 auto;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+#mod-manual .g2048-hud {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+#mod-manual .g2048-score-card {
+  flex: 1;
+  background: #23202B;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 8px 6px;
+  text-align: center;
+  box-sizing: border-box;
+}
+#mod-manual .g2048-score-card.highlight {
+  border-color: #F59E0B;
+  background: linear-gradient(145deg, rgba(245, 158, 11, 0.12), #23202B);
+}
+#mod-manual .g2048-sc-lbl {
+  font-size: 10px;
+  color: #9A948A;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+#mod-manual .g2048-sc-val {
+  font-size: 17px;
+  font-weight: 900;
+  color: #F2EEE3;
+  margin-top: 2px;
+  white-space: nowrap;
+}
+#mod-manual .g2048-sc-val small {
+  font-size: 11px;
+  color: #F59E0B;
+  font-weight: 700;
+  margin-left: 2px;
+}
+
+#mod-manual .g2048-tools {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  margin-bottom: 14px;
+}
+#mod-manual .g2048-tool-btn {
+  flex: 1;
+  padding: 9px 8px;
+  font-size: 12.5px;
+  font-weight: 800;
+  border-radius: 10px;
+  background: #23202B;
+  color: #F2EEE3;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+#mod-manual .g2048-tool-btn:hover:not(:disabled) {
+  border-color: #F59E0B;
+  transform: translateY(-1px);
+}
+#mod-manual .g2048-tool-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+#mod-manual .g2048-tool-btn.finish {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.22), rgba(245, 158, 11, 0.08));
+  border-color: #F59E0B;
+  color: #F59E0B;
+}
+
+#mod-manual .g2048-board-wrap {
+  position: relative;
+  width: min(380px, 92vw);
+  aspect-ratio: 1 / 1;
+  background: #15121B;
+  border-radius: 18px;
+  padding: 10px;
+  box-sizing: border-box;
+  border: 1.5px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+}
+
+#mod-manual .g2048-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(4, 1fr);
+  gap: 8px;
+  width: 100%;
+  height: 100%;
+}
+
+#mod-manual .g2048-cell {
+  position: relative;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+#mod-manual .g2048-tile {
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  animation: g2048Pop 0.18s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+}
+@keyframes g2048Pop {
+  0% { transform: scale(0.4); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+#mod-manual .g2048-num {
+  line-height: 1;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+#mod-manual .g2048-tag {
+  font-size: 9px;
+  opacity: 0.82;
+  font-weight: 700;
+  margin-top: 2px;
+  letter-spacing: 0.5px;
+}
+
+#mod-manual .g2048-tile.t2 { background: #EEE4DA; color: #3D352E; font-size: 24px; }
+#mod-manual .g2048-tile.t4 { background: #EDE0C8; color: #3D352E; font-size: 24px; }
+#mod-manual .g2048-tile.t8 { background: #F2B179; color: #FFFFFF; font-size: 24px; box-shadow: 0 4px 12px rgba(242, 177, 121, 0.35); }
+#mod-manual .g2048-tile.t16 { background: #F59563; color: #FFFFFF; font-size: 22px; box-shadow: 0 4px 12px rgba(245, 149, 99, 0.4); }
+#mod-manual .g2048-tile.t32 { background: #F67C5F; color: #FFFFFF; font-size: 22px; }
+#mod-manual .g2048-tile.t64 { background: #F65E3B; color: #FFFFFF; font-size: 22px; }
+#mod-manual .g2048-tile.t128 { background: linear-gradient(135deg, #EDCF72, #E5BE54); color: #FFFFFF; font-size: 20px; box-shadow: 0 6px 16px rgba(229, 190, 84, 0.45); }
+#mod-manual .g2048-tile.t256 { background: linear-gradient(135deg, #EDCC61, #DCB645); color: #FFFFFF; font-size: 20px; }
+#mod-manual .g2048-tile.t512 { background: linear-gradient(135deg, #EDC850, #CFA335); color: #FFFFFF; font-size: 20px; }
+#mod-manual .g2048-tile.t1024 { background: linear-gradient(135deg, #EDC53F, #B88B25); color: #FFFFFF; font-size: 17px; box-shadow: 0 8px 24px rgba(237, 197, 63, 0.55); }
+#mod-manual .g2048-tile.t2048 { background: linear-gradient(135deg, #ECC400, #F59E0B); color: #261C02; font-size: 17px; box-shadow: 0 0 24px rgba(245, 158, 11, 0.75); }
+#mod-manual .g2048-tile.tsuper { background: linear-gradient(135deg, #3C3A32, #111111); color: #F59E0B; font-size: 16px; border: 2px solid #F59E0B; }
+
+#mod-manual .g2048-controls {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+#mod-manual .g2048-dpad {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+#mod-manual .g2048-pad-mid {
+  display: flex;
+  gap: 6px;
+}
+#mod-manual .g2048-pad-btn {
+  width: 50px;
+  height: 42px;
+  border-radius: 10px;
+  background: #23202B;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #F2EEE3;
+  font-size: 16px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: all 0.15s ease;
+}
+#mod-manual .g2048-pad-btn:active {
+  background: #F59E0B;
+  color: #1A1504;
+  transform: scale(0.92);
+}
+#mod-manual .g2048-hint {
+  font-size: 11px;
+  color: #9A948A;
+  text-align: center;
+}
+
+#mod-manual .g2048-float-tip {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(245, 158, 11, 0.95);
+  color: #1F1604;
+  font-weight: 800;
+  font-size: 14px;
+  padding: 10px 20px;
+  border-radius: 999px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  z-index: 20;
+  pointer-events: none;
+  animation: g2048Tip 1.2s forwards;
+}
+@keyframes g2048Tip {
+  0% { opacity: 0; transform: translate(-50%, -30%); }
+  20% { opacity: 1; transform: translate(-50%, -50%); }
+  80% { opacity: 1; transform: translate(-50%, -50%); }
+  100% { opacity: 0; transform: translate(-50%, -70%); }
+}
+
+#mod-manual .g2048-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(21, 18, 27, 0.92);
+  border-radius: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  box-sizing: border-box;
+  z-index: 10;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+#mod-manual .g2048-ov-title {
+  font-size: 21px;
+  font-weight: 900;
+  color: #F2EEE3;
+  margin-bottom: 6px;
+}
+#mod-manual .g2048-ov-sub {
+  font-size: 13px;
+  color: #9A948A;
+  margin-bottom: 18px;
+  text-align: center;
+}
+#mod-manual .g2048-ov-sub b {
+  color: #F59E0B;
+}
+#mod-manual .g2048-ov-btns {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+  max-width: 240px;
+}
+#mod-manual .g2048-btn {
+  padding: 12px 18px;
+  border-radius: 12px;
+  font-size: 13.5px;
+  font-weight: 800;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: #2A2534;
+  color: #F2EEE3;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+#mod-manual .g2048-btn:hover {
+  transform: translateY(-2px);
+}
+#mod-manual .g2048-btn.accent {
+  background: #F59E0B;
+  color: #1C1502;
+  border: none;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.4);
+}
+
+/* 亮色模式适配 */
+html[data-theme="light"] #mod-manual .g2048-score-card,
+html[data-theme="light"] #mod-manual .g2048-tool-btn,
+html[data-theme="light"] #mod-manual .g2048-pad-btn {
+  background: #FFFFFF;
+  border-color: rgba(0, 0, 0, 0.12);
+  color: #2D2721;
+}
+html[data-theme="light"] #mod-manual .g2048-score-card.highlight {
+  background: #FEF3C7;
+  border-color: #D97706;
+}
+html[data-theme="light"] #mod-manual .g2048-sc-val {
+  color: #1F1914;
+}
+html[data-theme="light"] #mod-manual .g2048-board-wrap {
+  background: #BBADA0;
+  border-color: #A39589;
+}
+html[data-theme="light"] #mod-manual .g2048-cell {
+  background: rgba(238, 228, 218, 0.35);
+}
+

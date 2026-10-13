@@ -81,8 +81,8 @@
 
     var html = '';
     html += '<div class="home-head"><div class="brandmark">我</div><div>'
-      + '<div class="home-title">自我说明书</div><div class="home-sub">SELF MANUAL · 六份关于你的出厂说明书</div></div></div>';
-    html += '<div class="home-desc">你是哪种拖延病患者？社交电量还剩多少？反应能力几岁？挑一章，把自己拆开看看。</div>';
+      + '<div class="home-title">自我说明书</div><div class="home-sub">SELF MANUAL · 七份关于你的出厂说明书</div></div></div>';
+    html += '<div class="home-desc">你是哪种拖延病患者？社交电量还剩多少？反应能力几岁？2048能合出多大？挑一章，把自己拆开看看。</div>';
 
     html += '<div class="stat-strip"><div style="display:flex;gap:5px">'
       + ORDER.map(function (id) {
@@ -91,7 +91,7 @@
         var on = s[id] && s[id].length;
         return '<span class="dot' + (on ? ' done' : '') + '" style="' + (on ? 'background:' + c : '') + '"></span>';
       }).join('')
-      + '</div><div style="flex:1"></div><div>已测 <b>' + done + '</b>/6 章 · 存档 <b>' + total + '</b> 份</div></div>';
+      + '</div><div style="flex:1"></div><div>已测 <b>' + done + '</b>/' + ORDER.length + ' 章 · 存档 <b>' + total + '</b> 份</div></div>';
 
     html += '<div class="manual-grid">';
     ORDER.forEach(function (id, i) {
@@ -303,9 +303,11 @@
     }
     state.mode = 'game';
     var isReaction = t.id === 'reaction';
-    var scrId = isReaction ? 'scr-sm-reaction' : 'scr-sm-color';
-    var topId = isReaction ? 'sm-reacttop' : 'sm-colortop';
-    var bodyId = isReaction ? 'sm-reactbody' : 'sm-colorbody';
+    var isColor = t.id === 'color';
+    var is2048 = t.id === 'game-2048';
+    var scrId = isReaction ? 'scr-sm-reaction' : (isColor ? 'scr-sm-color' : 'scr-sm-2048');
+    var topId = isReaction ? 'sm-reacttop' : (isColor ? 'sm-colortop' : 'sm-2048top');
+    var bodyId = isReaction ? 'sm-reactbody' : (isColor ? 'sm-colorbody' : 'sm-2048body');
 
     var topEl = document.getElementById(topId);
     if (topEl) {
@@ -326,7 +328,7 @@
       };
     }
 
-    var startFn = isReaction ? window.startReaction : window.startColor;
+    var startFn = isReaction ? window.startReaction : (isColor ? window.startColor : window.startGame2048);
     var bodyEl = document.getElementById(bodyId);
     if (startFn && bodyEl) {
       state.gameCtl = startFn(bodyEl, function (rawRes) {

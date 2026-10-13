@@ -506,4 +506,403 @@
       }
     };
   };
+
+  /* ==================================================================
+   * 07 数字合体 2048 (2048 PUZZLE)
+   * ================================================================== */
+  window.startGame2048 = function (root, onFinish) {
+    var el = makeRoot(root);
+    var destroyed = false;
+    var timers = [];
+    function later(fn, ms) { var id = setTimeout(function () { if (!destroyed) fn(); }, ms); timers.push(id); return id; }
+    function clearTimers() { timers.forEach(clearTimeout); timers = []; }
+
+    var board = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    var score = 0;
+    var moves = 0;
+    var merges = 0;
+    var maxTile = 2;
+    var undosLeft = 3;
+    var history = [];
+    var hasWon = false;
+    var isOver = false;
+
+    var bestScore = 0;
+    try { bestScore = parseInt(localStorage.getItem('sm_2048_best') || '0', 10) || 0; } catch (e) {}
+
+    var ROLE_MAP = {
+      2: '起步', 4: '转正', 8: '主力', 16: '核心',
+      32: '组长', 64: '经理', 128: '总监', 256: '副总',
+      512: '合伙人', 1024: '传奇', 2048: '终极架构师', 4096: '封神'
+    };
+
+    function spawnTile() {
+      var empty = [];
+      for (var i = 0; i < 16; i++) {
+        if (board[i] === 0) empty.push(i);
+      }
+      if (!empty.length) return false;
+      var spot = empty[Math.floor(Math.random() * empty.length)];
+      var val = Math.random() < 0.9 ? 2 : 4;
+      board[spot] = val;
+      return true;
+    }
+
+    function checkMax() {
+      for (var i = 0; i < 16; i++) {
+        if (board[i] > maxTile) maxTile = board[i];
+      }
+    }
+
+    function canMove() {
+      for (var i = 0; i < 16; i++) {
+        if (board[i] === 0) return true;
+      }
+      // 检查横向与纵向相邻相等
+      for (var r = 0; r < 4; r++) {
+        for (var c = 0; c < 4; c++) {
+          var idx = r * 4 + c;
+          if (c < 3 && board[idx] === board[idx + 1]) return true;
+          if (r < 3 && board[idx] === board[idx + 4]) return true;
+        }
+      }
+      return false;
+    }
+
+    /* 滑动核心算法: 单行 4 元素向左靠拢并合并 */
+    function slideRow(row) {
+      var filtered = row.filter(function (x) { return x !== 0; });
+      var newRow = [0, 0, 0, 0];
+      var gained = 0;
+      var merged = 0;
+      var outIdx = 0;
+      for (var i = 0; i < filtered.length; i++) {
+        if (i < filtered.length - 1 && filtered[i] === filtered[i + 1]) {
+          var val = filtered[i] * 2;
+          newRow[outIdx++] = val;
+          gained += val;
+          merged++;
+          i++; // 跳过下一个已合并的元素
+        } else {
+          newRow[outIdx++] = filtered[i];
+        }
+      }
+      return { row: newRow, gained: gained, merged: merged };
+    }
+
+    function move(dir) {
+      if (destroyed || isOver) return false;
+      var oldBoard = board.slice();
+      var totalGained = 0;
+      var totalMerged = 0;
+
+      if (dir === 'left') {
+        for (var r = 0; r < 4; r++) {
+          var row = [board[r * 4], board[r * 4 + 1], board[r * 4 + 2], board[r * 4 + 3]];
+          var res = slideRow(row);
+          board[r * 4] = res.row[0];
+          board[r * 4 + 1] = res.row[1];
+          board[r * 4 + 2] = res.row[2];
+          board[r * 4 + 3] = res.row[3];
+          totalGained += res.gained;
+          totalMerged += res.merged;
+        }
+      } else if (dir === 'right') {
+        for (var r = 0; r < 4; r++) {
+          var row = [board[r * 4 + 3], board[r * 4 + 2], board[r * 4 + 1], board[r * 4]];
+          var res = slideRow(row);
+          board[r * 4 + 3] = res.row[0];
+          board[r * 4 + 2] = res.row[1];
+          board[r * 4 + 1] = res.row[2];
+          board[r * 4] = res.row[3];
+          totalGained += res.gained;
+          totalMerged += res.merged;
+        }
+      } else if (dir === 'up') {
+        for (var c = 0; c < 4; c++) {
+          var col = [board[c], board[c + 4], board[c + 8], board[c + 12]];
+          var res = slideRow(col);
+          board[c] = res.row[0];
+          board[c + 4] = res.row[1];
+          board[c + 8] = res.row[2];
+          board[c + 12] = res.row[3];
+          totalGained += res.gained;
+          totalMerged += res.merged;
+        }
+      } else if (dir === 'down') {
+        for (var c = 0; c < 4; c++) {
+          var col = [board[c + 12], board[c + 8], board[c + 4], board[c]];
+          var res = slideRow(col);
+          board[c + 12] = res.row[0];
+          board[c + 8] = res.row[1];
+          board[c + 4] = res.row[2];
+          board[c] = res.row[3];
+          totalGained += res.gained;
+          totalMerged += res.merged;
+        }
+      }
+
+      var changed = false;
+      for (var i = 0; i < 16; i++) {
+        if (board[i] !== oldBoard[i]) { changed = true; break; }
+      }
+
+      if (changed) {
+        history.push({ board: oldBoard, score: score, maxTile: maxTile, moves: moves });
+        if (history.length > 3) history.shift();
+
+        score += totalGained;
+        moves++;
+        merges += totalMerged;
+        if (score > bestScore) {
+          bestScore = score;
+          try { localStorage.setItem('sm_2048_best', String(bestScore)); } catch (e) {}
+        }
+        checkMax();
+        spawnTile();
+
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+
+        if (maxTile >= 2048 && !hasWon) {
+          hasWon = true;
+          if (window.SFX && window.SFX.stage) window.SFX.stage();
+          showFloatTip('🎉 达成 2048 登顶成就！');
+        }
+
+        if (!canMove()) {
+          isOver = true;
+          if (window.SFX && window.SFX.wrong) window.SFX.wrong();
+        }
+
+        renderUI();
+        return true;
+      }
+      return false;
+    }
+
+    function undo() {
+      if (destroyed || !history.length || undosLeft <= 0) return;
+      var last = history.pop();
+      board = last.board;
+      score = last.score;
+      maxTile = last.maxTile;
+      moves = last.moves;
+      undosLeft--;
+      isOver = false;
+      if (window.SFX && window.SFX.tap) window.SFX.tap();
+      renderUI();
+    }
+
+    function resetGame() {
+      board = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+      score = 0;
+      moves = 0;
+      merges = 0;
+      maxTile = 2;
+      history = [];
+      undosLeft = 3;
+      hasWon = false;
+      isOver = false;
+      spawnTile();
+      spawnTile();
+      checkMax();
+      renderUI();
+    }
+
+    function showFloatTip(txt) {
+      var m = document.createElement('div');
+      m.className = 'g2048-float-tip';
+      m.textContent = txt;
+      el.appendChild(m);
+      setTimeout(function () { if (m && m.parentNode) m.remove(); }, 1200);
+    }
+
+    function finish() {
+      clearTimers();
+      var certs = window.SM_DATA['game-2048'].certs;
+      var cert = certs[certs.length - 1];
+      for (var i = 0; i < certs.length; i++) {
+        if (maxTile >= certs[i].min) { cert = certs[i]; break; }
+      }
+
+      var role = ROLE_MAP[maxTile] || '传奇';
+      var planningPct = maxTile >= 2048 ? 100 : maxTile >= 1024 ? 92 : maxTile >= 512 ? 82 : maxTile >= 256 ? 70 : maxTile >= 128 ? 58 : 42;
+      var decisionPct = Math.min(98, Math.max(45, Math.round((score / Math.max(1, moves * 12)) * 80)));
+      var resiliencePct = isOver ? 72 : 90;
+
+      onFinish({
+        icon: cert.icon,
+        name: cert.name,
+        tag: '最高合成 ' + maxTile + '（' + role + '）· 终局得分 ' + score + ' 分',
+        text: cert.text + ' 本局历经 ' + moves + ' 步推演与 ' + merges + ' 次合体，无论顺境还是逆风，你在方寸之间的运筹帷幄都令人叹服。',
+        big: { label: '最高合成数字', value: maxTile + ' <small>分 ' + score + '</small>' },
+        bars: [
+          { label: '空间掌控力', pct: planningPct, hi: true },
+          { label: '决策果断度', pct: decisionPct },
+          { label: '逆境容错率', pct: resiliencePct }
+        ],
+        blocks: [
+          { h: '职场段位认证', cert: '【' + role + '】' },
+          { h: '对局复盘', text: '本局总步数 ' + moves + ' 步，合成总分 ' + score + ' 分，历史最佳分 ' + bestScore + ' 分。' },
+          { h: '战略建议', text: '2048 的底层法则永远是“守住一个角落，大小有序排列”。现实亦如此，守好自己的基本盘，步步为营方能化险为夷。' }
+        ],
+        quip: window.SM_DATA['game-2048'].disclaimer,
+        cert: cert.name + ' · 认证',
+        detail: { type: cert.name, maxTile: maxTile, score: score, moves: moves }
+      });
+    }
+
+    function renderUI() {
+      var role = ROLE_MAP[maxTile] || '高阶';
+      var boardCellsHTML = '';
+      for (var i = 0; i < 16; i++) {
+        var v = board[i];
+        if (v === 0) {
+          boardCellsHTML += '<div class="g2048-cell empty"></div>';
+        } else {
+          var cls = 'g2048-tile t' + (v <= 2048 ? v : 'super');
+          var rName = ROLE_MAP[v] || '进阶';
+          boardCellsHTML += '<div class="g2048-cell"><div class="' + cls + '"><span class="g2048-num">' + v + '</span><span class="g2048-tag">' + rName + '</span></div></div>';
+        }
+      }
+
+      var overOverlayHTML = isOver ? (
+        '<div class="g2048-overlay">' +
+        '<div class="g2048-ov-title">无路可走 · 棋逢对手</div>' +
+        '<div class="g2048-ov-sub">最高合成 <b>' + maxTile + ' (' + role + ')</b> · 本局得分 ' + score + '</div>' +
+        '<div class="g2048-ov-btns">' +
+        '<button class="g2048-btn accent" id="btn2048Cert">📜 查看说明书认证判词</button>' +
+        '<button class="g2048-btn" id="btn2048Restart">🔄 再战一局</button>' +
+        '</div></div>'
+      ) : '';
+
+      el.innerHTML =
+        '<div class="g2048-container">' +
+        '<div class="g2048-hud">' +
+        '<div class="g2048-score-card">' +
+        '<div class="g2048-sc-lbl">得分 SCORE</div>' +
+        '<div class="g2048-sc-val">' + score + '</div>' +
+        '</div>' +
+        '<div class="g2048-score-card">' +
+        '<div class="g2048-sc-lbl">最高分 BEST</div>' +
+        '<div class="g2048-sc-val">' + bestScore + '</div>' +
+        '</div>' +
+        '<div class="g2048-score-card highlight">' +
+        '<div class="g2048-sc-lbl">最高 MAX</div>' +
+        '<div class="g2048-sc-val">' + maxTile + ' <small>' + role + '</small></div>' +
+        '</div>' +
+        '</div>' +
+
+        '<div class="g2048-tools">' +
+        '<button class="g2048-tool-btn" id="btn2048Undo" ' + (undosLeft <= 0 || !history.length ? 'disabled' : '') + '>↩ 撤销 (' + undosLeft + ')</button>' +
+        '<button class="g2048-tool-btn" id="btn2048Reset">🔄 重来</button>' +
+        '<button class="g2048-tool-btn finish" id="btn2048Finish">📜 结算判词</button>' +
+        '</div>' +
+
+        '<div class="g2048-board-wrap" id="g2048Board">' +
+        '<div class="g2048-grid">' + boardCellsHTML + '</div>' +
+        overOverlayHTML +
+        '</div>' +
+
+        '<div class="g2048-controls">' +
+        '<div class="g2048-dpad">' +
+        '<button class="g2048-pad-btn up" data-dir="up" aria-label="向上">▲</button>' +
+        '<div class="g2048-pad-mid">' +
+        '<button class="g2048-pad-btn left" data-dir="left" aria-label="向左">◀</button>' +
+        '<button class="g2048-pad-btn down" data-dir="down" aria-label="向下">▼</button>' +
+        '<button class="g2048-pad-btn right" data-dir="right" aria-label="向右">▶</button>' +
+        '</div>' +
+        '</div>' +
+        '<div class="g2048-hint">支持屏幕滑动、方向键 ↑ ↓ ← → 或轻点上方方向键</div>' +
+        '</div>' +
+        '</div>';
+
+      // 绑定按钮事件
+      var undoBtn = el.querySelector('#btn2048Undo');
+      if (undoBtn) undoBtn.onclick = undo;
+      var resetBtn = el.querySelector('#btn2048Reset');
+      if (resetBtn) resetBtn.onclick = resetGame;
+      var finishBtn = el.querySelector('#btn2048Finish');
+      if (finishBtn) finishBtn.onclick = finish;
+
+      var certBtn = el.querySelector('#btn2048Cert');
+      if (certBtn) certBtn.onclick = finish;
+      var restartBtn = el.querySelector('#btn2048Restart');
+      if (restartBtn) restartBtn.onclick = resetGame;
+
+      // D-Pad 按键
+      el.querySelectorAll('.g2048-pad-btn').forEach(function (btn) {
+        btn.onclick = function (e) {
+          e.stopPropagation();
+          move(btn.dataset.dir);
+        };
+      });
+
+      bindTouch();
+    }
+
+    // 触摸滑动
+    var touchStartX = 0, touchStartY = 0;
+    function bindTouch() {
+      var boardEl = el.querySelector('#g2048Board');
+      if (!boardEl) return;
+
+      boardEl.addEventListener('touchstart', function (e) {
+        if (!e.touches.length) return;
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+      }, { passive: true });
+
+      boardEl.addEventListener('touchmove', function (e) {
+        // 防止滑动棋盘时意外触发整个页面上下晃动
+        if (e.cancelable) e.preventDefault();
+      }, { passive: false });
+
+      boardEl.addEventListener('touchend', function (e) {
+        if (!e.changedTouches.length) return;
+        var dx = e.changedTouches[0].clientX - touchStartX;
+        var dy = e.changedTouches[0].clientY - touchStartY;
+        var absX = Math.abs(dx);
+        var absY = Math.abs(dy);
+
+        if (Math.max(absX, absY) > 28) {
+          if (absX > absY) {
+            move(dx > 0 ? 'right' : 'left');
+          } else {
+            move(dy > 0 ? 'down' : 'up');
+          }
+        }
+      }, { passive: true });
+    }
+
+    // 键盘监听
+    function onKeyDown(e) {
+      if (destroyed || isOver) return;
+      var key = e.key;
+      if (key === 'ArrowUp' || key === 'w' || key === 'W') {
+        e.preventDefault(); move('up');
+      } else if (key === 'ArrowDown' || key === 's' || key === 'S') {
+        e.preventDefault(); move('down');
+      } else if (key === 'ArrowLeft' || key === 'a' || key === 'A') {
+        e.preventDefault(); move('left');
+      } else if (key === 'ArrowRight' || key === 'd' || key === 'D') {
+        e.preventDefault(); move('right');
+      }
+    }
+    window.addEventListener('keydown', onKeyDown);
+
+    // 启动初始棋盘
+    spawnTile();
+    spawnTile();
+    checkMax();
+    renderUI();
+
+    return {
+      destroy: function () {
+        destroyed = true;
+        clearTimers();
+        window.removeEventListener('keydown', onKeyDown);
+      }
+    };
+  };
 })();

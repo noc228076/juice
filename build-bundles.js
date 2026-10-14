@@ -15,7 +15,8 @@ const cssFiles = [
   'css/modules/merit.css',
   'css/modules/lifeguide.css',
   'css/modules/bazi.css',
-  'css/modules/daily.css'
+  'css/modules/daily.css',
+  'css/modules/scratch.css'
 ];
 
 const jsFiles = [
@@ -37,6 +38,7 @@ const jsFiles = [
   'js/modules/bazi-cities.js',
   'js/modules/bazi.js',
   'js/modules/daily.js',
+  'js/modules/scratch.js',
   'js/modules/history.js',
   'js/modules/router.js'
 ];

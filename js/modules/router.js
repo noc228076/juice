@@ -8,7 +8,7 @@
 
   let currentModule = 'drinks';
   let lastMysticMod = 'tarot';
-  const ALLOWED_MODS = ['drinks', 'milktea', 'manual', 'fengshui', 'tarot', 'lingqian', 'decision', 'clock', 'merit', 'lifeguide', 'bazi', 'daily'];
+  const ALLOWED_MODS = ['drinks', 'milktea', 'manual', 'fengshui', 'tarot', 'lingqian', 'decision', 'clock', 'merit', 'lifeguide', 'bazi', 'daily', 'scratch'];
   const initializedModules = new Set(['drinks']);
 
   function updateGlider(activeTab) {
@@ -85,6 +85,7 @@
       if (modKey === 'lifeguide' && window.AppLifeguide) window.AppLifeguide.init();
       if (modKey === 'bazi' && window.AppBazi) window.AppBazi.init();
       if (modKey === 'daily' && window.AppDaily) window.AppDaily.init();
+      if (modKey === 'scratch' && window.AppScratch) window.AppScratch.init();
     } else {
       if (modKey === 'manual' && window.AppManual) {
         const body = document.getElementById('sm-homebody');

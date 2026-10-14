@@ -75,6 +75,18 @@ html[data-active-module="lifeguide"] {
   --mod-ac-glow: rgba(16, 185, 129, 0.35);
   --mod-ambient: rgba(16, 185, 129, 0.06);
 }
+html[data-active-module="daily"] {
+  --mod-ac: #3B82F6;
+  --mod-ac-ink: #041738;
+  --mod-ac-glow: rgba(59, 130, 246, 0.35);
+  --mod-ambient: rgba(59, 130, 246, 0.06);
+}
+html[data-active-module="scratch"] {
+  --mod-ac: #F59E0B;
+  --mod-ac-ink: #261704;
+  --mod-ac-glow: rgba(245, 158, 11, 0.38);
+  --mod-ambient: rgba(245, 158, 11, 0.07);
+}
 
 #global-header {
   position: fixed;
@@ -300,6 +312,7 @@ html {
 #mod-lifeguide,
 #mod-bazi,
 #mod-daily,
+#mod-scratch,
 .app-module {
   position: absolute !important;
   inset: 0 !important;
@@ -324,6 +337,7 @@ html {
 #mod-lifeguide.active,
 #mod-bazi.active,
 #mod-daily.active,
+#mod-scratch.active,
 .app-module.active {
   display: block !important;
   pointer-events: auto !important;

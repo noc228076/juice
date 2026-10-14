@@ -956,7 +956,9 @@ body.has-daily-ambient-bg #mod-lifeguide,
 html.has-daily-ambient-bg #mod-bazi,
 body.has-daily-ambient-bg #mod-bazi,
 html.has-daily-ambient-bg #mod-daily,
-body.has-daily-ambient-bg #mod-daily {
+body.has-daily-ambient-bg #mod-daily,
+html.has-daily-ambient-bg #mod-scratch,
+body.has-daily-ambient-bg #mod-scratch {
   background: transparent !important;
 }
 

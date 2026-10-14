@@ -9,7 +9,7 @@
 
 | 项 | 内容 |
 |---|---|
-| 项目名 | 饮料人格研究所（Drink Persona Lab），已扩展为「八合一赛博实验矩阵」 |
+| 项目名 | 饮料人格研究所（Drink Persona Lab），已扩展为多合一趣味实验矩阵 |
 | 本地路径 | `D:\Documents\AI\2\juice` |
 | Git 仓库 | `github.com/noc228076/juice`（公开，默认分支 `main`） |
 | 线上地址 | https://juice.noooc.dpdns.org/ （Vercel，已连接 GitHub main 自动部署） |

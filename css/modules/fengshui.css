@@ -60,6 +60,12 @@ html[data-theme="light"] #mod-fengshui {
   margin: 0 auto;
   padding: 16px 20px calc(28px + env(safe-area-inset-bottom));
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+#mod-fengshui .ew-mystic-bar {
+  margin: 0 auto 12px !important;
 }
 
 /* 顶部标题 */

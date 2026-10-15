@@ -1,5 +1,5 @@
 /* =========================================================
-   模块 9：静心功德局 · 电子木鱼 & 怨气粉碎机 (Cyber Merit & Stress Relief)
+   模块 9：静心功德局 · 电子木鱼 & 怨气粉碎机 (Mindful Merit & Stress Relief)
    包含：电子木鱼、无尽减压泡泡纸、怨气碎纸机/火盆
    ========================================================= */
 
@@ -42,6 +42,12 @@ html[data-theme="light"] #mod-merit {
   max-width: 680px;
   margin: 0 auto;
   padding: 20px 18px 56px;
+  display: flex;
+  flex-direction: column;
+}
+
+#mod-merit .subnav-pill-bar {
+  margin: 0 auto 16px !important;
 }
 
 /* 顶部标题区 */

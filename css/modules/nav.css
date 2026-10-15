@@ -396,7 +396,9 @@ html {
 
 /* ============ 子模块二级切换胶囊条 (Sub-navigation Pill Bar) ============ */
 .subnav-pill-bar {
-  display: inline-flex;
+  display: flex !important;
+  width: -moz-fit-content !important;
+  width: fit-content !important;
   align-items: center;
   justify-content: center;
   gap: 4px;
@@ -404,8 +406,9 @@ html {
   border: 1px solid var(--line);
   border-radius: 999px;
   padding: 3px;
-  margin: 0 auto 16px;
+  margin: 0 auto 16px !important;
   max-width: 100%;
+  box-sizing: border-box;
 }
 
 html[data-theme="light"] .subnav-pill-bar {

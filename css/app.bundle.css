@@ -885,7 +885,9 @@ html {
 
 /* ============ 子模块二级切换胶囊条 (Sub-navigation Pill Bar) ============ */
 .subnav-pill-bar {
-  display: inline-flex;
+  display: flex !important;
+  width: -moz-fit-content !important;
+  width: fit-content !important;
   align-items: center;
   justify-content: center;
   gap: 4px;
@@ -893,8 +895,9 @@ html {
   border: 1px solid var(--line);
   border-radius: 999px;
   padding: 3px;
-  margin: 0 auto 16px;
+  margin: 0 auto 16px !important;
   max-width: 100%;
+  box-sizing: border-box;
 }
 
 html[data-theme="light"] .subnav-pill-bar {
@@ -1650,6 +1653,12 @@ html[data-theme="light"] #mod-fengshui {
   margin: 0 auto;
   padding: 16px 20px calc(28px + env(safe-area-inset-bottom));
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+#mod-fengshui .ew-mystic-bar {
+  margin: 0 auto 12px !important;
 }
 
 /* 顶部标题 */
@@ -7476,7 +7485,9 @@ html[data-theme="light"] #mod-lingqian {
 
 /* 东西方玄学合辑联动胶囊条 (在 tarot 与 lingqian 共享) */
 .ew-mystic-bar {
-  display: inline-flex;
+  display: flex !important;
+  width: -moz-fit-content !important;
+  width: fit-content !important;
   align-items: center;
   justify-content: center;
   gap: 4px;
@@ -7484,7 +7495,9 @@ html[data-theme="light"] #mod-lingqian {
   border: 1px solid var(--line);
   border-radius: 999px;
   padding: 3px;
-  margin: 0 auto 10px;
+  margin: 0 auto 12px !important;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 html[data-theme="light"] .ew-mystic-bar {
@@ -8674,7 +8687,7 @@ html[data-theme="light"] .ck-cfg-item select option {
 
 /* === css/modules/merit.css === */
 /* =========================================================
-   模块 9：静心功德局 · 电子木鱼 & 怨气粉碎机 (Cyber Merit & Stress Relief)
+   模块 9：静心功德局 · 电子木鱼 & 怨气粉碎机 (Mindful Merit & Stress Relief)
    包含：电子木鱼、无尽减压泡泡纸、怨气碎纸机/火盆
    ========================================================= */
 
@@ -8717,6 +8730,12 @@ html[data-theme="light"] #mod-merit {
   max-width: 680px;
   margin: 0 auto;
   padding: 20px 18px 56px;
+  display: flex;
+  flex-direction: column;
+}
+
+#mod-merit .subnav-pill-bar {
+  margin: 0 auto 16px !important;
 }
 
 /* 顶部标题区 */

@@ -17,7 +17,7 @@
 <meta property="og:title" content="饮料人格研究所 · 测测你的精神状态与灵魂特调">
 <meta property="og:description" content="当代年轻人精神状态测试 (SBTI) / 经典 16 型人格 (MBTI) / 16 款灵魂饮料特调，测出你的独家出厂配方与精神病友。">
 <meta property="og:image" content="assets/icons/icon-512.png">
-  <link rel="stylesheet" href="css/app.bundle.css?v=52">
+  <link rel="stylesheet" href="css/app.bundle.css?v=56">
   <script>
     (function(){
       try {
@@ -2313,9 +2313,117 @@
     </div>
   </div>
 
+  <!-- 拟真 3D 机械大翻页倒计时全屏沉浸屏保 (Fliqlo Style) -->
+  <div id="ckZenOverlay" class="ck-zen-overlay" aria-hidden="true">
+    <!-- 顶部极简控制栏（空闲自动淡出） -->
+    <div class="zen-topbar">
+      <div class="zen-mode-pills" role="tablist">
+        <button type="button" class="zen-mode-pill active" data-zen-mode="offwork">
+          <span>🏃 今日下班</span>
+        </button>
+        <button type="button" class="zen-mode-pill" data-zen-mode="realtime">
+          <span>⏰ 实时时钟</span>
+        </button>
+        <button type="button" class="zen-mode-pill" data-zen-mode="friday">
+          <span>🍻 周末倒计时</span>
+        </button>
+      </div>
+      <button type="button" class="zen-btn-close" id="zenBtnClose" title="退出全屏屏保 (ESC / 双击屏幕)">
+        <span>✕ 退出屏保</span>
+      </button>
+    </div>
+
+    <!-- 舞台核心区：Fliqlo 风格拟真大翻页钟 -->
+    <div class="zen-center-stage">
+      <div class="zen-header">
+        <h2 class="zen-title" id="zenEyebrowTitle">2026年10月15日 · 周四 · 农历九月初六</h2>
+      </div>
+
+      <!-- 翻页卡片排布 -->
+      <div class="zen-flip-row">
+        <!-- 天数卡片（仅当大于0天时自动展开） -->
+        <div class="zen-unit-col" id="zenWrapDD" style="display: none;">
+          <div class="zen-flip-card" id="zenCardDD" data-val="00">
+            <div class="zen-half zen-top static-top"><span class="zen-num">00</span></div>
+            <div class="zen-half zen-bot static-bot"><span class="zen-num">00</span></div>
+            <div class="zen-half zen-top flap-top"><span class="zen-num">00</span><div class="zen-shade"></div></div>
+            <div class="zen-half zen-bot flap-bot"><span class="zen-num">00</span><div class="zen-shade"></div></div>
+            <div class="zen-slit"></div>
+            <div class="zen-hinge left"></div>
+            <div class="zen-hinge right"></div>
+          </div>
+          <span class="zen-label">DAYS · 天</span>
+        </div>
+        <div class="zen-colon" id="zenColonDD" style="display: none;">:</div>
+
+        <!-- 小时卡片 -->
+        <div class="zen-unit-col" id="zenWrapHH">
+          <div class="zen-flip-card" id="zenCardHH" data-val="00">
+            <div class="zen-half zen-top static-top"><span class="zen-num">00</span></div>
+            <div class="zen-half zen-bot static-bot"><span class="zen-num">00</span></div>
+            <div class="zen-half zen-top flap-top"><span class="zen-num">00</span><div class="zen-shade"></div></div>
+            <div class="zen-half zen-bot flap-bot"><span class="zen-num">00</span><div class="zen-shade"></div></div>
+            <div class="zen-slit"></div>
+            <div class="zen-hinge left"></div>
+            <div class="zen-hinge right"></div>
+          </div>
+          <span class="zen-label">HOURS · 时</span>
+        </div>
+        <div class="zen-colon">:</div>
+
+        <!-- 分钟卡片 -->
+        <div class="zen-unit-col" id="zenWrapMM">
+          <div class="zen-flip-card" id="zenCardMM" data-val="00">
+            <div class="zen-half zen-top static-top"><span class="zen-num">00</span></div>
+            <div class="zen-half zen-bot static-bot"><span class="zen-num">00</span></div>
+            <div class="zen-half zen-top flap-top"><span class="zen-num">00</span><div class="zen-shade"></div></div>
+            <div class="zen-half zen-bot flap-bot"><span class="zen-num">00</span><div class="zen-shade"></div></div>
+            <div class="zen-slit"></div>
+            <div class="zen-hinge left"></div>
+            <div class="zen-hinge right"></div>
+          </div>
+          <span class="zen-label">MINUTES · 分</span>
+        </div>
+        <div class="zen-colon">:</div>
+
+        <!-- 秒钟卡片 -->
+        <div class="zen-unit-col" id="zenWrapSS">
+          <div class="zen-flip-card" id="zenCardSS" data-val="00">
+            <div class="zen-half zen-top static-top"><span class="zen-num">00</span></div>
+            <div class="zen-half zen-bot static-bot"><span class="zen-num">00</span></div>
+            <div class="zen-half zen-top flap-top"><span class="zen-num">00</span><div class="zen-shade"></div></div>
+            <div class="zen-half zen-bot flap-bot"><span class="zen-num">00</span><div class="zen-shade"></div></div>
+            <div class="zen-slit"></div>
+            <div class="zen-hinge left"></div>
+            <div class="zen-hinge right"></div>
+          </div>
+          <span class="zen-label">SECONDS · 秒</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 底部工时进度条与提示栏 -->
+    <div class="zen-footer-wrap">
+      <div class="zen-prog-box" id="zenProgBox">
+        <div class="zen-prog-labels">
+          <span class="zen-prog-label" id="zenProgLabel">今日工时进度</span>
+          <span class="zen-prog-val" id="zenProgVal">50.0%</span>
+        </div>
+        <div class="zen-prog-track">
+          <div class="zen-prog-fill" id="zenProgressFill" style="width: 50%;"></div>
+        </div>
+        <div class="zen-prog-sub" id="zenProgressSub">今日 09:00 上班 · 18:00 下班 · 再撑 125 分钟</div>
+      </div>
+
+      <div class="zen-hint-pill">
+        <span>💡 双击屏幕或按 <b>ESC</b> 键退出全屏屏保 · 鼠标静止 2.5 秒后自动沉浸隐藏控制栏</span>
+      </div>
+    </div>
+  </div>
+
   <canvas id="shareCanvas" width="1080" height="1620" hidden></canvas>
 </div>
 
-  <script defer src="js/app.bundle.js?v=52"></script>
+  <script defer src="js/app.bundle.js?v=56"></script>
 </body>
 </html>

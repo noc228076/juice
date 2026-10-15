@@ -20838,7 +20838,7 @@ if ('serviceWorker' in navigator) {
 ;
 /* === js/modules/clock.js === */
 /* =========================================================
-   模块 8：摸鱼发薪实时时钟 (Cyber Slacking & Salary Ticker)
+   模块 8：摸鱼发薪实时时钟 (Workplace Slacking & Salary Ticker)
    扎心又快乐的工位时钟 · 毫秒级窝囊费跳字 · 带薪摸鱼计时 · 战报海报
    ========================================================= */
 
@@ -20877,6 +20877,11 @@ if ('serviceWorker' in navigator) {
   let slackAccumulatedMs = 0;
   let tickerInterval = null;
   let lastClockRecord = null;
+
+  // 3D 拟真机械大翻页倒计时全屏沉浸屏保状态 (Fliqlo 风格)
+  let isZenOpen = false;
+  let zenMode = 'offwork'; // 'offwork' | 'realtime' | 'friday'
+  let zenIdleTimer = null;
 
   function loadConfig() {
     try {
@@ -20983,6 +20988,24 @@ if ('serviceWorker' in navigator) {
     return { name: '元旦假期', days: 30 };
   }
 
+  // 获取农历日期字符串（如：农历九月初六，逢节气如：农历九月十四 · 霜降）
+  function getLunarDateString(date) {
+    try {
+      const solarObj = (typeof window !== 'undefined' && window.Solar) ? window.Solar : (typeof Solar !== 'undefined' ? Solar : null);
+      if (solarObj && typeof solarObj.fromDate === 'function') {
+        const lunar = solarObj.fromDate(date).getLunar();
+        const month = lunar.getMonthInChinese();
+        const day = lunar.getDayInChinese();
+        const jieQi = lunar.getJieQi();
+        if (jieQi) {
+          return `农历${month}月${day} · ${jieQi}`;
+        }
+        return `农历${month}月${day}`;
+      }
+    } catch (e) {}
+    return '';
+  }
+
   // 计算当前加班已持续的秒数
   function getOvertimeSeconds(now, todayIsRest, startOfTodayWork, endOfTodayWork) {
     if (overtimeMode === 'none') return 0;
@@ -20999,6 +21022,343 @@ if ('serviceWorker' in navigator) {
       return Math.max(sinceClick, Math.min(sinceMorning, 3600 * 12));
     }
     return otStartMs ? Math.max(0, (Date.now() - otStartMs) / 1000) : 0;
+  }
+
+  // Fliqlo 拟真机械翻页卡片核心更新器 (双叶片 3D 折叠，完全静音)
+  function updateFlipUnit(cardEl, newVal) {
+    if (!cardEl) return;
+    const currentVal = cardEl.getAttribute('data-val') || '';
+    if (currentVal === newVal) return;
+
+    const topStaticNum = cardEl.querySelector('.static-top .zen-num');
+    const botStaticNum = cardEl.querySelector('.static-bot .zen-num');
+    const flapTop = cardEl.querySelector('.flap-top');
+    const flapBot = cardEl.querySelector('.flap-bot');
+    const flapTopNum = flapTop ? flapTop.querySelector('.zen-num') : null;
+    const flapBotNum = flapBot ? flapBot.querySelector('.zen-num') : null;
+
+    if (!currentVal) {
+      cardEl.setAttribute('data-val', newVal);
+      if (topStaticNum) topStaticNum.textContent = newVal;
+      if (botStaticNum) botStaticNum.textContent = newVal;
+      if (flapTopNum) flapTopNum.textContent = newVal;
+      if (flapBotNum) flapBotNum.textContent = newVal;
+      return;
+    }
+
+    // 翻页前准备：
+    // 上半部静止层预先置入新数值（被 flapTop 遮挡）
+    // 下半部静止层保持旧数值（等待 flapBot 翻转落下遮盖）
+    // 上翻转叶 flapTop 显示当前旧数值，向下折叠 90 度
+    // 下翻转叶 flapBot 显示目标新数值，从 90 度折叠展平至 0 度
+    if (topStaticNum) topStaticNum.textContent = newVal;
+    if (botStaticNum) botStaticNum.textContent = currentVal;
+    if (flapTopNum) flapTopNum.textContent = currentVal;
+    if (flapBotNum) flapBotNum.textContent = newVal;
+
+    cardEl.classList.remove('is-flipping');
+    void cardEl.offsetWidth; // 触发 reflow 重新执行折叠动画
+    cardEl.classList.add('is-flipping');
+    cardEl.setAttribute('data-val', newVal);
+
+    clearTimeout(cardEl._flipTimer);
+    cardEl._flipTimer = setTimeout(() => {
+      cardEl.classList.remove('is-flipping');
+      if (botStaticNum) botStaticNum.textContent = newVal;
+      if (flapTopNum) flapTopNum.textContent = newVal;
+    }, 580);
+  }
+
+  // 全屏沉浸屏保实时渲染核心（下班倒计时 / 实时工位时钟 / 周末倒计时）
+  function updateZenScreensaver(now, rates, todayIsRest, startOfTodayWork, endOfTodayWork, earnedToday, progressPct, overtimeMode, otSec) {
+    const overlay = document.getElementById('ckZenOverlay');
+    if (!overlay || !isZenOpen) return;
+
+    const brandText = document.getElementById('zenBrandText');
+    const titleEl = document.getElementById('zenEyebrowTitle');
+
+    const wrapDD = document.getElementById('zenWrapDD');
+    const colonDD = document.getElementById('zenColonDD');
+    const cardDD = document.getElementById('zenCardDD');
+    const cardHH = document.getElementById('zenCardHH');
+    const cardMM = document.getElementById('zenCardMM');
+    const cardSS = document.getElementById('zenCardSS');
+
+    const progLabel = document.getElementById('zenProgLabel');
+    const progVal = document.getElementById('zenProgVal');
+    const progFill = document.getElementById('zenProgressFill');
+    const progSub = document.getElementById('zenProgressSub');
+
+    const zenIncVal = document.getElementById('zenIncomeVal');
+    const zenIncRate = document.getElementById('zenIncomeRate');
+
+    // 1. 同步副信息区：实时窝囊费跳表与秒级进账速度
+    const intPart = Math.floor(earnedToday);
+    const decPart = (earnedToday - intPart).toFixed(4).substring(1);
+    if (zenIncVal) zenIncVal.textContent = intPart.toLocaleString() + decPart;
+    if (zenIncRate) {
+      if (overtimeMode === 'unpaid') {
+        zenIncRate.textContent = '(无偿加班 +¥0.0000)';
+      } else if (overtimeMode === 'paid') {
+        zenIncRate.textContent = `(付费加班每秒 +¥${(rates.perSecond * rates.otMult).toFixed(4)})`;
+      } else if (todayIsRest) {
+        zenIncRate.textContent = '(休假暂停跳字)';
+      } else {
+        zenIncRate.textContent = `(每秒 +¥${rates.perSecond.toFixed(4)})`;
+      }
+    }
+
+    // 2. 根据三大模式计算翻页倒计时数值
+    if (zenMode === 'offwork') {
+      if (brandText) brandText.textContent = '🏃 下班倒计时 · 沉浸屏保';
+
+      if (todayIsRest) {
+        if (titleEl) titleEl.textContent = '今日休假 · 享受自由人生';
+        if (wrapDD) wrapDD.style.display = 'none';
+        if (colonDD) colonDD.style.display = 'none';
+        updateFlipUnit(cardHH, '00');
+        updateFlipUnit(cardMM, '00');
+        updateFlipUnit(cardSS, '00');
+
+        if (progLabel) progLabel.textContent = '今日休假状态';
+        if (progVal) progVal.textContent = '100%';
+        if (progFill) progFill.style.width = '100%';
+        if (progSub) progSub.textContent = `当前为${rates.restDesc}，好好休息，蓄满电量！`;
+      } else if (now < startOfTodayWork) {
+        const waitSec = Math.max(0, Math.floor((startOfTodayWork - now) / 1000));
+        if (titleEl) titleEl.textContent = `今日 ${cfg.startTime} 准时开工 · 准备起航`;
+        if (wrapDD) wrapDD.style.display = 'none';
+        if (colonDD) colonDD.style.display = 'none';
+        updateFlipUnit(cardHH, pad2(Math.floor(waitSec / 3600)));
+        updateFlipUnit(cardMM, pad2(Math.floor((waitSec % 3600) / 60)));
+        updateFlipUnit(cardSS, pad2(waitSec % 60));
+
+        if (progLabel) progLabel.textContent = '开工倒计时';
+        if (progVal) progVal.textContent = '0%';
+        if (progFill) progFill.style.width = '0%';
+        if (progSub) progSub.textContent = '先喝杯咖啡喘口气，带薪搬砖即将就绪';
+      } else if (now <= endOfTodayWork) {
+        const remSec = Math.max(0, Math.floor((endOfTodayWork - now) / 1000));
+        if (titleEl) titleEl.textContent = `今日下班倒计时 · 已熬过 ${progressPct.toFixed(1)}%`;
+        if (wrapDD) wrapDD.style.display = 'none';
+        if (colonDD) colonDD.style.display = 'none';
+        updateFlipUnit(cardHH, pad2(Math.floor(remSec / 3600)));
+        updateFlipUnit(cardMM, pad2(Math.floor((remSec % 3600) / 60)));
+        updateFlipUnit(cardSS, pad2(remSec % 60));
+
+        if (progLabel) progLabel.textContent = '今日工时熬过进度';
+        if (progVal) progVal.textContent = `${progressPct.toFixed(1)}%`;
+        if (progFill) progFill.style.width = `${progressPct.toFixed(1)}%`;
+        if (progSub) progSub.textContent = `已在工位 ${formatDurationCN((now - startOfTodayWork) / 1000)} · 再撑 ${Math.ceil(remSec / 60)} 分钟即可合上电脑跑路 🏃💨`;
+      } else {
+        if (overtimeMode === 'paid') {
+          if (titleEl) titleEl.textContent = `延时加班计时中 · 已累计加班 ${formatDurationCN(otSec)}`;
+          if (wrapDD) wrapDD.style.display = 'none';
+          if (colonDD) colonDD.style.display = 'none';
+          updateFlipUnit(cardHH, pad2(Math.floor(otSec / 3600)));
+          updateFlipUnit(cardMM, pad2(Math.floor((otSec % 3600) / 60)));
+          updateFlipUnit(cardSS, pad2(otSec % 60));
+
+          if (progLabel) progLabel.textContent = '加班已多赚窝囊费';
+          if (progVal) progVal.textContent = `+¥${(otSec * rates.perSecond * rates.otMult).toFixed(2)}`;
+          if (progFill) progFill.style.width = '100%';
+          if (progSub) progSub.textContent = `延时加班费正在按 ${rates.otMult} 倍跳字累加，注意身体早点回家`;
+        } else if (overtimeMode === 'unpaid') {
+          if (titleEl) titleEl.textContent = `无偿加班计时中 · 已倒贴工时 ${formatDurationCN(otSec)}`;
+          if (wrapDD) wrapDD.style.display = 'none';
+          if (colonDD) colonDD.style.display = 'none';
+          updateFlipUnit(cardHH, pad2(Math.floor(otSec / 3600)));
+          updateFlipUnit(cardMM, pad2(Math.floor((otSec % 3600) / 60)));
+          updateFlipUnit(cardSS, pad2(otSec % 60));
+
+          if (progLabel) progLabel.textContent = '无偿加班倒贴工时';
+          if (progVal) progVal.textContent = '¥0/秒';
+          if (progFill) progFill.style.width = '100%';
+          if (progSub) progSub.textContent = '薪资已停涨，相当于白白送钱！快合上电脑离开！';
+        } else {
+          if (titleEl) titleEl.textContent = '今日已顺利下班解放 🎉';
+          if (wrapDD) wrapDD.style.display = 'none';
+          if (colonDD) colonDD.style.display = 'none';
+          updateFlipUnit(cardHH, '00');
+          updateFlipUnit(cardMM, '00');
+          updateFlipUnit(cardSS, '00');
+
+          if (progLabel) progLabel.textContent = '今日工时进度';
+          if (progVal) progVal.textContent = '100%';
+          if (progFill) progFill.style.width = '100%';
+          if (progSub) progSub.textContent = `已过 ${cfg.endTime} 下班点，正班日薪全额落袋，快快背上书包撤退！`;
+        }
+      }
+    } else if (zenMode === 'realtime') {
+      if (brandText) brandText.textContent = '⏰ 实时时钟 · 沉浸屏保';
+      const weekNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+      const lunarStr = getLunarDateString(now);
+      if (titleEl) {
+        titleEl.textContent = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日 · ${weekNames[now.getDay()]}${lunarStr ? ' · ' + lunarStr : ''}`;
+      }
+      if (wrapDD) wrapDD.style.display = 'none';
+      if (colonDD) colonDD.style.display = 'none';
+
+      updateFlipUnit(cardHH, pad2(now.getHours()));
+      updateFlipUnit(cardMM, pad2(now.getMinutes()));
+      updateFlipUnit(cardSS, pad2(now.getSeconds()));
+
+      if (progLabel) progLabel.textContent = '今日工时进度';
+      if (progVal) progVal.textContent = `${progressPct.toFixed(1)}%`;
+      if (progFill) progFill.style.width = `${progressPct.toFixed(1)}%`;
+      if (progSub) progSub.textContent = `上班 ${cfg.startTime} · 下班 ${cfg.endTime} · 每一秒呼吸都在带薪搞钱`;
+    } else if (zenMode === 'friday') {
+      if (brandText) brandText.textContent = '🍻 周末倒计时 · 沉浸屏保';
+
+      if (cfg.restMode === 'none') {
+        if (titleEl) titleEl.textContent = '全勤排班 · 每一天都元气满满';
+        if (wrapDD) wrapDD.style.display = 'none';
+        if (colonDD) colonDD.style.display = 'none';
+        updateFlipUnit(cardHH, '00');
+        updateFlipUnit(cardMM, '00');
+        updateFlipUnit(cardSS, '00');
+
+        if (progLabel) progLabel.textContent = '排班模式';
+        if (progVal) progVal.textContent = '全勤排班';
+        if (progFill) progFill.style.width = '100%';
+        if (progSub) progSub.textContent = '可在时钟配置面板切换为双休或单休';
+      } else {
+        const dayOfWeek = now.getDay();
+        const isSatWork = (cfg.restMode === 'single_sun' || cfg.restMode === 'bi_small');
+        const targetWeekendDay = isSatWork ? 6 : 5;
+        const targetDayName = isSatWork ? '周六' : '周五';
+
+        if (dayOfWeek === targetWeekendDay && now >= endOfTodayWork) {
+          if (titleEl) titleEl.textContent = '🎉 周末狂欢进行时 · 尽情享受自由！';
+          if (wrapDD) wrapDD.style.display = 'none';
+          if (colonDD) colonDD.style.display = 'none';
+          updateFlipUnit(cardHH, '00');
+          updateFlipUnit(cardMM, '00');
+          updateFlipUnit(cardSS, '00');
+
+          if (progLabel) progLabel.textContent = '周末假期状态';
+          if (progVal) progVal.textContent = '100%';
+          if (progFill) progFill.style.width = '100%';
+          if (progSub) progSub.textContent = '自由时间，禁止任何工作打扰！';
+        } else {
+          let daysToTarget = targetWeekendDay - dayOfWeek;
+          if (daysToTarget < 0) daysToTarget += 7;
+          const wkEnd = new Date(now.getFullYear(), now.getMonth(), now.getDate() + daysToTarget, rates.et.h, rates.et.m, 0);
+          const diffSec = Math.max(0, Math.floor((wkEnd - now) / 1000));
+          const fd = Math.floor(diffSec / 86400);
+          const fh = Math.floor((diffSec % 86400) / 3600);
+          const fm = Math.floor((diffSec % 3600) / 60);
+          const fs = diffSec % 60;
+
+          if (titleEl) titleEl.textContent = `离${targetDayName}放假还剩 ${fd > 0 ? fd + ' 天 ' : ''}${pad2(fh)} 小时 ${pad2(fm)} 分钟`;
+
+          if (fd > 0) {
+            if (wrapDD) wrapDD.style.display = 'flex';
+            if (colonDD) colonDD.style.display = 'block';
+            updateFlipUnit(cardDD, pad2(fd));
+          } else {
+            if (wrapDD) wrapDD.style.display = 'none';
+            if (colonDD) colonDD.style.display = 'none';
+          }
+
+          updateFlipUnit(cardHH, pad2(fh));
+          updateFlipUnit(cardMM, pad2(fm));
+          updateFlipUnit(cardSS, pad2(fs));
+
+          if (progLabel) progLabel.textContent = '本周工作日冲刺';
+          if (progVal) progVal.textContent = `${fd > 0 ? fd + '天 ' : ''}${pad2(fh)}:${pad2(fm)}`;
+          if (progFill) progFill.style.width = `${progressPct.toFixed(1)}%`;
+          if (progSub) progSub.textContent = `距离${targetDayName} ${cfg.endTime} 准时放假，胜利就在眼前！`;
+        }
+      }
+    }
+  }
+
+  // 屏保控制：自动静止 2.5 秒淡出控制栏
+  function resetZenIdle() {
+    const overlay = document.getElementById('ckZenOverlay');
+    if (!overlay) return;
+    overlay.classList.remove('is-idle');
+    clearTimeout(zenIdleTimer);
+    if (isZenOpen) {
+      zenIdleTimer = setTimeout(() => {
+        if (isZenOpen) overlay.classList.add('is-idle');
+      }, 2500);
+    }
+  }
+
+  function onZenKeyDown(e) {
+    if (e.key === 'Escape' || e.key === 'Esc') {
+      closeZenScreensaver();
+    }
+  }
+
+  function openZenScreensaver() {
+    isZenOpen = true;
+    const overlay = document.getElementById('ckZenOverlay');
+    const btnZen = document.getElementById('ckBtnZen');
+    if (overlay) {
+      overlay.classList.add('is-active');
+      overlay.setAttribute('aria-hidden', 'false');
+    }
+    if (btnZen) btnZen.textContent = '🔙 退出屏保';
+
+    // 锁定根页面滚动条，杜绝 Windows 系统滚动条底色/白边露出
+    document.documentElement.classList.add('zen-screensaver-active');
+    document.body.classList.add('zen-screensaver-active');
+
+    // 优先让全屏屏保容器自身进入系统全屏（隔离根页面文档，彻底消除浏览器右侧滚动条）
+    const targetEl = overlay || document.documentElement;
+    if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+      try {
+        if (targetEl.requestFullscreen) {
+          targetEl.requestFullscreen().catch(() => {});
+        } else if (targetEl.webkitRequestFullscreen) {
+          targetEl.webkitRequestFullscreen();
+        } else if (targetEl.msRequestFullscreen) {
+          targetEl.msRequestFullscreen();
+        }
+      } catch (e) {}
+    }
+
+    resetZenIdle();
+    window.addEventListener('mousemove', resetZenIdle, { passive: true });
+    window.addEventListener('touchstart', resetZenIdle, { passive: true });
+    window.addEventListener('keydown', onZenKeyDown);
+    updateTick();
+  }
+
+  function closeZenScreensaver() {
+    isZenOpen = false;
+    const overlay = document.getElementById('ckZenOverlay');
+    const btnZen = document.getElementById('ckBtnZen');
+    if (overlay) {
+      overlay.classList.remove('is-active', 'is-idle');
+      overlay.setAttribute('aria-hidden', 'true');
+    }
+    if (btnZen) btnZen.textContent = '🖥️ 极简屏保';
+
+    // 恢复根页面滚动状态
+    document.documentElement.classList.remove('zen-screensaver-active');
+    document.body.classList.remove('zen-screensaver-active');
+
+    clearTimeout(zenIdleTimer);
+    window.removeEventListener('mousemove', resetZenIdle);
+    window.removeEventListener('touchstart', resetZenIdle);
+    window.removeEventListener('keydown', onZenKeyDown);
+
+    // 退出系统/浏览器全屏
+    if (document.fullscreenElement || document.webkitFullscreenElement) {
+      try {
+        if (document.exitFullscreen) {
+          document.exitFullscreen().catch(() => {});
+        } else if (document.webkitExitFullscreen) {
+          document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) {
+          document.msExitFullscreen();
+        }
+      } catch (e) {}
+    }
   }
 
   function updateTick() {
@@ -21019,7 +21379,8 @@ if ('serviceWorker' in navigator) {
     const weekNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
     if (dateEl) {
       const salaryDisplay = cfg.maskSalary ? '¥ *****/月' : `¥ ${rates.salary.toLocaleString()}/月`;
-      dateEl.textContent = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日 · ${weekNames[now.getDay()]} (${rates.restDesc}) · 设定 ${salaryDisplay}`;
+      const lunarStr = getLunarDateString(now);
+      dateEl.textContent = `${now.getFullYear()}年${now.getMonth() + 1}月${now.getDate()}日 · ${weekNames[now.getDay()]}${lunarStr ? ' · ' + lunarStr : ''} (${rates.restDesc}) · 设定 ${salaryDisplay}`;
     }
 
     // 2. 计算今日工时进度与实时已赚窝囊费（严禁下班后或休息日无故乱加钱！）
@@ -21274,6 +21635,11 @@ if ('serviceWorker' in navigator) {
     const cdHolSub = document.getElementById('ckCdHolidaySub');
     if (cdHolEl) cdHolEl.textContent = `${hol.days} 天`;
     if (cdHolSub) cdHolSub.textContent = `距离【${hol.name}】放假`;
+
+    // 6. 3D 拟真机械翻页全屏屏保同步更新
+    if (isZenOpen) {
+      updateZenScreensaver(now, rates, todayIsRest, startOfTodayWork, endOfTodayWork, earnedToday, progressPct, overtimeMode, otSec);
+    }
   }
 
   function toggleSlacking() {
@@ -21573,16 +21939,64 @@ if ('serviceWorker' in navigator) {
       };
     }
 
-    // 极简屏保模式开关
+    // 3D 拟真机械翻页全屏沉浸屏保开关
     const btnZen = document.getElementById('ckBtnZen');
-    const modClock = document.getElementById('mod-clock');
-    if (btnZen && modClock) {
+    if (btnZen) {
       btnZen.onclick = () => {
         if (window.SFX && window.SFX.tap) window.SFX.tap();
-        const isZen = modClock.classList.toggle('zen-mode');
-        btnZen.textContent = isZen ? '🔙 退出屏保' : '🖥️ 极简屏保';
+        if (isZenOpen) {
+          closeZenScreensaver();
+        } else {
+          openZenScreensaver();
+        }
       };
     }
+
+    // 屏保内关闭按钮
+    const zenBtnClose = document.getElementById('zenBtnClose');
+    if (zenBtnClose) {
+      zenBtnClose.onclick = () => {
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        closeZenScreensaver();
+      };
+    }
+
+    // 屏保背景双击退出
+    const zenOverlay = document.getElementById('ckZenOverlay');
+    if (zenOverlay) {
+      zenOverlay.ondblclick = (e) => {
+        if (!e.target.closest('.zen-topbar') && !e.target.closest('.zen-mode-pills')) {
+          closeZenScreensaver();
+        }
+      };
+    }
+
+    // 监听系统/浏览器全屏变化：用户通过 ESC 键或系统手势退出全屏时同步退出屏保
+    function onFullscreenChange() {
+      const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
+      if (!isFs && isZenOpen) {
+        closeZenScreensaver();
+      }
+    }
+    document.addEventListener('fullscreenchange', onFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', onFullscreenChange);
+
+    // 屏保三大倒计时模式胶囊切换
+    document.querySelectorAll('.zen-mode-pill').forEach(pill => {
+      pill.onclick = (e) => {
+        e.stopPropagation();
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        const mode = pill.dataset.zenMode || 'offwork';
+        zenMode = mode;
+        document.querySelectorAll('.zen-mode-pill').forEach(p => p.classList.toggle('active', p === pill));
+        // 重置卡片缓存属性，确保模式切换后能立即渲染最新数值
+        ['zenCardDD', 'zenCardHH', 'zenCardMM', 'zenCardSS'].forEach(id => {
+          const el = document.getElementById(id);
+          if (el) el.removeAttribute('data-val');
+        });
+        updateTick();
+      };
+    });
 
     // 摸鱼科目切换
     document.querySelectorAll('.ck-stag').forEach(tag => {
@@ -21643,7 +22057,9 @@ if ('serviceWorker' in navigator) {
     init,
     restore,
     toggleSlacking,
-    drawClockPoster
+    drawClockPoster,
+    openZenScreensaver,
+    closeZenScreensaver
   };
 })();
 

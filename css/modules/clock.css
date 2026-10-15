@@ -1,5 +1,5 @@
 /* =========================================================
-   模块 8：摸鱼发薪实时时钟 (Cyber Slacking & Salary Ticker)
+   模块 8：摸鱼发薪实时时钟 (Workplace Slacking & Salary Ticker)
    扎心又快乐的工位时钟 · 毫秒级窝囊费跳表 · 带薪摸鱼计时 · 翻页屏保
    ========================================================= */
 
@@ -611,43 +611,482 @@ html[data-theme="light"] .ck-cfg-item select option {
   filter: brightness(1.06);
 }
 
-/* 极简工位屏保模式 (Zen Mode) */
-#mod-clock.zen-mode .ck-slack-card,
-#mod-clock.zen-mode .ck-overtime-bar,
-#mod-clock.zen-mode .ck-config-card,
-#mod-clock.zen-mode .ck-bottom-actions {
+/* =========================================================
+/* 屏保全屏激活时彻底隐藏根滚动条，防止 Windows 浏览器滚动条轨道漏出白边 */
+html.zen-screensaver-active,
+body.zen-screensaver-active {
+  overflow: hidden !important;
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+html.zen-screensaver-active::-webkit-scrollbar,
+body.zen-screensaver-active::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.ck-zen-overlay {
+  --zen-card-w: clamp(100px, 22vw, 290px);
+  --zen-card-h: clamp(120px, 25vw, 320px);
+  --zen-font-size: clamp(72px, 17vw, 210px);
+
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  width: 100vw;
+  height: 100vh;
+  width: 100dvw;
+  height: 100dvh;
+  margin: 0;
+  z-index: 2147483647;
+  background: #090a0f;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  box-sizing: border-box;
+  padding: max(20px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
+  opacity: 0;
+  pointer-events: none;
+  visibility: hidden;
+  transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.35s ease;
+  overflow: hidden !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.ck-zen-overlay::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.ck-zen-overlay:fullscreen {
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: max(20px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left)) !important;
+  background: #090a0f !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+
+.ck-zen-overlay::backdrop {
+  background: #090a0f !important;
+}
+
+.ck-zen-overlay.is-active {
+  opacity: 1;
+  pointer-events: auto;
+  visibility: visible;
+}
+
+/* 空闲静止自动隐藏控制栏 */
+.ck-zen-overlay.is-idle {
+  cursor: none;
+}
+
+.ck-zen-overlay.is-idle .zen-topbar,
+.ck-zen-overlay.is-idle .zen-hint-pill {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-8px);
+  transition: all 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ck-zen-overlay.is-idle .zen-hint-pill {
+  transform: translateY(8px);
+}
+
+/* 顶部模式切换与退出栏 */
+.zen-topbar {
+  width: 100%;
+  max-width: 1200px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  position: relative;
+  z-index: 10;
+  transition: all 0.25s ease;
+}
+
+.zen-mode-pills {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 4px;
+  border-radius: 999px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.zen-mode-pill {
+  border: none;
+  background: transparent;
+  color: #94A3B8;
+  padding: 6px 16px;
+  border-radius: 999px;
+  font-size: 13.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.zen-mode-pill:hover {
+  color: #F8FAFC;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.zen-mode-pill.active {
+  background: #FACC15;
+  color: #0F172A;
+  font-weight: 800;
+  box-shadow: 0 2px 12px rgba(250, 204, 21, 0.35);
+}
+
+.zen-btn-close {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 18px;
+  border-radius: 999px;
+  background: rgba(239, 68, 68, 0.15);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #FCA5A5;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.zen-btn-close:hover {
+  background: rgba(239, 68, 68, 0.3);
+  border-color: #EF4444;
+  color: #FFFFFF;
+}
+
+/* 居中核心舞台 */
+.zen-center-stage {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(14px, 3vh, 32px);
+  width: 100%;
+}
+
+.zen-header {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+
+.zen-eyebrow {
   display: none !important;
 }
 
-#mod-clock.zen-mode .ck-wrap {
-  margin: auto;
-  padding-top: 20px;
-  padding-bottom: calc(28px + env(safe-area-inset-bottom));
-  gap: 16px;
-  flex-shrink: 0;
+.zen-title {
+  margin: 0;
+  font-size: clamp(20px, 2.6vw, 32px);
+  font-weight: 800;
+  color: #F8FAFC;
+  text-shadow: 0 4px 18px rgba(0, 0, 0, 0.6);
+  letter-spacing: 1px;
 }
 
-#mod-clock.zen-mode .ck-flip-clock-box {
-  padding: 22px 24px;
+/* 翻页时钟排布行 */
+.zen-flip-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: clamp(8px, 2vw, 26px);
 }
 
-#mod-clock.zen-mode .ck-flip-unit {
-  min-width: 88px;
-  height: 92px;
-  font-size: 52px;
+.zen-unit-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: clamp(8px, 1.4vh, 14px);
 }
 
-#mod-clock.zen-mode .ck-salary-hero {
-  padding: 22px 24px;
-  gap: 10px;
+.zen-label {
+  font-size: clamp(10px, 1.2vw, 13px);
+  font-weight: 800;
+  color: #64748B;
+  letter-spacing: 2px;
+}
+
+/* 拟真 3D 机械翻页卡片 (Fliqlo 风格) */
+.zen-flip-card {
+  position: relative;
+  width: var(--zen-card-w);
+  height: var(--zen-card-h);
+  border-radius: clamp(14px, 2vw, 24px);
+  perspective: 1000px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.9), inset 0 1px 1px rgba(255, 255, 255, 0.15);
+}
+
+.zen-half {
+  position: absolute;
+  left: 0;
+  width: 100%;
+  height: 50%;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.zen-top {
+  top: 0;
+  border-radius: clamp(14px, 2vw, 24px) clamp(14px, 2vw, 24px) 0 0;
+  background: linear-gradient(180deg, #2b2c35 0%, #1f2026 100%);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.85);
+}
+
+.zen-bot {
+  bottom: 0;
+  border-radius: 0 0 clamp(14px, 2vw, 24px) clamp(14px, 2vw, 24px);
+  background: linear-gradient(180deg, #191a21 0%, #121318 100%);
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* 核心：精确字体垂直居中与上下半切分，彻底杜绝错位/切断 */
+.zen-num {
+  display: block;
+  width: 100%;
+  height: var(--zen-card-h);
+  line-height: var(--zen-card-h);
+  text-align: center;
+  font-size: var(--zen-font-size);
+  font-weight: 900;
+  color: #F8FAFC;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -2px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  user-select: none;
+}
+
+.zen-bot .zen-num {
+  margin-top: calc(-0.5 * var(--zen-card-h));
+}
+
+/* 中缝与左右转轴 */
+.zen-slit {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 2px;
+  transform: translateY(-50%);
+  background: #090a0d;
+  z-index: 10;
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.zen-hinge {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 6px;
+  height: 16px;
+  background: linear-gradient(180deg, #64748b, #334155);
+  border-radius: 2px;
+  z-index: 12;
+}
+
+.zen-hinge.left { left: -3px; }
+.zen-hinge.right { right: -3px; }
+
+/* 3D 翻转叶片 */
+.flap-top {
+  z-index: 4;
+  transform-origin: bottom center;
+}
+
+.flap-bot {
+  z-index: 3;
+  transform-origin: top center;
+  transform: perspective(1000px) rotateX(90deg);
+  opacity: 0;
+}
+
+.zen-shade {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+}
+
+.is-flipping .flap-top {
+  animation: flipTop 0.28s cubic-bezier(0.37, 0, 0.63, 1) forwards;
+}
+
+.is-flipping .flap-bot {
+  animation: flipBot 0.28s cubic-bezier(0.37, 0, 0.63, 1) 0.28s forwards;
+}
+
+@keyframes flipTop {
+  0% {
+    transform: perspective(1000px) rotateX(0deg);
+    opacity: 1;
+  }
+  99% {
+    transform: perspective(1000px) rotateX(-90deg);
+    opacity: 1;
+  }
+  100% {
+    transform: perspective(1000px) rotateX(-90deg);
+    opacity: 0;
+  }
+}
+
+@keyframes flipBot {
+  0% {
+    transform: perspective(1000px) rotateX(90deg);
+    opacity: 0;
+  }
+  1% {
+    transform: perspective(1000px) rotateX(90deg);
+    opacity: 1;
+  }
+  100% {
+    transform: perspective(1000px) rotateX(0deg);
+    opacity: 1;
+  }
+}
+
+/* 分隔冒号 */
+.zen-colon {
+  font-size: clamp(48px, 10vw, 110px);
+  font-weight: 900;
+  color: #FACC15;
+  margin-bottom: clamp(18px, 2.8vh, 32px);
+  text-shadow: 0 0 16px rgba(250, 204, 21, 0.4);
+  animation: zenColonBlink 1s ease-in-out infinite;
+  user-select: none;
+}
+
+@keyframes zenColonBlink {
+  0%, 100% { opacity: 0.95; }
+  50% { opacity: 0.35; }
+}
+
+/* 底部工时进度条与退出提示 */
+.zen-footer-wrap {
+  width: 100%;
+  max-width: 580px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  z-index: 10;
+}
+
+.zen-prog-box {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.zen-prog-labels {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #94A3B8;
+}
+
+.zen-prog-val {
+  color: #FACC15;
+  font-weight: 900;
+}
+
+.zen-prog-track {
+  width: 100%;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.zen-prog-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #F59E0B, #FACC15);
+  box-shadow: 0 0 12px rgba(250, 204, 21, 0.4);
+  transition: width 0.3s ease;
+}
+
+.zen-prog-sub {
+  font-size: 12px;
+  color: #64748B;
+  text-align: center;
+}
+
+.zen-hint-pill {
+  padding: 6px 16px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #64748B;
+  font-size: 12px;
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  transition: all 0.25s ease;
+}
+
+/* 移动端屏幕适配 */
+@media (max-width: 600px) {
+  .ck-zen-overlay {
+    --zen-card-w: clamp(82px, 26vw, 110px);
+    --zen-card-h: clamp(100px, 30vw, 130px);
+    --zen-font-size: clamp(56px, 18vw, 76px);
+    padding: 16px 14px;
+  }
+  .zen-topbar {
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .zen-mode-pill {
+    padding: 4px 10px;
+    font-size: 12px;
+  }
+  .zen-btn-close {
+    padding: 4px 12px;
+    font-size: 12px;
+  }
+  .zen-colon {
+    margin-bottom: 16px;
+  }
+  .zen-hint-pill {
+    font-size: 11px;
+    padding: 4px 12px;
+    text-align: center;
+  }
 }
 
 @media (max-width: 480px) {
   .ck-money-int {
     font-size: 40px;
   }
-  .ck-flip-unit,
-  #mod-clock.zen-mode .ck-flip-unit {
+  .ck-flip-unit {
     min-width: 62px;
     height: 66px;
     font-size: 34px;
@@ -657,3 +1096,5 @@ html[data-theme="light"] .ck-cfg-item select option {
     grid-template-columns: 1fr;
   }
 }
+
+

@@ -136,8 +136,8 @@
 
     const btnNext = document.getElementById('scBtnNextTicket');
     if (btnNext) btnNext.onclick = () => {
-      // 若当前卡片刮开进度 >= 20% 且未结算，先自动结算保存，防止漏记
-      if (!isSettled && scratchedPct >= 20 && curTicketData) {
+      // 若当前卡片有任何刮开痕迹 (>= 1%) 且未结算，先自动结算保存，防止漏记
+      if (!isSettled && scratchedPct >= 1 && curTicketData) {
         settleTicket(false);
       }
       generateTicket(curThemeKey);
@@ -150,10 +150,12 @@
     const btnHistToggle = document.getElementById('scBtnToggleHistory');
     if (btnHistToggle) {
       btnHistToggle.onclick = () => {
-        // 若当前卡片刮开进度 >= 20% 且未结算，点击账本前先行自动结算保存
-        if (!isSettled && scratchedPct >= 20 && curTicketData) {
+        // 若当前卡片有任何刮开痕迹 (>= 1%) 且未结算，点击账本前先行自动结算保存
+        if (!isSettled && scratchedPct >= 1 && curTicketData) {
           settleTicket(false);
         }
+        loadStats();
+        renderHistory();
         const modScratch = document.getElementById('mod-scratch');
         const p = document.getElementById('scHistoryPanel');
         if (modScratch && p) {
@@ -197,8 +199,8 @@
   // 3. 切换票种并生成票券
   function switchTheme(themeKey) {
     if (!THEMES[themeKey]) return;
-    // 切换票种时，若当前卡片有有效刮开进度(>=20%)但未结算，先自动结算保存
-    if (!isSettled && scratchedPct >= 20 && curTicketData) {
+    // 切换票种时，若当前卡片有任何刮开痕迹(>=1%)但未结算，先自动结算保存
+    if (!isSettled && scratchedPct >= 1 && curTicketData) {
       settleTicket(false);
     }
     curThemeKey = themeKey;
@@ -648,6 +650,10 @@
       lastPos = null;
       try { canvas.releasePointerCapture(e.pointerId); } catch (_) {}
       checkProgress(canvas, ctx, w, h);
+      // 用户松开手指/鼠标时，只要刮擦了任何内容 (>= 2%)，即立刻触发结算并写入账本！
+      if (!isSettled && scratchedPct >= 2 && curTicketData) {
+        settleTicket(false);
+      }
     };
 
     canvas.onpointerup = stopScratch;
@@ -673,17 +679,17 @@
         }
       }
 
-      const pct = Math.min(100, Math.floor((clearCount / sampleCount) * 100));
+      const pct = sampleCount > 0 ? Math.min(100, Math.floor((clearCount / sampleCount) * 100)) : 0;
       scratchedPct = pct;
       updateProgressUI(pct);
 
-      // 达到 50% 进度时（大部分号码已露），正式触发结算！但不锁卡，用户依然可以继续自由刮除涂层
-      if (pct >= 50 && !isSettled) {
+      // 连续刮擦达到 10% 时，无需松开手指也立即自动结算落盘！
+      if (pct >= 10 && !isSettled) {
         settleTicket(false);
       }
 
-      // 刮开率达到 95% 时，清除最后一丝残余细屑
-      if (pct >= 95) {
+      // 刮开率达到 90% 时，彻底清除最后一丝残余细屑
+      if (pct >= 90) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         updateProgressUI(100);
       }
@@ -701,7 +707,7 @@
     if (textEl) {
       if (pct === 0) {
         textEl.textContent = '💡 拖动鼠标或手指在涂层上滑动刮奖（可自由刮完全部区域）';
-      } else if (pct < 50) {
+      } else if (pct < 10) {
         textEl.textContent = `⚡ 正在刮开... 已完成 ${pct}% · 核对中奖号码中`;
       } else if (pct < 100) {
         textEl.textContent = `🎉 已揭晓！已刮开 ${pct}%，可继续滑动刮除全部涂层`;
@@ -1001,10 +1007,12 @@
       let list = JSON.parse(localStorage.getItem('sc_history') || '[]');
       // 避免同一张票重复落盘
       if (list.length > 0 && list[0].sn === item.sn) {
+        loadStats();
+        renderHistory();
         return;
       }
       list.unshift(item);
-      if (list.length > 20) list = list.slice(0, 20);
+      if (list.length > 30) list = list.slice(0, 30);
       localStorage.setItem('sc_history', JSON.stringify(list));
 
       // 更新账本统计数据
@@ -1071,15 +1079,26 @@
       }
 
       grid.innerHTML = list.map(it => `
-        <div class="sc-hist-card">
+        <div class="sc-hist-card" data-sn="${it.sn}" title="点击回顾该张彩票票面" style="cursor:pointer;">
           <div class="sc-hist-top">
             <span class="sc-hist-theme">${it.theme}</span>
             <span class="sc-hist-time">${it.date}</span>
           </div>
-          <div class="sc-hist-prize">${it.isWin ? `中奖号码命中 · ${it.matchedCount}个奖项` : '未中奖 · 差1号'}</div>
-          <div class="sc-hist-val ${it.isWin ? 'win' : 'lose'}">${it.isWin ? `+ ¥${it.prizeSum.toLocaleString()} 元` : '未中奖 (0元)'}</div>
+          <div class="sc-hist-prize">${it.isWin ? `中奖号码命中 · ${it.matchedCount || 1}个奖项` : '未中奖 · 差1号'}</div>
+          <div class="sc-hist-val ${it.isWin ? 'win' : 'lose'}">${it.isWin ? `+ ¥${(it.prizeSum || 0).toLocaleString()} 元` : '未中奖 (0元)'}</div>
         </div>
       `).join('');
+
+      grid.querySelectorAll('.sc-hist-card').forEach(card => {
+        card.onclick = () => {
+          const sn = card.dataset.sn;
+          const found = list.find(it => it.sn === sn);
+          if (found && typeof restoreTicket === 'function') {
+            restoreTicket(found);
+            if (window.SFX && window.SFX.tap) window.SFX.tap();
+          }
+        };
+      });
     } catch (_) {}
   }
 

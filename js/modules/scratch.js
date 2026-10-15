@@ -99,6 +99,7 @@
   let scratchedPct = 0;
   let lastSampleTime = 0;
   let soundCooldown = 0;
+  let ticketBlocks = { winningBalls: [], myCells: [] };
 
   // 粒子系统
   let particles = [];
@@ -136,8 +137,9 @@
 
     const btnNext = document.getElementById('scBtnNextTicket');
     if (btnNext) btnNext.onclick = () => {
-      // 若当前卡片有任何刮开痕迹 (>= 1%) 且未结算，先自动结算保存，防止漏记
-      if (!isSettled && scratchedPct >= 1 && curTicketData) {
+      // 若当前卡片有任何刮开痕迹或号码区块露白且未结算，先自动结算保存，防止漏记
+      const hasRevealedBlocks = ticketBlocks && ticketBlocks.myCells && ticketBlocks.myCells.some(c => c.isRevealed);
+      if (!isSettled && (scratchedPct >= 1 || hasRevealedBlocks) && curTicketData) {
         settleTicket(false);
       }
       generateTicket(curThemeKey);
@@ -150,8 +152,9 @@
     const btnHistToggle = document.getElementById('scBtnToggleHistory');
     if (btnHistToggle) {
       btnHistToggle.onclick = () => {
-        // 若当前卡片有任何刮开痕迹 (>= 1%) 且未结算，点击账本前先行自动结算保存
-        if (!isSettled && scratchedPct >= 1 && curTicketData) {
+        // 若当前卡片有任何刮开痕迹或号码区块露白且未结算，点击账本前先行自动结算保存
+        const hasRevealedBlocks = ticketBlocks && ticketBlocks.myCells && ticketBlocks.myCells.some(c => c.isRevealed);
+        if (!isSettled && (scratchedPct >= 1 || hasRevealedBlocks) && curTicketData) {
           settleTicket(false);
         }
         loadStats();
@@ -199,8 +202,9 @@
   // 3. 切换票种并生成票券
   function switchTheme(themeKey) {
     if (!THEMES[themeKey]) return;
-    // 切换票种时，若当前卡片有任何刮开痕迹(>=1%)但未结算，先自动结算保存
-    if (!isSettled && scratchedPct >= 1 && curTicketData) {
+    // 切换票种时，若当前卡片有任何刮开痕迹或号码露白但未结算，先自动结算保存
+    const hasRevealedBlocks = ticketBlocks && ticketBlocks.myCells && ticketBlocks.myCells.some(c => c.isRevealed);
+    if (!isSettled && (scratchedPct >= 1 || hasRevealedBlocks) && curTicketData) {
       settleTicket(false);
     }
     curThemeKey = themeKey;
@@ -474,6 +478,25 @@
       date: new Date().toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
     };
 
+    // 初始化号码区块实时识别列表
+    const ballEls = surfaceEl.querySelectorAll('.sc-winning-ball');
+    const cellEls = surfaceEl.querySelectorAll('.sc-lottery-cell');
+    ticketBlocks = {
+      winningBalls: luckyNums.map((n, i) => ({
+        num: n,
+        el: ballEls[i],
+        isRevealed: false
+      })),
+      myCells: myItems.map((it, i) => ({
+        id: it.id,
+        num: it.num,
+        isHit: it.isHit,
+        isSpecial: it.isSpecial,
+        el: cellEls[i],
+        isRevealed: false
+      }))
+    };
+
     // 延迟 40ms 等待 DOM 渲染后重绘涂层
     setTimeout(setupCanvasCoating, 40);
   }
@@ -637,11 +660,12 @@
       // 刮动音效
       playScratchSound();
 
-      // 节流采样刮开进度
+      // 节流采样刮开进度与号码区块识别
       const now = performance.now();
-      if (now - lastSampleTime > 70) {
+      if (now - lastSampleTime > 60) {
         lastSampleTime = now;
-        checkProgress(canvas, ctx, w, h);
+        const imgData = checkProgress(canvas, ctx, w, h);
+        checkBlockReveals(canvas, ctx, imgData);
       }
     };
 
@@ -649,10 +673,18 @@
       isScratching = false;
       lastPos = null;
       try { canvas.releasePointerCapture(e.pointerId); } catch (_) {}
-      checkProgress(canvas, ctx, w, h);
-      // 用户松开手指/鼠标时，只要刮擦了任何内容 (>= 2%)，即立刻触发结算并写入账本！
-      if (!isSettled && scratchedPct >= 2 && curTicketData) {
-        settleTicket(false);
+      const imgData = checkProgress(canvas, ctx, w, h);
+      checkBlockReveals(canvas, ctx, imgData);
+
+      // 用户松开手指/鼠标时兜底结算：只要中奖号码区块已被刮出，或已刮看大部分号码
+      if (!isSettled && curTicketData) {
+        const hasHitRevealed = ticketBlocks.myCells && ticketBlocks.myCells.some(c => c.isRevealed && (c.isHit || c.isSpecial));
+        const myRevealed = ticketBlocks.myCells ? ticketBlocks.myCells.filter(c => c.isRevealed).length : 0;
+        const totalMy = ticketBlocks.myCells ? ticketBlocks.myCells.length : 8;
+
+        if (hasHitRevealed || (myRevealed >= Math.ceil(totalMy * 0.5))) {
+          settleTicket(false);
+        }
       }
     };
 
@@ -660,7 +692,156 @@
     canvas.onpointercancel = stopScratch;
   }
 
-  // 7. 稀疏采样计算刮开率
+  // 6.5 彩票号码区块识别：检测某个号码球/格子在 Canvas 覆盖膜下是否已被刮开露出
+  function checkBlockRevealed(el, canvas, imgData) {
+    if (!el || !canvas || !imgData) return false;
+    const cRect = canvas.getBoundingClientRect();
+    const eRect = el.getBoundingClientRect();
+    if (cRect.width <= 0 || cRect.height <= 0 || eRect.width <= 0 || eRect.height <= 0) return false;
+
+    // 相对 Canvas 的中心坐标
+    const cx = (eRect.left + eRect.width / 2) - cRect.left;
+    const cy = (eRect.top + eRect.height / 2) - cRect.top;
+
+    // 转换至 Canvas 像素缓冲区实际像素坐标 (考虑 DPR 缩放)
+    const scaleX = canvas.width / cRect.width;
+    const scaleY = canvas.height / cRect.height;
+    const bx = Math.floor(cx * scaleX);
+    const by = Math.floor(cy * scaleY);
+
+    if (bx < 0 || bx >= canvas.width || by < 0 || by >= canvas.height) return false;
+
+    // 围绕中心进行十字 5 点采样 (避免仅采样单像素的偶然误判)
+    const rx = Math.floor(Math.min(eRect.width * scaleX * 0.25, 20));
+    const ry = Math.floor(Math.min(eRect.height * scaleY * 0.25, 20));
+    const samplePoints = [
+      [bx, by],
+      [bx - rx, by],
+      [bx + rx, by],
+      [bx, by - ry],
+      [bx, by + ry]
+    ];
+
+    const data = imgData.data;
+    const cw = canvas.width;
+    const ch = canvas.height;
+    let cleared = 0;
+    for (let i = 0; i < samplePoints.length; i++) {
+      const px = samplePoints[i][0];
+      const py = samplePoints[i][1];
+      if (px >= 0 && px < cw && py >= 0 && py < ch) {
+        const idx = (py * cw + px) * 4 + 3;
+        if (data[idx] < 128) cleared++;
+      }
+    }
+    // 5 点中有 2 点及以上透明，即判定该号码区块已被刮开露出
+    return cleared >= 2;
+  }
+
+  // 核心：基于彩票号码区块真实判定（中奖号码区块被刮出来才能结算，总面积不是主要指标）
+  function checkBlockReveals(canvas, ctx, imgData) {
+    if (!curTicketData || isSettled) return;
+    if (!canvas) canvas = document.getElementById('scCanvasOverlay');
+    if (!canvas) return;
+    if (!ctx) ctx = canvas.getContext('2d');
+
+    if (!imgData) {
+      try {
+        imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      } catch (_) {
+        return;
+      }
+    }
+    if (!imgData) return;
+
+    // 1. 扫描中奖号码区 (Game 1)
+    let winBallsRevealed = 0;
+    if (ticketBlocks.winningBalls) {
+      ticketBlocks.winningBalls.forEach(b => {
+        if (!b.isRevealed && checkBlockRevealed(b.el, canvas, imgData)) {
+          b.isRevealed = true;
+          if (b.el) b.el.classList.add('is-scratched-open');
+        }
+        if (b.isRevealed) winBallsRevealed++;
+      });
+    }
+
+    // 2. 扫描我的号码区 (Game 2)
+    let myCellsRevealed = 0;
+    let hitCellRevealed = false;
+    let hitCellObj = null;
+
+    if (ticketBlocks.myCells) {
+      ticketBlocks.myCells.forEach(c => {
+        if (!c.isRevealed && checkBlockRevealed(c.el, canvas, imgData)) {
+          c.isRevealed = true;
+          if (c.el) {
+            c.el.classList.add('is-scratched-open');
+            if (c.isHit || c.isSpecial) {
+              c.el.classList.add('is-hit-highlight');
+            }
+          }
+        }
+        if (c.isRevealed) {
+          myCellsRevealed++;
+          if (c.isHit || c.isSpecial) {
+            hitCellRevealed = true;
+            hitCellObj = c;
+          }
+        }
+      });
+    }
+
+    const totalMyCells = (ticketBlocks.myCells && ticketBlocks.myCells.length) || 8;
+    const totalWinBalls = (ticketBlocks.winningBalls && ticketBlocks.winningBalls.length) || 2;
+
+    // ==========================================
+    // 真实彩票规则结算核心逻辑：
+    // ==========================================
+
+    // 【情景 1：中奖卡片】
+    if (curTicketData.isWin) {
+      // 只要中奖号码区块与我的号码命中区块被刮出（或刮出特殊翻倍图元）：
+      // 玩家亲眼见证中奖号码对上了！立即触发结算、印章与账本落盘！
+      if (hitCellRevealed && (winBallsRevealed > 0 || (hitCellObj && hitCellObj.isSpecial))) {
+        if (hitCellObj && hitCellObj.el) {
+          hitCellObj.el.classList.add('is-hit-highlight');
+        }
+        settleTicket(false);
+        return;
+      }
+      // 哪怕中奖球没刮，但命中号码格子已被刮出且玩家已刮看了一半以上的号码格子：
+      if (hitCellRevealed && myCellsRevealed >= Math.ceil(totalMyCells * 0.5)) {
+        if (hitCellObj && hitCellObj.el) {
+          hitCellObj.el.classList.add('is-hit-highlight');
+        }
+        settleTicket(false);
+        return;
+      }
+    }
+
+    // 【情景 2：未中奖卡片】
+    if (!curTicketData.isWin) {
+      // 玩家刮开了大部分的我的号码（>= 70%）并核对了中奖球：已确定未中奖，敲印结算！
+      if (myCellsRevealed >= Math.ceil(totalMyCells * 0.7) && winBallsRevealed > 0) {
+        settleTicket(false);
+        return;
+      }
+      // 哪怕中奖球没特意刮，如果玩家把 80% 以上的我的号码都刮开查验了：
+      if (myCellsRevealed >= Math.ceil(totalMyCells * 0.8)) {
+        settleTicket(false);
+        return;
+      }
+    }
+
+    // 所有号码区块均已完全露出
+    if (myCellsRevealed === totalMyCells && winBallsRevealed === totalWinBalls) {
+      settleTicket(false);
+      return;
+    }
+  }
+
+  // 7. 稀疏采样计算刮开率 (驱动进度条指示器)
   function checkProgress(canvas, ctx, w, h) {
     try {
       const step = 16;
@@ -683,17 +864,15 @@
       scratchedPct = pct;
       updateProgressUI(pct);
 
-      // 连续刮擦达到 10% 时，无需松开手指也立即自动结算落盘！
-      if (pct >= 10 && !isSettled) {
-        settleTicket(false);
-      }
-
       // 刮开率达到 90% 时，彻底清除最后一丝残余细屑
       if (pct >= 90) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         updateProgressUI(100);
       }
-    } catch (_) {}
+      return imgData;
+    } catch (_) {
+      return null;
+    }
   }
 
   function updateProgressUI(pct) {
@@ -706,13 +885,11 @@
 
     if (textEl) {
       if (pct === 0) {
-        textEl.textContent = '💡 拖动鼠标或手指在涂层上滑动刮奖（可自由刮完全部区域）';
-      } else if (pct < 10) {
-        textEl.textContent = `⚡ 正在刮开... 已完成 ${pct}% · 核对中奖号码中`;
-      } else if (pct < 100) {
-        textEl.textContent = `🎉 已揭晓！已刮开 ${pct}%，可继续滑动刮除全部涂层`;
+        textEl.textContent = '💡 拖动鼠标或手指在涂层上滑动刮奖（刮出中奖号码区块即可获胜）';
+      } else if (isSettled) {
+        textEl.textContent = '✨ 结果已揭晓并入账！可继续滑动刮净或点击「换一张再刮」';
       } else {
-        textEl.textContent = '✨ 100% 刮卡圆满！点击「换一张再刮」继续迎好运';
+        textEl.textContent = `⚡ 正在刮开... 核对【中奖号码】与【我的号码】中`;
       }
     }
   }
@@ -721,6 +898,15 @@
   function settleTicket(isFromQuick) {
     if (isSettled || !curTicketData) return;
     isSettled = true;
+
+    // 中奖卡片点亮所有命中号码区块的高光动效
+    if (curTicketData.isWin && ticketBlocks && ticketBlocks.myCells) {
+      ticketBlocks.myCells.forEach(c => {
+        if (c.isHit || c.isSpecial) {
+          if (c.el) c.el.classList.add('is-hit-highlight');
+        }
+      });
+    }
 
     // 优先保证战报持久化入账本，防止后续任何渲染错误打断保存
     try {
@@ -817,6 +1003,7 @@
       playScratchSound();
 
       const curPct = Math.min(100, Math.floor(progress * 100));
+      scratchedPct = curPct;
       updateProgressUI(curPct);
 
       if (progress < 1) {
@@ -825,7 +1012,28 @@
         // 扫掠完成，彻底清空画布
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         canvas.style.opacity = '0';
+        scratchedPct = 100;
         updateProgressUI(100);
+
+        // 揭晓所有号码区块并点亮中奖区块
+        if (ticketBlocks && ticketBlocks.winningBalls) {
+          ticketBlocks.winningBalls.forEach(b => {
+            b.isRevealed = true;
+            if (b.el) b.el.classList.add('is-scratched-open');
+          });
+        }
+        if (ticketBlocks && ticketBlocks.myCells) {
+          ticketBlocks.myCells.forEach(c => {
+            c.isRevealed = true;
+            if (c.el) {
+              c.el.classList.add('is-scratched-open');
+              if (c.isHit || c.isSpecial) {
+                c.el.classList.add('is-hit-highlight');
+              }
+            }
+          });
+        }
+
         settleTicket(true);
         isQuickRevealing = false;
       }

@@ -14149,6 +14149,23 @@ html[data-theme="light"] .sc-ticket-body {
   transform: scale(1.03);
 }
 
+.sc-winning-ball.is-scratched-open {
+  box-shadow: 0 0 16px rgba(245, 158, 11, 0.75);
+  border-color: #FEF3C7;
+  transform: scale(1.08);
+}
+
+.sc-lottery-cell.is-hit-highlight {
+  animation: scHitGlow 1.2s infinite alternate ease-in-out;
+  border-color: #EF4444 !important;
+  background: rgba(239, 68, 68, 0.16) !important;
+}
+
+@keyframes scHitGlow {
+  0% { box-shadow: 0 0 4px rgba(239, 68, 68, 0.4); transform: scale(1.02); }
+  100% { box-shadow: 0 0 20px rgba(239, 68, 68, 0.9); transform: scale(1.06); }
+}
+
 .sc-lottery-cell.is-hit .sc-cell-num {
   color: #F59E0B;
 }

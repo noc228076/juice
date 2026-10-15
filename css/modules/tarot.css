@@ -1,5 +1,5 @@
 /* =========================================================
-   模块 5：命运塔罗 (Cyber Tarot Module) 样式隔离与多端自适应
+   模块 5：命运塔罗 (Arcana Tarot Module) 样式隔离与多端自适应
    22 张大阿卡那 · 纯 SVG 拟真 3D 翻牌 · 移动端 & 桌面端高保真
    ========================================================= */
 
@@ -1467,114 +1467,52 @@ html[data-theme="light"] #mod-tarot .tr-card-name {
   width: 100%;
   margin-bottom: 24px;
 }
-#mod-tarot .tr-single-hero {
+#mod-tarot .result-list.is-single .tr-single-hero {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 20px;
+  width: 100%;
+  height: auto;
+  flex-shrink: 0;
   background: var(--card);
   border: 1.5px solid var(--tr-line);
-  border-radius: 24px;
-  padding: 24px;
+  border-radius: 26px;
+  padding: 22px 18px;
   box-sizing: border-box;
-  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.22), inset 0 0 32px rgba(232, 201, 106, 0.05);
 }
-#mod-tarot .tr-single-info {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  flex: 1;
+html[data-theme="light"] #mod-tarot .result-list.is-single .tr-single-hero {
+  background: linear-gradient(160deg, rgba(255, 253, 247, 0.96), rgba(248, 240, 220, 0.92));
+  box-shadow: 0 16px 44px rgba(154, 116, 32, 0.12), inset 0 0 28px rgba(180, 140, 50, 0.06);
 }
-#mod-tarot .tr-info-badge-row {
-  display: flex;
+#mod-tarot .result-list.is-single .tr-single-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(circle at 20% 15%, rgba(232, 201, 106, 0.12) 0%, transparent 65%);
+  pointer-events: none;
+  z-index: 0;
+}
+#mod-tarot .tr-rv-question-pill {
+  display: inline-flex;
   align-items: center;
-  gap: 10px;
-}
-#mod-tarot .tr-tag-pos {
-  font-size: 12px;
-  font-weight: 800;
-  letter-spacing: 2px;
-  color: var(--tr-gold);
-  background: rgba(232, 201, 106, 0.15);
-  padding: 4px 10px;
-  border-radius: 6px;
-}
-#mod-tarot .tr-tag-status {
-  font-size: 12px;
-  font-weight: 700;
-  padding: 4px 10px;
-  border-radius: 6px;
-}
-#mod-tarot .tr-tag-status.up {
-  color: #34d399;
-  background: rgba(52, 211, 153, 0.12);
-  border: 1px solid rgba(52, 211, 153, 0.3);
-}
-#mod-tarot .tr-tag-status.rev {
-  color: #f87171;
-  background: rgba(248, 113, 113, 0.12);
-  border: 1px solid rgba(248, 113, 113, 0.3);
-}
-#mod-tarot .tr-info-title {
-  font-size: 26px;
-  font-weight: 900;
-  color: var(--tx);
-  letter-spacing: 2px;
-  margin: 0;
-}
-#mod-tarot .tr-info-title small {
-  font-size: 14px;
-  color: var(--tx-dim);
-  font-weight: normal;
-  letter-spacing: 1px;
-}
-#mod-tarot .tr-info-kw {
-  background: rgba(232, 201, 106, 0.08);
-  border-left: 4px solid var(--tr-gold);
-  padding: 10px 14px;
-  border-radius: 0 10px 10px 0;
-  font-size: 13.5px;
-  color: var(--tx);
-}
-#mod-tarot .tr-kw-label {
-  color: var(--tr-gold);
-  font-weight: 700;
-}
-#mod-tarot .tr-info-desc {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  padding: 16px 18px;
-}
-html[data-theme="light"] #mod-tarot .tr-info-desc {
-  background: rgba(0, 0, 0, 0.02);
-}
-#mod-tarot .tr-desc-title {
-  font-size: 13px;
-  font-weight: 800;
-  color: var(--tr-gold);
-  margin-bottom: 8px;
-  letter-spacing: 1px;
-}
-#mod-tarot .tr-info-desc p {
-  font-size: 14.5px;
-  line-height: 1.85;
-  color: var(--tx);
-  margin: 0;
-}
-#mod-tarot .tr-info-quote {
-  display: flex;
   gap: 6px;
-  font-style: italic;
-  color: var(--tx-dim);
-  font-size: 13px;
-  line-height: 1.6;
-  padding: 4px 8px;
-}
-#mod-tarot .tr-info-quote .quote-mark {
-  font-family: Georgia, serif;
-  font-size: 22px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
   color: var(--tr-gold);
-  line-height: 1;
+  background: rgba(232, 201, 106, 0.12);
+  border: 1px solid rgba(232, 201, 106, 0.3);
+  margin-top: 2px;
+  width: fit-content;
+}
+#mod-tarot .tr-rv-question-pill b {
+  color: var(--tx);
+  font-weight: 700;
 }
 
 /* ============ 三张牌圣坛 (.is-three) ============ */
@@ -1894,21 +1832,29 @@ html[data-theme="light"] #mod-tarot .tr-info-desc {
     margin: 0 auto 24px;
   }
 
-  /* 单张牌桌面端：高贵居中大牌展台 (280px 大牌 + 优雅解读面板) */
+  /* 单张牌桌面端：圣坛布局与解牌分屏对齐 (290px 大牌 + 优雅解读面板) */
   #mod-tarot .result-list.is-single {
     max-width: 1040px;
     margin: 0 auto 28px;
   }
   #mod-tarot .result-list.is-single .tr-single-hero {
     display: grid;
-    grid-template-columns: 280px 1fr;
-    gap: 40px;
-    align-items: center;
-    padding: 32px;
+    grid-template-columns: 290px 1fr;
+    gap: 36px;
+    align-items: stretch;
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: 34px 38px;
   }
-  #mod-tarot .result-list.is-single .tr-card-frame {
-    max-width: 280px;
-    margin: 0;
+  #mod-tarot .result-list.is-single .tr-single-hero .tr-reveal-card-zone {
+    grid-column: 1;
+    width: 290px;
+    justify-content: center;
+  }
+  #mod-tarot .result-list.is-single .tr-single-hero .tr-reveal-info-zone {
+    grid-column: 2;
+    min-height: 440px;
+    justify-content: space-between;
   }
 
   /* 三张牌桌面端：3列并排展开的塔罗圣坛 (1040px) */

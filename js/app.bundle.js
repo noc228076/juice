@@ -15117,7 +15117,7 @@ if ('serviceWorker' in navigator) {
 ;
 /* === js/modules/tarot.js === */
 /* =========================================================
-   模块 5：命运塔罗 (Cyber Tarot Module)
+   模块 5：命运塔罗 (Arcana Tarot Module)
    22 张大阿卡那纯 SVG 拟真 3D 翻牌占卜
    ========================================================= */
 
@@ -15554,8 +15554,7 @@ if ('serviceWorker' in navigator) {
       if (revIdx === picks.length - 1) {
         nextBtn.textContent = `✦ 查看${cfg.shortName}全景报告 ✦`;
       } else {
-        const nextPosName = cfg.positions[revIdx + 1] || '下一张';
-        nextBtn.textContent = `下一张牌 · 揭示「${nextPosName}」 (${revIdx + 2}/${picks.length}) →`;
+        nextBtn.textContent = '下一张牌';
       }
     }
 
@@ -15603,80 +15602,119 @@ if ('serviceWorker' in navigator) {
       const item = items[0];
       const c = item.card;
       const svgCode = S[c.no] || `<circle cx="60" cy="60" r="30"/>`;
+      const kwParts = (item.kw || '').split('·').map(s => s.trim()).filter(Boolean);
+      const kwHtml = kwParts.map(k => `<span class="tr-kw-pill">✦ ${k}</span>`).join('');
 
       if (summaryBox) {
-        summaryBox.innerHTML = `
-          <div class="tr-summary-header">
-            <span class="tr-summary-pill">✦ ${dLabel} · ${cfg.name}</span>
-            <h3>【${c.name}】· ${c.isRev ? '<span style="color:#f87171">逆位</span>' : '<span style="color:#34d399">正位</span>'}</h3>
-            <p class="tr-summary-lead">${qText ? `求问：「${qText}」 ｜ ` : ''}${item.kw}</p>
-          </div>
-        `;
+        summaryBox.style.display = 'none';
+        summaryBox.innerHTML = '';
       }
 
       if (resultList) {
         resultList.className = 'result-list is-single';
         resultList.innerHTML = `
-          <div class="tr-single-hero">
-            <div class="tr-card-frame ${c.isRev ? 'is-rev' : ''} ${c.image ? 'has-art' : ''}">
-              <div class="tr-card-inner">
-                <div class="tr-card-corner tl">✦</div>
-                <div class="tr-card-corner tr">✦</div>
-                <div class="tr-card-corner bl">✦</div>
-                <div class="tr-card-corner br">✦</div>
-                <div class="tr-card-head">
-                  <span class="tr-card-num">${ROMAN[c.no]}</span>
-                  <span class="tr-card-state-tag ${c.isRev ? 'rev' : 'up'}">${c.isRev ? '逆 位' : '正 位'}</span>
-                </div>
-                <div class="tr-card-art">
-                  ${svg(svgCode)}
-                </div>
-                <div class="tr-card-foot">
-                  <div class="tr-card-name">${c.name}</div>
-                  <div class="tr-card-en">${c.en}</div>
+          <div class="tr-single-hero reveal-stage">
+            <div class="tr-altar-corner tl">✦</div>
+            <div class="tr-altar-corner tr">✦</div>
+            <div class="tr-altar-corner bl">✦</div>
+            <div class="tr-altar-corner br">✦</div>
+
+            <div class="tr-reveal-card-zone">
+              <div class="tr-card-halo"></div>
+              <div class="bigcard flipped" id="trSingleCardHero" title="轻触牌面可翻转重读">
+                <div class="flip">
+                  <div class="fback">${CARD_BACK}</div>
+                  <div class="face">
+                    <div class="tr-face-container">
+                      <div class="tr-face-base">
+                        <div class="num">${ROMAN[c.no]}</div>
+                        <div class="emblem" style="${c.isRev ? 'transform:rotate(180deg);' : ''}">${svg(svgCode)}</div>
+                        <div class="nm">
+                          <b>${c.name}</b>
+                          <span>${c.en}</span>
+                        </div>
+                      </div>
+                      ${c.image ? `
+                        <div class="tr-face-art-wrap ${c.isRev ? 'is-rev' : ''}">
+                          <img src="${c.image}" alt="${c.name}" class="tr-face-art-img"
+                               loading="eager" decoding="async"
+                               onerror="this.style.display='none'">
+                        </div>
+                      ` : ''}
+                    </div>
+                  </div>
                 </div>
               </div>
-              ${c.image ? `
-                <div class="tr-card-painting-wrap ${c.isRev ? 'is-rev' : ''}">
-                  <img src="${c.image}" alt="${c.name}" class="tr-card-painting-img"
-                       loading="eager" decoding="async"
-                       onerror="this.style.display='none'">
-                </div>
-              ` : ''}
+              <div class="tr-card-flip-hint">✦ 轻触牌面可翻转 · 倾听直觉共鸣 ✦</div>
             </div>
 
-            <div class="tr-single-info">
-              <div class="tr-info-badge-row" style="flex-wrap:wrap">
-                <span class="tr-tag-pos">${item.pos}</span>
-                <span class="tr-tag-status ${c.isRev ? 'rev' : 'up'}">${c.isRev ? '逆位 · 阻滞与向内探索' : '正位 · 顺畅与能量显现'}</span>
-                ${c.astro ? `<span class="tr-rv-astro-pill">${c.astro}</span>` : ''}
-              </div>
-              <h2 class="tr-info-title">${ROMAN[c.no]} · ${c.name} <small>(${c.en})</small></h2>
-              <div class="tr-info-kw">
-                <span class="tr-kw-label">🔑 核心指引：</span>
-                <strong>${item.kw}</strong>
-              </div>
-              <div class="tr-info-desc">
-                <div class="tr-desc-title">📜 牌意启示解读</div>
-                <p>${item.txt}</p>
-              </div>
-              ${(c.upAction || c.revAction) ? `
-              <div class="tr-info-desc" style="border-left:3.5px solid ${c.isRev ? '#d97706' : '#10b981'}">
-                <div class="tr-desc-title" style="color:${c.isRev ? '#d97706' : '#10b981'}">${c.isRev ? '🧭 破局与调整箴言' : '🧭 当下行动箴言'}</div>
-                <p>${c.isRev ? (c.revAction || item.txt) : (c.upAction || item.txt)}</p>
-              </div>
-              ` : ''}
-              <div class="tr-info-quote">
-                <span class="quote-mark">“</span>
-                <span class="quote-text">顺应内心的真实感召，走好当下的每一步。答案一直在你心中。</span>
-                <span class="quote-mark">”</span>
+            <div class="tr-reveal-info-zone">
+              <div class="reading" style="opacity:1;">
+                <div class="tr-rv-header">
+                  <div class="tr-rv-badges">
+                    <div class="pos"><em>${dLabel} · ${item.pos}</em></div>
+                    <div class="badge ${c.isRev ? 'rev' : 'up'}">${c.isRev ? '逆位 · 内省与转化' : '正位 · 顺畅与能量充盈'}</div>
+                    ${c.astro ? `<div class="tr-rv-astro-pill">${c.astro}</div>` : ''}
+                  </div>
+                  ${qText ? `
+                    <div class="tr-rv-question-pill">
+                      <span>💭 专注求问：</span>
+                      <b>「${qText}」</b>
+                    </div>
+                  ` : ''}
+                  <div class="tr-rv-title-row">
+                    <div class="tr-rv-title-main">
+                      <span class="tr-rv-roman">${ROMAN[c.no]}</span>
+                      <h3>${c.name}</h3>
+                      <span class="tr-rv-en">${c.en}</span>
+                    </div>
+                    <span class="tr-rv-pillar">✦ ${c.pillar || '命运启示'}</span>
+                  </div>
+                </div>
+
+                <div class="tr-rv-kw-row">
+                  ${kwHtml}
+                </div>
+
+                <div class="tr-rv-panels">
+                  <div class="tr-rv-panel meaning">
+                    <div class="tr-rv-panel-title">
+                      <span>📜 命运启示精解</span>
+                      <span style="font-weight:600;opacity:0.75;font-size:11px">ARCANA ORACLE</span>
+                    </div>
+                    <div class="txt">${item.txt}</div>
+                  </div>
+
+                  <div class="tr-rv-panel action ${c.isRev ? 'is-rev' : ''}">
+                    <div class="tr-rv-panel-title">
+                      <span>${c.isRev ? '🧭 破局与调整箴言 · 忌盲目内耗' : '🧭 当下行动箴言 · 宜顺势而为'}</span>
+                      <span style="font-weight:600;opacity:0.75;font-size:11px">ACTION GUIDANCE</span>
+                    </div>
+                    <div class="action-txt">${c.isRev ? (c.revAction || item.txt) : (c.upAction || item.txt)}</div>
+                  </div>
+                </div>
+
+                <div class="tr-rv-meta-footer">
+                  <span>🔮 阿卡那序列：<b>No.${c.no} (${ROMAN[c.no]})</b></span>
+                  <span>✨ 守护对应：<b>${c.astro || '大阿卡那'}</b></span>
+                  <span>⚡ 牌面状态：<b>${c.isRev ? '逆位 (需向内觉察)' : '正位 (能量顺畅流动)'}</b></span>
+                </div>
               </div>
             </div>
           </div>
         `;
+
+        const singleCardHero = document.getElementById('trSingleCardHero');
+        if (singleCardHero) {
+          singleCardHero.onclick = () => {
+            if (window.SFX && window.SFX.tarotFlip) window.SFX.tarotFlip();
+            singleCardHero.classList.toggle('flipped');
+          };
+        }
       }
     } else {
       if (summaryBox) {
+        summaryBox.style.display = '';
         summaryBox.innerHTML = `
           <div class="tr-summary-header">
             <span class="tr-summary-pill">✦ ${dLabel} · ${cfg.name}</span>

@@ -158,46 +158,53 @@ html[data-theme="light"] #mod-scratch::before {
   color: var(--sc-gold);
 }
 
-/* ============ 票券主题切换横滚栏 ============ */
+/* ============ 票券主题切换栏 (与刮奖舞台严格对齐，禁止截断) ============ */
 .scratch-themes-scroll {
   width: 100%;
   max-width: 100%;
-  overflow-x: auto;
-  padding: 4px 0 12px;
-  margin-bottom: 18px;
-  scrollbar-width: none; /* Firefox */
-  -ms-overflow-style: none; /* IE/Edge */
-  -webkit-overflow-scrolling: touch;
-}
-
-.scratch-themes-scroll::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Edge */
+  padding: 4px 0 14px;
+  margin-bottom: 16px;
+  box-sizing: border-box;
 }
 
 .scratch-themes-bar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
   width: 100%;
-  min-width: max-content;
+  box-sizing: border-box;
   margin: 0 auto;
+}
+
+@media (max-width: 720px) {
+  .scratch-themes-bar {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+}
+
+@media (max-width: 440px) {
+  .scratch-themes-bar {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+  }
 }
 
 .sc-theme-btn {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  border-radius: 14px;
+  gap: 6px;
+  padding: 8px 8px;
+  border-radius: 12px;
   background: var(--card);
   border: 1.5px solid var(--line);
   color: var(--tx);
   cursor: pointer;
   transition: all 0.22s ease;
   user-select: none;
-  flex: 1 1 0;
-  min-width: 120px;
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .sc-theme-btn:hover {
@@ -212,28 +219,36 @@ html[data-theme="light"] #mod-scratch::before {
 }
 
 .sc-tb-icon {
-  font-size: 19px;
+  font-size: 18px;
   flex: none;
+  line-height: 1;
 }
 
 .sc-tb-info {
   display: flex;
   flex-direction: column;
   text-align: left;
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
 }
 
 .sc-tb-name {
-  font-size: 13px;
+  font-size: 12.5px;
   font-weight: 800;
   line-height: 1.25;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sc-tb-sub {
-  font-size: 10.5px;
+  font-size: 10px;
   color: var(--tx-faint);
   margin-top: 2px;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .sc-theme-btn.active .sc-tb-name {
@@ -869,6 +884,18 @@ html[data-theme="light"] .sc-security-box {
   box-sizing: border-box;
   margin-top: 14px;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+@keyframes scPanelPulse {
+  0% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.45); }
+  50% { box-shadow: 0 0 0 10px rgba(245, 158, 11, 0.2); }
+  100% { box-shadow: 0 0 0 0 rgba(245, 158, 11, 0); }
+}
+
+.scratch-history-panel.sc-panel-highlight {
+  animation: scPanelPulse 1.2s ease 2;
+  border-color: var(--sc-gold);
 }
 
 .sc-history-head {

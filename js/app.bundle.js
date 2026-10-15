@@ -27504,6 +27504,10 @@ if ('serviceWorker' in navigator) {
 
     const btnNext = document.getElementById('scBtnNextTicket');
     if (btnNext) btnNext.onclick = () => {
+      // 若当前卡片刮开进度 >= 20% 且未结算，先自动结算保存，防止漏记
+      if (!isSettled && scratchedPct >= 20 && curTicketData) {
+        settleTicket(false);
+      }
       generateTicket(curThemeKey);
       if (window.SFX && window.SFX.advance) window.SFX.advance();
     };
@@ -27514,8 +27518,19 @@ if ('serviceWorker' in navigator) {
     const btnHistToggle = document.getElementById('scBtnToggleHistory');
     if (btnHistToggle) {
       btnHistToggle.onclick = () => {
+        // 若当前卡片刮开进度 >= 20% 且未结算，点击账本前先行自动结算保存
+        if (!isSettled && scratchedPct >= 20 && curTicketData) {
+          settleTicket(false);
+        }
+        const modScratch = document.getElementById('mod-scratch');
         const p = document.getElementById('scHistoryPanel');
-        if (p) p.scrollIntoView({ behavior: 'smooth' });
+        if (modScratch && p) {
+          const targetTop = p.offsetTop - 20;
+          modScratch.scrollTo({ top: targetTop, behavior: 'smooth' });
+          p.classList.remove('sc-panel-highlight');
+          void p.offsetWidth;
+          p.classList.add('sc-panel-highlight');
+        }
       };
     }
 
@@ -27550,6 +27565,10 @@ if ('serviceWorker' in navigator) {
   // 3. 切换票种并生成票券
   function switchTheme(themeKey) {
     if (!THEMES[themeKey]) return;
+    // 切换票种时，若当前卡片有有效刮开进度(>=20%)但未结算，先自动结算保存
+    if (!isSettled && scratchedPct >= 20 && curTicketData) {
+      settleTicket(false);
+    }
     curThemeKey = themeKey;
 
     document.querySelectorAll('.sc-theme-btn').forEach(b => {
@@ -28026,8 +28045,8 @@ if ('serviceWorker' in navigator) {
       scratchedPct = pct;
       updateProgressUI(pct);
 
-      // 达到 80% 进度时，正式触发结算！但不锁卡，用户依然可以继续把剩余 20% 刮得干干净净
-      if (pct >= 80 && !isSettled) {
+      // 达到 50% 进度时（大部分号码已露），正式触发结算！但不锁卡，用户依然可以继续自由刮除涂层
+      if (pct >= 50 && !isSettled) {
         settleTicket(false);
       }
 
@@ -28050,7 +28069,7 @@ if ('serviceWorker' in navigator) {
     if (textEl) {
       if (pct === 0) {
         textEl.textContent = '💡 拖动鼠标或手指在涂层上滑动刮奖（可自由刮完全部区域）';
-      } else if (pct < 80) {
+      } else if (pct < 50) {
         textEl.textContent = `⚡ 正在刮开... 已完成 ${pct}% · 核对中奖号码中`;
       } else if (pct < 100) {
         textEl.textContent = `🎉 已揭晓！已刮开 ${pct}%，可继续滑动刮除全部涂层`;
@@ -28065,52 +28084,65 @@ if ('serviceWorker' in navigator) {
     if (isSettled || !curTicketData) return;
     isSettled = true;
 
+    // 优先保证战报持久化入账本，防止后续任何渲染错误打断保存
+    try {
+      saveRecord(curTicketData);
+    } catch (saveErr) {
+      console.warn('saveRecord in settleTicket error:', saveErr);
+    }
+
     const stampEl = document.getElementById('scStampBadge');
     const settleBox = document.getElementById('scSettleBox');
 
-    if (curTicketData.isWin) {
-      // 中奖！
-      if (stampEl) {
-        stampEl.className = 'sc-stamp-stamp stamped-win';
-        stampEl.innerHTML = `✦ 恭喜中奖 ✦<br><span style="font-size:18px;">¥${curTicketData.prizeSum.toLocaleString()} 元</span>`;
-      }
+    try {
+      if (curTicketData.isWin) {
+        // 中奖！
+        if (stampEl) {
+          stampEl.className = 'sc-stamp-stamp stamped-win';
+          stampEl.innerHTML = `✦ 恭喜中奖 ✦<br><span style="font-size:18px;">¥${curTicketData.prizeSum.toLocaleString()} 元</span>`;
+        }
 
-      if (settleBox) {
-        settleBox.style.display = 'block';
-        settleBox.innerHTML = `
-          <div class="sc-settle-alert win">
-            🎉 <b>恭喜中奖！</b> 本张彩票共命中 <b>${curTicketData.matchedCount}</b> 个中奖号码，斩获现金奖金 <b>¥${curTicketData.prizeSum.toLocaleString()} 元</b>！战绩已入账本。
-          </div>
-        `;
-      }
+        if (settleBox) {
+          settleBox.style.display = 'block';
+          settleBox.innerHTML = `
+            <div class="sc-settle-alert win">
+              🎉 <b>恭喜中奖！</b> 本张彩票共命中 <b>${curTicketData.matchedCount || 1}</b> 个中奖号码，斩获现金奖金 <b>¥${curTicketData.prizeSum.toLocaleString()} 元</b>！战绩已入账本。
+            </div>
+          `;
+        }
 
-      // 播放胜利与铃铛音效
-      playVictorySound();
-      // 喷射礼花
-      triggerConfetti();
-    } else {
-      // 未中奖！体验真实的彩票店悬念
-      if (stampEl) {
-        stampEl.className = 'sc-stamp-stamp stamped-lose';
-        stampEl.innerHTML = '✦ 未中奖 ✦<br><span style="font-size:13px;">谢谢惠顾</span>';
-      }
+        // 播放胜利与铃铛音效
+        playVictorySound();
+        // 喷射礼花
+        triggerConfetti();
+      } else {
+        // 未中奖！体验真实的彩票店悬念
+        if (stampEl) {
+          stampEl.className = 'sc-stamp-stamp stamped-lose';
+          stampEl.innerHTML = '✦ 未中奖 ✦<br><span style="font-size:13px;">谢谢惠顾</span>';
+        }
 
-      if (settleBox) {
-        settleBox.style.display = 'block';
-        const nm = curTicketData.nearMiss;
-        settleBox.innerHTML = `
-          <div class="sc-settle-alert lose">
-            😢 <b>未中奖 · 与大奖擦肩而过！</b> 中奖号码为【${curTicketData.luckyNums.join(', ')}】，你的号码【${nm.myNum}】仅差 1 位数字！与 <b>${nm.prize}</b> 头奖擦肩而过！下一张必中！
-          </div>
-        `;
-      }
+        if (settleBox) {
+          settleBox.style.display = 'block';
+          const nm = curTicketData.nearMiss || {
+            winNum: (curTicketData.luckyNums && curTicketData.luckyNums[0]) || '88',
+            myNum: '87',
+            prize: '¥10,000'
+          };
+          const luckyList = (curTicketData.luckyNums || ['88', '66']).join(', ');
+          settleBox.innerHTML = `
+            <div class="sc-settle-alert lose">
+              😢 <b>未中奖 · 与大奖擦肩而过！</b> 中奖号码为【${luckyList}】，你的号码【${nm.myNum}】仅差 1 位数字！与 <b>${nm.prize}</b> 头奖擦肩而过！下一张必中！
+            </div>
+          `;
+        }
 
-      // 播放清脆盖章音效
-      playStampSound();
+        // 播放清脆盖章音效
+        playStampSound();
+      }
+    } catch (uiErr) {
+      console.warn('settleTicket ui render error:', uiErr);
     }
-
-    // 保存至战绩档案
-    saveRecord(curTicketData);
   }
 
   // 9. 一键刮开真实动画抹除涂层 (解决"根本没刮"的致命Bug)
@@ -28335,6 +28367,10 @@ if ('serviceWorker' in navigator) {
     if (!item) return;
     try {
       let list = JSON.parse(localStorage.getItem('sc_history') || '[]');
+      // 避免同一张票重复落盘
+      if (list.length > 0 && list[0].sn === item.sn) {
+        return;
+      }
       list.unshift(item);
       if (list.length > 20) list = list.slice(0, 20);
       localStorage.setItem('sc_history', JSON.stringify(list));
@@ -28350,7 +28386,22 @@ if ('serviceWorker' in navigator) {
 
       loadStats();
       renderHistory();
-    } catch (_) {}
+
+      // 全所统一档案库联动
+      if (window.UniversalHistory && typeof window.UniversalHistory.add === 'function') {
+        window.UniversalHistory.add({
+          module: 'scratch',
+          title: item.isWin ? `刮刮乐 · 中奖 ¥${item.prizeSum.toLocaleString()}元` : '刮刮乐 · 未中奖 (差1号)',
+          subtitle: `${item.theme} · 票号 ${item.sn}`,
+          color: item.isWin ? '#F59E0B' : '#94A3B8',
+          badge: item.isWin ? '中奖' : '刮彩',
+          avatar: item.isWin ? '💰' : '🎟️',
+          data: item
+        });
+      }
+    } catch (e) {
+      console.warn('saveRecord error:', e);
+    }
   }
 
   function loadStats() {
@@ -28533,12 +28584,134 @@ if ('serviceWorker' in navigator) {
     ctx.closePath();
   }
 
+  // 15. 档案回顾与战报现场还原 (联动 UniversalHistory)
+  function restoreTicket(data) {
+    if (!data) return;
+    const themeKey = data.themeKey || 'haoyun10';
+    if (THEMES[themeKey]) curThemeKey = themeKey;
+
+    document.querySelectorAll('.sc-theme-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.theme === curThemeKey);
+    });
+
+    const config = THEMES[curThemeKey] || THEMES.haoyun10;
+    isSettled = true;
+    isQuickRevealing = false;
+    isScratching = false;
+    scratchedPct = 100;
+    curTicketData = data;
+
+    // 更新票面头信息
+    const titleEl = document.getElementById('scTicketTitle');
+    const badgeEl = document.getElementById('scLogoBadge');
+    const priceEl = document.getElementById('scTicketPrice');
+    const topPrizeEl = document.getElementById('scTicketTopPrize');
+    const ruleEl = document.getElementById('scRuleBanner');
+    const snEl = document.getElementById('scTicketSn');
+    const barcodeEl = document.getElementById('scBarcodeText');
+    const verifyEl = document.getElementById('scVerifyCode');
+
+    if (titleEl) titleEl.textContent = config.name;
+    if (badgeEl) badgeEl.textContent = config.badge;
+    if (priceEl) priceEl.textContent = config.price;
+    if (topPrizeEl) topPrizeEl.textContent = config.topPrize;
+    if (ruleEl) ruleEl.innerHTML = `<span>${config.rule}</span>`;
+    if (snEl) snEl.textContent = data.sn || 'NO. 2026-8888-0000';
+    if (barcodeEl) barcodeEl.textContent = 'BARCODE ' + (data.sn || '8866-9921');
+    if (verifyEl) verifyEl.textContent = 'VERIFY: ARCHIVED-OK';
+
+    // 渲染双区号码
+    const surfaceEl = document.getElementById('scPrizeSurface');
+    if (surfaceEl && data.luckyNums && data.myItems) {
+      surfaceEl.innerHTML = `
+        <div class="sc-lottery-board">
+          <div class="sc-winning-zone">
+            <div class="sc-zone-header">
+              <span class="sc-zone-tag">GAME 1</span>
+              <span class="sc-zone-title">🌟 中 奖 号 码 🌟</span>
+            </div>
+            <div class="sc-winning-balls">
+              ${data.luckyNums.map(n => `<div class="sc-winning-ball" data-num="${n}"><span>${n}</span></div>`).join('')}
+            </div>
+          </div>
+          <div class="sc-my-zone">
+            <div class="sc-my-header">
+              <span class="sc-zone-title" style="font-size:12px;color:var(--tx-dim);">🎯 我的号码 (历史档案回顾)</span>
+              <span class="sc-zone-hint">${config.specialIco} 翻倍</span>
+            </div>
+            <div class="sc-my-grid count-${data.myItems.length}">
+              ${data.myItems.map(it => `
+                <div class="sc-lottery-cell ${it.isHit ? 'is-hit' : ''} ${it.isNearMiss ? 'is-near' : ''}" data-cell-id="${it.id}">
+                  ${it.isHit ? '<span class="sc-hit-badge">中奖</span>' : ''}
+                  <div class="sc-cell-top">
+                    <span class="sc-cell-num ${it.isSpecial ? 'special' : ''}">${it.isSpecial ? (it.specialIco || config.specialIco) : it.num}</span>
+                    ${it.isSpecial ? `<span class="sc-cell-special-lbl">${it.specialText || config.specialText}</span>` : ''}
+                  </div>
+                  <div class="sc-cell-prize">
+                    <span class="sc-prize-amount">${it.prizeStr}</span>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // 清除覆盖涂层，完全露出
+    const canvas = document.getElementById('scCanvasOverlay');
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+      canvas.style.opacity = '0';
+    }
+    updateProgressUI(100);
+
+    // 盖上对应印章与结算框
+    const stampEl = document.getElementById('scStampBadge');
+    const settleBox = document.getElementById('scSettleBox');
+    if (data.isWin) {
+      if (stampEl) {
+        stampEl.className = 'sc-stamp-stamp stamped-win';
+        stampEl.innerHTML = `✦ 历史中奖 ✦<br><span style="font-size:18px;">¥${(data.prizeSum || 0).toLocaleString()} 元</span>`;
+      }
+      if (settleBox) {
+        settleBox.style.display = 'block';
+        settleBox.innerHTML = `
+          <div class="sc-settle-alert win">
+            🎉 <b>历史中奖战报：</b> 本张彩票共命中 <b>${data.matchedCount || 1}</b> 个中奖号码，斩获现金奖金 <b>¥${(data.prizeSum || 0).toLocaleString()} 元</b>！
+          </div>
+        `;
+      }
+    } else {
+      if (stampEl) {
+        stampEl.className = 'sc-stamp-stamp stamped-lose';
+        stampEl.innerHTML = '✦ 未中奖 ✦<br><span style="font-size:13px;">历史记录</span>';
+      }
+      if (settleBox) {
+        settleBox.style.display = 'block';
+        settleBox.innerHTML = `
+          <div class="sc-settle-alert lose">
+            😢 <b>未中奖战报：</b> 中奖号码为【${(data.luckyNums || []).join(', ')}】，历史存档已备查。
+          </div>
+        `;
+      }
+    }
+
+    // 滚动至顶部卡片
+    const modScratch = document.getElementById('mod-scratch');
+    if (modScratch) {
+      modScratch.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }
+
   window.AppScratch = {
     init,
     switchTheme,
     generateTicket,
     quickReveal,
-    generatePoster
+    generatePoster,
+    restore: restoreTicket
   };
 })();
 
@@ -28689,6 +28862,10 @@ if ('serviceWorker' in navigator) {
         if (window.AppBazi && typeof window.AppBazi.restore === 'function' && item.data) {
           window.AppBazi.restore(item.data);
         }
+      } else if (mod === 'scratch') {
+        if (window.AppScratch && typeof window.AppScratch.restore === 'function' && item.data) {
+          window.AppScratch.restore(item.data);
+        }
       }
     } catch (e) {
       console.warn('restore record error:', e);
@@ -28712,7 +28889,8 @@ if ('serviceWorker' in navigator) {
       clock: list.filter(r => r.module === 'clock').length,
       merit: list.filter(r => r.module === 'merit').length,
       lifeguide: list.filter(r => r.module === 'lifeguide').length,
-      bazi: list.filter(r => r.module === 'bazi').length
+      bazi: list.filter(r => r.module === 'bazi').length,
+      scratch: list.filter(r => r.module === 'scratch').length
     };
 
     // 渲染分类筛选条
@@ -28731,6 +28909,7 @@ if ('serviceWorker' in navigator) {
         <button class="uni-filter-chip ${filterMod === 'merit' ? 'active' : ''}" data-mod="merit">📿 功德 <span class="chip-count">${counts.merit}</span></button>
         <button class="uni-filter-chip ${filterMod === 'lifeguide' ? 'active' : ''}" data-mod="lifeguide">🛡️ 清醒 <span class="chip-count">${counts.lifeguide}</span></button>
         <button class="uni-filter-chip ${filterMod === 'bazi' ? 'active' : ''}" data-mod="bazi">📜 八字 <span class="chip-count">${counts.bazi}</span></button>
+        <button class="uni-filter-chip ${filterMod === 'scratch' ? 'active' : ''}" data-mod="scratch">🎟️ 刮刮乐 <span class="chip-count">${counts.scratch}</span></button>
       `;
 
       filterBar.querySelectorAll('.uni-filter-chip').forEach(btn => {

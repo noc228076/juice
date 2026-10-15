@@ -143,6 +143,10 @@
         if (window.AppBazi && typeof window.AppBazi.restore === 'function' && item.data) {
           window.AppBazi.restore(item.data);
         }
+      } else if (mod === 'scratch') {
+        if (window.AppScratch && typeof window.AppScratch.restore === 'function' && item.data) {
+          window.AppScratch.restore(item.data);
+        }
       }
     } catch (e) {
       console.warn('restore record error:', e);
@@ -166,7 +170,8 @@
       clock: list.filter(r => r.module === 'clock').length,
       merit: list.filter(r => r.module === 'merit').length,
       lifeguide: list.filter(r => r.module === 'lifeguide').length,
-      bazi: list.filter(r => r.module === 'bazi').length
+      bazi: list.filter(r => r.module === 'bazi').length,
+      scratch: list.filter(r => r.module === 'scratch').length
     };
 
     // 渲染分类筛选条
@@ -185,6 +190,7 @@
         <button class="uni-filter-chip ${filterMod === 'merit' ? 'active' : ''}" data-mod="merit">📿 功德 <span class="chip-count">${counts.merit}</span></button>
         <button class="uni-filter-chip ${filterMod === 'lifeguide' ? 'active' : ''}" data-mod="lifeguide">🛡️ 清醒 <span class="chip-count">${counts.lifeguide}</span></button>
         <button class="uni-filter-chip ${filterMod === 'bazi' ? 'active' : ''}" data-mod="bazi">📜 八字 <span class="chip-count">${counts.bazi}</span></button>
+        <button class="uni-filter-chip ${filterMod === 'scratch' ? 'active' : ''}" data-mod="scratch">🎟️ 刮刮乐 <span class="chip-count">${counts.scratch}</span></button>
       `;
 
       filterBar.querySelectorAll('.uni-filter-chip').forEach(btn => {

@@ -28964,9 +28964,22 @@ if ('serviceWorker' in navigator) {
   'use strict';
 
   let currentModule = 'drinks';
+  let lastDrinkMod = 'drinks';
   let lastMysticMod = 'tarot';
+  let lastRelaxMod = 'clock';
   const ALLOWED_MODS = ['drinks', 'milktea', 'manual', 'fengshui', 'tarot', 'lingqian', 'decision', 'clock', 'merit', 'lifeguide', 'bazi', 'daily', 'scratch'];
   const initializedModules = new Set(['drinks']);
+
+  const MOD_PARENT_MAP = {
+    milktea: 'drinks',
+    drinks: 'drinks',
+    tarot: 'tarot',
+    lingqian: 'tarot',
+    bazi: 'tarot',
+    fengshui: 'tarot',
+    clock: 'clock',
+    merit: 'clock'
+  };
 
   function updateGlider(activeTab) {
     const glider = document.getElementById('navTabGlider');
@@ -28983,8 +28996,14 @@ if ('serviceWorker' in navigator) {
     if (!ALLOWED_MODS.includes(modKey)) {
       modKey = 'drinks';
     }
-    if (modKey === 'tarot' || modKey === 'lingqian' || modKey === 'bazi') {
+    if (modKey === 'drinks' || modKey === 'milktea') {
+      lastDrinkMod = modKey;
+    }
+    if (modKey === 'tarot' || modKey === 'lingqian' || modKey === 'bazi' || modKey === 'fengshui') {
       lastMysticMod = modKey;
+    }
+    if (modKey === 'clock' || modKey === 'merit') {
+      lastRelaxMod = modKey;
     }
 
     if (modKey !== 'manual' && window.AppManual && typeof window.AppManual.stopActiveGame === 'function') {
@@ -28997,13 +29016,11 @@ if ('serviceWorker' in navigator) {
     currentModule = modKey;
     document.documentElement.dataset.activeModule = modKey;
 
-    const hasSeparateLingqianTab = !!document.querySelector('.nav-tab[data-mod="lingqian"]');
-    const hasSeparateBaziTab = !!document.querySelector('.nav-tab[data-mod="bazi"]');
+    const parentModKey = MOD_PARENT_MAP[modKey] || modKey;
     let matchedTab = null;
     // 切换顶栏 Tab 选中状态
     document.querySelectorAll('.nav-tab').forEach(tab => {
-      const isMysticSub = (!hasSeparateLingqianTab && modKey === 'lingqian') || (!hasSeparateBaziTab && modKey === 'bazi');
-      const isMatch = tab.dataset.mod === modKey || (isMysticSub && tab.dataset.mod === 'tarot');
+      const isMatch = tab.dataset.mod === parentModKey;
       tab.classList.toggle('active', isMatch);
       if (isMatch) {
         matchedTab = tab;
@@ -29018,6 +29035,15 @@ if ('serviceWorker' in navigator) {
     if (matchedTab) {
       updateGlider(matchedTab);
     }
+
+    // 同步子导航条 (subnav-pill-btn) 激活态
+    document.querySelectorAll('[data-sub-jump]').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.subJump === modKey);
+    });
+    // 同步东西玄学 (ew-switch-btn) 激活态
+    document.querySelectorAll('[data-ew-jump]').forEach(btn => {
+      btn.classList.toggle('active', btn.dataset.ewJump === modKey);
+    });
 
     // 切换模块视图
     document.querySelectorAll('.app-module').forEach(mod => {
@@ -29068,10 +29094,22 @@ if ('serviceWorker' in navigator) {
       tab.addEventListener('click', () => {
         if (window.SFX && window.SFX.tap) window.SFX.tap();
         let targetMod = tab.dataset.mod;
-        if (targetMod === 'tarot') {
+        if (targetMod === 'drinks') {
+          targetMod = lastDrinkMod || 'drinks';
+        } else if (targetMod === 'tarot') {
           targetMod = lastMysticMod || 'tarot';
+        } else if (targetMod === 'clock') {
+          targetMod = lastRelaxMod || 'clock';
         }
         switchModule(targetMod, true);
+      });
+    });
+
+    // 绑定子模块胶囊互跳按钮
+    document.querySelectorAll('[data-sub-jump]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        switchModule(btn.dataset.subJump, true);
       });
     });
 

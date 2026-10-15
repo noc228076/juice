@@ -97,6 +97,13 @@ html[data-theme="light"] .ew-mystic-bar {
   font-weight: 800;
 }
 
+.ew-switch-btn.active.fengshui {
+  background: rgba(16, 185, 129, 0.18);
+  color: #10B981;
+  border: 1px solid rgba(16, 185, 129, 0.45);
+  font-weight: 800;
+}
+
 html[data-theme="light"] .ew-switch-btn.active.west {
   color: #7E22CE;
 }
@@ -105,6 +112,9 @@ html[data-theme="light"] .ew-switch-btn.active.east {
 }
 html[data-theme="light"] .ew-switch-btn.active.bazi {
   color: #B45309;
+}
+html[data-theme="light"] .ew-switch-btn.active.fengshui {
+  color: #047857;
 }
 
 /* ============ 屏幕容器切换 ============ */

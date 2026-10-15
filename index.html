@@ -17,7 +17,7 @@
 <meta property="og:title" content="饮料人格研究所 · 测测你的精神状态与灵魂特调">
 <meta property="og:description" content="当代年轻人精神状态测试 (SBTI) / 经典 16 型人格 (MBTI) / 16 款灵魂饮料特调，测出你的独家出厂配方与精神病友。">
 <meta property="og:image" content="assets/icons/icon-512.png">
-  <link rel="stylesheet" href="css/app.bundle.css?v=47">
+  <link rel="stylesheet" href="css/app.bundle.css?v=48">
   <script>
     (function(){
       try {
@@ -50,43 +50,28 @@
           <div class="nav-tab-glider" id="navTabGlider"></div>
           <button class="nav-tab active" data-mod="drinks">
             <span class="tab-icon">🍹</span>
-            <span class="tab-label-full">饮料特调</span>
-            <span class="tab-label-short">特调</span>
-          </button>
-          <button class="nav-tab" data-mod="milktea">
-            <span class="tab-icon">🧋</span>
-            <span class="tab-label-full">奶茶人格</span>
-            <span class="tab-label-short">奶茶</span>
+            <span class="tab-label-full">饮品测评</span>
+            <span class="tab-label-short">饮品</span>
           </button>
           <button class="nav-tab" data-mod="manual">
             <span class="tab-icon">📖</span>
             <span class="tab-label-full">自我说明书</span>
             <span class="tab-label-short">说明书</span>
           </button>
-          <button class="nav-tab" data-mod="fengshui">
-            <span class="tab-icon">🧭</span>
-            <span class="tab-label-full">工位风水</span>
-            <span class="tab-label-short">风水</span>
-          </button>
           <button class="nav-tab" data-mod="tarot">
             <span class="tab-icon">☯️</span>
             <span class="tab-label-full">东西玄学</span>
             <span class="tab-label-short">玄学</span>
           </button>
+          <button class="nav-tab" data-mod="clock">
+            <span class="tab-icon">⏰</span>
+            <span class="tab-label-full">摸鱼解压</span>
+            <span class="tab-label-short">解压</span>
+          </button>
           <button class="nav-tab" data-mod="decision">
             <span class="tab-icon">🪙</span>
             <span class="tab-label-full">纠结拯救</span>
             <span class="tab-label-short">决策</span>
-          </button>
-          <button class="nav-tab" data-mod="clock">
-            <span class="tab-icon">⏰</span>
-            <span class="tab-label-full">摸鱼时钟</span>
-            <span class="tab-label-short">摸鱼</span>
-          </button>
-          <button class="nav-tab" data-mod="merit">
-            <span class="tab-icon">📿</span>
-            <span class="tab-label-full">电子功德</span>
-            <span class="tab-label-short">功德</span>
           </button>
           <button class="nav-tab" data-mod="lifeguide">
             <span class="tab-icon">🛡️</span>
@@ -137,6 +122,11 @@
           <span id="themeIcon">☾</span>
         </button>
       </div>
+    </div>
+    <!-- 饮品测评子导航：特调 vs 奶茶 -->
+    <div class="subnav-pill-bar" style="margin: 6px auto 16px; position: relative; z-index: 5;">
+      <button type="button" class="subnav-pill-btn active" data-sub-jump="drinks">🍹 16款灵魂特调</button>
+      <button type="button" class="subnav-pill-btn" data-sub-jump="milktea">🧋 奶茶人格配方</button>
     </div>
     <div class="cover-wrap">
       <div class="cover-center">
@@ -361,6 +351,11 @@
     <!-- 模块 2：奶茶人格 (26大品牌) -->
     <section id="mod-milktea" class="app-module">
       <div class="mt-screen active" id="sc-mt-home">
+        <!-- 饮品测评子导航：特调 vs 奶茶 -->
+        <div class="subnav-pill-bar" style="margin: 0 auto 16px; position: relative; z-index: 5;">
+          <button type="button" class="subnav-pill-btn" data-sub-jump="drinks">🍹 16款灵魂特调</button>
+          <button type="button" class="subnav-pill-btn active" data-sub-jump="milktea">🧋 奶茶人格配方</button>
+        </div>
         <div class="mt-home-grid">
           <div class="mt-home-left">
             <div class="mt-hero">
@@ -453,6 +448,12 @@
       <!-- 页面 1：八字输入与每日老黄历工作台 -->
       <div class="fs-screen active" id="sc-fs-input">
         <div class="fs-wrap">
+          <div class="ew-mystic-bar">
+            <button type="button" class="ew-switch-btn west" data-ew-jump="tarot">🔮 西方塔罗</button>
+            <button type="button" class="ew-switch-btn east" data-ew-jump="lingqian">🎋 东方灵签</button>
+            <button type="button" class="ew-switch-btn bazi" data-ew-jump="bazi">📜 生辰八字</button>
+            <button type="button" class="ew-switch-btn active fengshui" data-ew-jump="fengshui">🧭 工位风水</button>
+          </div>
           <header>
             <h1>🧭 工位风水大师</h1>
             <p>掐指一算，全凭感觉 · 打工人专属玄学指南</p>
@@ -572,6 +573,7 @@
           <button type="button" class="ew-switch-btn active west" data-ew-jump="tarot">🔮 西方塔罗</button>
           <button type="button" class="ew-switch-btn east" data-ew-jump="lingqian">🎋 东方灵签</button>
           <button type="button" class="ew-switch-btn bazi" data-ew-jump="bazi">📜 生辰八字</button>
+          <button type="button" class="ew-switch-btn fengshui" data-ew-jump="fengshui">🧭 工位风水</button>
         </div>
 
         <div class="tr-home-header">
@@ -1062,6 +1064,7 @@
             <button type="button" class="ew-switch-btn west" data-ew-jump="tarot">🔮 西方塔罗</button>
             <button type="button" class="ew-switch-btn active east" data-ew-jump="lingqian">🎋 东方灵签</button>
             <button type="button" class="ew-switch-btn bazi" data-ew-jump="bazi">📜 生辰八字</button>
+            <button type="button" class="ew-switch-btn fengshui" data-ew-jump="fengshui">🧭 工位风水</button>
           </div>
           <h1 class="lq-title">东方祈福灵签</h1>
           <div class="lq-sub">紫竹摇签 · 朱砂宣纸 · 当代打工人渡劫指南</div>
@@ -1163,6 +1166,11 @@
     <!-- 模块 8：摸鱼发薪实时时钟 (扎心又快乐的工位时钟) -->
     <section id="mod-clock" class="app-module">
       <div class="ck-wrap">
+        <!-- 摸鱼解压子导航：时钟 vs 功德 -->
+        <div class="subnav-pill-bar" style="margin: 0 auto 16px; position: relative; z-index: 5;">
+          <button type="button" class="subnav-pill-btn active" data-sub-jump="clock">⏰ 摸鱼时钟 & 工资</button>
+          <button type="button" class="subnav-pill-btn" data-sub-jump="merit">📿 功德木鱼 & 碎纸解压</button>
+        </div>
         <!-- 顶部状态与快捷工具栏 -->
         <div class="ck-topbar">
           <div class="ck-status-pill" id="ckStatusPill">
@@ -1311,6 +1319,11 @@
     <!-- 模块 9：静心功德局 · 电子木鱼 & 怨气粉碎机 -->
     <section id="mod-merit" class="app-module">
       <div class="mr-wrap">
+        <!-- 摸鱼解压子导航：时钟 vs 功德 -->
+        <div class="subnav-pill-bar" style="margin: 0 auto 16px; position: relative; z-index: 5;">
+          <button type="button" class="subnav-pill-btn" data-sub-jump="clock">⏰ 摸鱼时钟 & 工资</button>
+          <button type="button" class="subnav-pill-btn active" data-sub-jump="merit">📿 功德木鱼 & 碎纸解压</button>
+        </div>
         <header class="mr-header">
           <span class="mr-tag">MINDFUL MERIT & STRESS RELIEF · 静心解压所</span>
           <h1 class="mr-title">静心功德局</h1>
@@ -1637,6 +1650,7 @@
           <button type="button" class="ew-switch-btn west" data-ew-jump="tarot">🔮 西方塔罗</button>
           <button type="button" class="ew-switch-btn east" data-ew-jump="lingqian">🎋 东方灵签</button>
           <button type="button" class="ew-switch-btn active bazi" data-ew-jump="bazi">📜 生辰八字</button>
+          <button type="button" class="ew-switch-btn fengshui" data-ew-jump="fengshui">🧭 工位风水</button>
         </div>
 
         <header class="bz-header">
@@ -2302,6 +2316,6 @@
   <canvas id="shareCanvas" width="1080" height="1620" hidden></canvas>
 </div>
 
-  <script defer src="js/app.bundle.js?v=47"></script>
+  <script defer src="js/app.bundle.js?v=48"></script>
 </body>
 </html>

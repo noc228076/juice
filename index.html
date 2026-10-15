@@ -17,7 +17,7 @@
 <meta property="og:title" content="饮料人格研究所 · 测测你的精神状态与灵魂特调">
 <meta property="og:description" content="当代年轻人精神状态测试 (SBTI) / 经典 16 型人格 (MBTI) / 16 款灵魂饮料特调，测出你的独家出厂配方与精神病友。">
 <meta property="og:image" content="assets/icons/icon-512.png">
-  <link rel="stylesheet" href="css/app.bundle.css?v=57">
+  <link rel="stylesheet" href="css/app.bundle.css?v=58">
   <script>
     (function(){
       try {
@@ -763,7 +763,7 @@
               <div class="tr-rv-panels">
                 <div class="tr-rv-panel meaning">
                   <div class="tr-rv-panel-title">
-                    <span>📜 命运启示精解</span>
+                    <span id="rvTitleOracle">📜 命运启示精解</span>
                     <span style="font-weight:600;opacity:0.75;font-size:11px">ARCANA ORACLE</span>
                   </div>
                   <div class="txt" id="rvTxt"></div>
@@ -774,6 +774,13 @@
                     <span style="font-weight:600;opacity:0.75;font-size:11px">ACTION GUIDANCE</span>
                   </div>
                   <div class="action-txt" id="rvAction"></div>
+                </div>
+                <div class="tr-rv-guide-hint" id="rvGuideHint" style="display:none">
+                  <span class="tr-gh-icon">🔮</span>
+                  <div class="tr-gh-text">
+                    <b>本命圣牌已显化归位</b>
+                    <p>点击下方按钮展开专属占卜档案文牒 · 查阅四维深度推演全景报告</p>
+                  </div>
                 </div>
               </div>
               <div class="tr-rv-meta-footer" id="rvMetaFooter"></div>
@@ -790,14 +797,14 @@
         <div class="topbar" style="margin-bottom:12px;">
           <button class="tr-iconbtn" id="trBtnBackResult" title="返回主页">←</button>
           <div class="pick-head" style="flex:1;margin-bottom:0">
-            <b>塔罗占卜报告</b>
+            <b>塔罗占卜档案文牒</b>
           </div>
           <div style="width:38px"></div>
         </div>
         <div id="trSummaryBox" class="summary"></div>
         <div id="trResultList" class="result-list"></div>
         <div class="home-btns tr-result-actions" style="display:flex;flex-wrap:wrap;gap:12px;">
-          <button class="tr-btn ghost" id="trBtnSave" style="flex:1">📜 保存占卜签</button>
+          <button class="tr-btn ghost" id="trBtnSave" style="flex:1">📜 保存高清占卜画报 / 导出签文</button>
           <button class="tr-btn ghost" id="trBtnHome" style="flex:1">返回主页</button>
           <button class="tr-btn" id="trBtnAgain" style="flex:1.2">再 占 一 次</button>
         </div>
@@ -2424,6 +2431,6 @@
   <canvas id="shareCanvas" width="1080" height="1620" hidden></canvas>
 </div>
 
-  <script defer src="js/app.bundle.js?v=57"></script>
+  <script defer src="js/app.bundle.js?v=58"></script>
 </body>
 </html>

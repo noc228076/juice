@@ -3345,6 +3345,447 @@ html[data-theme="light"] #mod-tarot .tr-rv-panel {
   margin-top: 2px;
 }
 
+/* 单抽显化揭秘引导提示卡片 */
+#mod-tarot .tr-rv-guide-hint {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 18px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(232, 201, 106, 0.12), rgba(138, 92, 246, 0.08));
+  border: 1px dashed var(--tr-gold);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.12);
+  margin-top: 4px;
+  animation: trHintPulse 3s ease-in-out infinite;
+}
+html[data-theme="light"] #mod-tarot .tr-rv-guide-hint {
+  background: linear-gradient(135deg, rgba(255, 250, 235, 0.95), rgba(245, 235, 210, 0.9));
+  border-color: rgba(176, 138, 46, 0.6);
+  box-shadow: 0 4px 16px rgba(176, 138, 46, 0.12);
+}
+@keyframes trHintPulse {
+  0%, 100% { box-shadow: 0 4px 18px rgba(232, 201, 106, 0.12); }
+  50% { box-shadow: 0 6px 24px rgba(232, 201, 106, 0.28); }
+}
+#mod-tarot .tr-gh-icon {
+  font-size: 24px;
+  line-height: 1;
+  flex: none;
+}
+#mod-tarot .tr-gh-text {
+  flex: 1;
+  text-align: left;
+}
+#mod-tarot .tr-gh-text b {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--tr-gold);
+  letter-spacing: 1px;
+}
+#mod-tarot .tr-gh-text p {
+  font-size: 12px;
+  color: var(--tx-dim);
+  margin: 3px 0 0;
+  line-height: 1.5;
+}
+
+/* ============ 塔罗全景占卜档案文牒 (.tr-dossier-report) ============ */
+#mod-tarot .tr-dossier-report {
+  width: 100%;
+  max-width: 1040px;
+  margin: 0 auto;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* 档案文牒顶栏 Banner */
+#mod-tarot .tr-dossier-banner {
+  background: var(--card);
+  border: 1.5px solid var(--tr-line);
+  border-radius: 20px;
+  padding: 18px 22px;
+  box-sizing: border-box;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.22), inset 0 0 24px rgba(232, 201, 106, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  position: relative;
+  overflow: hidden;
+}
+html[data-theme="light"] #mod-tarot .tr-dossier-banner {
+  background: linear-gradient(160deg, rgba(255, 253, 247, 0.96), rgba(248, 240, 220, 0.92));
+  border-color: rgba(176, 138, 46, 0.35);
+  box-shadow: 0 8px 24px rgba(154, 116, 32, 0.1);
+}
+#mod-tarot .tr-dossier-banner::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--tr-gold), transparent);
+}
+#mod-tarot .tr-dossier-banner-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+#mod-tarot .tr-dossier-code {
+  font-family: monospace, "Courier New", Courier;
+  font-size: 11.5px;
+  letter-spacing: 1.5px;
+  color: var(--tr-gold);
+  background: rgba(232, 201, 106, 0.12);
+  border: 1px solid var(--tr-line);
+  padding: 3px 10px;
+  border-radius: 6px;
+  font-weight: 700;
+}
+#mod-tarot .tr-dossier-badge {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--tx-dim);
+  letter-spacing: 1px;
+}
+#mod-tarot .tr-dossier-status {
+  font-size: 12px;
+  font-weight: 800;
+  padding: 3px 10px;
+  border-radius: 999px;
+  letter-spacing: 0.5px;
+}
+#mod-tarot .tr-dossier-status.up {
+  color: #10b981;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+#mod-tarot .tr-dossier-status.rev {
+  color: #f59e0b;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+#mod-tarot .tr-dossier-question {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  background: rgba(232, 201, 106, 0.08);
+  border: 1px dashed var(--tr-line);
+  font-size: 13px;
+  color: var(--tx);
+  flex-wrap: wrap;
+}
+#mod-tarot .tr-dossier-question strong {
+  color: var(--tr-gold);
+  font-weight: 800;
+}
+#mod-tarot .tr-dossier-title-bar {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+}
+#mod-tarot .tr-dossier-title-main {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+#mod-tarot .tr-dossier-roman {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 16px;
+  font-weight: 900;
+  color: var(--tr-gold);
+  letter-spacing: 2px;
+}
+#mod-tarot .tr-dossier-name {
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: 2.5px;
+  color: var(--tx);
+  margin: 0;
+}
+#mod-tarot .tr-dossier-en {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 14.5px;
+  color: var(--tx-dim);
+  font-style: italic;
+  letter-spacing: 1px;
+}
+#mod-tarot .tr-dossier-pillar {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--tr-gold);
+  letter-spacing: 1px;
+}
+
+/* 双栏网格排版 */
+#mod-tarot .tr-dossier-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+}
+@media (min-width: 768px) {
+  #mod-tarot .tr-dossier-grid {
+    display: grid;
+    grid-template-columns: 290px 1fr;
+    gap: 28px;
+    align-items: start;
+  }
+}
+
+/* 左栏卡片与元素盒 */
+#mod-tarot .tr-dossier-card-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+#mod-tarot .tr-dossier-card-stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px 16px;
+  background: var(--card);
+  border: 1.5px solid var(--tr-line);
+  border-radius: 20px;
+  box-sizing: border-box;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+}
+html[data-theme="light"] #mod-tarot .tr-dossier-card-stage {
+  background: linear-gradient(160deg, rgba(255, 253, 247, 0.96), rgba(248, 240, 220, 0.92));
+  border-color: rgba(176, 138, 46, 0.35);
+}
+#mod-tarot .tr-dossier-kw-matrix {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 12px 14px;
+  text-align: center;
+}
+html[data-theme="light"] #mod-tarot .tr-dossier-kw-matrix {
+  background: rgba(255, 255, 255, 0.75);
+}
+#mod-tarot .tr-dossier-kw-title {
+  font-size: 11.5px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: var(--tr-gold);
+  margin-bottom: 8px;
+}
+#mod-tarot .tr-dossier-elem-box {
+  background: var(--card);
+  border: 1.5px solid var(--tr-line);
+  border-radius: 18px;
+  padding: 16px;
+  box-sizing: border-box;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+html[data-theme="light"] #mod-tarot .tr-dossier-elem-box {
+  background: rgba(255, 255, 255, 0.85);
+  border-color: rgba(176, 138, 46, 0.28);
+}
+#mod-tarot .tr-elem-dyn-badge {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--tr-gold);
+  letter-spacing: 1px;
+}
+#mod-tarot .tr-elem-dyn-flow {
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: var(--tx);
+}
+#mod-tarot .tr-elem-dyn-balance {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--tx-dim);
+  padding-top: 6px;
+  border-top: 1px dashed var(--line);
+}
+#mod-tarot .tr-elem-dyn-balance strong {
+  color: var(--tr-gold);
+}
+
+/* 右栏四大核心模块 */
+#mod-tarot .tr-dossier-content-col {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+#mod-tarot .tr-dossier-sec {
+  background: var(--card);
+  border: 1.5px solid var(--tr-line);
+  border-radius: 18px;
+  padding: 16px 20px;
+  box-sizing: border-box;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.16);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+html[data-theme="light"] #mod-tarot .tr-dossier-sec {
+  background: rgba(255, 255, 255, 0.85);
+  border-color: rgba(176, 138, 46, 0.25);
+  box-shadow: 0 6px 20px rgba(154, 116, 32, 0.08);
+}
+#mod-tarot .tr-dossier-sec-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 8px;
+}
+#mod-tarot .tr-dsh-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+#mod-tarot .tr-dsh-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+#mod-tarot .tr-dsh-title {
+  font-size: 14.5px;
+  font-weight: 800;
+  color: var(--tr-gold);
+  letter-spacing: 1px;
+}
+#mod-tarot .tr-dsh-en {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: var(--tx-faint);
+}
+#mod-tarot .tr-dossier-main-txt,
+#mod-tarot .tr-dossier-domain-txt {
+  font-size: 14px;
+  line-height: 1.8;
+  color: var(--tx);
+  margin: 0;
+  text-align: justify;
+}
+#mod-tarot .tr-dossier-action-dual {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+@media (min-width: 600px) {
+  #mod-tarot .tr-dossier-action-dual {
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+}
+#mod-tarot .tr-dual-action-box {
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border: 1px solid var(--line);
+}
+#mod-tarot .tr-dual-action-box.do {
+  background: rgba(16, 185, 129, 0.06);
+  border-left: 3.5px solid #10b981;
+}
+html[data-theme="light"] #mod-tarot .tr-dual-action-box.do {
+  background: rgba(16, 185, 129, 0.08);
+}
+#mod-tarot .tr-dual-action-box.dont {
+  background: rgba(245, 158, 11, 0.06);
+  border-left: 3.5px solid #f59e0b;
+}
+html[data-theme="light"] #mod-tarot .tr-dual-action-box.dont {
+  background: rgba(245, 158, 11, 0.08);
+}
+#mod-tarot .tr-dab-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+#mod-tarot .tr-dab-badge {
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+#mod-tarot .tr-dual-action-box.do .tr-dab-badge {
+  color: #10b981;
+}
+#mod-tarot .tr-dual-action-box.dont .tr-dab-badge {
+  color: #d97706;
+}
+#mod-tarot .tr-dab-head small {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  opacity: 0.65;
+}
+#mod-tarot .tr-dab-txt {
+  font-size: 13px;
+  line-height: 1.65;
+  color: var(--tx);
+}
+
+/* 禅语诗句模块 */
+#mod-tarot .tr-dossier-sec.mantra {
+  background: linear-gradient(135deg, rgba(232, 201, 106, 0.1), rgba(43, 34, 89, 0.35));
+  border-color: var(--tr-gold);
+}
+html[data-theme="light"] #mod-tarot .tr-dossier-sec.mantra {
+  background: linear-gradient(135deg, rgba(255, 251, 235, 0.95), rgba(248, 238, 208, 0.9));
+  border-color: rgba(176, 138, 46, 0.55);
+}
+#mod-tarot .tr-dossier-mantra-box {
+  position: relative;
+  padding: 10px 14px 6px 36px;
+}
+#mod-tarot .tr-mantra-quote-mark {
+  position: absolute;
+  top: -8px;
+  left: 2px;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 48px;
+  line-height: 1;
+  color: var(--tr-gold);
+  opacity: 0.7;
+}
+#mod-tarot .tr-mantra-verse {
+  font-family: "PingFang SC", "Songti SC", "Noto Serif CJK SC", SimSun, serif;
+  font-size: 16px;
+  line-height: 1.85;
+  color: var(--tx);
+  font-weight: 600;
+  letter-spacing: 1.5px;
+}
+html[data-theme="light"] #mod-tarot .tr-mantra-verse {
+  color: #2c2105;
+}
+#mod-tarot .tr-mantra-sub {
+  font-size: 12px;
+  color: var(--tr-gold);
+  font-style: italic;
+  text-align: right;
+  margin-top: 8px;
+  letter-spacing: 1px;
+}
+
 /* ============ 总结结果页升级 (塔罗圣坛设计) ============ */
 #mod-tarot .summary {
   background: var(--card);

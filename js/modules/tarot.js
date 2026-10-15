@@ -169,6 +169,190 @@
     return SPREAD_CONFIG[sp || curSpread] || SPREAD_CONFIG.one;
   }
 
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function getElementDynamics(astro) {
+    const str = astro || '';
+    if (str.includes('火')) {
+      return {
+        elem: '🔥 火元素 (烈焰显化 · 驱动力)',
+        flow: '主行动力、意志觉醒与开创魄力。当下你内蕴强劲的破局驱动力，凡事宜抢占先机、主动求变，以热情带动全局。',
+        balance: '顺应直觉与冲劲的同时，须防急躁冲动；调和少许水元素之沉静，以达从容持久。'
+      };
+    }
+    if (str.includes('水')) {
+      return {
+        elem: '💧 水元素 (灵泉潜涌 · 感知力)',
+        flow: '主潜意识感知、直觉灵感与情感共鸣。当前境遇深受心念与直觉牵引，宜静水深流，细致体会细微信号。',
+        balance: '倾听内在梦境与灵性回响，忌陷入情绪反刍；借风元素之理性梳理思绪，化柔情为润物甘霖。'
+      };
+    }
+    if (str.includes('风')) {
+      return {
+        elem: '🌪️ 风元素 (罡风明澈 · 决断力)',
+        flow: '主理性推演、客观决断与信息流动。当前是理智拨开云雾的阶段，敏锐洞察与精准沟通将成为破局钥匙。',
+        balance: '保持超然与逻辑推演，防过度思虑脑补；注入土元素之踏实落地，言出必行。'
+      };
+    }
+    if (str.includes('土')) {
+      return {
+        elem: '🌿 土元素 (厚德沉潜 · 稳固力)',
+        flow: '主现实根基、资源沉淀与长期回报。所谋之事讲求稳健推进与踏石留印，时间自会酝酿丰硕果实。',
+        balance: '稳扎稳打、守住边界，忌固执守旧；适度引入火元素之灵动，激活生机与热情。'
+      };
+    }
+    return {
+      elem: '✨ 灵性以太 (星轨谐振 · 归一力)',
+      flow: '主高维指引与宏观命运契机。当下所处的时空节点具有强烈的因果回响与生命阶段转换意义。',
+      balance: '守中致静，顺应自然节律流转，不偏不倚，万法归一。'
+    };
+  }
+
+  function getDomainAnalysis(card, domain, isRev) {
+    const d = domain || 'general';
+    const cName = card.name;
+    const pillar = card.pillar || '命运启示';
+
+    const domainMap = {
+      career: {
+        up: `在事业与学业向度上，【${cName}】正位象征着正向动能与突破契机。当前你所面临的工作或学业任务，正处于“${pillar}”的关键显化期。手头所执掌的业务或规划具有清晰的推进空间，宜主动争取关键项目、坦荡沟通需求并展现专业担当。若面临跨部门协作或汇报，以扎实的业务数据和清晰条理切入，能迅速赢得领导与同侪信任。`,
+        rev: `在事业与学业向度上，【${cName}】逆位提示当前可能存在沟通阻滞、执行方向偏轨或倦怠内耗。当前事务表面看似卡顿，实则是深层流程漏洞或权责不明的集中暴露。切莫因急于求成而强行硬顶，亦不可消极逃避。当下最明智的策略是收拢阵线，对近期方案与时间节点做一次系统复盘，理清轻重缓急，以静制动。`
+      },
+      love: {
+        up: `在情感与人际亲密关系中，【${cName}】正位预示着心意互通与真诚共鸣。无论是已有伴侣还是探寻新机缘，当前星轨均赋予你温暖和谐的情感磁场。彼此之间以真心相待、换位体谅，能消除过往微小的隔阂，催生更深层次的信任与归属感。单身者宜多参与志趣契合的线下交流，展现真实的自我风采。`,
+        rev: `在情感与人际亲密关系中，【${cName}】逆位映射出内心隐藏的疑虑、防备或沟通不同频。或许双方在某项具体诉求或观念上产生了温差，亦或你在潜意识中投射了过度的焦虑。此时切忌冷战较劲或翻旧账，请先安抚好自己的情绪内核，卸下防卫心理，在温和平和的氛围中坦诚表达真实感受。`
+      },
+      wealth: {
+        up: `在财富与物质资源向度上，【${cName}】正位呈现积极向上的增益势能。你的财务状况趋于稳健，过往在专业技能或资产配置上的耕耘开始展现回报潜力。若有关于提升主业收入、探索稳健副业或长线投资的构想，当前正是适时布局、精耕细作的窗口期，守正出奇，顺理成章。`,
+        rev: `在财富与物质资源向度上，【${cName}】逆位提示财务防御重于进攻。近期需警惕情绪化冲动开支、未经审慎尽调的跟风投资或隐藏账目漏洞。当前环境不宜承担过高杠杆或轻信高回报诱惑。建议收紧非必要支出，增加活期安全储备金，严守现金流安全底线。`
+      },
+      choice: {
+        up: `在重大抉择与分岔路口前，【${cName}】正位给予你明确的宇宙背书。你内心的真实愿景早已有了偏向，当前的犹豫不过是对未知的习惯性谨慎。牌面显示，那个更能激发你长期内在生命力、契合你核心价值观的选项，正是顺应天时的正确道路，勇敢倾听第一直觉，笃定启程。`,
+        rev: `在重大抉择与分岔路口前，【${cName}】逆位提示当前尚未到一锤定音的最佳时刻。你可能被外界过多的杂音、虚假繁荣或短期得失所裹挟，尚未看清不同选项背后的真实代价。此时盲目选边容易陷入被动，不妨先按下暂停键，再收集一轮核心事实，厘清自己的底线原则再做决断。`
+      },
+      shield: {
+        up: `在防小人排雷与职场避坑向度上，【${cName}】正位如明镜高悬，自带正气护体。你正直坦荡的作风与扎实的专业实力，是抵御一切非议与暗箱操作的最佳屏障。对于外界无关紧要的风言风语，只需淡然处之、公事公办，不授人以柄，宵小伎俩自会不攻自破。`,
+        rev: `在防小人排雷与职场避坑向度上，【${cName}】逆位提示周围环境中可能潜藏被动消耗、信息不对称或隐形推诿。凡事需格外留心交接痕迹、邮件存证与保密边界，切忌在公开场合参与站队或非议他人。遇事保持清醒距离，多用白纸黑字的证据说话，以保全自身身心能量。`
+      },
+      general: {
+        up: `在当下的整体命运轨迹中，【${cName}】正位象征着身心灵能量的通透与舒展。宇宙正在向你敞开顺流的大门，生活各个板块的节奏趋于协同。保持澄明豁达的心境，珍惜身边的每份善意与灵感，所行皆坦途，所愿皆所得。`,
+        rev: `在当下的整体命运轨迹中，【${cName}】逆位提醒你这是一段向内收摄、蓄积力量的潜修期。外部遇阻并不是命运的苛责，而是高维智慧在借由停顿提醒你修正偏差、关照内在。接纳当下的不完美，卸下紧绷的心弦，静待时机回暖。`
+      }
+    };
+
+    const targetGroup = domainMap[d] || domainMap.general;
+    return isRev ? targetGroup.rev : targetGroup.up;
+  }
+
+  const ZEN_MANTRAS = {
+    0: {
+      up: "一杖芒鞋信步行，白云深处见初心。莫道前途悬绝壑，踏破苍苔总是春。",
+      rev: "步履虽轻莫踏空，临渊勒马识西东。沉潜三思方为智，收摄狂心返太冲。"
+    },
+    1: {
+      up: "四象汇聚归掌心，乾坤运转自通灵。万般显化随心起，点石成金正此时。",
+      rev: "巧计千般终有漏，弄巧反拙莫逞雄。返璞归真修实相，心平气和道自生。"
+    },
+    2: {
+      up: "明镜止水照禅心，石室幽兰静夜深。莫向人间寻妙谛，灵台一点月沉沉。",
+      rev: "浮云蔽月雾中游，妄念纷飞自作愁。屏息凝神观自在，拨开迷障见灵眸。"
+    },
+    3: {
+      up: "春风化雨润无声，大地生辉物自成。心怀慈悲滋万物，福田自种自丰融。",
+      rev: "甘霖过客反成伤，莫为虚花乱锦裳。爱己方能充实室，心源澄澈岁绵长。"
+    },
+    4: {
+      up: "端居泰岳镇山川，号令分明定万全。刚毅严正明法度，立身端正如松磐。",
+      rev: "金戈铁马莫强求，刚极易折水长流。虚怀若谷容天地，何必孤峰独枕愁。"
+    },
+    5: {
+      up: "古刹钟声彻九垓，明师指路白云开。心宗有托明真理，智慧如泉汩汩来。",
+      rev: "莫随陈俗锁灵台，敢向空门辟路开。破茧方知天地阔，莫将陈墨作金钗。"
+    },
+    6: {
+      up: "琴瑟相逢自应弦，灵犀互照两相欢。两心相悦非偶合，同行大道意无边。",
+      rev: "镜中花影费疑猜，莫向迷津乱去来。自守灵台明正道，不随浮浪枉徘徊。"
+    },
+    7: {
+      up: "金戈铁马踏秋风，双骥并行势若虹。克定心猿归正觉，长驱破阵立奇功。",
+      rev: "欲速难达缰自乱，强冲险隘折长轮。且收芒刺休盲动，校正归途再问津。"
+    },
+    8: {
+      up: "慈心降伏百兽威，柔指轻抚狮子眉。无上神威非铁血，一团和气化春雷。",
+      rev: "外强中干意彷徨，切莫狂躁损真阳。抱朴守拙培元气，静水深流蓄润芳。"
+    },
+    9: {
+      up: "一灯长照雪山青，万籁无声独自行。不羡红尘千种色，心光自是贯长亭。",
+      rev: "闭门却扫锁孤峰，过客休将冷眼同。试借清风推牖看，春山依旧百花红。"
+    },
+    10: {
+      up: "天道循环自有期，顺应天机莫迟疑。乘风破浪当其势，水到渠成喜自知。",
+      rev: "潮退江平莫怨时，收帆待发守初机。严冬过尽春将至，否极泰来自有时。"
+    },
+    11: {
+      up: "权衡在手两无偏，明镜高悬照大千。心怀坦荡无私曲，因果森严自了然。",
+      rev: "一念偏颇失中庸，利害纷纭障目浓。返观自省明因果，拨正天平复朗空。"
+    },
+    12: {
+      up: "倒悬林下自悠然，换个乾坤别有天。舍却执迷参大觉，无为无相悟真诠。",
+      rev: "徒劳挣扎困罗网，空耗韶华梦一场。莫作无端甘受难，抽身转念即朝阳。"
+    },
+    13: {
+      up: "枯荣代谢自寻常，败叶飘零覆冷霜。断舍沉疴开胜境，凤凰涅槃自重生。",
+      rev: "牵丝攀藤难自拔，抱残守缺痛难平。挥剑斩断痴缠锁，莫教旧梦误前程。"
+    },
+    14: {
+      up: "双瓶水火两交融，玉液均调气象雄。淡泊从容达妙境，清风明月伴长空。",
+      rev: "过激失均乱气机，急功近利事相违。中庸有道宜深悟，修得清虚意自归。"
+    },
+    15: {
+      up: "明鉴悬丝见执求，贪嗔如铁锁心头。一朝看破虚花相，解缆孤舟万顷流。",
+      rev: "打破樊笼出网罗，重整衣冠别旧魔。从此青天无阻碍，长风破浪泛沧波。"
+    },
+    16: {
+      up: "惊雷震破假楼台，瓦解冰消扫劫灰。去尽繁华存铁骨，更从虚处筑新阶。",
+      rev: "余震未消莫安眠，危墙之下慎周旋。早图革故明真理，休待风倾木自迁。"
+    },
+    17: {
+      up: "夜尽天明宿雨收，甘泉自注润沧洲。心怀澄澈光明照，前路悠悠不必忧。",
+      rev: "迷云蔽日暗星芒，休教悲观掩寸光。静守寒宵天将晓，晨曦一点正微茫。"
+    },
+    18: {
+      up: "幽幽清影照寒溪，犬吠疏篱野径迷。莫逐空花随幻相，心安理得候晨曦。",
+      rev: "残雾散尽月朦胧，渐觉清风出塞鸿。直下承当除幻障，朗然天地廓无踪。"
+    },
+    19: {
+      up: "赫赫金乌耀太空，万家门巷尽和风。阳和布德无私照，得意扬鞭喜气浓。",
+      rev: "烈日偶逢阴翳遮，暂韬光彩养芳华。莫嫌日暮云生处，明日重升满赤霞。"
+    },
+    20: {
+      up: "金鸡报晓彻云天，宿业冰消悟本原。万法重光开胜纪，新生从此驻金莲。",
+      rev: "号角催征耳未聪，畏前缩后意难同。放下沉疴当奋起，莫将良策付东风。"
+    },
+    21: {
+      up: "功行圆满步瀛洲，四海升平任遨游。百尺竿头收一境，乾坤无界又重游。",
+      rev: "十方将满欠一针，临门功退意沉吟。精勤莫懈收官处，始信功夫不负心。"
+    }
+  };
+
+  function getZenMantra(card, isRev) {
+    const item = ZEN_MANTRAS[card.no];
+    if (item) {
+      return isRev ? item.rev : item.up;
+    }
+    return isRev
+      ? "沉潜内观去执着，静待时移解万般。"
+      : "顺应内心的真实感召，走好当下的每一步。";
+  }
+
   function showScreen(id) {
     const root = document.getElementById('mod-tarot');
     if (!root) return;
@@ -395,41 +579,58 @@
       kwContainer.innerHTML = kwParts.map(k => `<span class="tr-kw-pill">✦ ${k}</span>`).join('');
     }
 
+    const titleOracle = document.getElementById('rvTitleOracle');
+    if (titleOracle) {
+      titleOracle.textContent = cfg.count === 1 ? '📜 灵性瞬像 · 牌面核心启示' : '📜 命运启示精解';
+    }
+
     document.getElementById('rvTxt').textContent = cardData.isRev ? cardData.rev : cardData.up;
 
     const actionPanel = document.getElementById('rvActionPanel');
     const actionTitle = document.getElementById('rvActionTitle');
     const actionTxt = document.getElementById('rvAction');
-    if (actionPanel) {
-      actionPanel.className = `tr-rv-panel action ${cardData.isRev ? 'is-rev' : ''}`;
-    }
-    if (actionTitle) {
-      actionTitle.innerHTML = `
-        <span>${cardData.isRev ? '🧭 破局与调整箴言 · 忌盲目内耗' : '🧭 当下行动箴言 · 宜顺势而为'}</span>
-        <span style="font-weight:600;opacity:0.75;font-size:11px">ACTION GUIDANCE</span>
-      `;
-    }
-    if (actionTxt) {
-      actionTxt.textContent = cardData.isRev
-        ? (cardData.revAction || cardData.rev)
-        : (cardData.upAction || cardData.up);
-    }
-
+    const guideHint = document.getElementById('rvGuideHint');
     const metaFooter = document.getElementById('rvMetaFooter');
-    if (metaFooter) {
-      metaFooter.innerHTML = `
-        <span>🔮 阿卡那序列：<b>No.${cardData.no} (${ROMAN[cardData.no]})</b></span>
-        <span>✨ 守护对应：<b>${cardData.astro || '大阿卡那'}</b></span>
-        <span>⚡ 牌面状态：<b>${cardData.isRev ? '逆位 (需向内觉察)' : '正位 (能量顺畅流动)'}</b></span>
-      `;
+
+    if (cfg.count === 1) {
+      // 单抽揭秘舞台：精简聚焦于牌面显化仪式感，收起完整行动方略与元数据，引导进入深度档案文牒
+      if (actionPanel) actionPanel.style.display = 'none';
+      if (metaFooter) metaFooter.style.display = 'none';
+      if (guideHint) guideHint.style.display = 'flex';
+    } else {
+      // 多牌时间流舞台：保持分步行动箴言与序列元数据
+      if (actionPanel) {
+        actionPanel.style.display = '';
+        actionPanel.className = `tr-rv-panel action ${cardData.isRev ? 'is-rev' : ''}`;
+      }
+      if (actionTitle) {
+        actionTitle.innerHTML = `
+          <span>${cardData.isRev ? '🧭 破局与调整箴言 · 忌盲目内耗' : '🧭 当下行动箴言 · 宜顺势而为'}</span>
+          <span style="font-weight:600;opacity:0.75;font-size:11px">ACTION GUIDANCE</span>
+        `;
+      }
+      if (actionTxt) {
+        actionTxt.textContent = cardData.isRev
+          ? (cardData.revAction || cardData.rev)
+          : (cardData.upAction || cardData.up);
+      }
+      if (metaFooter) {
+        metaFooter.style.display = '';
+        metaFooter.innerHTML = `
+          <span>🔮 阿卡那序列：<b>No.${cardData.no} (${ROMAN[cardData.no]})</b></span>
+          <span>✨ 守护对应：<b>${cardData.astro || '大阿卡那'}</b></span>
+          <span>⚡ 牌面状态：<b>${cardData.isRev ? '逆位 (需向内觉察)' : '正位 (能量顺畅流动)'}</b></span>
+        `;
+      }
+      if (guideHint) guideHint.style.display = 'none';
     }
 
     const prevBtn = document.getElementById('trRvPrev');
     const nextBtn = document.getElementById('trRvNext');
     if (cfg.count === 1) {
       prevBtn.style.display = 'inline-flex';
-      prevBtn.textContent = '🔄 再抽一张';
-      nextBtn.textContent = '✦ 查看完整报告 / 保存签文 ✦';
+      prevBtn.textContent = '🔄 换一张重抽';
+      nextBtn.textContent = '✦ 查看完整报告 / 导出签文 → ✦';
     } else {
       prevBtn.style.display = revIdx > 0 ? 'inline-flex' : 'none';
       prevBtn.textContent = '← 上一张牌';
@@ -480,12 +681,17 @@
     const summaryBox = document.getElementById('trSummaryBox');
     const resultList = document.getElementById('trResultList');
 
+    const archiveId = (restoredData && restoredData.archiveId) || Date.now().toString().slice(-8);
+
     if (cfg.count === 1 || items.length === 1) {
       const item = items[0];
       const c = item.card;
       const svgCode = S[c.no] || `<circle cx="60" cy="60" r="30"/>`;
       const kwParts = (item.kw || '').split('·').map(s => s.trim()).filter(Boolean);
       const kwHtml = kwParts.map(k => `<span class="tr-kw-pill">✦ ${k}</span>`).join('');
+      const domainTxt = getDomainAnalysis(c, curDomain, c.isRev);
+      const elemData = getElementDynamics(c.astro);
+      const zenMantra = getZenMantra(c, c.isRev);
 
       if (summaryBox) {
         summaryBox.style.display = 'none';
@@ -495,102 +701,167 @@
       if (resultList) {
         resultList.className = 'result-list is-single';
         resultList.innerHTML = `
-          <div class="tr-single-hero reveal-stage">
-            <div class="tr-altar-corner tl">✦</div>
-            <div class="tr-altar-corner tr">✦</div>
-            <div class="tr-altar-corner bl">✦</div>
-            <div class="tr-altar-corner br">✦</div>
-
-            <div class="tr-reveal-card-zone">
-              <div class="tr-card-halo"></div>
-              <div class="bigcard flipped" id="trSingleCardHero" title="轻触牌面可翻转重读">
-                <div class="flip">
-                  <div class="fback">${CARD_BACK}</div>
-                  <div class="face">
-                    <div class="tr-face-container">
-                      <div class="tr-face-base">
-                        <div class="num">${ROMAN[c.no]}</div>
-                        <div class="emblem" style="${c.isRev ? 'transform:rotate(180deg);' : ''}">${svg(svgCode)}</div>
-                        <div class="nm">
-                          <b>${c.name}</b>
-                          <span>${c.en}</span>
-                        </div>
-                      </div>
-                      ${c.image ? `
-                        <div class="tr-face-art-wrap ${c.isRev ? 'is-rev' : ''}">
-                          <img src="${c.image}" alt="${c.name}" class="tr-face-art-img"
-                               loading="eager" decoding="async"
-                               onerror="this.style.display='none'">
-                        </div>
-                      ` : ''}
-                    </div>
-                  </div>
-                </div>
+          <div class="tr-dossier-report">
+            <!-- 档案文牒顶栏 -->
+            <div class="tr-dossier-banner">
+              <div class="tr-dossier-banner-top">
+                <span class="tr-dossier-code">ARCHIVE NO. TR-${archiveId}</span>
+                <span class="tr-dossier-badge">${dLabel} · 命运全景推演</span>
+                <span class="tr-dossier-status ${c.isRev ? 'rev' : 'up'}">${c.isRev ? '🔴 逆位 · 阻滞觉察与转化' : '🟢 正位 · 顺流显化与充盈'}</span>
               </div>
-              <div class="tr-card-flip-hint">✦ 轻触牌面可翻转 · 倾听直觉共鸣 ✦</div>
+              ${qText ? `
+                <div class="tr-dossier-question">
+                  <span class="tr-dq-icon">💭</span>
+                  <span class="tr-dq-label">问卜心愿：</span>
+                  <strong class="tr-dq-text">「${escapeHtml(qText)}」</strong>
+                </div>
+              ` : ''}
+              <div class="tr-dossier-title-bar">
+                <div class="tr-dossier-title-main">
+                  <span class="tr-dossier-roman">[ ${ROMAN[c.no]} ]</span>
+                  <h2 class="tr-dossier-name">${c.name}</h2>
+                  <span class="tr-dossier-en">${c.en}</span>
+                </div>
+                <div class="tr-dossier-pillar">✦ ${c.pillar || '命运启示'} ✦</div>
+              </div>
             </div>
 
-            <div class="tr-reveal-info-zone">
-              <div class="reading" style="opacity:1;">
-                <div class="tr-rv-header">
-                  <div class="tr-rv-badges">
-                    <div class="pos"><em>${dLabel} · ${item.pos}</em></div>
-                    <div class="badge ${c.isRev ? 'rev' : 'up'}">${c.isRev ? '逆位 · 内省与转化' : '正位 · 顺畅与能量充盈'}</div>
-                    ${c.astro ? `<div class="tr-rv-astro-pill">${c.astro}</div>` : ''}
+            <!-- 双栏核心内容网格 -->
+            <div class="tr-dossier-grid">
+              <!-- 左栏：大牌神貌展台 + 核心意象 + 元素能量流向 -->
+              <div class="tr-dossier-card-col">
+                <div class="tr-dossier-card-stage">
+                  <div class="tr-card-halo"></div>
+                  <div class="bigcard flipped" id="trDossierCard" title="轻触牌面可翻转重读">
+                    <div class="flip">
+                      <div class="fback">${CARD_BACK}</div>
+                      <div class="face">
+                        <div class="tr-face-container">
+                          <div class="tr-face-base">
+                            <div class="num">${ROMAN[c.no]}</div>
+                            <div class="emblem" style="${c.isRev ? 'transform:rotate(180deg);' : ''}">${svg(svgCode)}</div>
+                            <div class="nm">
+                              <b>${c.name}</b>
+                              <span>${c.en}</span>
+                            </div>
+                          </div>
+                          ${c.image ? `
+                            <div class="tr-face-art-wrap ${c.isRev ? 'is-rev' : ''}">
+                              <img src="${c.image}" alt="${c.name}" class="tr-face-art-img"
+                                   loading="eager" decoding="async"
+                                   onerror="this.style.display='none'">
+                            </div>
+                          ` : ''}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  ${qText ? `
-                    <div class="tr-rv-question-pill">
-                      <span>💭 专注求问：</span>
-                      <b>「${qText}」</b>
-                    </div>
-                  ` : ''}
-                  <div class="tr-rv-title-row">
-                    <div class="tr-rv-title-main">
-                      <span class="tr-rv-roman">${ROMAN[c.no]}</span>
-                      <h3>${c.name}</h3>
-                      <span class="tr-rv-en">${c.en}</span>
-                    </div>
-                    <span class="tr-rv-pillar">✦ ${c.pillar || '命运启示'}</span>
+                  <div class="tr-card-flip-hint">✦ 轻触圣牌可翻转 · 凝视阿卡那真容 ✦</div>
+                </div>
+
+                <div class="tr-dossier-kw-matrix">
+                  <div class="tr-dossier-kw-title">✦ 核心意象矩阵 ✦</div>
+                  <div class="tr-rv-kw-row" style="justify-content:center;">
+                    ${kwHtml}
                   </div>
                 </div>
 
-                <div class="tr-rv-kw-row">
-                  ${kwHtml}
+                <div class="tr-dossier-elem-box">
+                  <div class="tr-dossier-sec-head">
+                    <div class="tr-dsh-left">
+                      <span class="tr-dsh-icon">🌌</span>
+                      <span class="tr-dsh-title">四大元素能量流向</span>
+                    </div>
+                    <span class="tr-dsh-en">ELEMENTAL</span>
+                  </div>
+                  <div class="tr-elem-dyn-badge">${elemData.elem}</div>
+                  <div class="tr-elem-dyn-flow">${elemData.flow}</div>
+                  <div class="tr-elem-dyn-balance"><strong>⚖️ 能量调和：</strong>${elemData.balance}</div>
+                </div>
+              </div>
+
+              <!-- 右栏：四大全景深度分析模块 -->
+              <div class="tr-dossier-content-col">
+                <!-- 模块 1：核心命运象义全景深析 -->
+                <div class="tr-dossier-sec essence">
+                  <div class="tr-dossier-sec-head">
+                    <div class="tr-dsh-left">
+                      <span class="tr-dsh-icon">📜</span>
+                      <span class="tr-dsh-title">核心命运象义全景深析</span>
+                    </div>
+                    <span class="tr-dsh-en">ARCANA ESSENCE</span>
+                  </div>
+                  <div class="tr-dossier-sec-body">
+                    <p class="tr-dossier-main-txt">${item.txt}</p>
+                  </div>
                 </div>
 
-                <div class="tr-rv-panels">
-                  <div class="tr-rv-panel meaning">
-                    <div class="tr-rv-panel-title">
-                      <span>📜 命运启示精解</span>
-                      <span style="font-weight:600;opacity:0.75;font-size:11px">ARCANA ORACLE</span>
+                <!-- 模块 2：专项推演剖析 -->
+                <div class="tr-dossier-sec domain">
+                  <div class="tr-dossier-sec-head">
+                    <div class="tr-dsh-left">
+                      <span class="tr-dsh-icon">🎯</span>
+                      <span class="tr-dsh-title">${dLabel} · 专项推演剖析</span>
                     </div>
-                    <div class="txt">${item.txt}</div>
+                    <span class="tr-dsh-en">DOMAIN DYNAMICS</span>
                   </div>
-
-                  <div class="tr-rv-panel action ${c.isRev ? 'is-rev' : ''}">
-                    <div class="tr-rv-panel-title">
-                      <span>${c.isRev ? '🧭 破局与调整箴言 · 忌盲目内耗' : '🧭 当下行动箴言 · 宜顺势而为'}</span>
-                      <span style="font-weight:600;opacity:0.75;font-size:11px">ACTION GUIDANCE</span>
-                    </div>
-                    <div class="action-txt">${c.isRev ? (c.revAction || item.txt) : (c.upAction || item.txt)}</div>
+                  <div class="tr-dossier-sec-body">
+                    <p class="tr-dossier-domain-txt">${domainTxt}</p>
                   </div>
                 </div>
 
-                <div class="tr-rv-meta-footer">
-                  <span>🔮 阿卡那序列：<b>No.${c.no} (${ROMAN[c.no]})</b></span>
-                  <span>✨ 守护对应：<b>${c.astro || '大阿卡那'}</b></span>
-                  <span>⚡ 牌面状态：<b>${c.isRev ? '逆位 (需向内觉察)' : '正位 (能量顺畅流动)'}</b></span>
+                <!-- 模块 3：当下双元行动方略 (宜 & 忌 对比卡片) -->
+                <div class="tr-dossier-sec actions">
+                  <div class="tr-dossier-sec-head">
+                    <div class="tr-dsh-left">
+                      <span class="tr-dsh-icon">🧭</span>
+                      <span class="tr-dsh-title">当下双元行动方略</span>
+                    </div>
+                    <span class="tr-dsh-en">ACTION PROTOCOL</span>
+                  </div>
+                  <div class="tr-dossier-action-dual">
+                    <div class="tr-dual-action-box do">
+                      <div class="tr-dab-head">
+                        <span class="tr-dab-badge">🟢 宜 · 顺势而为</span>
+                        <small>EMBRACE</small>
+                      </div>
+                      <div class="tr-dab-txt">${c.upAction || c.up}</div>
+                    </div>
+                    <div class="tr-dual-action-box dont">
+                      <div class="tr-dab-head">
+                        <span class="tr-dab-badge">🔴 忌 · 盲区防范</span>
+                        <small>AVOID</small>
+                      </div>
+                      <div class="tr-dab-txt">${c.revAction || c.rev}</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 模块 4：专属阿卡那定盘高维禅语 -->
+                <div class="tr-dossier-sec mantra">
+                  <div class="tr-dossier-sec-head">
+                    <div class="tr-dsh-left">
+                      <span class="tr-dsh-icon">✨</span>
+                      <span class="tr-dsh-title">专属阿卡那定盘高维禅语</span>
+                    </div>
+                    <span class="tr-dsh-en">ZEN MANTRA</span>
+                  </div>
+                  <div class="tr-dossier-mantra-box">
+                    <div class="tr-mantra-quote-mark">“</div>
+                    <div class="tr-mantra-verse">${zenMantra}</div>
+                    <div class="tr-mantra-sub">—— 韦特大阿卡那 · ${c.name} ${c.isRev ? '逆位定盘' : '正位定盘'}</div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
         `;
 
-        const singleCardHero = document.getElementById('trSingleCardHero');
-        if (singleCardHero) {
-          singleCardHero.onclick = () => {
+        const dossierCard = document.getElementById('trDossierCard');
+        if (dossierCard) {
+          dossierCard.onclick = () => {
             if (window.SFX && window.SFX.tarotFlip) window.SFX.tarotFlip();
-            singleCardHero.classList.toggle('flipped');
+            dossierCard.classList.toggle('flipped');
           };
         }
       }
@@ -660,7 +931,7 @@
       }
     }
 
-    lastTarotResult = { spread: curSpread, domain: curDomain, domainLabel: dLabel, question: qText, items };
+    lastTarotResult = { spread: curSpread, domain: curDomain, domainLabel: dLabel, question: qText, archiveId, items };
 
     // 保存至全所综合档案库（回看历史时不重复入库）
     if (!isRestored && window.UniversalHistory) {

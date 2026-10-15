@@ -1,6 +1,6 @@
 /* =========================================================
    模块 11：幸运刮刮乐 (Lucky Scratch Lab)
-   真实物理刮擦涂层 · 粒子飞溅 · 5大特色票券 · 沉浸式解压刮奖
+   仿真彩票店实体刮刮乐 · 真实物理刮擦涂层 · 36% 真实返奖率 · 经典双区玩法
    ========================================================= */
 
 #mod-scratch {
@@ -8,13 +8,15 @@
   color: var(--tx);
   --sc-gold: #F59E0B;
   --sc-gold-light: #FDE68A;
-  --sc-gold-glow: rgba(245, 158, 11, 0.38);
-  --sc-coral: #FF5376;
-  --sc-coral-glow: rgba(255, 83, 118, 0.35);
+  --sc-gold-glow: rgba(245, 158, 11, 0.42);
+  --sc-coral: #EF4444;
+  --sc-coral-glow: rgba(239, 68, 68, 0.38);
   --sc-emerald: #10B981;
   --sc-purple: #A855F7;
+  --sc-silver: #94A3B8;
   padding: 16px 12px 64px;
   box-sizing: border-box;
+  position: relative;
 }
 
 #mod-scratch::before {
@@ -46,7 +48,7 @@ html[data-theme="light"] #mod-scratch::before {
 /* ============ 顶部 Hero 与统计看板 ============ */
 .scratch-hero {
   text-align: center;
-  margin-bottom: 22px;
+  margin-bottom: 20px;
 }
 
 .scratch-hero-badge {
@@ -79,18 +81,18 @@ html[data-theme="light"] #mod-scratch::before {
 }
 
 .scratch-hero-title {
-  font-size: clamp(24px, 5.5vw, 36px);
+  font-size: clamp(22px, 5.2vw, 34px);
   font-weight: 900;
-  letter-spacing: 2px;
+  letter-spacing: 1.5px;
   margin: 0 0 6px;
-  background: linear-gradient(135deg, var(--tx) 30%, var(--sc-gold) 85%);
+  background: linear-gradient(135deg, var(--tx) 25%, var(--sc-gold) 85%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
 .scratch-hero-sub {
-  font-size: 13.5px;
+  font-size: 13px;
   color: var(--tx-dim);
   margin: 0 0 16px;
   letter-spacing: 0.5px;
@@ -182,69 +184,47 @@ html[data-theme="light"] #mod-scratch::before {
   border-radius: 16px;
   background: var(--card);
   border: 1.5px solid var(--line);
-  color: var(--tx-dim);
+  color: var(--tx);
   cursor: pointer;
-  transition: all 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
-  text-align: left;
+  transition: all 0.22s ease;
+  user-select: none;
 }
 
 .sc-theme-btn:hover {
   border-color: var(--line-strong);
   transform: translateY(-2px);
-  color: var(--tx);
 }
 
 .sc-theme-btn.active {
   background: rgba(245, 158, 11, 0.12);
   border-color: var(--sc-gold);
-  color: var(--tx);
-  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.22);
+  box-shadow: 0 4px 16px rgba(245, 158, 11, 0.22);
 }
 
 .sc-tb-icon {
-  font-size: 22px;
-  line-height: 1;
+  font-size: 20px;
 }
 
 .sc-tb-info {
   display: flex;
   flex-direction: column;
+  text-align: left;
 }
 
 .sc-tb-name {
   font-size: 13.5px;
   font-weight: 800;
-  color: inherit;
   line-height: 1.25;
 }
 
 .sc-tb-sub {
   font-size: 11px;
-  font-weight: 600;
   color: var(--tx-faint);
   margin-top: 2px;
 }
 
-/* 主题特定高亮 */
-.sc-theme-btn[data-theme="office"].active {
-  background: rgba(16, 185, 129, 0.12);
-  border-color: var(--sc-emerald);
-  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.22);
-}
-.sc-theme-btn[data-theme="drink"].active {
-  background: rgba(168, 85, 247, 0.12);
-  border-color: var(--sc-purple);
-  box-shadow: 0 6px 20px rgba(168, 85, 247, 0.22);
-}
-.sc-theme-btn[data-theme="retrograde"].active {
-  background: rgba(239, 68, 68, 0.12);
-  border-color: #EF4444;
-  box-shadow: 0 6px 20px rgba(239, 68, 68, 0.22);
-}
-.sc-theme-btn[data-theme="love"].active {
-  background: rgba(255, 83, 118, 0.12);
-  border-color: var(--sc-coral);
-  box-shadow: 0 6px 20px rgba(255, 83, 118, 0.22);
+.sc-theme-btn.active .sc-tb-name {
+  color: var(--sc-gold);
 }
 
 /* ============ 核心刮奖操作台实体票券 ============ */
@@ -252,7 +232,7 @@ html[data-theme="light"] #mod-scratch::before {
   display: flex;
   flex-direction: column;
   align-items: center;
-  max-width: 620px;
+  max-width: 640px;
   margin: 0 auto 32px;
   width: 100%;
 }
@@ -260,19 +240,20 @@ html[data-theme="light"] #mod-scratch::before {
 .scratch-card-outer {
   position: relative;
   width: 100%;
-  border-radius: 24px;
-  padding: 24px 22px 20px;
+  border-radius: 22px;
+  padding: 22px 20px 18px;
   box-sizing: border-box;
-  background: #151821;
-  border: 2px solid rgba(245, 158, 11, 0.4);
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.08) inset;
+  background: #141721;
+  border: 2px solid rgba(245, 158, 11, 0.45);
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08) inset;
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
   overflow: hidden;
 }
 
 html[data-theme="light"] .scratch-card-outer {
   background: #FFFFFF;
-  box-shadow: 0 18px 48px rgba(40, 46, 30, 0.14), 0 0 0 1px rgba(0, 0, 0, 0.06) inset;
+  border-color: rgba(217, 119, 6, 0.35);
+  box-shadow: 0 18px 48px rgba(40, 46, 30, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.06) inset;
 }
 
 /* 锯齿打孔修饰边 */
@@ -289,14 +270,14 @@ html[data-theme="light"] .scratch-card-outer {
 .sc-perforated-edge.top { top: -3px; }
 .sc-perforated-edge.bottom { bottom: -3px; }
 
-/* 票券卡头 */
+/* 票券卡头 (彩票官方风格) */
 .sc-card-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 12px;
-  padding-bottom: 12px;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
   border-bottom: 1.5px dashed rgba(255, 255, 255, 0.12);
 }
 html[data-theme="light"] .sc-card-head {
@@ -306,10 +287,9 @@ html[data-theme="light"] .sc-card-head {
 .sc-logo-badge {
   font-size: 11px;
   font-weight: 800;
-  letter-spacing: 2px;
-  text-transform: uppercase;
+  letter-spacing: 1px;
   color: var(--sc-gold);
-  margin-bottom: 4px;
+  margin-bottom: 3px;
 }
 
 .sc-ticket-title {
@@ -320,24 +300,36 @@ html[data-theme="light"] .sc-card-head {
   line-height: 1.25;
 }
 
+.sc-ticket-sn {
+  font-size: 10.5px;
+  font-family: monospace;
+  color: var(--tx-faint);
+  letter-spacing: 1px;
+  margin-top: 3px;
+}
+
 .sc-head-right {
   text-align: right;
   flex: none;
 }
 
 .sc-ticket-price {
-  font-size: 13.5px;
+  display: inline-block;
+  background: #EF4444;
+  color: #FFFFFF;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 12.5px;
   font-weight: 900;
-  color: #EF4444;
   letter-spacing: 0.5px;
 }
 
-.sc-ticket-sn {
-  font-size: 11px;
-  font-family: monospace;
-  color: var(--tx-faint);
-  letter-spacing: 1px;
-  margin-top: 2px;
+.sc-ticket-top-prize {
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--sc-gold);
+  letter-spacing: 0.5px;
+  margin-top: 4px;
 }
 
 /* 规则标语 */
@@ -345,11 +337,11 @@ html[data-theme="light"] .sc-card-head {
   background: rgba(255, 255, 255, 0.04);
   border-radius: 10px;
   padding: 8px 12px;
-  font-size: 12px;
+  font-size: 11.5px;
   color: var(--tx-dim);
   font-weight: 600;
   line-height: 1.45;
-  margin-bottom: 16px;
+  margin-bottom: 14px;
   border: 1px solid var(--line);
 }
 html[data-theme="light"] .sc-rule-banner {
@@ -360,33 +352,33 @@ html[data-theme="light"] .sc-rule-banner {
 .sc-ticket-body {
   position: relative;
   width: 100%;
-  min-height: 250px;
+  min-height: 290px;
   border-radius: 18px;
   overflow: hidden;
-  box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.25);
-  background: #0D1017;
-  border: 1px solid var(--line);
+  box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.3);
+  background: #0B0E14;
+  border: 1.5px solid var(--line);
 }
 html[data-theme="light"] .sc-ticket-body {
-  background: #F8F9FA;
+  background: #F4F6F8;
 }
 
-/* 底层奖励面 (奖品、数字与文案) */
+/* 底层奖励面 (双区中奖号码与我的号码) */
 .sc-prize-surface {
   position: relative;
   width: 100%;
   height: 100%;
-  min-height: 250px;
-  padding: 16px;
+  min-height: 290px;
+  padding: 14px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  align-items: center;
+  justify-content: flex-start;
+  align-items: stretch;
   z-index: 1;
 }
 
-/* 顶层 Canvas 涂层 */
+/* 顶层 Canvas 刮刮涂层 (允许一直自由刮开) */
 .sc-canvas-overlay {
   position: absolute;
   top: 0;
@@ -398,12 +390,7 @@ html[data-theme="light"] .sc-ticket-body {
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
-  transition: opacity 0.4s ease;
-}
-
-.sc-canvas-overlay.revealed {
-  opacity: 0;
-  pointer-events: none;
+  transition: opacity 0.3s ease;
 }
 
 /* 碎屑飞溅画布 */
@@ -417,85 +404,148 @@ html[data-theme="light"] .sc-ticket-body {
   pointer-events: none;
 }
 
-/* 中奖胜利印章 */
+/* 结算印章 (中奖红印 / 未中奖蓝印) */
 .sc-stamp-stamp {
   position: absolute;
   right: 18px;
   bottom: 18px;
   z-index: 4;
-  border: 3.5px solid #EF4444;
-  color: #EF4444;
+  padding: 8px 16px;
   border-radius: 12px;
-  padding: 6px 14px;
-  font-size: 16px;
   font-weight: 950;
   letter-spacing: 2px;
-  transform: rotate(-14deg) scale(0);
+  text-align: center;
+  transform: rotate(-12deg) scale(0);
   opacity: 0;
   pointer-events: none;
-  transition: transform 0.35s cubic-bezier(0.2, 1.2, 0.3, 1), opacity 0.2s ease;
-  background: rgba(239, 68, 68, 0.08);
-  box-shadow: 0 4px 16px rgba(239, 68, 68, 0.25);
+  transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.25s ease;
+  line-height: 1.25;
 }
 
-.sc-stamp-stamp.stamped {
-  transform: rotate(-14deg) scale(1);
+.sc-stamp-stamp.stamped-win {
+  border: 4px double #EF4444;
+  color: #EF4444;
+  background: rgba(239, 68, 68, 0.12);
+  box-shadow: 0 6px 24px rgba(239, 68, 68, 0.35);
+  transform: rotate(-12deg) scale(1);
   opacity: 1;
 }
 
-/* ============ 票券内部特定结构渲染 ============ */
+.sc-stamp-stamp.stamped-lose {
+  border: 4px double #64748B;
+  color: #64748B;
+  background: rgba(100, 116, 139, 0.12);
+  box-shadow: 0 4px 16px rgba(100, 116, 139, 0.25);
+  transform: rotate(-8deg) scale(1);
+  opacity: 1;
+}
 
-/* 1. 暴富券玩法：幸运号码 + 我的号码九宫格 */
-.sc-wealth-board {
+/* ============ 真实的彩票双区结构样式 ============ */
+.sc-lottery-board {
   width: 100%;
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.sc-lucky-num-zone {
+/* Game 1: 中奖号码区 */
+.sc-winning-zone {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 12px;
-  background: rgba(245, 158, 11, 0.12);
-  border: 1px dashed var(--sc-gold);
-  border-radius: 12px;
-  padding: 8px 14px;
+  justify-content: space-between;
+  background: rgba(245, 158, 11, 0.1);
+  border: 1.5px dashed var(--sc-gold);
+  border-radius: 14px;
+  padding: 8px 16px;
+  gap: 10px;
 }
 
-.sc-lucky-num-title {
-  font-size: 12px;
-  font-weight: 800;
-  color: var(--sc-gold);
-}
-
-.sc-lucky-num-balls {
+.sc-zone-header {
   display: flex;
+  align-items: center;
   gap: 8px;
 }
 
-.sc-lucky-ball {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #FDE68A, #F59E0B);
-  color: #1A1204;
-  font-size: 15px;
+.sc-zone-tag {
+  font-size: 10px;
   font-weight: 900;
-  display: grid;
-  place-items: center;
-  box-shadow: 0 4px 10px rgba(245, 158, 11, 0.35);
+  background: var(--sc-gold);
+  color: #1A1204;
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
 }
 
-.sc-my-numbers-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
+.sc-zone-title {
+  font-size: 13px;
+  font-weight: 900;
+  color: var(--sc-gold);
+  letter-spacing: 1px;
+}
+
+.sc-winning-balls {
+  display: flex;
+  align-items: center;
   gap: 10px;
+}
+
+.sc-winning-ball {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #FFFBEB, #F59E0B 70%, #B45309);
+  color: #111827;
+  font-size: 18px;
+  font-weight: 950;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.45), inset 0 -2px 4px rgba(0, 0, 0, 0.35);
+  border: 1px solid #FEF3C7;
+  position: relative;
+  user-select: none;
+}
+
+/* Game 2: 我的号码区 */
+.sc-my-zone {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sc-my-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px;
+}
+
+.sc-zone-hint {
+  font-size: 11px;
+  color: var(--tx-faint);
+  font-weight: 600;
+}
+
+/* 我的号码网格 */
+.sc-my-grid {
+  display: grid;
+  gap: 8px;
   width: 100%;
 }
 
-.sc-num-card {
+.sc-my-grid.count-8 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.sc-my-grid.count-10 {
+  grid-template-columns: repeat(5, 1fr);
+}
+
+.sc-my-grid.count-12 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+/* 单个彩票格子 (号码 + 奖金) */
+.sc-lottery-cell {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -503,198 +553,99 @@ html[data-theme="light"] .sc-ticket-body {
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: 12px;
-  padding: 10px 6px;
+  padding: 8px 4px;
   text-align: center;
+  position: relative;
+  overflow: hidden;
   transition: all 0.25s ease;
+  user-select: none;
 }
 
-.sc-num-card.is-hit {
+.sc-cell-top {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.sc-cell-num {
+  font-size: 20px;
+  font-weight: 950;
+  color: var(--tx);
+  letter-spacing: 0.5px;
+  line-height: 1.1;
+  font-family: 'DIN Alternate', 'Arial Black', sans-serif;
+}
+
+.sc-cell-num.special {
+  font-size: 22px;
+}
+
+.sc-cell-special-lbl {
+  font-size: 9.5px;
+  font-weight: 800;
+  color: #EF4444;
+  transform: scale(0.9);
+}
+
+.sc-cell-prize {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.sc-prize-amount {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--tx-dim);
+  line-height: 1.1;
+}
+
+/* 中奖格子高亮特效 */
+.sc-lottery-cell.is-hit {
   background: rgba(245, 158, 11, 0.18);
   border-color: var(--sc-gold);
   box-shadow: 0 0 16px var(--sc-gold-glow);
   transform: scale(1.03);
 }
 
-.sc-num-val {
-  font-size: 18px;
+.sc-lottery-cell.is-hit .sc-cell-num {
+  color: #F59E0B;
+}
+
+.sc-lottery-cell.is-hit .sc-prize-amount {
+  color: #EF4444;
   font-weight: 900;
-  color: var(--tx);
+}
+
+.sc-hit-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  font-size: 9px;
+  font-weight: 900;
+  background: #EF4444;
+  color: #FFFFFF;
+  padding: 1px 4px;
+  border-radius: 4px;
   letter-spacing: 0.5px;
-}
-.sc-num-card.is-hit .sc-num-val {
-  color: var(--sc-gold);
-}
-
-.sc-num-prize {
-  font-size: 11px;
-  font-weight: 700;
-  color: var(--tx-dim);
-  margin-top: 3px;
-  line-height: 1.25;
+  box-shadow: 0 2px 6px rgba(239, 68, 68, 0.4);
+  animation: scPulse 1.6s infinite;
 }
 
-/* 2. 工位护体券玩法：6 勋章徽章消除对对碰 */
-.sc-office-board {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
+/* 未中奖近失提示格子 */
+.sc-lottery-cell.is-near {
+  border-color: rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.05);
 }
 
-.sc-office-badge-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-  width: 100%;
-}
-
-.sc-badge-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 10px 4px;
-  text-align: center;
-}
-
-.sc-badge-card.is-winner {
-  background: rgba(16, 185, 129, 0.16);
-  border-color: var(--sc-emerald);
-  box-shadow: 0 0 14px rgba(16, 185, 129, 0.35);
-}
-
-.sc-badge-ico {
-  font-size: 26px;
-  margin-bottom: 4px;
-}
-
-.sc-badge-title {
-  font-size: 12px;
-  font-weight: 800;
-  color: var(--tx);
-}
-
-.sc-badge-card.is-winner .sc-badge-title {
-  color: var(--sc-emerald);
-}
-
-/* 3. 特调密语券玩法：三层配方大解密 */
-.sc-drink-board {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.sc-recipe-step {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-  padding: 8px 14px;
-}
-
-.sc-recipe-num {
-  font-size: 11px;
-  font-weight: 800;
-  padding: 2px 6px;
-  border-radius: 6px;
-  background: rgba(168, 85, 247, 0.2);
-  color: var(--sc-purple);
-}
-
-.sc-recipe-name {
-  font-size: 13.5px;
-  font-weight: 800;
-  color: var(--tx);
-  flex: 1;
-}
-
-.sc-recipe-desc {
-  font-size: 11.5px;
-  color: var(--tx-dim);
-}
-
-/* 4. 水逆退散券玩法：亲手驱逐 6 大负能量 */
-.sc-retrograde-board {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 10px;
-}
-
-.sc-blessing-title {
-  font-size: 20px;
-  font-weight: 900;
-  color: #EF4444;
-  letter-spacing: 2px;
-}
-
-.sc-blessing-text {
-  font-size: 13.5px;
-  font-weight: 700;
-  line-height: 1.6;
-  color: var(--tx);
-  max-width: 90%;
-}
-
-.sc-blessing-amulet {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  background: rgba(239, 68, 68, 0.12);
-  border: 1px solid rgba(239, 68, 68, 0.3);
-  padding: 6px 14px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 800;
-  color: #EF4444;
-}
-
-/* 5. 心动脱单券玩法：爱心点数满额 */
-.sc-love-board {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 10px;
-}
-
-.sc-love-score {
-  font-size: 32px;
-  font-weight: 950;
-  color: var(--sc-coral);
-  letter-spacing: 1px;
-}
-
-.sc-love-text {
-  font-size: 14px;
-  font-weight: 800;
-  color: var(--tx);
-}
-
-.sc-love-sub {
-  font-size: 12px;
-  color: var(--tx-dim);
-  max-width: 85%;
-  line-height: 1.5;
-}
-
-/* 卡底 Barcode */
+/* ============ 保安区与防伪条码 ============ */
 .sc-card-foot {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 14px;
+  margin-top: 12px;
   padding-top: 10px;
   border-top: 1px dashed rgba(255, 255, 255, 0.1);
   font-size: 11px;
@@ -706,23 +657,111 @@ html[data-theme="light"] .sc-card-foot {
   border-top-color: rgba(20, 24, 18, 0.1);
 }
 
-.sc-barcode {
+.sc-security-box {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 6px 10px;
+  gap: 4px;
+}
+html[data-theme="light"] .sc-security-box {
+  background: rgba(20, 24, 18, 0.03);
+}
+
+.sc-security-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sc-sec-flag {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--tx-dim);
+}
+
+.sc-sec-void {
+  font-size: 9px;
+  font-family: monospace;
+  font-weight: 800;
+  color: #EF4444;
+  letter-spacing: 1px;
+}
+
+.sc-barcode-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .sc-barcode-lines {
-  width: 130px;
-  height: 16px;
+  width: 110px;
+  height: 14px;
   background: repeating-linear-gradient(90deg, var(--tx) 0, var(--tx) 2px, transparent 2px, transparent 5px, var(--tx) 5px, var(--tx) 9px, transparent 9px, transparent 11px);
-  opacity: 0.7;
+  opacity: 0.65;
+}
+
+.sc-sec-info {
+  display: flex;
+  flex-direction: column;
+  font-family: monospace;
+  font-size: 9.5px;
+  color: var(--tx-faint);
+}
+
+.sc-guarantee-seal {
+  font-size: 11px;
+  color: var(--tx-faint);
+  font-weight: 600;
+}
+
+/* ============ 结算结果提示条 ============ */
+.sc-settle-box {
+  width: 100%;
+  margin: 14px 0 2px;
+  animation: scFadeIn 0.3s ease-out;
+}
+
+@keyframes scFadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.sc-settle-alert {
+  padding: 12px 16px;
+  border-radius: 14px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  box-sizing: border-box;
+}
+
+.sc-settle-alert.win {
+  background: rgba(245, 158, 11, 0.15);
+  border: 1.5px solid var(--sc-gold);
+  color: var(--tx);
+  box-shadow: 0 4px 18px rgba(245, 158, 11, 0.25);
+}
+
+.sc-settle-alert.win b {
+  color: var(--sc-gold);
+}
+
+.sc-settle-alert.lose {
+  background: rgba(100, 116, 139, 0.12);
+  border: 1.5px solid rgba(100, 116, 139, 0.35);
+  color: var(--tx);
+}
+
+.sc-settle-alert.lose b {
+  color: #EF4444;
 }
 
 /* ============ 进度条与操作按钮 ============ */
 .sc-progress-wrap {
   width: 100%;
-  margin: 16px 0 18px;
+  margin: 14px 0 16px;
 }
 
 .sc-progress-info {
@@ -736,7 +775,7 @@ html[data-theme="light"] .sc-card-foot {
 
 .sc-progress-bar {
   width: 100%;
-  height: 7px;
+  height: 8px;
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: 999px;
@@ -748,7 +787,7 @@ html[data-theme="light"] .sc-card-foot {
   width: 0%;
   background: linear-gradient(90deg, #F59E0B, #FF5376);
   border-radius: 999px;
-  transition: width 0.15s ease-out;
+  transition: width 0.1s linear;
 }
 
 .sc-action-row {
@@ -901,7 +940,7 @@ html[data-theme="light"] .sc-card-foot {
 }
 
 .sc-hist-prize {
-  font-size: 14px;
+  font-size: 13.5px;
   font-weight: 800;
   color: var(--tx);
   margin-bottom: 4px;
@@ -909,36 +948,48 @@ html[data-theme="light"] .sc-card-foot {
 }
 
 .sc-hist-val {
-  font-size: 12px;
-  font-weight: 800;
+  font-size: 13px;
+  font-weight: 900;
+}
+.sc-hist-val.win {
   color: #EF4444;
 }
+.sc-hist-val.lose {
+  color: #64748B;
+}
 
-/* 移动端媒体查询 (< 600px) */
+/* 移动端响应式适配 (< 600px) */
 @media (max-width: 600px) {
   #mod-scratch {
     padding: 12px 8px 60px;
   }
   .scratch-card-outer {
-    padding: 18px 14px 16px;
-    border-radius: 20px;
+    padding: 16px 12px 14px;
+    border-radius: 18px;
   }
-  .sc-theme-btn {
-    padding: 8px 12px;
-    gap: 8px;
+  .sc-winning-zone {
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 10px;
   }
-  .sc-tb-name {
-    font-size: 12.5px;
+  .sc-my-grid.count-8,
+  .sc-my-grid.count-10,
+  .sc-my-grid.count-12 {
+    grid-template-columns: repeat(3, 1fr);
   }
-  .sc-my-numbers-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .sc-cell-num {
+    font-size: 17px;
+  }
+  .sc-prize-amount {
+    font-size: 11px;
   }
   .sc-action-row {
     gap: 8px;
   }
   .sc-btn {
-    padding: 10px 14px;
+    padding: 10px 12px;
     font-size: 13px;
-    min-width: 95px;
+    min-width: 90px;
   }
 }

@@ -17,7 +17,7 @@
 <meta property="og:title" content="饮料人格研究所 · 测测你的精神状态与灵魂特调">
 <meta property="og:description" content="当代年轻人精神状态测试 (SBTI) / 经典 16 型人格 (MBTI) / 16 款灵魂饮料特调，测出你的独家出厂配方与精神病友。">
 <meta property="og:image" content="assets/icons/icon-512.png">
-  <link rel="stylesheet" href="css/app.bundle.css?v=44">
+  <link rel="stylesheet" href="css/app.bundle.css?v=45">
   <script>
     (function(){
       try {
@@ -2107,91 +2107,96 @@
           <!-- 战绩统计小看板 -->
           <div class="scratch-stats-bar">
             <div class="scratch-stat-pill">
-              <span class="pill-label">已刮开</span>
+              <span class="pill-label">已刮</span>
               <b class="pill-val" id="scStatCount">0 张</b>
             </div>
             <div class="scratch-stat-pill">
-              <span class="pill-label">累计运气值</span>
-              <b class="pill-val gold" id="scStatPoints">0 财富点</b>
+              <span class="pill-label">中奖</span>
+              <b class="pill-val red" id="scStatWins">0 次</b>
             </div>
             <div class="scratch-stat-pill">
-              <span class="pill-label">最高段位</span>
-              <b class="pill-val red" id="scStatRank">初级锦鲤</b>
+              <span class="pill-label">累计奖金</span>
+              <b class="pill-val gold" id="scStatPoints">¥0</b>
+            </div>
+            <div class="scratch-stat-pill">
+              <span class="pill-label">中奖胜率</span>
+              <b class="pill-val" id="scStatRate">0%</b>
             </div>
             <button class="scratch-btn-history-toggle" id="scBtnToggleHistory" title="查看往期刮奖战绩">
-              <span>📜 战绩册</span>
+              <span>📜 刮彩账本</span>
             </button>
           </div>
         </div>
 
-        <!-- 票券主题切换器 (5大特色趣味票券) -->
+        <!-- 票券主题切换器 (5大经典真实彩票票种) -->
         <div class="scratch-themes-scroll">
           <div class="scratch-themes-bar" id="scThemesBar">
-            <button class="sc-theme-btn active" data-theme="wealth">
+            <button class="sc-theme-btn active" data-theme="haoyun10">
               <span class="sc-tb-icon">💰</span>
               <div class="sc-tb-info">
-                <span class="sc-tb-name">暴富发财券</span>
-                <span class="sc-tb-sub">8888 财富版</span>
+                <span class="sc-tb-name">好运十倍</span>
+                <span class="sc-tb-sub">面值 ¥10 · 奖 ¥25万</span>
               </div>
             </button>
-            <button class="sc-theme-btn" data-theme="office">
-              <span class="sc-tb-icon">🦐</span>
+            <button class="sc-theme-btn" data-theme="dianshi20">
+              <span class="sc-tb-icon">💎</span>
               <div class="sc-tb-info">
-                <span class="sc-tb-name">工位护体券</span>
-                <span class="sc-tb-sub">摸鱼免死符</span>
+                <span class="sc-tb-name">点石成金</span>
+                <span class="sc-tb-sub">面值 ¥20 · 奖 ¥50万</span>
               </div>
             </button>
-            <button class="sc-theme-btn" data-theme="drink">
-              <span class="sc-tb-icon">🍹</span>
+            <button class="sc-theme-btn" data-theme="xixiangfeng20">
+              <span class="sc-tb-icon">🧧</span>
               <div class="sc-tb-info">
-                <span class="sc-tb-name">特调密语券</span>
-                <span class="sc-tb-sub">隐藏款饮品</span>
+                <span class="sc-tb-name">喜相逢</span>
+                <span class="sc-tb-sub">面值 ¥20 · 奖 ¥60万</span>
               </div>
             </button>
-            <button class="sc-theme-btn" data-theme="retrograde">
-              <span class="sc-tb-icon">🔮</span>
+            <button class="sc-theme-btn" data-theme="caifu30">
+              <span class="sc-tb-icon">👑</span>
               <div class="sc-tb-info">
-                <span class="sc-tb-name">水逆退散券</span>
-                <span class="sc-tb-sub">诸邪避退符</span>
+                <span class="sc-tb-name">财富大满贯</span>
+                <span class="sc-tb-sub">面值 ¥30 · 奖 ¥100万</span>
               </div>
             </button>
-            <button class="sc-theme-btn" data-theme="love">
-              <span class="sc-tb-icon">💘</span>
+            <button class="sc-theme-btn" data-theme="shouzhi10">
+              <span class="sc-tb-icon">👆</span>
               <div class="sc-tb-info">
-                <span class="sc-tb-name">心动脱单券</span>
-                <span class="sc-tb-sub">桃花正缘版</span>
+                <span class="sc-tb-name">金手指</span>
+                <span class="sc-tb-sub">面值 ¥10 · 奖 ¥10万</span>
               </div>
             </button>
           </div>
         </div>
 
-        <!-- 主操作台：刮刮卡实体舞台 -->
+        <!-- 主操作台：真实彩票实体舞台 -->
         <div class="scratch-card-workbench">
           <div class="scratch-card-outer" id="scCardOuter">
             <!-- 票券装饰打孔线 -->
             <div class="sc-perforated-edge top"></div>
             <div class="sc-perforated-edge bottom"></div>
 
-            <!-- 卡片头部 Header -->
+            <!-- 卡片头部 Header (仿真实彩票票面设计) -->
             <div class="sc-card-head" id="scCardHead">
               <div class="sc-head-left">
-                <div class="sc-logo-badge" id="scLogoBadge">LUCKY SCRATCH · 暴富局</div>
-                <div class="sc-ticket-title" id="scTicketTitle">暴富发财券 · 招财进宝版</div>
+                <div class="sc-logo-badge" id="scLogoBadge">🎟️ 官方经典彩票 · 仿真刮刮乐</div>
+                <div class="sc-ticket-title" id="scTicketTitle">好运十倍 · 招财金卡</div>
+                <div class="sc-ticket-sn" id="scTicketSn">NO. 2026-8866-9921</div>
               </div>
               <div class="sc-head-right">
-                <div class="sc-ticket-price" id="scTicketPrice">面额 ¥8888 财富值</div>
-                <div class="sc-ticket-sn" id="scTicketSn">NO. 8866-9921</div>
+                <div class="sc-ticket-price" id="scTicketPrice">面值 ¥10 元</div>
+                <div class="sc-ticket-top-prize" id="scTicketTopPrize">最高奖金 ¥250,000</div>
               </div>
             </div>
 
             <!-- 规则说明栏 -->
             <div class="sc-rule-banner" id="scRuleBanner">
-              <span>✦ 玩法规则：刮开覆盖膜，若【我的号码】撞中【幸运号码】，即中对应神秘财富！</span>
+              <span>✦ 玩法规则：刮开覆盖膜，若【我的号码】中任意一个号码与【中奖号码】之一相同，即中该号码下方所示金额；若刮出【💰金元宝】，直接赢取该号码下方金额的两倍！兼中兼得。</span>
             </div>
 
-            <!-- 刮奖主体舞台 (Layer 1: 底层奖励内容，Layer 2: Canvas 刮刮涂层) -->
+            <!-- 刮奖主体舞台 (Layer 1: 底层中奖号码与我的号码，Layer 2: Canvas 真实刮涂层) -->
             <div class="sc-ticket-body" id="scTicketBody">
-              <!-- 底层内容区 (由 JS 动态生成) -->
+              <!-- 底层内容区 (由 JS 动态生成双区) -->
               <div class="sc-prize-surface" id="scPrizeSurface"></div>
 
               <!-- 顶层 Canvas 刮刮涂层 -->
@@ -2200,23 +2205,33 @@
               <!-- 刮开碎屑粒子画布 -->
               <canvas class="sc-particles-canvas" id="scParticlesCanvas"></canvas>
 
-              <!-- 中奖印章印记 -->
-              <div class="sc-stamp-stamp" id="scStampBadge">
-                <span>✦ 中大奖 ✦</span>
-              </div>
+              <!-- 结算印章印记 (中奖红印 / 未中奖蓝印) -->
+              <div class="sc-stamp-stamp" id="scStampBadge"></div>
             </div>
 
-            <!-- 卡片底部 Barcode 与防伪 -->
+            <!-- 卡片底部 保安区 与防伪条码 (彩票店真实防伪) -->
             <div class="sc-card-foot">
-              <div class="sc-barcode">
-                <div class="sc-barcode-lines"></div>
-                <span id="scBarcodeText">BARCODE 98204-7712-4019</span>
+              <div class="sc-security-box">
+                <div class="sc-security-header">
+                  <span class="sc-sec-flag">【保安区 刮开无效】</span>
+                  <span class="sc-sec-void">VOID IF REMOVED</span>
+                </div>
+                <div class="sc-barcode-row">
+                  <div class="sc-barcode-lines"></div>
+                  <div class="sc-sec-info">
+                    <span id="scBarcodeText">BARCODE 98204-7712-4019</span>
+                    <span id="scVerifyCode">VERIFY: 2026-X992-A08</span>
+                  </div>
+                </div>
               </div>
               <div class="sc-guarantee-seal">
-                <span>★ 研究所官方认证 · 100% 灵验解压 ★</span>
+                <span>★ 36% 真实返奖率 · 严禁未成年人购彩 ★</span>
               </div>
             </div>
           </div>
+
+          <!-- 结算结果提示条 (中奖/未中奖即时战报) -->
+          <div class="sc-settle-box" id="scSettleBox" style="display:none;"></div>
 
           <!-- 刮奖进度条与状态提示 -->
           <div class="sc-progress-wrap">
@@ -2250,8 +2265,8 @@
         <div class="scratch-history-panel" id="scHistoryPanel">
           <div class="sc-history-head">
             <div class="sc-hist-title">
-              <span>🏆 我的刮奖陈列馆</span>
-              <span class="sc-hist-sub" id="scHistSub">记录最近 20 次好运揭晓</span>
+              <span>🏆 我的刮彩账本</span>
+              <span class="sc-hist-sub" id="scHistSub">记录最近 20 次刮奖战绩</span>
             </div>
             <button class="sc-btn-clear" id="scBtnClearHistory">清空战绩</button>
           </div>
@@ -2287,6 +2302,6 @@
   <canvas id="shareCanvas" width="1080" height="1620" hidden></canvas>
 </div>
 
-  <script defer src="js/app.bundle.js?v=44"></script>
+  <script defer src="js/app.bundle.js?v=45"></script>
 </body>
 </html>

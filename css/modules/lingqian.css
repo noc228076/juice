@@ -131,6 +131,8 @@ html[data-theme="light"] .ew-switch-btn.active.fengshui {
 }
 
 /* ============ 屏幕容器切换 ============ */
+/* 东方灵签内容本身就少（4 张方向卡 + 一根签 + 一句输入），
+   铺到 1120px 只会让每张卡各自空旷。保持原有的窄栏单列。 */
 #mod-lingqian .lq-screen {
   position: relative;
   z-index: 1;

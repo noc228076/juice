@@ -614,6 +614,7 @@
       updateSetBgBtnState();
       showDailyToast('🖥️ 已恢复默认背景');
     }
+    syncWallpaperDismissBtn();
     if (window.SFX && window.SFX.tap) window.SFX.tap();
   }
 
@@ -848,6 +849,16 @@
         applySiteBackground(savedUrl, localStorage.getItem('daily_site_bg_title'));
       }
     } catch (_) {}
+    syncWallpaperDismissBtn();
+  }
+
+  // 全站壁纸一旦开启就会常驻（存在 localStorage），关闭入口却深埋在
+  // 「今日风向 → 每日 4K 壁纸」里，用户几乎想不起来自己开过。
+  // 这里在顶栏常驻一个一键关闭入口。
+  function syncWallpaperDismissBtn() {
+    const btn = document.getElementById('globalBtnWallpaper');
+    if (!btn) return;
+    btn.hidden = !isSiteBgActive;
   }
 
   function init() {
@@ -862,6 +873,22 @@
     loadMovieList('weekly_movie');
     loadBingWallpaper();
     pickMoodMovie('laugh');
+  }
+
+  // 顶栏一键关闭全站壁纸背景。
+  // 必须绑在模块顶层而非 init() 里 —— init() 只在用户真正进入「今日风向」时才跑，
+  // 而开了壁纸的用户可能一直在别的模块，此时顶栏按钮会点了没反应。
+  const wallpaperDismissBtn = document.getElementById('globalBtnWallpaper');
+  if (wallpaperDismissBtn) {
+    wallpaperDismissBtn.onclick = () => {
+      if (!isSiteBgActive) return;
+      isSiteBgActive = false;
+      clearSiteBackground();
+      updateSetBgBtnState();
+      syncWallpaperDismissBtn();
+      showDailyToast('🖼️ 已关闭全站壁纸背景');
+      if (window.SFX && window.SFX.tap) window.SFX.tap();
+    };
   }
 
   // 模块加载即尝试恢复全站背景

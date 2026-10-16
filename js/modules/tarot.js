@@ -32,34 +32,43 @@
     20: `<path d="M88 30 L 70 60 H 90 Z"/><path d="M70 60 V 72"/><circle cx="42" cy="38" r="9"/><path d="M42 29 V 20 M36 33 L 28 30 M48 33 L 56 30"/>`,
     21: `<ellipse cx="60" cy="62" rx="34" ry="28"/><path d="M52 62 m -9 0 a 9 9 0 1 0 18 0 a 9 9 0 1 0 -18 0"/><circle cx="60" cy="28" r="3" fill="#b08a2e" stroke="none"/><circle cx="60" cy="96" r="3" fill="#b08a2e" stroke="none"/>`
   };
-  const CARD_BACK = `<svg viewBox="0 0 160 240" fill="none" xmlns="http://www.w3.org/2000/svg" class="tr-cardback-svg">
+  // 牌背 SVG 工厂：每次调用生成唯一的渐变 id。
+  // 历史上 CARD_BACK 是常量字符串，同一份 <defs> 会在页面上重复注入二十多次，
+  // 导致 id 重复；浏览器解析 url(#trBgGrad) 只会命中文档中第一个定义，
+  // 而那个副本通常位于 display:none 的抽牌屏内，paint server 引用随之失效，
+  // 牌背上的描边、八芒星与文字会整片消失。
+  let cardBackSeq = 0;
+  function cardBackSvg() {
+    const uid = ++cardBackSeq;
+    return `<svg viewBox="0 0 160 240" fill="none" xmlns="http://www.w3.org/2000/svg" class="tr-cardback-svg">
   <defs>
-    <radialGradient id="trBgGrad" cx="50%" cy="50%" r="65%">
+    <radialGradient id="trBgGrad${uid}" cx="50%" cy="50%" r="65%">
       <stop offset="0%" stop-color="#352870"/>
       <stop offset="60%" stop-color="#1b143c"/>
       <stop offset="100%" stop-color="#0e0a24"/>
     </radialGradient>
-    <linearGradient id="trGoldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+    <linearGradient id="trGoldGrad${uid}" x1="0%" y1="0%" x2="100%" y2="100%">
       <stop offset="0%" stop-color="#fff2c2"/>
       <stop offset="50%" stop-color="#d4af37"/>
       <stop offset="100%" stop-color="#9a7420"/>
     </linearGradient>
   </defs>
-  <rect x="2" y="2" width="156" height="236" rx="14" fill="url(#trBgGrad)" stroke="url(#trGoldGrad)" stroke-width="2.5"/>
-  <rect x="8" y="8" width="144" height="224" rx="10" fill="none" stroke="url(#trGoldGrad)" stroke-width="1" stroke-dasharray="3 3" opacity="0.6"/>
-  <path d="M14 14 L24 14 M14 14 L14 24 M146 14 L136 14 M146 14 L146 24 M14 226 L24 226 M14 226 L14 216 M146 226 L136 226 M146 226 L146 216" stroke="url(#trGoldGrad)" stroke-width="1.8" stroke-linecap="round"/>
-  <circle cx="80" cy="120" r="44" stroke="url(#trGoldGrad)" stroke-width="1.2" opacity="0.35"/>
-  <circle cx="80" cy="120" r="32" stroke="url(#trGoldGrad)" stroke-width="1.8"/>
-  <circle cx="80" cy="120" r="20" stroke="url(#trGoldGrad)" stroke-width="1" stroke-dasharray="4 3" opacity="0.7"/>
-  <path d="M80 94 L83 113 L102 110 L87 122 L98 138 L81 127 L70 142 L72 124 L56 117 L74 112 Z" fill="url(#trGoldGrad)"/>
+  <rect x="2" y="2" width="156" height="236" rx="14" fill="url(#trBgGrad${uid})" stroke="url(#trGoldGrad${uid})" stroke-width="2.5"/>
+  <rect x="8" y="8" width="144" height="224" rx="10" fill="none" stroke="url(#trGoldGrad${uid})" stroke-width="1" stroke-dasharray="3 3" opacity="0.6"/>
+  <path d="M14 14 L24 14 M14 14 L14 24 M146 14 L136 14 M146 14 L146 24 M14 226 L24 226 M14 226 L14 216 M146 226 L136 226 M146 226 L146 216" stroke="url(#trGoldGrad${uid})" stroke-width="1.8" stroke-linecap="round"/>
+  <circle cx="80" cy="120" r="44" stroke="url(#trGoldGrad${uid})" stroke-width="1.2" opacity="0.35"/>
+  <circle cx="80" cy="120" r="32" stroke="url(#trGoldGrad${uid})" stroke-width="1.8"/>
+  <circle cx="80" cy="120" r="20" stroke="url(#trGoldGrad${uid})" stroke-width="1" stroke-dasharray="4 3" opacity="0.7"/>
+  <path d="M80 94 L83 113 L102 110 L87 122 L98 138 L81 127 L70 142 L72 124 L56 117 L74 112 Z" fill="url(#trGoldGrad${uid})"/>
   <circle cx="80" cy="120" r="5" fill="#fff9db"/>
-  <path d="M80 54 L82 62 L90 64 L82 66 L80 74 L78 66 L70 64 L78 62 Z" fill="url(#trGoldGrad)"/>
-  <path d="M80 166 L82 174 L90 176 L82 178 L80 186 L78 178 L70 176 L78 174 Z" fill="url(#trGoldGrad)"/>
-  <circle cx="44" cy="120" r="3" fill="url(#trGoldGrad)"/>
-  <circle cx="116" cy="120" r="3" fill="url(#trGoldGrad)"/>
-  <text x="80" y="44" font-size="7.5" font-family="-apple-system,sans-serif" font-weight="900" letter-spacing="3" fill="url(#trGoldGrad)" text-anchor="middle" opacity="0.9">✦ ARCANUM ✦</text>
-  <text x="80" y="206" font-size="7" font-family="-apple-system,sans-serif" font-weight="800" letter-spacing="2" fill="url(#trGoldGrad)" text-anchor="middle" opacity="0.8">ARCANA DESTINY</text>
+  <path d="M80 54 L82 62 L90 64 L82 66 L80 74 L78 66 L70 64 L78 62 Z" fill="url(#trGoldGrad${uid})"/>
+  <path d="M80 166 L82 174 L90 176 L82 178 L80 186 L78 178 L70 176 L78 174 Z" fill="url(#trGoldGrad${uid})"/>
+  <circle cx="44" cy="120" r="3" fill="url(#trGoldGrad${uid})"/>
+  <circle cx="116" cy="120" r="3" fill="url(#trGoldGrad${uid})"/>
+  <text x="80" y="44" font-size="7.5" font-family="-apple-system,sans-serif" font-weight="900" letter-spacing="3" fill="url(#trGoldGrad${uid})" text-anchor="middle" opacity="0.9">✦ ARCANUM ✦</text>
+  <text x="80" y="206" font-size="7" font-family="-apple-system,sans-serif" font-weight="800" letter-spacing="2" fill="url(#trGoldGrad${uid})" text-anchor="middle" opacity="0.8">ARCANA DESTINY</text>
 </svg>`;
+  }
   const ROMAN = ["0", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII", "XIII", "XIV", "XV", "XVI", "XVII", "XVIII", "XIX", "XX", "XXI"];
   const CARDS = [
     { no: 0, name: "愚者", en: "The Fool", image: "assets/tarot/card_0.jpg", astro: "🌌 天王星 · 风元素", pillar: "纯真与无限潜能", upKw: "新的开始 · 自由 · 冒险", up: "象征一段崭新的旅程与无限可能。放下顾虑，跟随内心，勇敢踏出第一步——但也要留意脚下的悬崖，给热情加上一点谨慎。", upAction: "宜尝试新事物、跳出固有思维框架，用归零心态开启新计划；保持好奇心的同时做好基础兜底。", revKw: "鲁莽 · 逃避 · 缺乏规划", rev: "提醒你三思而后行，避免冲动行事。或许你在逃避责任，或对风险视而不见，请先看清脚下的路。", revAction: "忌盲目跟风或一时兴起做重大决定；先补齐计划中的漏洞，核查细节后再行动。" },
@@ -376,7 +385,7 @@
       const d = document.createElement("div");
       d.className = "pcard";
       d.dataset.i = i;
-      d.innerHTML = `<div class="back">${CARD_BACK}</div>`;
+      d.innerHTML = `<div class="back">${cardBackSvg()}</div>`;
       el.appendChild(d);
     });
   }
@@ -531,7 +540,7 @@
     bigCard.classList.remove('flipped');
     reading.style.opacity = '0';
 
-    fback.innerHTML = CARD_BACK;
+    fback.innerHTML = cardBackSvg();
     const svgCode = S[cardData.no] || `<circle cx="60" cy="60" r="30"/>`;
     face.innerHTML = `
       <div class="tr-face-container">
@@ -734,7 +743,7 @@
                   <div class="tr-card-halo"></div>
                   <div class="bigcard flipped" id="trDossierCard" title="轻触牌面可翻转重读">
                     <div class="flip">
-                      <div class="fback">${CARD_BACK}</div>
+                      <div class="fback">${cardBackSvg()}</div>
                       <div class="face">
                         <div class="tr-face-container">
                           <div class="tr-face-base">
@@ -1615,12 +1624,22 @@
 
     const bigCard = document.getElementById('trBigCard');
     if (bigCard) {
+      let flipReplayRaf = 0;
       bigCard.onclick = () => {
         if (window.SFX && window.SFX.tarotFlip) window.SFX.tarotFlip();
+        // 重播翻转：先瞬时归位到牌背，再走一次完整的 0.8s 翻转。
+        // 原实现是 remove → 等 260ms → add，但 CSS 过渡长达 0.8s，
+        // 牌只转了约三成就被打断折返，视觉上像是翻转失效。
+        if (flipReplayRaf) cancelAnimationFrame(flipReplayRaf);
+        bigCard.classList.add('no-anim');
         bigCard.classList.remove('flipped');
-        setTimeout(() => {
+        // 强制重排，确保「归位」这一帧先落地，再撤掉 no-anim 触发过渡
+        void bigCard.offsetWidth;
+        flipReplayRaf = requestAnimationFrame(() => {
+          flipReplayRaf = 0;
+          bigCard.classList.remove('no-anim');
           bigCard.classList.add('flipped');
-        }, 260);
+        });
       };
     }
 

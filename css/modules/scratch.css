@@ -1050,3 +1050,24 @@ html[data-theme="light"] .sc-security-box {
     min-width: 90px;
   }
 }
+
+/* =========================================================
+   PC 端微调（必须置于文件末尾）
+   ---------------------------------------------------------
+   本文件里 .scratch-stats-bar 与 .scratch-card-workbench 的基础规则
+   分别出现在 L718 与 L284（同为单类选择器），若把 PC 覆盖写在前���，
+   会被后面的基础规则按「同特异性后来者胜」直接盖掉——
+   媒体查询本身不提升特异性。放到文件末尾才能稳定生效。
+   ========================================================= */
+@media (min-width: 1025px) {
+  .scratch-stats-bar {
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+  .scratch-card-workbench {
+    max-width: 560px;
+    width: 100%;
+    /* 写成完整 shorthand，保留基础规则的 28px 下边距 */
+    margin: 0 auto 28px;
+  }
+}

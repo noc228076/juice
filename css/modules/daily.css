@@ -899,28 +899,28 @@ html[data-theme="light"] .daily-movie-card {
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.45s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.6s ease;
-  transform: scale(1.02);
-  will-change: opacity, transform;
+  /* 去掉 backdrop-filter 模糊：它作用在已 cover 放大的位图上，
+     等于「放大变软 + 再模糊」，实测会把壁纸糊成色块汤并毁掉正文对比度。
+     改由下面的 ::after 遮罩压暗来保证可读性。 */
+  will-change: opacity;
 }
 
 .app-ambient-backdrop::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 50% 35%, rgba(11, 14, 20, 0.35) 0%, rgba(11, 14, 20, 0.78) 100%);
-  backdrop-filter: blur(8px) saturate(125%);
-  -webkit-backdrop-filter: blur(8px) saturate(125%);
+  /* 遮罩加重：保证任何壁纸（无论明暗）之上正文对比度都达标 */
+  background: radial-gradient(circle at 50% 35%, rgba(11, 14, 20, 0.62) 0%, rgba(11, 14, 20, 0.88) 100%);
   transition: background 0.35s ease;
 }
 
 html[data-theme="light"] .app-ambient-backdrop::after {
-  background: radial-gradient(circle at 50% 35%, rgba(245, 246, 241, 0.40) 0%, rgba(245, 246, 241, 0.82) 100%);
+  background: radial-gradient(circle at 50% 35%, rgba(245, 246, 241, 0.66) 0%, rgba(245, 246, 241, 0.90) 100%);
 }
 
 html.has-daily-ambient-bg .app-ambient-backdrop,
 body.has-daily-ambient-bg .app-ambient-backdrop {
   opacity: 1;
-  transform: scale(1);
 }
 
 html.has-daily-ambient-bg #app::before,

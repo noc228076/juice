@@ -38,7 +38,7 @@ html[data-theme="light"] #mod-clock {
   position: relative;
   z-index: 1;
   width: 100%;
-  max-width: 680px;
+  max-width: var(--pg-wrap);
   margin: 0 auto;
   padding: 14px 20px calc(38px + env(safe-area-inset-bottom));
   box-sizing: border-box;
@@ -1119,3 +1119,28 @@ body.zen-screensaver-active::-webkit-scrollbar {
 }
 
 
+
+/* =========================================================
+   PC 端宽屏适配
+   ---------------------------------------------------------
+   原容器 680px 在 1920 屏上两侧各空 1220px，且倒计时/配置两组
+   2 列网格纵向堆叠多出 142px 滚动。
+   这里适度放宽并加密内部列数换取免滚，但不再拉到 1440px——
+   时钟与工资卡有合适的阅读宽度，铺太宽会横向稀疏。
+   ========================================================= */
+@media (min-width: 1025px) {
+  .ck-wrap {
+    max-width: 960px;
+  }
+  /* 四张倒计时卡排成一行 */
+  .ck-countdown-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  /* 配置项铺成三列 */
+  .ck-cfg-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .ck-topbar {
+    justify-content: space-between;
+  }
+}

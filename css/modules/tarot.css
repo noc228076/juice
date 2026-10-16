@@ -909,6 +909,11 @@ html[data-theme="light"] #mod-tarot .reveal-stage {
   transform-style: preserve-3d;
   transition: transform 0.8s cubic-bezier(0.4, 0.1, 0.2, 1);
 }
+/* 重播翻转时用于瞬时归位：临时关闭过渡，让牌面瞬间回到朝下状态，
+   否则等待归位的时间远小于 0.8s 过渡，牌只转三成就被打断折返 */
+#mod-tarot .bigcard.no-anim .flip {
+  transition: none;
+}
 #mod-tarot .bigcard.flipped .flip {
   transform: rotateY(180deg);
 }
@@ -1445,12 +1450,23 @@ html[data-theme="light"] #mod-tarot .tr-dossier-banner {
   gap: 20px;
   width: 100%;
 }
-@media (min-width: 768px) {
+@media (min-width: 900px) {
   #mod-tarot .tr-dossier-grid {
     display: grid;
-    grid-template-columns: 290px 1fr;
-    gap: 28px;
-    align-items: start;
+    /* 左栏承载卡牌与「四大元素能量流」等长文本块，固定 290px 会把正文挤成竖条，
+       故随容器宽度伸缩并设上下限；1fr 交给右栏自适应 */
+    grid-template-columns: clamp(296px, 34%, 372px) minmax(0, 1fr);
+    gap: 26px;
+    /* 两栏等高：右栏各块按自身比例吸收多余高度并把内容垂直居中，
+       相当于给每张解读卡增加留白，比 space-between 拉开块间距更自然，
+       也不会出现单个畸形巨块 */
+    align-items: stretch;
+  }
+}
+@media (min-width: 1440px) {
+  #mod-tarot .tr-dossier-grid {
+    grid-template-columns: clamp(340px, 26%, 400px) minmax(0, 1fr);
+    gap: 30px;
   }
 }
 
@@ -1460,6 +1476,7 @@ html[data-theme="light"] #mod-tarot .tr-dossier-banner {
   flex-direction: column;
   gap: 16px;
   width: 100%;
+  min-width: 0;
 }
 #mod-tarot .tr-dossier-card-stage {
   position: relative;
@@ -1538,6 +1555,17 @@ html[data-theme="light"] #mod-tarot .tr-dossier-elem-box {
   flex-direction: column;
   gap: 16px;
   width: 100%;
+  min-width: 0;
+}
+/* 两栏等高时，右栏各块按比例吸收多余高度，内容垂直居中形成均匀留白 */
+@media (min-width: 900px) {
+  #mod-tarot .tr-dossier-content-col {
+    justify-content: flex-start;
+  }
+  #mod-tarot .tr-dossier-content-col > * {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
 }
 #mod-tarot .tr-dossier-sec {
   background: var(--card);
@@ -2445,4 +2473,21 @@ html[data-theme="light"] #mod-tarot .result-list.is-single .tr-single-hero {
 }
 .tr-poster-modal .tr-poster-dl-btn:active {
   transform: scale(0.98);
+}
+
+/* =========================================================
+   档案文牒宽屏适配（必须置于文件末尾以覆盖前面的 1040px 限制）
+   ---------------------------------------------------------
+   注意 .tr-result-actions 的基础规则带 !important（tarot.css:2343），
+   普通声明压不过，必须同样带 !important 才能让按钮栏与报告两端对齐。
+   ========================================================= */
+@media (min-width: 1440px) {
+  #mod-tarot #sc-tr-result,
+  #mod-tarot .tr-dossier-report,
+  #mod-tarot .result-list.is-single {
+    max-width: 1240px;
+  }
+  #mod-tarot .tr-result-actions {
+    max-width: 1240px !important;
+  }
 }

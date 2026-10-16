@@ -14,7 +14,7 @@
 .bz-wrap {
   position: relative;
   z-index: 1;
-  max-width: 720px;
+  max-width: var(--pg-wrap);
   width: 100%;
   min-height: 100%;
   margin: 0 auto;
@@ -1315,4 +1315,45 @@ html[data-theme="light"] .bz-dayun-age {
 .bz-btn-again:hover {
   border-color: var(--tx);
   transform: translateY(-2px);
+}
+
+/* =========================================================
+   PC 端宽屏适配（八字模块）
+   ---------------------------------------------------------
+   原容器 720px、内容单列纵向堆叠，1920 屏上两侧各空 1180px
+   却仍需滚动 2732px。
+   改为显式两列 Grid：命盘/结论在左，五行/大运/解读在右。
+   不用 CSS multi-column —— 它会强行平衡列高，
+   导致某一列先结束后另一列继续，中间留下大片空洞。
+   ========================================================= */
+@media (min-width: 1025px) {
+  .bz-wrap {
+    max-width: 1240px;
+  }
+  .bz-wheel-columns {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  /* 结果区：双列，两列各自独立流式排布
+     用 grid 而非 CSS multi-column —— multi-column 会强行平衡两列高度，
+     反而产生单侧大段断层。 */
+  .bz-result-stage.active {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 22px;
+    align-items: start;
+  }
+  .bz-result-stage.active > * {
+    min-width: 0;
+  }
+  /* 命盘表有 min-width:580px（bazi.css:949），塞进半栏会出现嵌套横向滚动条，
+     因此让它独占整行——它也是全篇信息密度最高的区块，横向铺开反而更好读。 */
+  .bz-result-stage.active > .bz-pillars-card {
+    grid-column: 1 / -1;
+  }
+}
+@media (min-width: 1441px) {
+  .bz-wrap {
+    max-width: 1440px;
+  }
 }

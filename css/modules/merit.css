@@ -46,6 +46,22 @@ html[data-theme="light"] #mod-merit {
   flex-direction: column;
 }
 
+/* 功德局三种玩法（木鱼 / 泡泡 / 碎纸机）都以「一个可交互舞台」为核心，
+   舞台有天然尺寸上限——容器放宽只会让泡泡等比例变大，一屏放不下反而更累。
+   保持 680px 窄栏，仅补垂直居中消除底部空白。 */
+@media (min-width: 1025px) {
+  #mod-merit .mr-wrap {
+    justify-content: center;
+    min-height: var(--pg-viewport-h);
+  }
+  /* 兜底：泡泡为 6 列正方形网格，容器再宽也不放大单颗泡泡 */
+  #mod-merit .bubble-grid {
+    max-width: 560px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
 #mod-merit .subnav-pill-bar {
   margin: 0 auto 16px !important;
 }

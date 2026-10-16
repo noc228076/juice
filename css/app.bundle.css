@@ -485,6 +485,44 @@ html[data-theme="light"] .sbti-dim-badge.lvl-L {
   background:rgba(255,122,107,0.1);
 }
 
+/* =========================================================
+   PC 端内容基线 (Desktop Content Baseline)
+   ---------------------------------------------------------
+   背景：各模块容器的 max-width 原先都是按移动/平板逐个调的，彼此毫无关联，
+   同一套 UI 里既有满宽 1890px 的，也有卡在 600px 的。
+
+   注意：这是一条「默认基线」，不是「必须遵守的唯一宽度」。
+   多数模块出于内容自身的物理尺寸上限（泡泡直径、票券长宽比、舞台宽度等）
+   会各自在 @media (min-width:1025px) 内覆盖成更窄的值——那是刻意的，
+   例如减压泡泡放大到一屏放不下反而更累。不该为了让数字好看而无脑放宽。
+
+      ≤640px    移动      100%
+      641-1024  平板       760px
+      1025-1440 笔记本    1120px
+      >1440     宽屏      1440px
+   ========================================================= */
+:root {
+  --pg-wrap: 100%;
+  /* 视口可用高度（扣掉顶栏）。给 0px 兜底，
+     避免在媒体查询外误用时因变量未定义而静默回退成 auto。 */
+  --pg-viewport-h: 0px;
+}
+@media (min-width: 641px) {
+  :root { --pg-wrap: 760px; }
+}
+@media (min-width: 1025px) {
+  :root {
+    --pg-wrap: 1120px;
+    --pg-viewport-h: calc(100vh - 52px - env(safe-area-inset-top, 0px));
+  }
+}
+@media (min-width: 1441px) {
+  :root { --pg-wrap: 1440px; }
+}
+
+/* 内容不足一屏时垂直居中，避免顶部对齐 + 底部大片空白。
+   仅在 PC 端生效，移动端仍保持顶部对齐以便自然滚动。 */
+
 
 /* === css/modules/nav.css === */
 /* =========================================================
@@ -3047,6 +3085,11 @@ html[data-theme="light"] #mod-tarot .reveal-stage {
   transform-style: preserve-3d;
   transition: transform 0.8s cubic-bezier(0.4, 0.1, 0.2, 1);
 }
+/* 重播翻转时用于瞬时归位：临时关闭过渡，让牌面瞬间回到朝下状态，
+   否则等待归位的时间远小于 0.8s 过渡，牌只转三成就被打断折返 */
+#mod-tarot .bigcard.no-anim .flip {
+  transition: none;
+}
 #mod-tarot .bigcard.flipped .flip {
   transform: rotateY(180deg);
 }
@@ -3583,12 +3626,23 @@ html[data-theme="light"] #mod-tarot .tr-dossier-banner {
   gap: 20px;
   width: 100%;
 }
-@media (min-width: 768px) {
+@media (min-width: 900px) {
   #mod-tarot .tr-dossier-grid {
     display: grid;
-    grid-template-columns: 290px 1fr;
-    gap: 28px;
-    align-items: start;
+    /* 左栏承载卡牌与「四大元素能量流」等长文本块，固定 290px 会把正文挤成竖条，
+       故随容器宽度伸缩并设上下限；1fr 交给右栏自适应 */
+    grid-template-columns: clamp(296px, 34%, 372px) minmax(0, 1fr);
+    gap: 26px;
+    /* 两栏等高：右栏各块按自身比例吸收多余高度并把内容垂直居中，
+       相当于给每张解读卡增加留白，比 space-between 拉开块间距更自然，
+       也不会出现单个畸形巨块 */
+    align-items: stretch;
+  }
+}
+@media (min-width: 1440px) {
+  #mod-tarot .tr-dossier-grid {
+    grid-template-columns: clamp(340px, 26%, 400px) minmax(0, 1fr);
+    gap: 30px;
   }
 }
 
@@ -3598,6 +3652,7 @@ html[data-theme="light"] #mod-tarot .tr-dossier-banner {
   flex-direction: column;
   gap: 16px;
   width: 100%;
+  min-width: 0;
 }
 #mod-tarot .tr-dossier-card-stage {
   position: relative;
@@ -3676,6 +3731,17 @@ html[data-theme="light"] #mod-tarot .tr-dossier-elem-box {
   flex-direction: column;
   gap: 16px;
   width: 100%;
+  min-width: 0;
+}
+/* 两栏等高时，右栏各块按比例吸收多余高度，内容垂直居中形成均匀留白 */
+@media (min-width: 900px) {
+  #mod-tarot .tr-dossier-content-col {
+    justify-content: flex-start;
+  }
+  #mod-tarot .tr-dossier-content-col > * {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
 }
 #mod-tarot .tr-dossier-sec {
   background: var(--card);
@@ -4583,6 +4649,23 @@ html[data-theme="light"] #mod-tarot .result-list.is-single .tr-single-hero {
 }
 .tr-poster-modal .tr-poster-dl-btn:active {
   transform: scale(0.98);
+}
+
+/* =========================================================
+   档案文牒宽屏适配（必须置于文件末尾以覆盖前面的 1040px 限制）
+   ---------------------------------------------------------
+   注意 .tr-result-actions 的基础规则带 !important（tarot.css:2343），
+   普通声明压不过，必须同样带 !important 才能让按钮栏与报告两端对齐。
+   ========================================================= */
+@media (min-width: 1440px) {
+  #mod-tarot #sc-tr-result,
+  #mod-tarot .tr-dossier-report,
+  #mod-tarot .result-list.is-single {
+    max-width: 1240px;
+  }
+  #mod-tarot .tr-result-actions {
+    max-width: 1240px !important;
+  }
 }
 
 
@@ -8008,6 +8091,8 @@ html[data-theme="light"] .ew-switch-btn.active.fengshui {
 }
 
 /* ============ 屏幕容器切换 ============ */
+/* 东方灵签内容本身就少（4 张方向卡 + 一根签 + 一句输入），
+   铺到 1120px 只会让每张卡各自空旷。保持原有的窄栏单列。 */
 #mod-lingqian .lq-screen {
   position: relative;
   z-index: 1;
@@ -8507,7 +8592,7 @@ html[data-theme="light"] #mod-clock {
   position: relative;
   z-index: 1;
   width: 100%;
-  max-width: 680px;
+  max-width: var(--pg-wrap);
   margin: 0 auto;
   padding: 14px 20px calc(38px + env(safe-area-inset-bottom));
   box-sizing: border-box;
@@ -9589,6 +9674,31 @@ body.zen-screensaver-active::-webkit-scrollbar {
 
 
 
+/* =========================================================
+   PC 端宽屏适配
+   ---------------------------------------------------------
+   原容器 680px 在 1920 屏上两侧各空 1220px，且倒计时/配置两组
+   2 列网格纵向堆叠多出 142px 滚动。
+   这里适度放宽并加密内部列数换取免滚，但不再拉到 1440px——
+   时钟与工资卡有合适的阅读宽度，铺太宽会横向稀疏。
+   ========================================================= */
+@media (min-width: 1025px) {
+  .ck-wrap {
+    max-width: 960px;
+  }
+  /* 四张倒计时卡排成一行 */
+  .ck-countdown-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  /* 配置项铺成三列 */
+  .ck-cfg-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .ck-topbar {
+    justify-content: space-between;
+  }
+}
+
 
 /* === css/modules/merit.css === */
 /* =========================================================
@@ -9637,6 +9747,22 @@ html[data-theme="light"] #mod-merit {
   padding: 20px 18px 56px;
   display: flex;
   flex-direction: column;
+}
+
+/* 功德局三种玩法（木鱼 / 泡泡 / 碎纸机）都以「一个可交互舞台」为核心，
+   舞台有天然尺寸上限——容器放宽只会让泡泡等比例变大，一屏放不下反而更累。
+   保持 680px 窄栏，仅补垂直居中消除底部空白。 */
+@media (min-width: 1025px) {
+  #mod-merit .mr-wrap {
+    justify-content: center;
+    min-height: var(--pg-viewport-h);
+  }
+  /* 兜底：泡泡为 6 列正方形网格，容器再宽也不放大单颗泡泡 */
+  #mod-merit .bubble-grid {
+    max-width: 560px;
+    margin-left: auto;
+    margin-right: auto;
+  }
 }
 
 #mod-merit .subnav-pill-bar {
@@ -12055,7 +12181,7 @@ html[data-theme="light"] .lg-credit-footer a {
 .bz-wrap {
   position: relative;
   z-index: 1;
-  max-width: 720px;
+  max-width: var(--pg-wrap);
   width: 100%;
   min-height: 100%;
   margin: 0 auto;
@@ -13358,6 +13484,47 @@ html[data-theme="light"] .bz-dayun-age {
   transform: translateY(-2px);
 }
 
+/* =========================================================
+   PC 端宽屏适配（八字模块）
+   ---------------------------------------------------------
+   原容器 720px、内容单列纵向堆叠，1920 屏上两侧各空 1180px
+   却仍需滚动 2732px。
+   改为显式两列 Grid：命盘/结论在左，五行/大运/解读在右。
+   不用 CSS multi-column —— 它会强行平衡列高，
+   导致某一列先结束后另一列继续，中间留下大片空洞。
+   ========================================================= */
+@media (min-width: 1025px) {
+  .bz-wrap {
+    max-width: 1240px;
+  }
+  .bz-wheel-columns {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  /* 结果区：双列，两列各自独立流式排布
+     用 grid 而非 CSS multi-column —— multi-column 会强行平衡两列高度，
+     反而产生单侧大段断层。 */
+  .bz-result-stage.active {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 22px;
+    align-items: start;
+  }
+  .bz-result-stage.active > * {
+    min-width: 0;
+  }
+  /* 命盘表有 min-width:580px（bazi.css:949），塞进半栏会出现嵌套横向滚动条，
+     因此让它独占整行——它也是全篇信息密度最高的区块，横向铺开反而更好读。 */
+  .bz-result-stage.active > .bz-pillars-card {
+    grid-column: 1 / -1;
+  }
+}
+@media (min-width: 1441px) {
+  .bz-wrap {
+    max-width: 1440px;
+  }
+}
+
 
 /* === css/modules/daily.css === */
 /* =========================================================
@@ -14261,28 +14428,28 @@ html[data-theme="light"] .daily-movie-card {
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.45s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.6s ease;
-  transform: scale(1.02);
-  will-change: opacity, transform;
+  /* 去掉 backdrop-filter 模糊：它作用在已 cover 放大的位图上，
+     等于「放大变软 + 再模糊」，实测会把壁纸糊成色块汤并毁掉正文对比度。
+     改由下面的 ::after 遮罩压暗来保证可读性。 */
+  will-change: opacity;
 }
 
 .app-ambient-backdrop::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 50% 35%, rgba(11, 14, 20, 0.35) 0%, rgba(11, 14, 20, 0.78) 100%);
-  backdrop-filter: blur(8px) saturate(125%);
-  -webkit-backdrop-filter: blur(8px) saturate(125%);
+  /* 遮罩加重：保证任何壁纸（无论明暗）之上正文对比度都达标 */
+  background: radial-gradient(circle at 50% 35%, rgba(11, 14, 20, 0.62) 0%, rgba(11, 14, 20, 0.88) 100%);
   transition: background 0.35s ease;
 }
 
 html[data-theme="light"] .app-ambient-backdrop::after {
-  background: radial-gradient(circle at 50% 35%, rgba(245, 246, 241, 0.40) 0%, rgba(245, 246, 241, 0.82) 100%);
+  background: radial-gradient(circle at 50% 35%, rgba(245, 246, 241, 0.66) 0%, rgba(245, 246, 241, 0.90) 100%);
 }
 
 html.has-daily-ambient-bg .app-ambient-backdrop,
 body.has-daily-ambient-bg .app-ambient-backdrop {
   opacity: 1;
-  transform: scale(1);
 }
 
 html.has-daily-ambient-bg #app::before,
@@ -15583,5 +15750,26 @@ html[data-theme="light"] .sc-security-box {
     padding: 10px 12px;
     font-size: 13px;
     min-width: 90px;
+  }
+}
+
+/* =========================================================
+   PC 端微调（必须置于文件末尾）
+   ---------------------------------------------------------
+   本文件里 .scratch-stats-bar 与 .scratch-card-workbench 的基础规则
+   分别出现在 L718 与 L284（同为单类选择器），若把 PC 覆盖写在前���，
+   会被后面的基础规则按「同特异性后来者胜」直接盖掉——
+   媒体查询本身不提升特异性。放到文件末尾才能稳定生效。
+   ========================================================= */
+@media (min-width: 1025px) {
+  .scratch-stats-bar {
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+  .scratch-card-workbench {
+    max-width: 560px;
+    width: 100%;
+    /* 写成完整 shorthand，保留基础规则的 28px 下边距 */
+    margin: 0 auto 28px;
   }
 }

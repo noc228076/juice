@@ -1336,6 +1336,49 @@ html[data-theme="light"] #mod-manual {
     font-size: 12px;
     color: #9A948A;
     }
+
+    /* PC 双栏：棋盘在左，战绩榜常驻右侧。
+       此前容器固定 440px 居中在 720px 的 .stage 里，
+       左右各空出 124px 深色底（视觉上就是"大黑块"），
+       1920 下更是在 1890px 屏幕中间一条窄柱。 */
+    #mod-manual .g2048-lb-wrap {
+    width: 100%;
+    }
+    @media (min-width: 700px) {
+    #mod-manual .g2048-container {
+    max-width: 680px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 252px;
+    /* 必须显式分区：这 5 个子元素若按默认流式填充，
+       tools 会掉进右栏、lb-wrap 掉到左栏下一行。 */
+    grid-template-areas:
+      "hud lb"
+      "tools lb"
+      "board lb"
+      "ctrl lb";
+    gap: 0 16px;
+    align-items: start;
+    }
+    #mod-manual .g2048-hud { grid-area: hud; }
+    #mod-manual .g2048-tools { grid-area: tools; }
+    #mod-manual .g2048-board-wrap { grid-area: board; }
+    #mod-manual .g2048-controls { grid-area: ctrl; }
+    #mod-manual .g2048-lb-wrap { grid-area: lb; }
+    #mod-manual .g2048-lb-wrap {
+    position: sticky;
+    top: 12px;
+    }
+    #mod-manual .g2048-lb-toggle {
+    margin-top: 0;
+    }
+    /* 侧栏较窄，收窄分数列并隐藏日期 */
+    #mod-manual .g2048-lb-score {
+    width: 42px;
+    }
+    #mod-manual .g2048-lb-date {
+    display: none;
+    }
+    }
     
 #mod-manual .g2048-float-tip {
   position: absolute;

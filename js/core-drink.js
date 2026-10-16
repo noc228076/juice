@@ -5253,16 +5253,21 @@ const SFX = (function () {
 
 
 if ('serviceWorker' in navigator) {
+  // 关键：首次访问时 SW 尚未接管页面，install -> activate -> clients.claim()
+  // 必然触发一次 controllerchange。若不加 hadController 判断，
+  // 每个新访客都会被强制 location.reload()，整站资源下载两遍
+  // （实测 24s 下载 x2 = 48.9s）。
+  const hadController = !!navigator.serviceWorker.controller;
+  let refreshing = false;
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js').then((reg) => {
       reg.update().catch(() => {});
     }).catch(() => {});
   });
-  let refreshing = false;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (!refreshing) {
-      refreshing = true;
-      window.location.reload();
-    }
+    if (!hadController) return;   // 首次接管，不是版本更新，无需刷新
+    if (refreshing) return;
+    refreshing = true;
+    window.location.reload();
   });
 }

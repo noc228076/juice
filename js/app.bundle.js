@@ -5254,17 +5254,22 @@ const SFX = (function () {
 
 
 if ('serviceWorker' in navigator) {
+  // 关键：首次访问时 SW 尚未接管页面，install -> activate -> clients.claim()
+  // 必然触发一次 controllerchange。若不加 hadController 判断，
+  // 每个新访客都会被强制 location.reload()，整站资源下载两遍
+  // （实测 24s 下载 x2 = 48.9s）。
+  const hadController = !!navigator.serviceWorker.controller;
+  let refreshing = false;
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js').then((reg) => {
       reg.update().catch(() => {});
     }).catch(() => {});
   });
-  let refreshing = false;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (!refreshing) {
-      refreshing = true;
-      window.location.reload();
-    }
+    if (!hadController) return;   // 首次接管，不是版本更新，无需刷新
+    if (refreshing) return;
+    refreshing = true;
+    window.location.reload();
   });
 }
 
@@ -18015,7 +18020,10 @@ if ('serviceWorker' in navigator) {
        ------------------------------------------------ */
     var LB_KEY = 'sm_2048_runs';
     var LB_MAX = 12;
-    var lbOpen = false;
+    // 桌面右侧有空间，榜单默认展开；窄屏收起，避免把棋盘挤出首屏
+    var lbOpen = typeof window.matchMedia === 'function'
+      ? window.matchMedia('(min-width: 700px)').matches
+      : false;
     var runRecorded = false;
 
     function loadRuns() {
@@ -18111,7 +18119,8 @@ if ('serviceWorker' in navigator) {
             '</div>';
         }
       }
-      return head + '<div class="g2048-lb">' + rows + '</div>';
+      return '<div class="g2048-lb-wrap">' + head +
+        (lbOpen ? '<div class="g2048-lb">' + rows + '</div>' : '') + '</div>';
     }
 
     var ROLE_MAP = {

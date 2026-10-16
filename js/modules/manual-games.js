@@ -537,7 +537,10 @@
        ------------------------------------------------ */
     var LB_KEY = 'sm_2048_runs';
     var LB_MAX = 12;
-    var lbOpen = false;
+    // 桌面右侧有空间，榜单默认展开；窄屏收起，避免把棋盘挤出首屏
+    var lbOpen = typeof window.matchMedia === 'function'
+      ? window.matchMedia('(min-width: 700px)').matches
+      : false;
     var runRecorded = false;
 
     function loadRuns() {
@@ -633,7 +636,8 @@
             '</div>';
         }
       }
-      return head + '<div class="g2048-lb">' + rows + '</div>';
+      return '<div class="g2048-lb-wrap">' + head +
+        (lbOpen ? '<div class="g2048-lb">' + rows + '</div>' : '') + '</div>';
     }
 
     var ROLE_MAP = {

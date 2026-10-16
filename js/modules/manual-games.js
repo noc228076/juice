@@ -530,6 +530,112 @@
     var bestScore = 0;
     try { bestScore = parseInt(localStorage.getItem('sm_2048_best') || '0', 10) || 0; } catch (e) {}
 
+    /* ---------------- 离线个人排行榜 ----------------
+       纯 localStorage，不发任何网络请求，断网可用。
+       每局结束（无路可走 或 主动结算）记录一次，
+       最多保留 LB_MAX 条，分数降序。
+       ------------------------------------------------ */
+    var LB_KEY = 'sm_2048_runs';
+    var LB_MAX = 12;
+    var lbOpen = false;
+    var runRecorded = false;
+
+    function loadRuns() {
+      try {
+        var raw = localStorage.getItem(LB_KEY);
+        if (!raw) return [];
+        var arr = JSON.parse(raw);
+        if (!Array.isArray(arr)) return [];
+        var out = [];
+        for (var i = 0; i < arr.length; i++) {
+          var r = arr[i];
+          if (!r || typeof r.score !== 'number' || !isFinite(r.score)) continue;
+          out.push({
+            score: Math.max(0, Math.round(r.score)),
+            maxTile: Math.max(0, Math.round(+r.maxTile || 0)),
+            moves: Math.max(0, Math.round(+r.moves || 0)),
+            merges: Math.max(0, Math.round(+r.merges || 0)),
+            at: +r.at || 0
+          });
+        }
+        return out;
+      } catch (e) {
+        return [];
+      }
+    }
+
+    function saveRuns(list) {
+      try { localStorage.setItem(LB_KEY, JSON.stringify(list)); } catch (e) {}
+    }
+
+    // 分数降序；同分比最高合成；再同分则步数少者靠前
+    function sortRuns(list) {
+      return list.sort(function (a, b) {
+        if (b.score !== a.score) return b.score - a.score;
+        if (b.maxTile !== a.maxTile) return b.maxTile - a.maxTile;
+        if (a.moves !== b.moves) return a.moves - b.moves;
+        return a.at - b.at;
+      });
+    }
+
+    // 每局只记一次：游戏结束和主动结算都调用，靠 runRecorded 去重
+    // 返回本局在榜单中的名次（1 起）；被去重时返回当前榜内名次或 0
+    function recordRun() {
+      if (runRecorded) return 0;
+      runRecorded = true;
+      var stamp = Date.now();
+      var list = loadRuns();
+      list.push({ score: score, maxTile: maxTile, moves: moves, merges: merges, at: stamp });
+      list = sortRuns(list);
+      var rank = 0;
+      for (var i = 0; i < list.length; i++) {
+        if (list[i].at === stamp) { rank = i + 1; break; }
+      }
+      saveRuns(list.slice(0, LB_MAX));
+      // 最高分卡片沿用同一个来源，避免两处数字打架
+      if (list.length && list[0].score > bestScore) {
+        bestScore = list[0].score;
+        try { localStorage.setItem('sm_2048_best', String(bestScore)); } catch (e) {}
+      }
+      return rank;
+    }
+
+    function fmtDay(ts) {
+      var d = new Date(ts);
+      if (isNaN(d.getTime())) return '--';
+      return (d.getMonth() + 1) + '/' + d.getDate();
+    }
+
+    function leaderboardHTML() {
+      var runs = sortRuns(loadRuns());
+      var best = runs.length ? runs[0].score : 0;
+      var head = '<button class="g2048-lb-toggle" id="btn2048Lb" aria-expanded="' + (lbOpen ? 'true' : 'false') + '">' +
+        (lbOpen ? '▼' : '▶') + ' 我的战绩' +
+        (runs.length ? ' · 共 ' + runs.length + ' 局 · 最高 ' + best + ' 分' : ' · 暂无记录') +
+        '</button>';
+      if (!lbOpen) return head;
+
+      var rows;
+      if (!runs.length) {
+        rows = '<div class="g2048-lb-empty">还没有战绩，先来一局吧</div>';
+      } else {
+        rows = '';
+        for (var i = 0; i < runs.length; i++) {
+          var rr = runs[i];
+          var cls = 'g2048-lb-row' + (i === 0 ? ' top' : '');
+          rows += '<div class="' + cls + '">' +
+            '<span class="g2048-lb-rank">' + (i === 0 ? '👑' : (i + 1)) + '</span>' +
+            '<span class="g2048-lb-score">' + rr.score + '</span>' +
+            '<span class="g2048-lb-tile">' + rr.maxTile + '</span>' +
+            '<span class="g2048-lb-role">' + (ROLE_MAP[rr.maxTile] || '高阶') + '</span>' +
+            '<span class="g2048-lb-moves">' + rr.moves + ' 步</span>' +
+            '<span class="g2048-lb-date">' + fmtDay(rr.at) + '</span>' +
+            '</div>';
+        }
+      }
+      return head + '<div class="g2048-lb">' + rows + '</div>';
+    }
+
     var ROLE_MAP = {
       2: '起步', 4: '转正', 8: '主力', 16: '核心',
       32: '组长', 64: '经理', 128: '总监', 256: '副总',
@@ -671,6 +777,8 @@
 
         if (!canMove()) {
           isOver = true;
+          recordRun();
+          lbOpen = true;   // 自动展开，刚记下的这局要立刻可见
           if (window.SFX && window.SFX.wrong) window.SFX.wrong();
         }
 
@@ -703,6 +811,7 @@
       undosLeft = 3;
       hasWon = false;
       isOver = false;
+      runRecorded = false;   // 新一局，允许再次记录
       spawnTile();
       spawnTile();
       checkMax();
@@ -719,6 +828,7 @@
 
     function finish() {
       clearTimers();
+      var myRank = recordRun();   // 主动结算也算本局结束
       var certs = window.SM_DATA['game-2048'].certs;
       var cert = certs[certs.length - 1];
       for (var i = 0; i < certs.length; i++) {
@@ -743,7 +853,7 @@
         ],
         blocks: [
           { h: '职场段位认证', cert: '【' + role + '】' },
-          { h: '对局复盘', text: '本局总步数 ' + moves + ' 步，合成总分 ' + score + ' 分，历史最佳分 ' + bestScore + ' 分。' },
+          { h: '对局复盘', text: '本局总步数 ' + moves + ' 步，合成总分 ' + score + ' 分，历史最佳分 ' + bestScore + ' 分。' + (myRank ? '本局在离线战绩榜上排名第 ' + myRank + '。' : '') },
           { h: '战略建议', text: '2048 的底层法则永远是“守住一个角落，大小有序排列”。现实亦如此，守好自己的基本盘，步步为营方能化险为夷。' }
         ],
         quip: window.SM_DATA['game-2048'].disclaimer,
@@ -815,6 +925,7 @@
         '</div>' +
         '<div class="g2048-hint">支持屏幕滑动、方向键 ↑ ↓ ← → 或轻点上方方向键</div>' +
         '</div>' +
+        leaderboardHTML() +
         '</div>';
 
       // 绑定按钮事件
@@ -824,6 +935,9 @@
       if (resetBtn) resetBtn.onclick = resetGame;
       var finishBtn = el.querySelector('#btn2048Finish');
       if (finishBtn) finishBtn.onclick = finish;
+
+      var lbBtn = el.querySelector('#btn2048Lb');
+      if (lbBtn) lbBtn.onclick = function () { lbOpen = !lbOpen; renderUI(); };
 
       var certBtn = el.querySelector('#btn2048Cert');
       if (certBtn) certBtn.onclick = finish;

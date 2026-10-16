@@ -58,6 +58,7 @@ html[data-theme="light"] #mod-clock {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  min-width: 0;
 }
 
 .ck-status-pill {
@@ -71,6 +72,8 @@ html[data-theme="light"] #mod-clock {
   color: var(--ck-green);
   font-size: 12px;
   font-weight: 800;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .ck-status-dot {
@@ -103,6 +106,8 @@ html[data-theme="light"] #mod-clock {
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
+  white-space: nowrap;
+  flex: none;
 }
 
 .ck-btn-mini:hover {
@@ -1053,6 +1058,22 @@ body.zen-screensaver-active::-webkit-scrollbar {
 
 /* 移动端屏幕适配 */
 @media (max-width: 600px) {
+  /* 窄屏顶栏放不下「状态胶囊 + 3 个模式按钮」同一行：
+     状态文案换行独占首行完整显示，模式按钮落到第二行居中，
+     避免状态胶囊被压成竖排或被省略号截断 */
+  .ck-topbar {
+    flex-wrap: wrap;
+    justify-content: center;
+    row-gap: 8px;
+  }
+  .ck-status-pill {
+    flex: 1 0 100%;
+    justify-content: center;
+  }
+  .ck-top-actions {
+    flex: 1 0 100%;
+    justify-content: center;
+  }
   .ck-zen-overlay {
     --zen-card-w: clamp(82px, 26vw, 110px);
     --zen-card-h: clamp(100px, 30vw, 130px);

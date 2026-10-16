@@ -53,6 +53,26 @@ const jsOut = jsFiles
   .join('\n;\n');
 fs.writeFileSync(path.join(__dirname, 'js/app.bundle.js'), jsOut, 'utf8');
 
+// 自动同步版本号：避免 index.html 的 ?v= 与 sw.js 的 CACHE_NAME 靠人工同时递增而漏改。
+// 从 sw.js 读取当前版本号并原样写回两个文件，保持三者一致。
+const swPath = path.join(__dirname, 'sw.js');
+const swSrc = fs.readFileSync(swPath, 'utf8');
+const verMatch = swSrc.match(/CACHE_NAME\s*=\s*'juice-persona-v(\d+)'/);
+if (!verMatch) {
+  console.warn("WARN: 未能在 sw.js 中匹配到 CACHE_NAME = 'juice-persona-v<数字>'，跳过版本号同步。");
+} else {
+  const version = verMatch[1];
+
+  const htmlPath = path.join(__dirname, 'index.html');
+  const htmlSrc = fs.readFileSync(htmlPath, 'utf8');
+  const nextHtml = htmlSrc
+    .replace(/app\.bundle\.css\?v=\d+/, `app.bundle.css?v=${version}`)
+    .replace(/app\.bundle\.js\?v=\d+/, `app.bundle.js?v=${version}`);
+  if (nextHtml !== htmlSrc) fs.writeFileSync(htmlPath, nextHtml, 'utf8');
+
+  console.log(`版本号已同步 -> v${version} (index.html ?v=, sw.js CACHE_NAME)`);
+}
+
 console.log(
   `Built css/app.bundle.css (${(Buffer.byteLength(cssOut) / 1024).toFixed(1)} KB) and js/app.bundle.js (${(Buffer.byteLength(jsOut) / 1024).toFixed(1)} KB)`
 );

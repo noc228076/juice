@@ -9,6 +9,28 @@
   const CACHE_PREFIX = 'juice_daily_';
   const CACHE_TTL_MS = 25 * 60 * 1000; // 25分钟本地缓存，彻底杜绝并发风控与 429 报错
 
+  // 各平台官方热榜入口：作为兜底链接与降级提示的落点，
+  // 严禁复用某一平台的地址，否则「知乎」标签下点进去会落到微博。
+  const PLATFORM_META = {
+    weibo: { name: '微博热搜', home: 'https://s.weibo.com/top/summary' },
+    zhihu: { name: '知乎热榜', home: 'https://www.zhihu.com/hot' },
+    bili: { name: 'B站热搜', home: 'https://www.bilibili.com/v/popular/rank/all' },
+    douyin: { name: '抖音热点', home: 'https://www.douyin.com/hot' },
+    rednote: { name: '小红书', home: 'https://www.xiaohongshu.com/explore' },
+    'ai-news': { name: 'AI 前沿快讯', home: 'https://www.jiqizhixin.com/' },
+    toutiao: { name: '今日头条', home: 'https://www.toutiao.com/' }
+  };
+
+  // 离线兜底文案模板：link 在渲染时按当前平台动态注入，不在此处写死任何平台地址
+  const HOT_SEED_TOPICS = [
+    { title: '当代年轻人为什么越来越注重精神健康与自我解压', hot_value: 1250000 },
+    { title: '国产科技创新突破性进展引全网热议', hot_value: 980000 },
+    { title: '秋日第一杯治愈特调饮品喝什么最舒心', hot_value: 760000 },
+    { title: '豆瓣高分口碑影视佳作盘点与周末追剧指南', hot_value: 650000 },
+    { title: '全球自然风光大片展出：必应今日秋日秘境摄影', hot_value: 520000 },
+    { title: '微调作息与自我生活节奏的 5 个实用习惯', hot_value: 410000 }
+  ];
+
   // 优质离线/超时兜底数据种子（确保网络异常或接口受限时界面绝不空白）
   const FALLBACK_SEEDS = {
     news60s: {
@@ -29,14 +51,7 @@
         '城市绿道与口袋公园建设持续推进，十分钟家门口生态休闲圈全面成型'
       ]
     },
-    hotlist: [
-      { title: '当代年轻人为什么越来越注重精神健康与自我解压', hot_value: 1250000, link: 'https://s.weibo.com' },
-      { title: '国产科技创新突破性进展引全网热议', hot_value: 980000, link: 'https://s.weibo.com' },
-      { title: '秋日第一杯治愈特调饮品喝什么最舒心', hot_value: 760000, link: 'https://s.weibo.com' },
-      { title: '豆瓣高分口碑影视佳作盘点与周末追剧指南', hot_value: 650000, link: 'https://s.weibo.com' },
-      { title: '全球自然风光大片展出：必应今日秋日秘境摄影', hot_value: 520000, link: 'https://s.weibo.com' },
-      { title: '微调作息与自我生活节奏的 5 个实用习惯', hot_value: 410000, link: 'https://s.weibo.com' }
-    ],
+    hotlist: HOT_SEED_TOPICS,
     bing: {
       title: '蓝与绿的交响曲',
       copyright: '普利特维采湖群国家公园，克罗地亚 (© Jan Wlodarczyk/Alamy)',
@@ -140,15 +155,19 @@
   let isSiteBgActive = false;
   let activeWp = FALLBACK_SEEDS.bing;
   let cachedHotData = [];
+  let hotDataSource = 'fallback'; // 'network' | 'cache' | 'stale' | 'fallback'
+  let hotLoadToken = 0;           // 竞态令牌：快速切换平台时丢弃过期响应
 
-  // 跨域缓存获取器
-  async function fetchWithCache(url, cacheKey, fallback) {
+  // 跨域缓存获取器。
+  // source 用于让调用方判断数据是否来自兜底：
+  // 'network' 实时接口 | 'cache' 本地缓存 | 'stale' 过期缓存 | 'fallback' 离线种子
+  async function fetchWithCacheDetail(url, cacheKey, fallback) {
     try {
       const cached = localStorage.getItem(CACHE_PREFIX + cacheKey);
       if (cached) {
         const parsed = JSON.parse(cached);
         if (Date.now() - parsed.ts < CACHE_TTL_MS && parsed.data) {
-          return parsed.data;
+          return { data: parsed.data, source: 'cache' };
         }
       }
     } catch (_) {}
@@ -168,7 +187,7 @@
             JSON.stringify({ ts: Date.now(), data })
           );
         } catch (_) {}
-        return data;
+        return { data, source: 'network' };
       }
     } catch (e) {
       console.warn('[Daily] Fetch API warning, using cache/fallback:', cacheKey, e);
@@ -176,10 +195,79 @@
 
     try {
       const cached = localStorage.getItem(CACHE_PREFIX + cacheKey);
-      if (cached) return JSON.parse(cached).data;
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed.data) return { data: parsed.data, source: 'stale' };
+      }
     } catch (_) {}
 
-    return fallback;
+    return { data: fallback, source: 'fallback' };
+  }
+
+  async function fetchWithCache(url, cacheKey, fallback) {
+    const r = await fetchWithCacheDetail(url, cacheKey, fallback);
+    return r.data;
+  }
+
+  // HTML 转义：接口返回的标题与链接直接插进 innerHTML，不转义会破坏属性甚至注入
+  function esc(str) {
+    return String(str == null ? '' : str).replace(/[&<>"']/g, c =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])
+    );
+  }
+
+  // ================= 加载态：骨架屏 =================
+  // 骨架必须复刻真实条目的 DOM 结构与尺寸，否则数据到达瞬间列表高度会突变，
+  // 造成页面跳动 + 内容「闪出」的割裂感。
+
+  const HOT_SKELETON_ROWS = 8;
+  const NEWS_SKELETON_ROWS = 10;
+
+  function hotSkeletonHtml() {
+    return Array(HOT_SKELETON_ROWS)
+      .fill(0)
+      .map(
+        () => `
+        <div class="daily-hot-item is-skeleton" aria-hidden="true">
+          <div class="daily-hot-left">
+            <span class="daily-hot-rank"></span>
+            <span class="daily-skeleton" style="flex:1;height:14px;max-width:320px;"></span>
+          </div>
+          <div class="daily-hot-right">
+            <span class="daily-skeleton" style="width:44px;height:12px;"></span>
+            <span style="width:12px;"></span>
+          </div>
+        </div>`
+      )
+      .join('');
+  }
+
+  function newsSkeletonHtml() {
+    return Array(NEWS_SKELETON_ROWS)
+      .fill(0)
+      .map(
+        (_, i) => `
+        <div class="daily-60s-item is-skeleton" aria-hidden="true">
+          <span class="daily-60s-num"></span>
+          <span class="daily-skeleton" style="flex:1;height:13px;max-width:${88 - (i % 4) * 9}%;"></span>
+        </div>`
+      )
+      .join('');
+  }
+
+  function showSkeleton(el, html) {
+    if (!el) return;
+    el.classList.add('daily-loading');
+    el.innerHTML = html;
+  }
+
+  function fillWithContent(el, html) {
+    if (!el) return;
+    el.classList.remove('daily-loading');
+    el.innerHTML = html;
+    // 强制重排后再挂淡入类，确保动画在首次渲染时就能触发
+    void el.offsetWidth;
+    el.classList.add('daily-fade-in');
   }
 
   // ================= 1. 每日 60 秒与全网热搜 =================
@@ -189,7 +277,7 @@
     const dateEl = document.getElementById('dl60sDateBadge');
     if (!box) return;
 
-    box.innerHTML = '<div class="daily-skeleton" style="height:80px;width:100%;"></div>';
+    showSkeleton(box, newsSkeletonHtml());
 
     const data = await fetchWithCache(
       'https://60s.viki.moe/v2/60s',
@@ -205,16 +293,18 @@
     }
 
     const newsArr = Array.isArray(data.news) ? data.news : FALLBACK_SEEDS.news60s.news;
-    box.innerHTML = newsArr
-      .map(
-        (item, idx) => `
-        <div class="daily-60s-item">
+    fillWithContent(
+      box,
+      newsArr
+        .map(
+          (item, idx) => `
+        <div class="daily-60s-item" style="--i:${idx < 12 ? idx : 11}">
           <span class="daily-60s-num">${idx + 1}</span>
           <span>${item}</span>
-        </div>
-      `
-      )
-      .join('');
+        </div>`
+        )
+        .join('')
+    );
   }
 
   async function loadHotList(platform = 'weibo') {
@@ -222,10 +312,9 @@
     const listEl = document.getElementById('dlHotList');
     if (!listEl) return;
 
-    listEl.innerHTML = Array(6)
-      .fill(0)
-      .map(() => '<div class="daily-skeleton" style="height:48px;border-radius:12px;margin-bottom:8px;"></div>')
-      .join('');
+    const token = ++hotLoadToken;
+    const meta = PLATFORM_META[platform] || PLATFORM_META.weibo;
+    showSkeleton(listEl, hotSkeletonHtml());
 
     const endpointMap = {
       weibo: 'https://60s.viki.moe/v2/weibo',
@@ -238,46 +327,87 @@
     };
 
     const url = endpointMap[platform] || endpointMap.weibo;
-    const raw = await fetchWithCache(url, 'hot_' + platform, FALLBACK_SEEDS.hotlist);
-    let list = Array.isArray(raw) ? raw : (raw.list || FALLBACK_SEEDS.hotlist);
+    const { data: raw, source } = await fetchWithCacheDetail(
+      url,
+      'hot_' + platform,
+      HOT_SEED_TOPICS
+    );
+    // 响应回来时用户可能已切到别的平台，丢弃过期结果，避免「切回时显示别的平台数据」
+    if (token !== hotLoadToken) return;
 
+    const list = Array.isArray(raw) ? raw : (raw && raw.list) || HOT_SEED_TOPICS;
     cachedHotData = list;
-    renderHotItems(list);
+    hotDataSource = source;
+    renderHotItems(list, meta, source);
   }
 
-  function renderHotItems(list) {
+  function renderHotItems(list, meta = PLATFORM_META[curPlatform] || PLATFORM_META.weibo, source = hotDataSource, showNotice = true) {
     const listEl = document.getElementById('dlHotList');
     if (!listEl) return;
 
     if (!list || !list.length) {
+      listEl.classList.remove('daily-loading', 'daily-fade-in');
       listEl.innerHTML = '<div style="text-align:center;padding:24px;color:var(--tx-dim);">暂无当前热搜数据</div>';
       return;
     }
 
-    listEl.innerHTML = list
-      .slice(0, 30)
-      .map((item, idx) => {
-        const title = item.title || item.name || item.word || '热门事件';
-        const hotVal = item.hot_value
-          ? item.hot_value > 10000
-            ? (item.hot_value / 10000).toFixed(1) + '万'
-            : item.hot_value
-          : item.heat || '';
-        const link = item.link || item.url || '#';
-        return `
-          <a class="daily-hot-item" href="${link}" target="_blank" rel="noopener noreferrer">
+    // 兜底文案没有真实条目链接，一律指向当前平台的官方热榜页，
+    // 绝不能出现「知乎标签点进去是微博热搜」这类错位
+    const isFallback = source === 'fallback';
+    const notice = !showNotice
+      ? ''
+      : isFallback
+        ? `
+      <div class="daily-hot-notice">
+        <span class="daily-hot-notice-txt">⚠️ ${esc(meta.name)}数据源暂不可用，当前为离线示例，点条目将前往官方热榜页</span>
+        <button type="button" class="daily-hot-retry" data-retry-hot>重试</button>
+      </div>`
+        : source === 'stale'
+          ? `
+      <div class="daily-hot-notice">
+        <span class="daily-hot-notice-txt">🕐 接口暂不可用，展示的是上次缓存内容</span>
+        <button type="button" class="daily-hot-retry" data-retry-hot>重试</button>
+      </div>`
+          : '';
+
+    fillWithContent(
+      listEl,
+      notice +
+        list
+          .slice(0, 30)
+          .map((item, idx) => {
+            const title = item.title || item.name || item.word || '热门事件';
+            const hotVal = item.hot_value
+              ? item.hot_value > 10000
+                ? (item.hot_value / 10000).toFixed(1) + '万'
+                : item.hot_value
+              : item.heat || '';
+            // 兜底种子与无链接条目统一落到当前平台官方页
+            const link = (!isFallback && (item.link || item.url)) || meta.home;
+            const t = esc(title);
+            return `
+          <a class="daily-hot-item" style="--i:${idx < 14 ? idx : 13}" href="${esc(link)}" target="_blank" rel="noopener noreferrer">
             <div class="daily-hot-left">
               <span class="daily-hot-rank">${idx + 1}</span>
-              <span class="daily-hot-title" title="${title}">${title}</span>
+              <span class="daily-hot-title" title="${t}">${t}</span>
             </div>
             <div class="daily-hot-right">
-              ${hotVal ? `<span class="daily-hot-val">🔥 ${hotVal}</span>` : ''}
+              ${hotVal ? `<span class="daily-hot-val">🔥 ${esc(hotVal)}</span>` : ''}
               <span class="daily-hot-arrow">↗</span>
             </div>
           </a>
         `;
-      })
-      .join('');
+          })
+          .join('')
+    );
+
+    const retry = listEl.querySelector('[data-retry-hot]');
+    if (retry) {
+      retry.onclick = () => {
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        loadHotList(curPlatform);
+      };
+    }
   }
 
   // ================= 2. 影视风向标 & 心情选片 =================
@@ -301,13 +431,15 @@
     const raw = await fetchWithCache(url, 'movie_' + type, FALLBACK_SEEDS.movies);
     const list = Array.isArray(raw) ? raw : (raw.list || FALLBACK_SEEDS.movies);
 
-    grid.innerHTML = list
-      .map((m, idx) => {
-        const poster = m.cover_proxy || m.cover || 'assets/icons/icon-192.png';
-        const rating = m.rating ? `★ ${m.rating}` : '暂无评分';
-        const tags = Array.isArray(m.tags) ? m.tags : [];
-        return `
-          <a class="daily-movie-card" href="${m.url || '#'}" target="_blank" rel="noopener noreferrer">
+    fillWithContent(
+      grid,
+      list
+        .map((m, idx) => {
+          const poster = m.cover_proxy || m.cover || 'assets/icons/icon-192.png';
+          const rating = m.rating ? `★ ${m.rating}` : '暂无评分';
+          const tags = Array.isArray(m.tags) ? m.tags : [];
+          return `
+          <a class="daily-movie-card" style="--i:${idx < 8 ? idx : 7}" href="${m.url || '#'}" target="_blank" rel="noopener noreferrer">
             <img class="daily-mcard-poster" src="${poster}" alt="${m.title}" loading="lazy" onerror="this.src='assets/icons/icon-192.png'" />
             <div class="daily-mcard-info">
               <div>
@@ -321,8 +453,9 @@
             </div>
           </a>
         `;
-      })
-      .join('');
+        })
+        .join('')
+    );
   }
 
   function pickMoodMovie(moodKey) {
@@ -367,11 +500,33 @@
     const metaEl = document.getElementById('dlWpMainMeta');
     const dlBtn = document.getElementById('dlWpBtnDownload');
 
-    if (imgEl) imgEl.src = wp.cover_4k || wp.cover;
+    // 图片本身加载完成前不做处理，这里只负责写入文案，避免「默认值 → 真实值」的闪跳
     if (titleEl) titleEl.textContent = wp.title || '今日壁纸大片';
     if (descEl) descEl.textContent = wp.description || wp.main_text || wp.copyright || '';
     if (metaEl) metaEl.textContent = wp.copyright ? `📷 摄影版权：${wp.copyright}` : '';
     if (dlBtn) dlBtn.href = wp.cover_4k || wp.cover;
+
+    if (!imgEl) return;
+    const src = wp.cover_4k || wp.cover;
+    if (!src) return;
+    if (imgEl.src === src && imgEl.naturalWidth) return;
+
+    // 换图时先挂占位类，图片解码完成后淡入，消除白屏闪烁
+    imgEl.classList.add('is-loading');
+    const onReady = () => {
+      imgEl.classList.remove('is-loading');
+      imgEl.classList.add('is-ready');
+      imgEl.removeEventListener('load', onReady);
+      imgEl.removeEventListener('error', onErr);
+    };
+    const onErr = () => {
+      imgEl.classList.remove('is-loading');
+      imgEl.removeEventListener('load', onReady);
+      imgEl.removeEventListener('error', onErr);
+    };
+    imgEl.addEventListener('load', onReady);
+    imgEl.addEventListener('error', onErr);
+    imgEl.src = src;
   }
 
   async function loadRecentWallpapers() {
@@ -395,8 +550,10 @@
     const results = await Promise.all(promises);
     const valid = results.filter(Boolean);
 
-    if (!valid.length) {
-      galleryGrid.innerHTML = `
+    fillWithContent(
+      galleryGrid,
+      !valid.length
+        ? `
         <div class="daily-wp-thumb-card active">
           <img class="daily-wp-thumb-img" src="${activeWp.cover}" />
           <div class="daily-wp-thumb-meta">
@@ -404,14 +561,11 @@
             <div class="daily-wp-thumb-title">${activeWp.title}</div>
           </div>
         </div>
-      `;
-      return;
-    }
-
-    galleryGrid.innerHTML = valid
-      .map(
-        (item, i) => `
-        <div class="daily-wp-thumb-card ${i === 0 ? 'active' : ''}" data-idx="${i}">
+      `
+        : valid
+            .map(
+              (item, i) => `
+        <div class="daily-wp-thumb-card ${i === 0 ? 'active' : ''}" style="--i:${i}" data-idx="${i}">
           <img class="daily-wp-thumb-img" src="${item.url}" alt="${item.copyright}" loading="lazy" />
           <div class="daily-wp-thumb-meta">
             <span class="daily-wp-thumb-date">${item.end_date || `近第 ${i + 1} 日`}</span>
@@ -419,8 +573,9 @@
           </div>
         </div>
       `
-      )
-      .join('');
+            )
+            .join('')
+    );
 
     galleryGrid.querySelectorAll('.daily-wp-thumb-card').forEach((card, idx) => {
       card.onclick = () => {
@@ -642,10 +797,10 @@
           const t = (i.title || i.name || i.word || '').toLowerCase();
           return t.includes(kw);
         });
-        renderHotItems(filtered);
+        // 过滤态下不重复渲染降级提示条，避免干扰结果阅读
+        renderHotItems(filtered, undefined, undefined, false);
       };
     }
-
     // 复制 60s 早报
     const copyBtn = document.getElementById('dlBtnCopy60s');
     if (copyBtn) {

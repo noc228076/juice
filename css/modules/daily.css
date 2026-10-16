@@ -720,10 +720,22 @@ html[data-theme="light"] .daily-movie-card {
   height: 100%;
   object-fit: cover;
   display: block;
-  transition: transform 0.4s ease;
+  transition: transform 0.4s ease, opacity 0.4s ease;
 }
 .daily-wp-stage:hover .daily-wp-img {
   transform: scale(1.02);
+}
+/* 图片解码完成前保持微光占位，完成后淡入，避免换图瞬间的白屏闪烁 */
+.daily-wp-img.is-loading {
+  opacity: 0.25;
+  animation: dlWpPulse 1.3s ease-in-out infinite;
+}
+.daily-wp-img.is-ready {
+  opacity: 1;
+}
+@keyframes dlWpPulse {
+  0%, 100% { opacity: 0.22; }
+  50% { opacity: 0.42; }
 }
 
 .daily-wp-overlay {
@@ -1026,16 +1038,102 @@ body.has-daily-ambient-bg .daily-wp-stage {
 }
 
 
-/* 骨架屏 */
+/* ============ 骨架屏 ============
+   注意：此处必须使用主题变量而非硬编码白色，
+   否则浅色主题下骨架几乎不可见，等于没有加载态。 */
 .daily-skeleton {
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.08) 50%, rgba(255, 255, 255, 0.04) 75%);
+  background: linear-gradient(
+    90deg,
+    var(--line) 25%,
+    var(--line-strong) 50%,
+    var(--line) 75%
+  );
   background-size: 200% 100%;
-  animation: dlShimmer 1.5s infinite;
-  border-radius: 8px;
+  animation: dlShimmer 1.4s ease-in-out infinite;
+  border-radius: 10px;
 }
 @keyframes dlShimmer {
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }
+}
+/* 加载中容器：锁定最小高度，避免内容到达时列表高度突变造成页面跳动 */
+.daily-loading {
+  opacity: 0.92;
+}
+
+/* ============ 内容淡入 ============
+   骨架屏直接被内容替换会产生「闪一下」的割裂感，
+   这里让内容逐条淡入上浮，把切换过程变成平滑过渡。
+   延迟由 JS 写在子元素的 --i 上实现错峰。 */
+.daily-fade-in > * {
+  animation: dlFadeUp 0.36s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--i, 0) * 26ms);
+}
+@keyframes dlFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* 骨架行需还原真实条目的外框，否则数据到达时卡片尺寸会跳变 */
+.daily-hot-item.is-skeleton,
+.daily-60s-item.is-skeleton {
+  pointer-events: none;
+  animation: none;
+}
+.daily-hot-item.is-skeleton .daily-hot-rank {
+  background: var(--line);
+  box-shadow: none;
+}
+.daily-60s-item.is-skeleton {
+  min-height: 22px;
+}
+
+/* ============ 数据源降级提示 ============ */
+.daily-hot-notice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  margin-bottom: 4px;
+  border-radius: 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #B45309;
+  background: rgba(217, 119, 6, 0.10);
+  border: 1px solid rgba(217, 119, 6, 0.28);
+}
+html[data-theme="light"] .daily-hot-notice {
+  color: #92400E;
+  background: rgba(217, 119, 6, 0.10);
+  border-color: rgba(217, 119, 6, 0.32);
+}
+.daily-hot-notice-txt {
+  flex: 1;
+  min-width: 0;
+}
+.daily-hot-retry {
+  flex: none;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  color: #fff;
+  background: rgba(217, 119, 6, 0.85);
+  border: none;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+.daily-hot-retry:hover {
+  filter: brightness(1.1);
+}
+.daily-hot-retry:active {
+  transform: scale(0.94);
 }
 
 /* 移动端媒体查询 (< 640px) */

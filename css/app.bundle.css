@@ -622,8 +622,50 @@ html[data-theme="light"] #global-header {
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-  mask-image: linear-gradient(to right, black calc(100% - 18px), transparent 100%);
-  -webkit-mask-image: linear-gradient(to right, black calc(100% - 18px), transparent 100%);
+  scroll-padding-inline: 10px;
+  /* 双向边缘渐隐：内容超出时两侧淡出，提示可横向滑动 */
+  mask-image: linear-gradient(to right, transparent 0, black 14px, black calc(100% - 18px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0, black 14px, black calc(100% - 18px), transparent 100%);
+  scroll-behavior: smooth;
+}
+@media (min-width: 769px) {
+  .nav-tabs-wrapper {
+    mask-image: linear-gradient(to right, black calc(100% - 18px), transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, black calc(100% - 18px), transparent 100%);
+  }
+}
+@media (max-width: 768px) {
+  /* 极窄屏进一步收紧标签尺寸：让可见 tab 从 4 个提升到 5 个 */
+  .nav-tab {
+    padding: 5px 7px;
+    font-size: 11.5px;
+    gap: 3px;
+  }
+  .nav-tab .tab-icon {
+    font-size: 12px;
+  }
+  .nav-tabs {
+    gap: 2px;
+    padding: 3px;
+  }
+}
+
+@media (max-width: 420px) {
+  /* 右侧三个控件压缩到 28px，为导航条多腾出约 12px */
+  #global-header {
+    padding-left: 6px;
+    padding-right: 6px;
+    gap: 4px;
+  }
+  .global-btn-pill,
+  .global-icon-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+  .global-nav-right {
+    gap: 2px;
+  }
 }
 .nav-tabs-wrapper::-webkit-scrollbar {
   display: none;
@@ -862,18 +904,23 @@ html {
     display: none;
   }
   .global-nav-right {
-    gap: 4px;
+    gap: 3px;
   }
+  /* 档案 pill 在移动端收成圆形图标按钮，为导航条腾出约 20px */
   .global-btn-pill {
-    padding: 5px 8px;
-    font-size: 12px;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    justify-content: center;
+    border-radius: 50%;
   }
+  /* 圆形化后必须隐藏文字，否则「档案」二字会溢出圆钮并压住导航标签 */
   .global-btn-pill .pill-txt {
     display: none;
   }
   .global-icon-btn {
-    width: 32px;
-    height: 32px;
+    width: 30px;
+    height: 30px;
     font-size: 13px;
   }
 }
@@ -7885,6 +7932,13 @@ html[data-theme="light"] #mod-lingqian {
   margin: 0 auto 12px !important;
   max-width: 100%;
   box-sizing: border-box;
+  /* 窄屏下四个子屏按钮放不进一行时横向滚动，避免按钮文字被压折行 */
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.ew-mystic-bar::-webkit-scrollbar {
+  display: none;
 }
 
 html[data-theme="light"] .ew-mystic-bar {
@@ -7904,6 +7958,8 @@ html[data-theme="light"] .ew-mystic-bar {
   border: none;
   cursor: pointer;
   transition: all 0.2s ease;
+  white-space: nowrap;
+  flex: none;
 }
 
 .ew-switch-btn:hover {
@@ -8471,6 +8527,7 @@ html[data-theme="light"] #mod-clock {
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  min-width: 0;
 }
 
 .ck-status-pill {
@@ -8484,6 +8541,8 @@ html[data-theme="light"] #mod-clock {
   color: var(--ck-green);
   font-size: 12px;
   font-weight: 800;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .ck-status-dot {
@@ -8516,6 +8575,8 @@ html[data-theme="light"] #mod-clock {
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s ease;
+  white-space: nowrap;
+  flex: none;
 }
 
 .ck-btn-mini:hover {
@@ -9466,6 +9527,22 @@ body.zen-screensaver-active::-webkit-scrollbar {
 
 /* 移动端屏幕适配 */
 @media (max-width: 600px) {
+  /* 窄屏顶栏放不下「状态胶囊 + 3 个模式按钮」同一行：
+     状态文案换行独占首行完整显示，模式按钮落到第二行居中，
+     避免状态胶囊被压成竖排或被省略号截断 */
+  .ck-topbar {
+    flex-wrap: wrap;
+    justify-content: center;
+    row-gap: 8px;
+  }
+  .ck-status-pill {
+    flex: 1 0 100%;
+    justify-content: center;
+  }
+  .ck-top-actions {
+    flex: 1 0 100%;
+    justify-content: center;
+  }
   .ck-zen-overlay {
     --zen-card-w: clamp(82px, 26vw, 110px);
     --zen-card-h: clamp(100px, 30vw, 130px);
@@ -9673,6 +9750,8 @@ html[data-theme="light"] #mod-merit {
   font-weight: 800;
   cursor: pointer;
   transition: all 0.22s ease;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 #mod-merit .mr-tab:hover {
@@ -14003,10 +14082,22 @@ html[data-theme="light"] .daily-movie-card {
   height: 100%;
   object-fit: cover;
   display: block;
-  transition: transform 0.4s ease;
+  transition: transform 0.4s ease, opacity 0.4s ease;
 }
 .daily-wp-stage:hover .daily-wp-img {
   transform: scale(1.02);
+}
+/* 图片解码完成前保持微光占位，完成后淡入，避免换图瞬间的白屏闪烁 */
+.daily-wp-img.is-loading {
+  opacity: 0.25;
+  animation: dlWpPulse 1.3s ease-in-out infinite;
+}
+.daily-wp-img.is-ready {
+  opacity: 1;
+}
+@keyframes dlWpPulse {
+  0%, 100% { opacity: 0.22; }
+  50% { opacity: 0.42; }
 }
 
 .daily-wp-overlay {
@@ -14309,16 +14400,102 @@ body.has-daily-ambient-bg .daily-wp-stage {
 }
 
 
-/* 骨架屏 */
+/* ============ 骨架屏 ============
+   注意：此处必须使用主题变量而非硬编码白色，
+   否则浅色主题下骨架几乎不可见，等于没有加载态。 */
 .daily-skeleton {
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.08) 50%, rgba(255, 255, 255, 0.04) 75%);
+  background: linear-gradient(
+    90deg,
+    var(--line) 25%,
+    var(--line-strong) 50%,
+    var(--line) 75%
+  );
   background-size: 200% 100%;
-  animation: dlShimmer 1.5s infinite;
-  border-radius: 8px;
+  animation: dlShimmer 1.4s ease-in-out infinite;
+  border-radius: 10px;
 }
 @keyframes dlShimmer {
   0% { background-position: 200% 0; }
   100% { background-position: -200% 0; }
+}
+/* 加载中容器：锁定最小高度，避免内容到达时列表高度突变造成页面跳动 */
+.daily-loading {
+  opacity: 0.92;
+}
+
+/* ============ 内容淡入 ============
+   骨架屏直接被内容替换会产生「闪一下」的割裂感，
+   这里让内容逐条淡入上浮，把切换过程变成平滑过渡。
+   延迟由 JS 写在子元素的 --i 上实现错峰。 */
+.daily-fade-in > * {
+  animation: dlFadeUp 0.36s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--i, 0) * 26ms);
+}
+@keyframes dlFadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* 骨架行需还原真实条目的外框，否则数据到达时卡片尺寸会跳变 */
+.daily-hot-item.is-skeleton,
+.daily-60s-item.is-skeleton {
+  pointer-events: none;
+  animation: none;
+}
+.daily-hot-item.is-skeleton .daily-hot-rank {
+  background: var(--line);
+  box-shadow: none;
+}
+.daily-60s-item.is-skeleton {
+  min-height: 22px;
+}
+
+/* ============ 数据源降级提示 ============ */
+.daily-hot-notice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  margin-bottom: 4px;
+  border-radius: 12px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #B45309;
+  background: rgba(217, 119, 6, 0.10);
+  border: 1px solid rgba(217, 119, 6, 0.28);
+}
+html[data-theme="light"] .daily-hot-notice {
+  color: #92400E;
+  background: rgba(217, 119, 6, 0.10);
+  border-color: rgba(217, 119, 6, 0.32);
+}
+.daily-hot-notice-txt {
+  flex: 1;
+  min-width: 0;
+}
+.daily-hot-retry {
+  flex: none;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  color: #fff;
+  background: rgba(217, 119, 6, 0.85);
+  border: none;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+.daily-hot-retry:hover {
+  filter: brightness(1.1);
+}
+.daily-hot-retry:active {
+  transform: scale(0.94);
 }
 
 /* 移动端媒体查询 (< 640px) */

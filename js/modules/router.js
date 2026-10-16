@@ -35,6 +35,32 @@
     glider.style.transform = `translateX(${left}px)`;
   }
 
+  // 把激活 tab 滚动到可见区域。
+  // 顶栏在窄屏是横向滚动容器，8 个 tab 放不下，深链/子屏跳转时必须显式定位，
+  // 否则激活项可能落在可视区之外，用户看不到当前处于哪个模块。
+  // 用 getBoundingClientRect 做纯视口坐标比较，避免 offsetLeft 混用不同定位祖先坐标系。
+  let navScrollReady = false;
+  function scrollTabIntoView(activeTab) {
+    const wrapper = activeTab.closest('.nav-tabs-wrapper');
+    if (!wrapper) return;
+    const w = wrapper.clientWidth;
+    if (wrapper.scrollWidth <= w + 1) return;
+    const wr = wrapper.getBoundingClientRect();
+    const ar = activeTab.getBoundingClientRect();
+    const pad = 10;
+    let delta = 0;
+    if (ar.left < wr.left + pad) {
+      delta = ar.left - wr.left - pad;
+    } else if (ar.right > wr.right - pad) {
+      delta = ar.right - wr.right + pad;
+    }
+    if (Math.abs(delta) <= 1) return;
+    // 首次执行用瞬时定位（页面初始化时平滑滚动会被忽略），之后用平滑动画
+    const behavior = navScrollReady ? 'smooth' : 'auto';
+    navScrollReady = true;
+    wrapper.scrollBy({ left: delta, behavior });
+  }
+
   function switchModule(modKey, updateHash = true) {
     if (!ALLOWED_MODS.includes(modKey)) {
       modKey = 'drinks';
@@ -67,16 +93,12 @@
       tab.classList.toggle('active', isMatch);
       if (isMatch) {
         matchedTab = tab;
-        const wrapper = tab.closest('.nav-tabs-wrapper');
-        if (wrapper && wrapper.scrollWidth > wrapper.clientWidth + 4) {
-          const targetLeft = tab.offsetLeft - (wrapper.clientWidth - tab.offsetWidth) / 2;
-          wrapper.scrollTo({ left: Math.max(0, targetLeft), behavior: 'smooth' });
-        }
       }
     });
 
     if (matchedTab) {
       updateGlider(matchedTab);
+      scrollTabIntoView(matchedTab);
     }
 
     // 同步子导航条 (subnav-pill-btn) 激活态
@@ -133,7 +155,7 @@
 
   function init() {
     // 绑定左上角模块胶囊标签点击事件
-    document.querySelectorAll('.nav-tab').forEach(tab => {
+    document.querySelectorAll('.nav-tab').forEach((tab) => {
       tab.addEventListener('click', () => {
         if (window.SFX && window.SFX.tap) window.SFX.tap();
         let targetMod = tab.dataset.mod;

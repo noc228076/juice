@@ -55,6 +55,13 @@ html[data-theme="light"] #mod-lingqian {
   margin: 0 auto 12px !important;
   max-width: 100%;
   box-sizing: border-box;
+  /* 窄屏下四个子屏按钮放不进一行时横向滚动，避免按钮文字被压折行 */
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.ew-mystic-bar::-webkit-scrollbar {
+  display: none;
 }
 
 html[data-theme="light"] .ew-mystic-bar {
@@ -74,6 +81,8 @@ html[data-theme="light"] .ew-mystic-bar {
   border: none;
   cursor: pointer;
   transition: all 0.2s ease;
+  white-space: nowrap;
+  flex: none;
 }
 
 .ew-switch-btn:hover {

@@ -40,7 +40,7 @@ html[data-theme="light"] #mod-clock {
   width: 100%;
   max-width: var(--pg-wrap);
   margin: 0 auto;
-  padding: 14px 20px calc(38px + env(safe-area-inset-bottom));
+  padding: var(--screen-pad-block) 20px calc(var(--screen-pad-block) + env(safe-area-inset-bottom));
   box-sizing: border-box;
   display: flex;
   flex-direction: column;

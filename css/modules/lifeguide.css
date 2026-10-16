@@ -14,7 +14,7 @@
   max-width: 1080px;
   width: 100%;
   margin: 0 auto;
-  padding: calc(var(--sat) + 76px) 20px calc(var(--sab) + 48px);
+  padding: calc(var(--sat) + var(--screen-pad-block)) 20px calc(var(--sab) + var(--screen-pad-block));
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -128,16 +128,22 @@ html[data-theme="light"] .lg-stat-val.accent {
   grid-template-columns: repeat(3, 1fr);
   gap: 10px;
   background: var(--card);
-  padding: 6px;
+  padding: 3px;
+  /* 3+32+1+3+1 = 40，与其他模块子导航条一致（此前 55px）。固定 height
+     + grid 默认 stretch，标签自动填满；min-height 会被 41px 自然高顶回。 */
+  height: var(--ui-bar-h);
+  /* 见 nav.css 的 .subnav-pill-bar：flex item 会被宿主溢出压回自动高度 */
+  flex-shrink: 0;
+  box-sizing: border-box;
   border-radius: 999px;
-  border: 1.5px solid var(--line);
+  border: 1px solid var(--line);
   max-width: 680px;
   width: 100%;
   margin: 0 auto;
 }
 
 .lg-tab {
-  padding: 11px 16px;
+  padding: 0 16px;
   border-radius: 999px;
   font-size: 13.5px;
   font-weight: 800;
@@ -253,6 +259,15 @@ html[data-theme="light"] .lg-btn-chip.active {
   gap: 16px;
 }
 
+/* PC 2×2 让两行等高，消除行间 73px 阶梯。
+   仅在双列时启用：移动端是单列，强制等高会让 4 张卡
+   全部撑到最高那张的高度，产生大片空白。 */
+@media (min-width: 769px) {
+  .lg-audit-dims {
+    grid-auto-rows: 1fr;
+  }
+}
+
 .lg-dim-panel {
   background: var(--card);
   border: 1.5px solid var(--line);
@@ -291,11 +306,20 @@ html[data-theme="light"] .lg-btn-chip.active {
 }
 
 .lg-audit-list {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    }
 
+    /* 配合 .lg-audit-dims 的 grid-auto-rows:1fr：让清单吃掉等高多出来的
+       空间，而不是在卡片底部留一条 70-110px 的空白带。
+       space-between 把首尾项顶到卡片上下沿，中间项均分间距。 */
+    @media (min-width: 769px) {
+    .lg-dim-panel > .lg-audit-list {
+    flex: 1 1 auto;
+    justify-content: space-between;
+    }
+    }
 .lg-audit-item {
   display: flex;
   align-items: flex-start;
@@ -1387,7 +1411,7 @@ html[data-theme="light"] .lg-credit-footer a {
 /* 响应式移动端适配 */
 @media (max-width: 768px) {
   .lg-wrap {
-    padding: calc(var(--sat) + 68px) 14px calc(var(--sab) + 36px);
+    padding: calc(var(--sat) + var(--screen-pad-block)) 14px calc(var(--sab) + var(--screen-pad-block));
     gap: 14px;
   }
   .lg-stats-banner {
@@ -1403,6 +1427,9 @@ html[data-theme="light"] .lg-credit-footer a {
   .lg-subnav {
     gap: 4px;
     padding: 4px;
+    /* 移动端 tab 用 9px padding 自然撑高；不解除桌面那个
+       40px 固定高度，实测下边距会变成 -4px，胶囊撞上圆端。 */
+    height: auto;
   }
   .lg-tab {
     padding: 9px 8px;

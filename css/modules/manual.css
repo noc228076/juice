@@ -970,13 +970,19 @@ html[data-theme="light"] #mod-manual {
 @media (min-width: 900px) {
   #mod-manual .wrap {
     max-width: 960px;
-    padding: 36px 32px 50px;
+    padding: var(--screen-pad-block) 32px var(--screen-pad-block);
   }
-  #mod-manual .manual-grid {
+#mod-manual .manual-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 16px;
-  }
+    }
+    /* 桌面 2 列共 7 个 tile，最后一行只剩 1 个、右侧空一格。
+       7 是质数，任何列数都无法整除；让落单的那个横跨两列，
+       读起来像刻意设计而不是排版出错。单列布局下此规则无副作用。 */
+    #mod-manual .manual-grid > .tile:last-child {
+    grid-column: 1 / -1;
+    }
   #mod-manual .home-head {
     max-width: 960px;
   }

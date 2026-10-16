@@ -2170,7 +2170,7 @@ html[data-theme="light"] #mod-tarot .result-list.is-single .tr-single-hero {
 @media (min-width: 768px) {
   #mod-tarot .tr-screen {
     max-width: 1040px;
-    padding: 20px 28px calc(40px + env(safe-area-inset-bottom));
+    padding: var(--screen-pad-block) 28px calc(var(--screen-pad-block) + env(safe-area-inset-bottom));
   }
   #mod-tarot #sc-tr-home,
   #mod-tarot #sc-tr-reveal,

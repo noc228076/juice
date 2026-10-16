@@ -45,13 +45,18 @@ html[data-theme="light"] #mod-lingqian {
   display: flex !important;
   width: -moz-fit-content !important;
   width: fit-content !important;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
   gap: 4px;
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid var(--line);
   border-radius: 999px;
   padding: 3px;
+  /* 与 .subnav-pill-bar 同一基准，本条此前 35px。
+     固定 height + align-items:stretch 让标签填满 32px 内容区。 */
+  height: var(--ui-bar-h);
+  /* 见 nav.css 的 .subnav-pill-bar：flex item 会被宿主溢出压回自动高度 */
+  flex-shrink: 0;
   margin: 0 auto 12px !important;
   max-width: 100%;
   box-sizing: border-box;
@@ -72,13 +77,15 @@ html[data-theme="light"] .ew-mystic-bar {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 5px 12px;
+  padding: 0 12px;
   border-radius: 999px;
   font-size: 11.5px;
   font-weight: 700;
   color: var(--tx-dim);
   background: transparent;
-  border: none;
+  /* 关键：预留 1px 透明边框。.active.* 才加 border:1px solid，
+     之前激活态因此比同级高 2px，切标签时整条抖动。 */
+  border: 1px solid transparent;
   cursor: pointer;
   transition: all 0.2s ease;
   white-space: nowrap;

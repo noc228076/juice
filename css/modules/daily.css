@@ -111,11 +111,17 @@ html[data-theme="light"] #mod-daily::before {
 /* 三合一主 Tab 切换 */
 .daily-nav-tabs {
   display: flex;
-  align-items: center;
   justify-content: center;
   gap: 8px;
   background: var(--card);
-  padding: 5px;
+  padding: 3px;
+  /* 3+32+1+3+1 = 40，与其他模块子导航条一致（此前 51px）。
+     固定 height + align-items:stretch 让按钮自动填满 32px 内容区。 */
+  height: var(--ui-bar-h);
+  /* 见 nav.css 的 .subnav-pill-bar：flex item 会被宿主溢出压回自动高度 */
+  flex-shrink: 0;
+  align-items: stretch;
+  box-sizing: border-box;
   border-radius: 18px;
   border: 1px solid var(--line);
   max-width: 520px;
@@ -128,9 +134,10 @@ html[data-theme="light"] #mod-daily::before {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 10px 14px;
-  border-radius: 14px;
+    gap: 6px;
+    /* 高度交给父级 stretch 控制，纵向 padding 归零避免溢出 32px 内容区 */
+    padding: 0 14px;
+    border-radius: 14px;
   border: none;
   background: transparent;
   color: var(--tx-dim);
@@ -1147,6 +1154,11 @@ html[data-theme="light"] .daily-hot-notice {
   .daily-nav-btn {
     padding: 8px 8px;
     font-size: 12px;
+  }
+  /* 移动端按钮改回 8px padding，若仍锁 40px 内容盒只剩 16px，
+     装 15px 行高零余量——系统字号放大或补一句 line-height 就裁切。 */
+  .daily-nav-tabs {
+    height: auto;
   }
   .daily-wp-overlay {
     padding: 14px;

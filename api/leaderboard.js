@@ -20,8 +20,24 @@ const RL_MAX = 20;               // 窗口内最多提交次数
 /* ---------------- 存储适配层 ---------------- */
 
 function restConfig() {
-  const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL || '';
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN || '';
+  let url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL || '';
+  let token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN || '';
+
+  // Vercel 集成里的 Custom Prefix 会把变量改名成 <PREFIX>_REST_API_URL，
+  // 例如 STORAGE_KV_REST_API_URL。这里按后缀反查，避免因为一个前缀就整站 503。
+  if (!url || !token) {
+    for (const key of Object.keys(process.env)) {
+      if (!/_REST_API_URL$/.test(key)) continue;
+      const base = key.slice(0, -'_REST_API_URL'.length);
+      const paired = process.env[base + '_REST_API_TOKEN'];
+      if (process.env[key] && paired) {
+        url = process.env[key];
+        token = paired;
+        break;
+      }
+    }
+  }
+
   if (!url || !token) return null;
   return { url: url.replace(/\/+$/, ''), token: token };
 }

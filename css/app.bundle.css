@@ -15264,6 +15264,84 @@ html[data-theme="light"] .daily-hot-notice {
   }
 }
 
+/* =========================================================
+   板块 1 左右分栏：60s 早报 | 实时热点
+   ---------------------------------------------------------
+   原本两块上下堆叠：60s 早报 510px + 热点 709px，
+   1440x900 下要滚 735px 才能看完，而屏幕两侧大片留白。
+   桌面并排后，两栏各自独立滚动，首屏即可对照阅读。
+   1024px 及以下退回单列，DOM 顺序不变。
+   ========================================================= */
+@media (min-width: 1025px) {
+  .daily-container {
+    /* 双栏比原来的 1040px 单列更宽 */
+    max-width: 1240px;
+  }
+
+  /* 必须 .daily-section.daily-hot-layout 才压得过
+     .daily-section.active { display:block } 的两个类 */
+  .daily-section.daily-hot-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 20px;
+    align-items: start;
+  }
+  /* 两栏等高：卡片撑满行高，列表在卡片内部滚 */
+  .daily-hot-layout > .daily-60s-box,
+  .daily-hot-layout > .daily-hot-card {
+    margin-bottom: 0;
+    min-width: 0;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 380px);
+  }
+
+  /* 60s 列表在卡片内部滚，标题栏固定 */
+  .daily-60s-box .daily-60s-list {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 6px;
+  }
+
+  /* 热点卡片：平台切换 + 搜索固定，列表内部滚 */
+  .daily-hot-card .daily-hot-list {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding-right: 6px;
+  }
+
+  /* 滚动条收细，避免两栏各一条粗滚动条抢视线 */
+  .daily-60s-list::-webkit-scrollbar,
+  .daily-hot-list::-webkit-scrollbar {
+    width: 6px;
+  }
+  .daily-60s-list::-webkit-scrollbar-thumb,
+  .daily-hot-list::-webkit-scrollbar-thumb {
+    background: var(--line-strong, rgba(255, 255, 255, 0.18));
+    border-radius: 3px;
+  }
+  .daily-60s-list::-webkit-scrollbar-track,
+  .daily-hot-list::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+/* 平台胶囊在窄栏里换行显示，避免横向滚动把后几个平台藏起来 */
+@media (min-width: 1025px) {
+  .daily-hot-card .daily-platform-bar {
+    flex-wrap: wrap;
+    overflow-x: visible;
+    padding-bottom: 10px;
+    row-gap: 6px;
+  }
+  .daily-hot-card .daily-plat-pill {
+    flex: 0 0 auto;
+  }
+}
+
 
 /* === css/modules/scratch.css === */
 /* =========================================================

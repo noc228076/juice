@@ -1,7 +1,11 @@
 # juice 项目交接文档
 
-> 生成时间：2026-10-12 19:30 · 覆盖范围：本次 AI agent 接手后的全部改动
-> 适用对象：接手本项目后续开发/维护的 agent
+> 更新：2026-10-17 · 覆盖至 `bf90db6`（线上 v65）
+> 适用对象：接手本项目后续开发 / 维护的 agent 或人
+>
+> **本文档上一版严重过期**，其架构描述（`template.html`、单文件 `index.html`、
+> `build-bundle.js`、端口 3000、SW v23）**均已不存在**。本版所有数字都经过实测核对，
+> 但你接手后仍应自行复核 —— 过期文档比没有文档更危险。
 
 ---
 
@@ -9,98 +13,300 @@
 
 | 项 | 内容 |
 |---|---|
-| 项目名 | 饮料人格研究所（Drink Persona Lab），已扩展为多合一趣味实验矩阵 |
+| 项目名 | 饮料人格研究所（Drink Persona Lab）→ 多模块趣味实验矩阵 |
 | 本地路径 | `D:\Documents\AI\2\juice` |
 | Git 仓库 | `github.com/noc228076/juice`（公开，默认分支 `main`） |
-| 线上地址 | https://juice.noooc.dpdns.org/ （Vercel，已连接 GitHub main 自动部署） |
-| 形态 | 纯静态 PWA：`template.html` + `build-bundle.js` → 单文件 `index.html` |
-| 本地启动 | `node server.js` → http://localhost:3000 |
+| 线上地址 | `https://juice.noooc.dpdns.org/` （Vercel，连接 GitHub `main` 自动部署） |
+| 形态 | 纯静态多页 SPA，**无构建框架**，原生 JS + 手写构建脚本 |
+| 本地启动 | `node server.js` → **http://localhost:3456**（端口由 `server.js` 的 `PORT` 常量控制） |
 
-**架构要点**：`index.html` 是**构建产物**（约 2.2MB，内联全部 CSS/JS），`template.html` 是唯一 HTML 源，模块在 `js/modules/`（19 个 JS）和 `css/modules/`（13 个 CSS）。塔罗牌等图片资源在 `assets/tarot/`（22 张大阿卡纳立绘，jpg）。
+### 架构要点（实测核对）
 
----
+```
+index.html            130.6 KB   手写，含全部模块 DOM 结构与内联 SVG
+css/app.bundle.css    381.9 KB   ← 由 16 个 css 源文件拼接
+js/app.bundle.js    1,448.6 KB   ← 由 24 个 js 源文件拼接
+assets/                         静态图片，运行时按需加载
+```
 
-## 二、本次会话修复清单（按时间顺序）
+- **`template.html` 已删除，`build-bundle.js` 已删除**。唯一的构建入口是
+  `build-bundles.js`（`npm run build`）。旧文档提到的「单文件 `index.html` 内联全部
+  CSS/JS」形态已不存在，现在 index.html 只引两个 bundle。
+- 构建脚本按 `build-bundles.js` 里的 `cssFiles` / `jsFiles` 数组顺序拼接。
+  **顺序即层叠顺序**，见第四节。
+- `build-bundles.js` 还会把 `sw.js` 里的版本号**同步**到 `index.html` 的 `?v=` 查询串，
+  但它**只抄不递增** —— 版本号必须手改 `sw.js`。
 
-### 问题 1：线上塔罗立绘全部 404，只剩符号卡片 ✅ 已上线
+### 模块结构
 
-- **症状**：部署到 Vercel 后塔罗模块看不到立绘。渲染层 `onerror` 会隐藏加载失败的图，露出底层符号卡。
-- **根因**：Vercel 把项目识别为 Node/Serverless 项目（package.json 有 `main: server.js` + `lunar-javascript` 依赖），函数沙盒里只有 server.js，除 `/`（index.html 静态命中）外全部 404，且 404 响应体是 server.js 的 `404 Not Found`（13B text/plain）。
-- **关键证据**：curl 逐个路径探测；GitHub deployments API 为空（项目未连 Git）；加随机 query 绕 CDN 缓存仍 404（排除缓存因素）。
-- **过程**（三个 commit 递进）：
-  - `38cb297`：package.json 移除未使用的依赖和 main（代码实际用 vendored 的 `js/libs/lunar.js`）+ vercel.json 加 `outputDirectory: "."` + `.vercelignore` + SW 升 v23（`cache.addAll` 改逐条 `cache.add` + catch，修复单文件失败导致新 SW 永远激活不了的隐患）
-  - 发现连 Git 后部署仍是 serverless 模式 → 项目级保存设置覆盖了仓库配置
-  - `f623e07`：**vercel.json 显式写死 `builds`**——index.html / sw.js / manifest.json / favicon.png / assets/** 全部 `@vercel/static`，从配置层面禁掉函数部署；同时删掉 `/assets/*` 的 `immutable` 缓存头（它会把 404 在 CDN 边缘缓存一年，是"修好了还不显示"的帮凶）
-- **附带修复**：`.vercelignore`（排除 node_modules、scratch）
-- **状态**：✅ 已部署生效（用户确认立绘可见，curl 验证全部 200）
+8 个顶层模块（`index.html` 里的 `button.nav-tab[data-mod]`）：
+`drinks` `manual` `tarot` `clock` `decision` `scratch` `lifeguide` `daily`
 
-### 问题 2：保存画报弹窗底部「保存 / 下载高清画报」按钮完全不可见 ✅ 已上线
+其中部分模块有子视图，构成 13 条实际路由。**顶层导航只有 8 个，路由有 13 条**，
+两者不是一一对应 —— 写测试脚本时别把两者混为一谈（见第四节教训 9）。
 
-- **症状**：用户说"颜色太黑和背景融为一体，看不到字"——指的是弹窗底部按钮。
-- **根因（CSS 自定义属性作用域）**：海报弹窗由 `showPosterModal()` 用 `document.body.appendChild` 挂到 `body` 下，而 `--tr-gold` 变量**只定义在 `#mod-tarot` 作用域内**，body 下的元素继承不到 → `background: var(--tr-gold)` 解析失败变透明（露出深色对话框 `#140f2e`），`color: #1a1202` 近黑字配深底 → 整行不可见。弹窗描边同样因变量缺失而透明。
-- **诊断方法**：对用户截图裁剪按钮区域做像素直方图——区域内主色是对话框底色 + 近黑文字像素，**没有任何金色**，从而定位。
-- **修复**（`d1d7d62`）：
-  - `.tr-poster-modal` 作用域内重新声明 `--tr-gold: #e8c96a; --tr-gold2: #f5e3a1;`
-  - 按钮背景与弹窗描边增加 `var(--tr-gold, #e8c96a)` 兜底
-- **验证**：Playwright 端到端走完占卜流程，按钮计算背景色 `rgb(232, 201, 106)` 生效。
-- **状态**：✅ 已部署生效
+### 图片资源
 
-### 问题 3（附带优化）：海报内部文字可读性 ✅ 已上线
-
-前两轮曾误判为字号问题，最终保留为合理优化（`96920d1`）：
-- 海报底部两行署名 `#7a70a8`/`#5c5484`（几乎不可见）提亮为 `#b3a9e0`/`#9a91c6`
-- 副标题与卡牌关键词行 `#a99fd4` → `#c9c0ee`
-- 解读正文 20px/23px 统一为 26px、行高 46，解读框 230→250、间距 255→275
-- 海报预览加宽：dialog 440→560px，图片 360→500px
-- 像素实测对比度：footer 6.24/4.58、正文 9.63、标题 8.26、关键词 7.21
+| 目录 | 文件数 | 体积 | 说明 |
+|---|---|---|---|
+| `assets/tarot/` | 22 | 7.2 MB | 塔罗大阿卡纳立绘 |
+| `assets/sbti/` | 54 | 374 KB | SBTI 人格图（webp） |
+| `assets/mbti/` | 32 | 571 KB | MBTI 人格图，其中 **16 个 `.png` 无任何引用**（历史遗留，见第五节） |
+| `assets/milktea/` | 26 | 193 KB | 奶茶品牌 logo（jpg） |
+| `assets/icons/` | 3 | 102 KB | `icon-maskable.png` 未被引用（manifest 可能用绝对路径） |
 
 ---
 
-## 三、Git 提交记录（本次会话）
+## 二、最近三个版本做了什么
 
-| Commit | 内容 | 状态 |
+| 版本 | Commit | 内容 |
 |---|---|---|
-| `38cb297` | 部署根因第一轮：package.json 瘦身 + outputDirectory + .vercelignore + SW v23 | 已推送 |
-| `f623e07` | vercel.json builds 写死 @vercel/static，根治部署形态 | 已推送 |
-| `96920d1` | 海报文字配色提亮 + 字号 + 预览加宽 | 已推送 |
-| `d1d7d62` | 弹窗按钮不可见修复（CSS 变量作用域） | 已推送 |
+| v63 | `4edfffb` | 修首次访问「整站下载两遍」；css/js 改 immutable 缓存头；2048 PC 双栏 |
+| v64 | `307dac9` | 自我说明书模块桌面常驻章节侧栏（解 1920 下大黑块） |
+| v65 | `bf90db6` | 抽出 618 KB 内联 base64 图片，JS bundle 传输量 −51.6% |
 
-**截至交本文档时：本地 = origin/main = d1d7d62，线上已部署并验证全部改动生效。**
+### 性能问题的排查路径（值得复用）
+
+用户反馈「加载慢」。**不要一上来就怀疑代码体积或模块没拆** —— 实测发现真正的
+大头是内联 base64 图片，占 JS 的 33.7%：
+
+```
+core-drink.js   44 张  361.5 KB  占该文件 63%
+milktea.js      26 张  257.8 KB  占该文件 91%
+合计 619.3 KB / JS 总体积 1836 KB = 33.7%
+```
+
+内联 base64 的真正代价不是「和代码打包在一起」，而是**随 JS 无条件下载**，
+哪怕那张图这辈子不会被显示。落成独立文件后，浏览器只在 `<img src>` 真正指向时才取。
+
+更意外的发现：这些 base64 **本来就是仓库里已有图片的冗余副本** ——
+`assets/sbti` 原有 54 个已跟踪文件、`assets/milktea` 原有 26 个，
+抽出的字节与磁盘文件逐字节相同。所以仓库只净增 16 个文件。
+
+### 首次访问下载两遍（已修）
+
+`core-drink.js` 监听 `controllerchange` 就 `location.reload()`，而 `sw.js` 的
+`activate` 里调了 `clients.claim()`。**新访客首次访问时页面本来不受控，
+claim 必然触发一次 controllerchange**，于是被强制刷新一次，
+实测 goto 48.9s = 24s 下载 × 2。
+
+修法是记录 `hadController`，首次接管不算更新：
+
+```js
+const hadController = !!navigator.serviceWorker.controller;
+navigator.serviceWorker.addEventListener('controllerchange', () => {
+  if (!hadController) return;   // 首次接管，不是版本更新
+  window.location.reload();
+});
+```
+
+### 缓存头（已修）
+
+`vercel.json` 里 css/js 曾是 `max-age=0, must-revalidate`，而文件本来就带
+`?v=NNN` 版本号 —— 每次访问都要重新确认（304 也要一个 RTT）。
+改成 `public, max-age=31536000, immutable` 后，实测回访：
+
+```
+app.bundle.css   2 ms   实际传输 0.0 KB
+app.bundle.js   11 ms   实际传输 0.0 KB
+```
+
+`index.html` 保持 `must-revalidate` 不变（它才是决定版本号的那一层）。
 
 ---
 
-## 四、接手必读（踩坑记录）
+## 三、接手必读：CSS 层叠陷阱（本项目已踩 4 次）
 
-1. **改完 `js/` 或 `css/` 必须重新打包**：`node build-bundle.js`（或 `npm run build`）会重新生成 index.html。不打包线上不生效。
-2. **build-bundle.js 日志的 "Total size KB" 不准**：它用字符串 UTF-16 length 统计，中文字符少算 2/3，别被"变小了"误导，真实字节用 `wc -c`。
-3. **CSS 自定义属性作用域坑**：body 级动态元素（JS appendChild 的弹窗）用 `#mod-xxx` 作用域内定义的变量会**静默失败**（background 透明 + 黑字 = 文字消失，且不报错）。写弹窗样式时要么在弹窗作用域声明变量，要么写死颜色/加 `var(--x, 兜底值)`。已排查：bazi.js / lifeguide.js 的 body 级 appendChild 只是下载用 `<a>`，无同类问题。
-4. **本 agent 环境推不上 GitHub**：沙箱强制走本地代理（127.0.0.1:3781），该代理到 github.com 不通（502/重置），直连出站也被封。`git push` 需要用户在自己终端执行（用户终端秒推）。WebFetch 工具不受影响（服务端抓取）。
-5. **部署相关**：Vercel 项目有历史遗留的 Node 配置（早期 CLI 部署产生），目前靠 vercel.json 的 `builds` 兜住；若改动 vercel.json 注意别破坏 builds 段。assets 缓存头已改为无 immutable。
-6. **SW 版本管理**：`sw.js` 里 `CACHE_NAME` 手动 +1（当前 v23），activate 时会清理旧缓存。
-7. **debug 方法论教训**：用户圈出截图元素时，先对该区域做像素/元素分析再动手。本次前两轮因未分析截图绕了弯路。
-8. **tarot.js 海报布局坐标**：`renderSharePoster()` 画布 1080×1920（单牌 1760）；三牌布局：卡牌 y290-680、解读块 y790 起每块 250 高间距 275；单牌：卡 290-920、解读框 y1085。改字号/文案时注意文本行数别溢出框。
+这是本项目最高频的 bug 来源，**全部表现为「我改了但线上没变」**。
+
+### 1. `base.css` 在 bundle 里排第一
+
+加在 `base.css` 末尾的覆盖块会被后面 15 个模块文件按同特异性盖掉。
+**要覆盖模块样式，就去那个模块文件里改它自己的规则。**
+
+### 2. 媒体查询不提升特异性
+
+`.foo{max-width:100%}` 写在文件头，`.foo{max-width:560px}` 写在文件尾的
+`@media` 里 → **基础规则赢**。PC 覆盖必须放文件末尾或提高特异性。
+
+> 实例：`scratch.css` 的票面限宽写在 L55，被 L284 的基础规则盖掉，
+> 修正完全没生效，而我自己的测试没发现。
+
+### 3. 选择器列表里每个选择器各自算特异性
+
+```css
+#mod-drinks.active, #mod-milktea.active, #mod-manual.active, ..., .app-module.active
+  { display: block !important }
+```
+
+你看到 `.app-module.active` 就以为只是 (0,2,0)，**但列表里还有
+`#mod-manual.active`，那个是 (1,1,0)**。裸写 `#mod-manual` 只有 (1,0,0)，
+压不过它。必须写到 `#mod-manual.app-module.active` 拿 (1,2,0)。
+
+**且绝不能省掉 `.active`** —— 否则模块未激活时会被强制显示出来。
+
+### 4. `min-height` 永远压制 `height`
+
+给 `.global-btn-pill` 加 `min-height:36px` 对齐桌面，移动端媒体查询只重置了
+`height:30px` → 手机上变成 **30 宽 × 36 高的椭圆**。
+移动端必须同时重置 `min-height`。
+
+### 5. `flex-shrink` 会静默吃掉固定高度
+
+子导航条设了 `height:40px`，但它是 flex item，宿主（`#scr-cover`）内容溢出时
+默认 `flex-shrink:1` 会把它压回自动最小尺寸 —— **实测从 40px 掉到 26px**。
+凡是「固定高度 + flex item」的组合，都要显式 `flex-shrink:0`。
+
+### 6. CSS 自定义属性作用域
+
+`#mod-xxx` 作用域内定义的变量，`document.body.appendChild` 挂到 body 下的
+弹窗继承不到 → `background: var(--tr-gold)` 解析失败变透明，
+**近黑字配深底 = 文字消失，且不报错**。写 body 级弹窗样式要么在弹窗作用域
+重新声明变量，要么 `var(--x, 兜底值)`。
 
 ---
 
-## 五、遗留问题（未处理，按优先级）
+## 四、测试与验证（这份文档里最值钱的部分）
 
-1. **README.md 严重过期**：仍是最初 MBTI 单模块的说明，完全没提塔罗/八字/奶茶等 8 个模块、PWA、构建流程、Vercel 部署。建议重写。
-2. **`scratch/` 目录**：大量开发过程残留（验证脚本、截图、chrome profile），已被 gitignore，不影响部署，但占本地空间。
-3. **单牌海报逆位时无角标**？三牌/单牌布局的正逆位徽标逻辑见 `renderSharePoster`（单牌有 badge，三牌无）——未确认是否有意为之。
-4. **SW 预缓存清单**：只含 tarot 22 张图 + 基础文件；mbti/sbti/milktea 资源未预缓存（milktea logo 已 Base64 内联，mbti/sbti 头像走网络）。如需完整离线体验可补充。
+### 通用运行方式
+
+```powershell
+# 启动本地服务（注意：node -m 不是合法参数，必须用 server.js）
+node server.js
+
+# 跑 Playwright 脚本：Node 用 Playwright 必须 .cjs + NODE_PATH
+$env:NODE_PATH="C:\Users\NOC\.workbuddy-ai\binaries\node\workspace\node_modules"
+node "C:\Users\NOC\AppData\Local\Temp\opencode\juice-final2.cjs"
+
+# chromium 显式路径（Playwright 自带版本与安装的不匹配）
+C:\Users\NOC\AppData\Local\ms-playwright\chromium-1234\chrome-win64\chrome.exe
+```
+
+### 主回归脚本 `juice-final2.cjs`
+
+12/13 条路由 × 3 档视口（1440 / 390 / 320），覆盖：
+顶栏激活项可见性、左右区遮挡、横向溢出、子导航条溢出、条高一致性、
+标签高度极差、顶栏控件等高、命盘四宫格行高、console 错误。
+
+**这个脚本本身踩过的坑，比它测出来的问题更值得记住：**
+
+### 教训 7：`if (!vp.mob)` 等于主动屏蔽移动端
+
+我把所有高度断言包在 `if (!vp.mob)` 里，理由是「移动端有各自更紧凑的设计」。
+结果子 agent 挖出的 **3 个 P0 全在移动端**，全被这个门放过了：
+
+- `.dec-subnav` 固定 40px 撞上移动端 2×2 网格，第二行溢出 45px **直接压在正文上**
+- `min-height` 压制 `height`（见第三节教训 4）
+- `flex-shrink` 静默吃掉 40px（见第三节教训 5）
+
+移动端要断言的是**不同的东西**（不溢出、不裁切），不是不测。
+
+### 教训 8：路由列表漏项
+
+回归列表里有 `milktea`/`fengshui`/`lingqian`/`merit`/`bazi` 这些**子视图**，
+却**漏了 `decision` 这个真实顶层模块**。而上面第 1 个 P0 正好住在 decision 里，
+自己的测试永远看不见。
+
+写覆盖列表时要拿 `index.html` 的 `data-mod` 作为顶层真值来源交叉核对。
+
+### 教训 9：断言可能空转
+
+新加的断言在移动端全绿，我无法判断是「真的没问题」还是「什么都没采集到」。
+加了计数后发现三档都只采到 11/13 条 —— 才确认非空转。
+
+**任何新断言都要先确认它真的采到了数据。**
+
+### 教训 10：`git diff` 为空也要做反向对照
+
+抽 base64 时脚本覆盖了 80 个已跟踪文件，`git diff --stat` 显示为空。
+但我第一版校验脚本是错的（`git hash-object <file>` 算的是磁盘文件自己的哈希，
+跟 git 里的版本无关，永远相等）。
+
+做了**反向对照**才敢下结论：故意改坏 1 字节 → git 立刻报出
+`Bin 6775 -> 6775 bytes` → 还原 → 重新为空。
+确认「空 diff」是真的干净，而不是检查本身失效。
+
+### 教训 11：PowerShell 常用命令的坑
+
+- `[IO.File]::ReadAllText($p,[Text.Encoding]::UTF8)` 正确读中文；
+  `Get-Content` 不带编码会按 ANSI 读，导致中文乱码后误判文件损坏。
+- `Get-Content package.json -Raw | ConvertFrom-Json` 报「无效的 JsonEnd」，
+  其实只是中文按 ANSI 读坏了，文件本身正常。**看到解析失败先怀疑编码。**
+- `Select-String -Path a,b -Pattern "x"` 里路径不存在会中断整条命令，
+  后面文件的结果全丢。
+- `$_.Matches[0].Groups[1]` 取正则捕获组：`$x -match` 只返回 bool，
+  必须用 `[regex]::Match()`，不要在 `-match` 后接管道。
+- `IndexOf()` 只返回**第一个**匹配 —— 判断「某字符串是否还存在」时
+  会漏掉后续匹配，必须用 `Matches()` 或 `Split().Count`。
+
+### 教训 12：`?v=` 不是内容协商
+
+`?v=64` 和 `?v=65` 会返回**同一个文件** —— 服务端只有一份 `app.bundle.js`，
+查询串只是 cache-buster。所以**没法用 A/B 对比新旧版本**，
+旧 bundle 一旦部署就不可得。性能改动只能靠压缩后传输字节数（确定性）
+来证明，不要编时间数字 —— 环境波动极大，同一份代码不同轮次能差 30 倍。
 
 ---
 
-## 六、验证工具（留存在 `D:\Documents\AI\workbuddy\`）
+## 五、已知遗留问题
 
-- `verify-poster.cjs` / `verify-single.cjs`：Playwright 端到端脚本——起服务、走「选牌→洗牌→解牌→翻牌→保存」全流程、检查按钮计算样式、读海报 canvas 像素算对比度、截图。
-- 运行方式（需先 `node server.js`）：
-  ```bash
-  NODE_PATH="C:/Users/NOC/.workbuddy-ai/binaries/node/workspace/node_modules" \
-  "C:/Users/NOC/.workbuddy-ai/binaries/node/versions/22.22.2-6/node.exe" verify-poster.cjs
-  ```
-- 环境注意：Node 用 Playwright 必须 `.cjs` + `NODE_PATH`（ESM 下 NODE_PATH 无效）；Chromium 在 `~/AppData/Local/ms-playwright/chromium-1234/chrome-win64/chrome.exe`。
+1. **`assets/mbti/` 16 个 `.png` 无任何引用**（与同名 `.webp` 内容不同）。
+   历史遗留，非本次改动引入。删不删你定。
+2. **`lunar.js` 还有 409 KB**，是真实代码（农历库）不是图片。
+   它被 bazi 模块强依赖，动态加载的改动风险高于收益，暂未动。
+   若要继续瘦身，这是唯一剩下的目标。
+3. **`css/app.bundle.css` 382 KB** 里最大的是 `tarot.css` 58 KB、
+   `base.css` 42 KB、`decision.css` 32 KB。没做单页级 CSS 拆分。
+4. **塔罗 768→900px 断点**：768–899px 平板会退化成单栏。
+   这是有意改动（双栏需要空间），但确实牺牲了平板区间，用户尚未拍板。
+5. **移动端底部留白 36/40px → 24px**：为统一垂直节奏而收窄。
+   原值可能就是为了拇指区呼吸空间，**建议真刘海机复核**（模拟器无安全区）。
+6. **`#scr-quiz` / `.result-scroll` / 封面移动端分支（8px）未纳入
+   `--screen-pad-block`**，有意保持紧凑。已在 `css/base.css` 注释里写明范围，
+   防止下一个人误以为「已经统一过了」。
 
 ---
 
-*本文档未提交 git（untracked），如需要可 `git add` 进仓库。*
+## 六、部署
+
+- **推 `main` 即自动部署**（Vercel 已连 GitHub），无需手动触发。
+- `vercel.json` 的 `builds` 段必须保留：它从配置层面禁掉函数部署。
+  项目有历史遗留的 Node 配置（早期 CLI 部署产生），靠这段兜住。
+- 改了 `css/` 或 `js/` **必须 `npm run build`**，否则线上拿到的还是旧 bundle。
+- **改了任何 css/js 都要先手改 `sw.js` 的 `CACHE_NAME` 版本号**（当前 v65），
+  否则回访用户命中旧缓存看不到改动。这个坑踩过两次。
+- SW 的 `install` 阶段**严禁并发预拉取**资源，会触发 Vercel 边缘防火墙 705。
+  当前实现只在 `fetch` 时懒缓存图片。
+- SW 的 `activate` 调了 `clients.claim()` —— 这是 v63 那个「双刷」问题的成因，
+  修在调用侧（`hadController` 判断），不要动 SW 这行。
+
+---
+
+## 七、常用验证命令
+
+```powershell
+# 构建
+node build-bundles.js
+
+# 全量回归（需先 node server.js）
+$env:NODE_PATH="C:\Users\NOC\.workbuddy-ai\binaries\node\workspace\node_modules"
+node "C:\Users\NOC\AppData\Local\Temp\opencode\juice-final2.cjs"
+
+# 2048 排行榜全流程（含离线验证）
+node "C:\Users\NOC\AppData\Local\Temp\opencode\lb-test.cjs"
+
+# 资源引用完整性（缺失 / 孤儿）
+node "C:\Users\NOC\AppData\Local\Temp\opencode\ref-check.cjs"
+
+# 线上巡检
+node "C:\Users\NOC\AppData\Local\Temp\opencode\online-smoke.cjs"
+```
+
+> 注意：这些脚本在 `C:\Users\NOC\AppData\Local\Temp\opencode\`，
+> **Temp 目录可能被系统清理**。如果找不到了，脚本里的断言逻辑值得重新写，
+> 但第四节记录的**踩坑点请务必保留**。
+
+---
+
+*本文档已提交 git。修改前请先核对第三节（层叠陷阱）与第四节（测试教训）是否仍适用 ——
+这两节是本项目真正的知识资产，其余内容随代码演进容易过期。*

@@ -2084,22 +2084,22 @@ for (const k in PERSONAS_SBTI) {
 const QUESTIONS_SBTI = [...QUESTIONS_SBTI_MAIN, QUESTIONS_SBTI_SPECIAL[0]];
 
 const MBTI_IMAGES = {
-  "ENFJ": "assets/sbti/ENFJ.webp",
-  "ENFP": "assets/sbti/ENFP.webp",
-  "ENTJ": "assets/sbti/ENTJ.webp",
-  "ENTP": "assets/sbti/ENTP.webp",
-  "ESFJ": "assets/sbti/ESFJ.webp",
-  "ESFP": "assets/sbti/ESFP.webp",
-  "ESTJ": "assets/sbti/ESTJ.webp",
-  "ESTP": "assets/sbti/ESTP.webp",
-  "INFJ": "assets/sbti/INFJ.webp",
-  "INFP": "assets/sbti/INFP.webp",
-  "INTJ": "assets/sbti/INTJ.webp",
-  "INTP": "assets/sbti/INTP.webp",
-  "ISFJ": "assets/sbti/ISFJ.webp",
-  "ISFP": "assets/sbti/ISFP.webp",
-  "ISTJ": "assets/sbti/ISTJ.webp",
-  "ISTP": "assets/sbti/ISTP.webp"
+  "ENFJ": "assets/mbti/ENFJ.webp",
+  "ENFP": "assets/mbti/ENFP.webp",
+  "ENTJ": "assets/mbti/ENTJ.webp",
+  "ENTP": "assets/mbti/ENTP.webp",
+  "ESFJ": "assets/mbti/ESFJ.webp",
+  "ESFP": "assets/mbti/ESFP.webp",
+  "ESTJ": "assets/mbti/ESTJ.webp",
+  "ESTP": "assets/mbti/ESTP.webp",
+  "INFJ": "assets/mbti/INFJ.webp",
+  "INFP": "assets/mbti/INFP.webp",
+  "INTJ": "assets/mbti/INTJ.webp",
+  "INTP": "assets/mbti/INTP.webp",
+  "ISFJ": "assets/mbti/ISFJ.webp",
+  "ISFP": "assets/mbti/ISFP.webp",
+  "ISTJ": "assets/mbti/ISTJ.webp",
+  "ISTP": "assets/mbti/ISTP.webp"
 };
 
 

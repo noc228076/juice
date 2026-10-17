@@ -1037,6 +1037,9 @@ html[data-theme="light"] #mod-manual {
   flex-direction: column;
   align-items: center;
   max-width: 440px;
+  /* 双栏时左列可窄于 440px，容器必须能缩，否则棋盘撑破网格 */
+  width: 100%;
+  min-width: 0;
   margin: 0 auto;
   user-select: none;
   -webkit-user-select: none;
@@ -1118,7 +1121,9 @@ html[data-theme="light"] #mod-manual {
 
 #mod-manual .g2048-board-wrap {
   position: relative;
-  width: min(380px, 92vw);
+  /* 用容器宽而非 92vw：桌面双栏时左列可能只有 366px，
+     固定 380px 会把 .stage 撑出网格列，和右侧排行榜重叠。 */
+  width: min(380px, 100%);
   aspect-ratio: 1 / 1;
   background: #15121B;
   border-radius: 18px;
@@ -1337,47 +1342,68 @@ html[data-theme="light"] #mod-manual {
     color: #9A948A;
     }
 
-    /* PC 双栏：棋盘在左，战绩榜常驻右侧。
-       此前容器固定 440px 居中在 720px 的 .stage 里，
-       左右各空出 124px 深色底（视觉上就是"大黑块"），
-       1920 下更是在 1890px 屏幕中间一条窄柱。 */
+    /* ============ 排行榜独立成栏 ============
+       它原本塞在 .g2048-container 的 grid 里，和棋盘共用同一块
+       深色 .stage 底，视觉上像棋盘的一部分。
+       现在它是 .stage 的兄弟节点（见 manual-games.js），
+       桌面端并排放在右侧，用站点常规卡片配色（--card / --line），
+       和 2048 那套深色游戏壳明确分开。
+       ---------------------------------------------------- */
+    #mod-manual .g2048-lb-host {
+    width: 100%;
+    margin-top: 14px;
+    }
     #mod-manual .g2048-lb-wrap {
     width: 100%;
     }
-    @media (min-width: 700px) {
-    #mod-manual .g2048-container {
-    max-width: 680px;
+
+    @media (min-width: 900px) {
+    /* 游戏区 + 战绩区并排。.sm-2048-layout 是 JS 建的双栏 wrapper，
+       只有 2048 章节会生成，不影响另外两个游戏。 */
+    #mod-manual .sm-2048-layout {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 252px;
-    /* 必须显式分区：这 5 个子元素若按默认流式填充，
-       tools 会掉进右栏、lb-wrap 掉到左栏下一行。 */
-    grid-template-areas:
-      "hud lb"
-      "tools lb"
-      "board lb"
-      "ctrl lb";
-    gap: 0 16px;
+    grid-template-columns: minmax(0, 1fr) 300px;
+    gap: 16px;
     align-items: start;
     }
-    #mod-manual .g2048-hud { grid-area: hud; }
-    #mod-manual .g2048-tools { grid-area: tools; }
-    #mod-manual .g2048-board-wrap { grid-area: board; }
-    #mod-manual .g2048-controls { grid-area: ctrl; }
-    #mod-manual .g2048-lb-wrap { grid-area: lb; }
-    #mod-manual .g2048-lb-wrap {
+    #mod-manual .sm-2048-layout .stage {
+    min-width: 0;
+    /* .stage 全局带 margin:auto，在 grid 项里会收缩成内容宽，
+       这里让它吃满左列 */
+    width: 100%;
+    }
+    #mod-manual .sm-2048-layout .g2048-lb-host {
+    margin-top: 0;
     position: sticky;
     top: 12px;
     }
-    #mod-manual .g2048-lb-toggle {
-    margin-top: 0;
-    }
-    /* 侧栏较窄，收窄分数列并隐藏日期 */
     #mod-manual .g2048-lb-score {
-    width: 42px;
+    width: 46px;
     }
-    #mod-manual .g2048-lb-date {
-    display: none;
     }
+
+    /* 浅色卡片：和深色棋盘区明确区分 */
+    #mod-manual .g2048-lb-host .g2048-lb-toggle {
+    background: var(--card-solid, #14161E);
+    border: 1px solid var(--line, rgba(255,255,255,0.09));
+    color: var(--tx, #F8FAFC);
+    }
+    #mod-manual .g2048-lb-host .g2048-lb-toggle:hover {
+    border-color: rgba(245, 158, 11, 0.55);
+    }
+    #mod-manual .g2048-lb-host .g2048-lb {
+    background: var(--card, rgba(255,255,255,0.045));
+    border: 1px solid var(--line, rgba(255,255,255,0.09));
+    }
+    #mod-manual .g2048-lb-host .g2048-lb-row {
+    color: var(--tx-dim, #A8B1C2);
+    border-bottom-color: var(--line, rgba(255,255,255,0.09));
+    }
+    #mod-manual .g2048-lb-host .g2048-lb-row.top {
+    color: var(--tx, #F8FAFC);
+    }
+    #mod-manual .g2048-lb-host .g2048-lb-empty {
+    color: var(--tx-faint, #828B9E);
     }
     
 #mod-manual .g2048-float-tip {

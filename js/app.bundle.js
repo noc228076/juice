@@ -18412,8 +18412,25 @@ if ('serviceWorker' in navigator) {
         '</div>' +
         '<div class="g2048-hint">支持屏幕滑动、方向键 ↑ ↓ ← → 或轻点上方方向键</div>' +
         '</div>' +
-        leaderboardHTML() +
         '</div>';
+
+      // 排行榜移出 .stage（深色游戏壳），作为兄弟节点放进
+      // .sm-2048-layout 这个双栏 wrapper：桌面并排，窄屏堆叠。
+      // 两套视觉体系——深色棋盘区 / 浅色战绩区。
+      var layout = root.querySelector('.sm-2048-layout');
+      if (!layout) {
+        layout = document.createElement('div');
+        layout.className = 'sm-2048-layout';
+        root.appendChild(layout);
+      }
+      if (el.parentNode !== layout) layout.appendChild(el);
+      var lbHost = layout.querySelector('.g2048-lb-host');
+      if (!lbHost) {
+        lbHost = document.createElement('div');
+        lbHost.className = 'g2048-lb-host';
+        layout.appendChild(lbHost);
+      }
+      lbHost.innerHTML = leaderboardHTML();
 
       // 绑定按钮事件
       var undoBtn = el.querySelector('#btn2048Undo');
@@ -18423,7 +18440,7 @@ if ('serviceWorker' in navigator) {
       var finishBtn = el.querySelector('#btn2048Finish');
       if (finishBtn) finishBtn.onclick = finish;
 
-      var lbBtn = el.querySelector('#btn2048Lb');
+      var lbBtn = root.querySelector('#btn2048Lb');
       if (lbBtn) lbBtn.onclick = function () { lbOpen = !lbOpen; renderUI(); };
 
       var certBtn = el.querySelector('#btn2048Cert');

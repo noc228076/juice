@@ -6201,8 +6201,206 @@ html[data-theme="light"] #mod-manual .g2048-board-wrap {
   border-color: #A39589;
 }
 html[data-theme="light"] #mod-manual .g2048-cell {
-  background: rgba(238, 228, 218, 0.35);
-}
+    background: rgba(238, 228, 218, 0.35);
+  }
+
+  /* =========================================================
+     PC 常驻章节侧栏（自我说明书桌面双栏）
+     ---------------------------------------------------------
+     起因：1920 下整个 720px 卡片居中，左右各约 600px 空白，
+     视觉上就是用户说的"大黑块"。桌面改为左侧常驻章节列表 +
+     右侧内容，窄屏完全隐藏、行为与从前一致。
+     ========================================================= */
+  #mod-manual .sm-rail {
+    display: none;
+  }
+
+  @media (min-width: 1000px) {
+    /* 特异性陷阱：nav.css 里那条是
+         #mod-drinks.active, ..., #mod-manual.active, ..., .app-module.active
+         { display: block !important }
+       选择器列表里每个选择器各自计算特异性，所以 #mod-manual.active
+       是 (1,1,0)，裸写 #mod-manual 只有 (1,0,0) 压不过它。
+       这里必须写到 .active 层拿到 (1,2,0)；
+       且绝不能省掉 .active —— 否则模块未激活时会被强制显示出来。 */
+    #mod-manual.app-module.active {
+      display: flex !important;
+      align-items: stretch;
+      gap: 0;
+    }
+    #mod-manual .sm-rail {
+      display: flex;
+      flex-direction: column;
+      flex: none;
+      width: 248px;
+      padding: var(--screen-pad-block) 12px var(--screen-pad-block) 20px;
+      box-sizing: border-box;
+      overflow-y: auto;
+      border-right: 1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 40%);
+    }
+    /* 滚动交给 .app-module 自己（它带 overflow-y:auto !important），
+       这里只负责分栏，不要再套一层滚动容器 */
+    #mod-manual .sm-main {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+    /* 右栏铺满：原先 .wrap 的 960px 上限在双栏下反而成了新的黑边 */
+    #mod-manual .sm-main .wrap {
+      max-width: 1080px;
+      margin: 0 auto;
+    }
+    #mod-manual .sm-rail-head {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    #mod-manual .sm-rail-mark {
+      flex: none;
+      width: 36px;
+      height: 36px;
+      border-radius: 11px;
+      background: var(--ac);
+      color: var(--ac-ink);
+      display: grid;
+      place-items: center;
+      font-size: 17px;
+      font-weight: 900;
+    }
+    #mod-manual .sm-rail-tt {
+      min-width: 0;
+    }
+    #mod-manual .sm-rail-tt b {
+      display: block;
+      font-size: 14px;
+      font-weight: 900;
+      letter-spacing: 1px;
+      color: var(--tx);
+    }
+    #mod-manual .sm-rail-tt p {
+      font-size: 10px;
+      letter-spacing: 2px;
+      color: var(--tx-faint);
+      margin-top: 2px;
+    }
+    #mod-manual .sm-rail-sum {
+      font-size: 11px;
+      color: var(--tx-dim);
+      padding: 7px 10px;
+      margin-bottom: 10px;
+      background: var(--card);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+    }
+    #mod-manual .sm-rail-sum b {
+      color: var(--ac);
+    }
+    #mod-manual .sm-rail-nav {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: 1 1 auto;
+    }
+    #mod-manual .sm-rail-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      width: 100%;
+      padding: 8px 9px;
+      border-radius: 12px;
+      border: 1.5px solid transparent;
+      background: transparent;
+      text-align: left;
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+    #mod-manual .sm-rail-item:hover {
+      background: var(--card);
+      border-color: var(--line);
+    }
+    #mod-manual .sm-rail-item.active {
+      background: var(--card);
+      border-color: var(--ac);
+      box-shadow: 0 4px 14px var(--ac-glow);
+    }
+    #mod-manual .sm-rail-num {
+      flex: none;
+      width: 16px;
+      font-size: 11px;
+      font-weight: 900;
+      text-align: center;
+      opacity: 0.75;
+    }
+    #mod-manual .sm-rail-ico {
+      flex: none;
+      width: 26px;
+      height: 26px;
+      border-radius: 8px;
+      display: grid;
+      place-items: center;
+      font-size: 13px;
+    }
+    #mod-manual .sm-rail-ico svg {
+      width: 15px;
+      height: 15px;
+    }
+    #mod-manual .sm-rail-info {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+    #mod-manual .sm-rail-info b {
+      display: block;
+      font-size: 12.5px;
+      font-weight: 800;
+      color: var(--tx);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #mod-manual .sm-rail-info i {
+      display: block;
+      font-style: normal;
+      font-size: 10px;
+      color: var(--tx-faint);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 1px;
+    }
+    #mod-manual .sm-rail-dot {
+      flex: none;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--line-strong);
+    }
+    #mod-manual .sm-rail-dot.done {
+      background: var(--ac);
+      box-shadow: 0 0 8px var(--ac-glow);
+    }
+    #mod-manual .sm-rail-home {
+      margin-top: 10px;
+      padding: 8px;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--tx-dim);
+      background: transparent;
+      border: 1px dashed var(--line-strong);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+    #mod-manual .sm-rail-home:hover {
+      color: var(--tx);
+      border-color: var(--ac);
+      border-style: solid;
+    }
+    /* 回到目录后不再需要右上角返回键，但保留无害，这里只缩一下 */
+    #mod-manual .sm-rail + .sm-main .sm-screen .mt-topbar {
+      max-width: none;
+    }
+  }
 
 
 

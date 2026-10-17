@@ -63,12 +63,14 @@
     var sc = document.getElementById(id);
     if (sc) {
       sc.classList.add('active');
-      if (root) root.scrollTop = 0;
+      if (root) root.scrollTop = 0;   // .app-module 带 overflow-y:auto，滚动容器就是它
     }
+    syncRail();   // 所有跳转都经由这里，侧栏高亮不会漏
   }
 
   function renderHome() {
     state.mode = 'home';
+    state.test = null;   // 回到目录时侧栏不该还高亮某一章
     if (state.gameCtl && state.gameCtl.destroy) {
       state.gameCtl.destroy();
       state.gameCtl = null;
@@ -367,11 +369,79 @@
     };
   }
 
+  /* ============ PC 常驻章节导航（侧栏） ============
+     与首页 tile 共用 openTest()，避免两套入口行为漂移。
+     仅桌面显示；窄屏由 CSS 隐藏，仍走原来的「← 返回」按钮。
+     ------------------------------------------------ */
+  var railBuilt = false;
+
+  function buildRail() {
+    if (railBuilt) return;
+    var nav = document.getElementById('sm-rail-nav');
+    if (!nav) return;
+    var DATA = window.SM_DATA || {};
+    var ORDER = window.SM_ORDER || [];
+    var html = '';
+    ORDER.forEach(function (id) {
+      var t = DATA[id];
+      if (!t) return;
+      var iconSvg = (typeof window.icon === 'function') ? window.icon(t.icon) : '📖';
+      html += '<button class="sm-rail-item" data-test="' + id + '">'
+        + '<span class="sm-rail-num" style="color:' + t.color + '">' + t.num + '</span>'
+        + '<span class="sm-rail-ico" style="background:' + hexSoft(t.color, 0.12) + ';color:' + t.color + '">' + iconSvg + '</span>'
+        + '<span class="sm-rail-info"><b>' + t.title + '</b><i>' + t.tagline + '</i></span>'
+        + '<span class="sm-rail-dot" data-dot="' + id + '"></span>'
+        + '</button>';
+    });
+    nav.innerHTML = html;
+    nav.querySelectorAll('.sm-rail-item').forEach(function (c) {
+      c.addEventListener('click', function () {
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        openTest(c.getAttribute('data-test'));
+      });
+    });
+    var homeBtn = document.getElementById('sm-rail-home');
+    if (homeBtn) {
+      homeBtn.addEventListener('click', function () {
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        renderHome();
+        showScreen('scr-sm-home');
+      });
+    }
+    railBuilt = true;
+  }
+
+  // 高亮当前章 + 同步「已测/存档」计数
+  function syncRail() {
+    var nav = document.getElementById('sm-rail-nav');
+    if (!nav) return;
+    var DATA = window.SM_DATA || {};
+    var ORDER = window.SM_ORDER || [];
+    var s = store();
+    var cur = state.test ? state.test.id : null;
+
+    nav.querySelectorAll('.sm-rail-item').forEach(function (c) {
+      var id = c.getAttribute('data-test');
+      c.classList.toggle('active', !!cur && id === cur);
+      var dot = c.querySelector('.sm-rail-dot');
+      if (dot) dot.classList.toggle('done', !!(s[id] && s[id].length));
+    });
+
+    var sum = document.getElementById('sm-rail-sum');
+    if (sum) {
+      var done = ORDER.filter(function (id) { return s[id] && s[id].length; }).length;
+      var total = ORDER.reduce(function (n, id) { return n + (s[id] ? s[id].length : 0); }, 0);
+      sum.innerHTML = '已测 <b>' + done + '</b>/' + ORDER.length + ' 章 · 存档 <b>' + total + '</b> 份';
+    }
+  }
+
   function init() {
     root = document.getElementById('mod-manual');
     if (!root) return;
+    buildRail();
     renderHome();
     showScreen('scr-sm-home');
+    syncRail();
   }
 
   function stopActiveGame() {

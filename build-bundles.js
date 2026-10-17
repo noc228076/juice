@@ -39,6 +39,8 @@ const jsFiles = [
   'js/modules/bazi.js',
   'js/modules/daily.js',
   'js/modules/scratch.js',
+  'js/modules/profile.js',
+  'js/modules/leaderboard.js',
   'js/modules/history.js',
   'js/modules/router.js'
 ];

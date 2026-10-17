@@ -165,6 +165,9 @@
   }
 
   function init() {
+    // 玩家身份（右上角头像 / 昵称），与路由无关，先初始化
+    if (window.AppProfile) window.AppProfile.init();
+
     // 绑定左上角模块胶囊标签点击事件
     document.querySelectorAll('.nav-tab').forEach((tab) => {
       tab.addEventListener('click', () => {

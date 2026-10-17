@@ -1798,3 +1798,132 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .stage {
   color: #2D2721;
 }
 
+
+/* ============ 2048 排行榜：全服榜 / 我的战绩 ============
+   两个标签页共用同一个榜单外壳，只在数据源上不同：
+   全服榜来自 /api/leaderboard，我的战绩来自 localStorage。
+   ---------------------------------------------------- */
+#mod-manual .g2048-lb-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 3px;
+  margin-bottom: 10px;
+  border-radius: 12px;
+  background: var(--card);
+  border: 1px solid var(--line);
+}
+#mod-manual .g2048-lb-tab {
+  flex: 1;
+  padding: 7px 6px;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--tx-dim);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+#mod-manual .g2048-lb-tab:hover { color: var(--tx); }
+#mod-manual .g2048-lb-tab.active {
+  background: var(--mod-ac);
+  color: var(--mod-ac-ink);
+}
+
+/* 我在全服榜上的身份卡 */
+#mod-manual .g2048-lb-me-card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 11px;
+  margin-bottom: 8px;
+  border-radius: 12px;
+  background: var(--mod-ac-soft);
+  border: 1px solid var(--mod-ac);
+}
+#mod-manual .g2048-lb-me-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--tx);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#mod-manual .g2048-lb-me-rank {
+  flex: none;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--tx-dim);
+  font-variant-numeric: tabular-nums;
+}
+#mod-manual .g2048-lb-edit {
+  flex: none;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  background: var(--card-solid, #14161E);
+  color: var(--tx);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+#mod-manual .g2048-lb-edit:hover { border-color: var(--mod-ac); }
+
+/* 全服榜行：名次 / 头像 / 昵称 / 分数 / 最大方块 */
+#mod-manual .g2048-lb-ava {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  font-size: 15px;
+  line-height: 1;
+}
+/* 不能是 flex 容器：flex 上的 text-overflow 不生效，长昵称会被硬切。
+   用 block + 内部行内标签，省略号才出得来。 */
+#mod-manual .g2048-lb-name {
+  flex: 1;
+  min-width: 0;
+  display: block;
+  font-size: 12px;
+  line-height: 22px;
+  color: inherit;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#mod-manual .g2048-lb-me {
+  display: inline-block;
+  vertical-align: 1px;
+  margin-left: 5px;
+  font-style: normal;
+  font-size: 9.5px;
+  font-weight: 800;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: var(--mod-ac);
+  color: var(--mod-ac-ink);
+}
+#mod-manual .g2048-lb-row.me {
+  background: var(--mod-ac-soft);
+  border-radius: 8px;
+}
+#mod-manual .g2048-lb-err {
+  display: block;
+  padding: 8px 10px;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--tx-faint);
+}
+
+/* 全服榜在窄屏也要放得下：昵称让位，数字不换行 */
+@media (max-width: 520px) {
+  #mod-manual .g2048-lb-row { gap: 6px; }
+  #mod-manual .g2048-lb-name { font-size: 11.5px; }
+  #mod-manual .g2048-lb-score { width: 42px; font-size: 12px; }
+  #mod-manual .g2048-lb-tile { width: 32px; font-size: 10px; }
+}

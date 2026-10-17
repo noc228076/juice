@@ -113,12 +113,14 @@ npm run build
 
 ```text
 juice/
-├── index.html              # 页面骨架：顶栏 + 13 个 <section class="app-module">
+├── index.html              # 页面骨架：顶栏 + 12 个 <section class="app-module">
 ├── sw.js                   # Service Worker：图片懒缓存
 ├── manifest.json           # PWA 清单
-├── vercel.json             # 静态构建声明 + 缓存策略
-├── server.js               # 零依赖本地静态服务器
+├── vercel.json             # 构建声明 + 缓存策略
+├── server.js               # 零依赖本地服务器（含 api/ 模拟）
 ├── build-bundles.js        # 打包脚本
+├── api/
+│   └── leaderboard.js      # 2048 全服排行榜 Serverless 函数
 ├── favicon.png
 │
 ├── js/
@@ -138,6 +140,8 @@ juice/
 │       │   ├── manual-games.js     #   └ 反应擂台 / 色彩 / 2048
 │       │   └── manual-report.js    #   └ 报告渲染
 │       ├── decision.js / clock.js / merit.js
+│       ├── profile.js              # 玩家头像 / 昵称
+│       ├── leaderboard.js          # 全服排行榜客户端
 │       └── lifeguide.js / daily.js / scratch.js
 │
 ├── css/
@@ -211,14 +215,28 @@ juice/
 
 ## 🚀 部署
 
-Vercel 静态托管，连接 GitHub `main` 分支自动部署，无需手动构建命令。
+Vercel 托管，连接 GitHub `main` 分支自动部署，无需手动构建命令。
 
 `vercel.json` 中：
 
-- **`builds` 段**将所有路径显式声明为 `@vercel/static`，确保项目按静态站点而非 Serverless 函数部署；
+- **`builds` 段**：`api/**/*.js` 走 `@vercel/node`（2048 全服排行榜），其余路径全部 `@vercel/static`；
 - **缓存策略分档**：`sw.js` 为 `no-cache, no-store, must-revalidate`；`index.html` 为 `max-age=0, must-revalidate`；`css`/`js` 为 `max-age=31536000, immutable`（文件自带 `?v=` 版本号，可以放心长缓存）；`assets` 为 1 周强缓存 + 1 月陈旧重验证。
 
 `.vercelignore` 排除 `node_modules`、`scratch`、`.git` 等非部署产物。
+
+### 全服排行榜（需要一次性配置）
+
+`api/leaderboard.js` 使用 Upstash Redis 存储，**不配置也能部署**——此时接口返回 503，前端自动退回本机战绩，游戏不受影响。
+
+开启全服榜：
+
+1. Vercel 项目 → **Storage** → Marketplace 里选 **Upstash Redis** → 创建免费实例并连接到本项目；
+2. 集成会自动注入 `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN`（也兼容旧的 `KV_REST_API_*`）；
+3. 重新部署一次即可。
+
+数据结构：`j2048:z` 是 ZSET（成员 = 玩家随机 ID，分值 = 个人最高分，只保留前 1000 名），`j2048:p` 是 HASH（存昵称、头像、最高方块）。服务端会校验分数与最大方块的合法性、按玩家限流（60 秒 20 次），并按码点截断昵称，避免破坏 emoji。
+
+本地开发 `node server.js` 时没有 Redis 会自动用进程内存储，接口行为完全一致，方便联调。
 
 ---
 

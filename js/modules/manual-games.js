@@ -530,13 +530,19 @@
     var bestScore = 0;
     try { bestScore = parseInt(localStorage.getItem('sm_2048_best') || '0', 10) || 0; } catch (e) {}
 
-    /* ---------------- 离线个人排行榜 ----------------
-       纯 localStorage，不发任何网络请求，断网可用。
-       每局结束（无路可走 或 主动结算）记录一次，
-       最多保留 LB_MAX 条，分数降序。
+    /* ---------------- 战绩记录 ----------------
+       本机战绩存 localStorage（断网可用、最多 LB_MAX 条），
+       同时把「个人最高分」提交到全服排行榜（api/leaderboard.js）。
+       后端不可用时榜单自动退回本机数据，不会报错打断游戏。
        ------------------------------------------------ */
     var LB_KEY = 'sm_2048_runs';
     var LB_MAX = 12;
+    // 'global' = 全服榜；'mine' = 本机战绩
+    var lbTab = 'global';
+    var lbGlobal = null;      // 最近一次拿到的全服榜单
+    var lbLoading = false;
+    var lbError = '';
+    var lbMyRank = 0;
     // 桌面右侧有空间，榜单默认展开；窄屏收起，避免把棋盘挤出首屏
     var lbOpen = typeof window.matchMedia === 'function'
       ? window.matchMedia('(min-width: 700px)').matches
@@ -600,7 +606,50 @@
         bestScore = list[0].score;
         try { localStorage.setItem('sm_2048_best', String(bestScore)); } catch (e) {}
       }
+      submitRun();
       return rank;
+    }
+
+    // 异步上传到全服榜：不阻塞结算，失败就静默保留本机战绩
+    function submitRun() {
+      if (!window.AppLeaderboard) return;
+      lbLoading = true;
+      window.AppLeaderboard.submit({
+        score: score, maxTile: maxTile, moves: moves, merges: merges
+      }).then(function (res) {
+        lbLoading = false;
+        if (res && res.ok) {
+          lbGlobal = { board: res.board || [], total: res.total || 0, online: !!res.online };
+          lbMyRank = res.rank || 0;
+          lbError = '';
+        } else {
+          lbError = (res && res.error) || '提交失败';
+        }
+        if (!destroyed) renderUI();
+      });
+    }
+
+    // 拉取全服榜（打开榜单时触发一次）
+    function loadGlobal(force) {
+      if (!window.AppLeaderboard || lbLoading) return;
+      lbLoading = true;
+      lbError = '';
+      renderUI();
+      window.AppLeaderboard.getBoard(50, force).then(function (res) {
+        lbLoading = false;
+        lbGlobal = {
+          board: (res && res.board) || [],
+          total: (res && res.total) || 0,
+          online: !!(res && res.online)
+        };
+        if (res && res.offline) lbError = '网络不可用，显示的是上次结果';
+        if (window.AppProfile) {
+          var me = window.AppProfile.get();
+          var mine = (lbGlobal.board || []).filter(function (r) { return r.id === me.id; })[0];
+          if (mine) lbMyRank = (lbGlobal.board.indexOf(mine) + 1);
+        }
+        if (!destroyed) renderUI();
+      });
     }
 
     function fmtDay(ts) {
@@ -609,35 +658,98 @@
       return (d.getMonth() + 1) + '/' + d.getDate();
     }
 
+    function esc(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    }
+
+    // 全服榜：其他玩家 + 自己，按最高分降序
+    function globalRowsHTML() {
+      var me = window.AppProfile ? window.AppProfile.get() : { id: '', name: '', avatar: '🙂' };
+      var board = (lbGlobal && lbGlobal.board) || [];
+
+      if (lbLoading && !board.length) {
+        return '<div class="g2048-lb-empty">正在连接全服排行榜…</div>';
+      }
+      if (!board.length) {
+        return '<div class="g2048-lb-empty">全服榜还没有战绩，打完一局就能上榜' +
+          (lbError ? '<br><span class="g2048-lb-err">' + esc(lbError) + '</span>' : '') + '</div>';
+      }
+
+      var html = '';
+      for (var i = 0; i < board.length; i++) {
+        var r = board[i];
+        var isMe = r.id === me.id;
+        var cls = 'g2048-lb-row' + (i === 0 ? ' top' : '') + (isMe ? ' me' : '');
+        html += '<div class="' + cls + '">' +
+          '<span class="g2048-lb-rank">' + (i === 0 ? '👑' : (i + 1)) + '</span>' +
+          '<span class="g2048-lb-ava">' + esc(r.avatar || '🙂') + '</span>' +
+          '<span class="g2048-lb-name">' + esc(r.name || '匿名玩家') +
+          (isMe ? '<i class="g2048-lb-me">我</i>' : '') + '</span>' +
+          '<span class="g2048-lb-score">' + (r.score || 0) + '</span>' +
+          '<span class="g2048-lb-tile">' + (r.maxTile || 0) + '</span>' +
+          '</div>';
+      }
+      if (lbError) html += '<div class="g2048-lb-err">' + esc(lbError) + '</div>';
+      return html;
+    }
+
+    // 本机战绩：保留原来的完整明细
+    function mineRowsHTML() {
+      var runs = sortRuns(loadRuns());
+      if (!runs.length) return '<div class="g2048-lb-empty">还没有战绩，先来一局吧</div>';
+      var rows = '';
+      for (var i = 0; i < runs.length; i++) {
+        var rr = runs[i];
+        var cls = 'g2048-lb-row' + (i === 0 ? ' top' : '');
+        rows += '<div class="' + cls + '">' +
+          '<span class="g2048-lb-rank">' + (i === 0 ? '👑' : (i + 1)) + '</span>' +
+          '<span class="g2048-lb-score">' + rr.score + '</span>' +
+          '<span class="g2048-lb-tile">' + rr.maxTile + '</span>' +
+          '<span class="g2048-lb-role">' + (ROLE_MAP[rr.maxTile] || '高阶') + '</span>' +
+          '<span class="g2048-lb-moves">' + rr.moves + ' 步</span>' +
+          '<span class="g2048-lb-date">' + fmtDay(rr.at) + '</span>' +
+          '</div>';
+      }
+      return rows;
+    }
+
     function leaderboardHTML() {
       var runs = sortRuns(loadRuns());
       var best = runs.length ? runs[0].score : 0;
+      var globalBest = (lbGlobal && lbGlobal.board && lbGlobal.board.length) ? lbGlobal.board[0].score : 0;
+
       var head = '<button class="g2048-lb-toggle" id="btn2048Lb" aria-expanded="' + (lbOpen ? 'true' : 'false') + '">' +
-        (lbOpen ? '▼' : '▶') + ' 我的战绩' +
-        (runs.length ? ' · 共 ' + runs.length + ' 局 · 最高 ' + best + ' 分' : ' · 暂无记录') +
+        (lbOpen ? '▼' : '▶') + ' 排行榜' +
+        (lbTab === 'global'
+          ? (globalBest ? ' · 全服最高 ' + globalBest + ' 分' : ' · 全服榜')
+          : (runs.length ? ' · 共 ' + runs.length + ' 局 · 最高 ' + best + ' 分' : ' · 暂无记录')) +
         '</button>';
       if (!lbOpen) return head;
 
-      var rows;
-      if (!runs.length) {
-        rows = '<div class="g2048-lb-empty">还没有战绩，先来一局吧</div>';
+      var tabs = '<div class="g2048-lb-tabs">' +
+        '<button class="g2048-lb-tab' + (lbTab === 'global' ? ' active' : '') + '" data-lb-tab="global">🌍 全服榜</button>' +
+        '<button class="g2048-lb-tab' + (lbTab === 'mine' ? ' active' : '') + '" data-lb-tab="mine">📁 我的战绩</button>' +
+        '</div>';
+
+      var body;
+      if (lbTab === 'global') {
+        var me = window.AppProfile ? window.AppProfile.get() : null;
+        var myName = me ? (me.name || '匿名玩家') : '匿名玩家';
+        var myBest = runs.length ? best : 0;
+        body = '<div class="g2048-lb-me-card">' +
+          '<span class="g2048-lb-ava">' + esc(me ? me.avatar : '🙂') + '</span>' +
+          '<span class="g2048-lb-me-name">' + esc(myName) + '</span>' +
+          '<span class="g2048-lb-me-rank">' + (lbMyRank ? '全服第 ' + lbMyRank + ' 名' : '本机最高 ' + myBest + ' 分') + '</span>' +
+          '<button class="g2048-lb-edit" id="btn2048EditProfile">设置</button>' +
+          '</div>' +
+          '<div class="g2048-lb">' + globalRowsHTML() + '</div>';
       } else {
-        rows = '';
-        for (var i = 0; i < runs.length; i++) {
-          var rr = runs[i];
-          var cls = 'g2048-lb-row' + (i === 0 ? ' top' : '');
-          rows += '<div class="' + cls + '">' +
-            '<span class="g2048-lb-rank">' + (i === 0 ? '👑' : (i + 1)) + '</span>' +
-            '<span class="g2048-lb-score">' + rr.score + '</span>' +
-            '<span class="g2048-lb-tile">' + rr.maxTile + '</span>' +
-            '<span class="g2048-lb-role">' + (ROLE_MAP[rr.maxTile] || '高阶') + '</span>' +
-            '<span class="g2048-lb-moves">' + rr.moves + ' 步</span>' +
-            '<span class="g2048-lb-date">' + fmtDay(rr.at) + '</span>' +
-            '</div>';
-        }
+        body = '<div class="g2048-lb">' + mineRowsHTML() + '</div>';
       }
-      return '<div class="g2048-lb-wrap">' + head +
-        (lbOpen ? '<div class="g2048-lb">' + rows + '</div>' : '') + '</div>';
+
+      return '<div class="g2048-lb-wrap">' + head + tabs + body + '</div>';
     }
 
     var ROLE_MAP = {
@@ -958,7 +1070,26 @@
       if (finishBtn) finishBtn.onclick = finish;
 
       var lbBtn = root.querySelector('#btn2048Lb');
-      if (lbBtn) lbBtn.onclick = function () { lbOpen = !lbOpen; renderUI(); };
+      if (lbBtn) lbBtn.onclick = function () {
+        lbOpen = !lbOpen;
+        renderUI();
+        // 展开全服榜时才拉数据，避免每局都打网络
+        if (lbOpen && lbTab === 'global' && !lbGlobal) loadGlobal(false);
+      };
+
+      root.querySelectorAll('[data-lb-tab]').forEach(function (b) {
+        b.onclick = function () {
+          if (lbTab === b.getAttribute('data-lb-tab')) return;
+          lbTab = b.getAttribute('data-lb-tab');
+          renderUI();
+          if (lbTab === 'global') loadGlobal(false);
+        };
+      });
+
+      var editBtn = root.querySelector('#btn2048EditProfile');
+      if (editBtn) editBtn.onclick = function () {
+        if (window.AppProfile) window.AppProfile.open();
+      };
 
       var certBtn = el.querySelector('#btn2048Cert');
       if (certBtn) certBtn.onclick = finish;
@@ -1031,6 +1162,8 @@
     spawnTile();
     checkMax();
     renderUI();
+    // 桌面端榜单默认展开，进游戏就直接拉一次全服数据
+    if (lbOpen && lbTab === 'global') loadGlobal(false);
 
     return {
       destroy: function () {

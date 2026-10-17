@@ -18024,13 +18024,19 @@ if ('serviceWorker' in navigator) {
     var bestScore = 0;
     try { bestScore = parseInt(localStorage.getItem('sm_2048_best') || '0', 10) || 0; } catch (e) {}
 
-    /* ---------------- 离线个人排行榜 ----------------
-       纯 localStorage，不发任何网络请求，断网可用。
-       每局结束（无路可走 或 主动结算）记录一次，
-       最多保留 LB_MAX 条，分数降序。
+    /* ---------------- 战绩记录 ----------------
+       本机战绩存 localStorage（断网可用、最多 LB_MAX 条），
+       同时把「个人最高分」提交到全服排行榜（api/leaderboard.js）。
+       后端不可用时榜单自动退回本机数据，不会报错打断游戏。
        ------------------------------------------------ */
     var LB_KEY = 'sm_2048_runs';
     var LB_MAX = 12;
+    // 'global' = 全服榜；'mine' = 本机战绩
+    var lbTab = 'global';
+    var lbGlobal = null;      // 最近一次拿到的全服榜单
+    var lbLoading = false;
+    var lbError = '';
+    var lbMyRank = 0;
     // 桌面右侧有空间，榜单默认展开；窄屏收起，避免把棋盘挤出首屏
     var lbOpen = typeof window.matchMedia === 'function'
       ? window.matchMedia('(min-width: 700px)').matches
@@ -18094,7 +18100,50 @@ if ('serviceWorker' in navigator) {
         bestScore = list[0].score;
         try { localStorage.setItem('sm_2048_best', String(bestScore)); } catch (e) {}
       }
+      submitRun();
       return rank;
+    }
+
+    // 异步上传到全服榜：不阻塞结算，失败就静默保留本机战绩
+    function submitRun() {
+      if (!window.AppLeaderboard) return;
+      lbLoading = true;
+      window.AppLeaderboard.submit({
+        score: score, maxTile: maxTile, moves: moves, merges: merges
+      }).then(function (res) {
+        lbLoading = false;
+        if (res && res.ok) {
+          lbGlobal = { board: res.board || [], total: res.total || 0, online: !!res.online };
+          lbMyRank = res.rank || 0;
+          lbError = '';
+        } else {
+          lbError = (res && res.error) || '提交失败';
+        }
+        if (!destroyed) renderUI();
+      });
+    }
+
+    // 拉取全服榜（打开榜单时触发一次）
+    function loadGlobal(force) {
+      if (!window.AppLeaderboard || lbLoading) return;
+      lbLoading = true;
+      lbError = '';
+      renderUI();
+      window.AppLeaderboard.getBoard(50, force).then(function (res) {
+        lbLoading = false;
+        lbGlobal = {
+          board: (res && res.board) || [],
+          total: (res && res.total) || 0,
+          online: !!(res && res.online)
+        };
+        if (res && res.offline) lbError = '网络不可用，显示的是上次结果';
+        if (window.AppProfile) {
+          var me = window.AppProfile.get();
+          var mine = (lbGlobal.board || []).filter(function (r) { return r.id === me.id; })[0];
+          if (mine) lbMyRank = (lbGlobal.board.indexOf(mine) + 1);
+        }
+        if (!destroyed) renderUI();
+      });
     }
 
     function fmtDay(ts) {
@@ -18103,35 +18152,98 @@ if ('serviceWorker' in navigator) {
       return (d.getMonth() + 1) + '/' + d.getDate();
     }
 
+    function esc(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    }
+
+    // 全服榜：其他玩家 + 自己，按最高分降序
+    function globalRowsHTML() {
+      var me = window.AppProfile ? window.AppProfile.get() : { id: '', name: '', avatar: '🙂' };
+      var board = (lbGlobal && lbGlobal.board) || [];
+
+      if (lbLoading && !board.length) {
+        return '<div class="g2048-lb-empty">正在连接全服排行榜…</div>';
+      }
+      if (!board.length) {
+        return '<div class="g2048-lb-empty">全服榜还没有战绩，打完一局就能上榜' +
+          (lbError ? '<br><span class="g2048-lb-err">' + esc(lbError) + '</span>' : '') + '</div>';
+      }
+
+      var html = '';
+      for (var i = 0; i < board.length; i++) {
+        var r = board[i];
+        var isMe = r.id === me.id;
+        var cls = 'g2048-lb-row' + (i === 0 ? ' top' : '') + (isMe ? ' me' : '');
+        html += '<div class="' + cls + '">' +
+          '<span class="g2048-lb-rank">' + (i === 0 ? '👑' : (i + 1)) + '</span>' +
+          '<span class="g2048-lb-ava">' + esc(r.avatar || '🙂') + '</span>' +
+          '<span class="g2048-lb-name">' + esc(r.name || '匿名玩家') +
+          (isMe ? '<i class="g2048-lb-me">我</i>' : '') + '</span>' +
+          '<span class="g2048-lb-score">' + (r.score || 0) + '</span>' +
+          '<span class="g2048-lb-tile">' + (r.maxTile || 0) + '</span>' +
+          '</div>';
+      }
+      if (lbError) html += '<div class="g2048-lb-err">' + esc(lbError) + '</div>';
+      return html;
+    }
+
+    // 本机战绩：保留原来的完整明细
+    function mineRowsHTML() {
+      var runs = sortRuns(loadRuns());
+      if (!runs.length) return '<div class="g2048-lb-empty">还没有战绩，先来一局吧</div>';
+      var rows = '';
+      for (var i = 0; i < runs.length; i++) {
+        var rr = runs[i];
+        var cls = 'g2048-lb-row' + (i === 0 ? ' top' : '');
+        rows += '<div class="' + cls + '">' +
+          '<span class="g2048-lb-rank">' + (i === 0 ? '👑' : (i + 1)) + '</span>' +
+          '<span class="g2048-lb-score">' + rr.score + '</span>' +
+          '<span class="g2048-lb-tile">' + rr.maxTile + '</span>' +
+          '<span class="g2048-lb-role">' + (ROLE_MAP[rr.maxTile] || '高阶') + '</span>' +
+          '<span class="g2048-lb-moves">' + rr.moves + ' 步</span>' +
+          '<span class="g2048-lb-date">' + fmtDay(rr.at) + '</span>' +
+          '</div>';
+      }
+      return rows;
+    }
+
     function leaderboardHTML() {
       var runs = sortRuns(loadRuns());
       var best = runs.length ? runs[0].score : 0;
+      var globalBest = (lbGlobal && lbGlobal.board && lbGlobal.board.length) ? lbGlobal.board[0].score : 0;
+
       var head = '<button class="g2048-lb-toggle" id="btn2048Lb" aria-expanded="' + (lbOpen ? 'true' : 'false') + '">' +
-        (lbOpen ? '▼' : '▶') + ' 我的战绩' +
-        (runs.length ? ' · 共 ' + runs.length + ' 局 · 最高 ' + best + ' 分' : ' · 暂无记录') +
+        (lbOpen ? '▼' : '▶') + ' 排行榜' +
+        (lbTab === 'global'
+          ? (globalBest ? ' · 全服最高 ' + globalBest + ' 分' : ' · 全服榜')
+          : (runs.length ? ' · 共 ' + runs.length + ' 局 · 最高 ' + best + ' 分' : ' · 暂无记录')) +
         '</button>';
       if (!lbOpen) return head;
 
-      var rows;
-      if (!runs.length) {
-        rows = '<div class="g2048-lb-empty">还没有战绩，先来一局吧</div>';
+      var tabs = '<div class="g2048-lb-tabs">' +
+        '<button class="g2048-lb-tab' + (lbTab === 'global' ? ' active' : '') + '" data-lb-tab="global">🌍 全服榜</button>' +
+        '<button class="g2048-lb-tab' + (lbTab === 'mine' ? ' active' : '') + '" data-lb-tab="mine">📁 我的战绩</button>' +
+        '</div>';
+
+      var body;
+      if (lbTab === 'global') {
+        var me = window.AppProfile ? window.AppProfile.get() : null;
+        var myName = me ? (me.name || '匿名玩家') : '匿名玩家';
+        var myBest = runs.length ? best : 0;
+        body = '<div class="g2048-lb-me-card">' +
+          '<span class="g2048-lb-ava">' + esc(me ? me.avatar : '🙂') + '</span>' +
+          '<span class="g2048-lb-me-name">' + esc(myName) + '</span>' +
+          '<span class="g2048-lb-me-rank">' + (lbMyRank ? '全服第 ' + lbMyRank + ' 名' : '本机最高 ' + myBest + ' 分') + '</span>' +
+          '<button class="g2048-lb-edit" id="btn2048EditProfile">设置</button>' +
+          '</div>' +
+          '<div class="g2048-lb">' + globalRowsHTML() + '</div>';
       } else {
-        rows = '';
-        for (var i = 0; i < runs.length; i++) {
-          var rr = runs[i];
-          var cls = 'g2048-lb-row' + (i === 0 ? ' top' : '');
-          rows += '<div class="' + cls + '">' +
-            '<span class="g2048-lb-rank">' + (i === 0 ? '👑' : (i + 1)) + '</span>' +
-            '<span class="g2048-lb-score">' + rr.score + '</span>' +
-            '<span class="g2048-lb-tile">' + rr.maxTile + '</span>' +
-            '<span class="g2048-lb-role">' + (ROLE_MAP[rr.maxTile] || '高阶') + '</span>' +
-            '<span class="g2048-lb-moves">' + rr.moves + ' 步</span>' +
-            '<span class="g2048-lb-date">' + fmtDay(rr.at) + '</span>' +
-            '</div>';
-        }
+        body = '<div class="g2048-lb">' + mineRowsHTML() + '</div>';
       }
-      return '<div class="g2048-lb-wrap">' + head +
-        (lbOpen ? '<div class="g2048-lb">' + rows + '</div>' : '') + '</div>';
+
+      return '<div class="g2048-lb-wrap">' + head + tabs + body + '</div>';
     }
 
     var ROLE_MAP = {
@@ -18452,7 +18564,26 @@ if ('serviceWorker' in navigator) {
       if (finishBtn) finishBtn.onclick = finish;
 
       var lbBtn = root.querySelector('#btn2048Lb');
-      if (lbBtn) lbBtn.onclick = function () { lbOpen = !lbOpen; renderUI(); };
+      if (lbBtn) lbBtn.onclick = function () {
+        lbOpen = !lbOpen;
+        renderUI();
+        // 展开全服榜时才拉数据，避免每局都打网络
+        if (lbOpen && lbTab === 'global' && !lbGlobal) loadGlobal(false);
+      };
+
+      root.querySelectorAll('[data-lb-tab]').forEach(function (b) {
+        b.onclick = function () {
+          if (lbTab === b.getAttribute('data-lb-tab')) return;
+          lbTab = b.getAttribute('data-lb-tab');
+          renderUI();
+          if (lbTab === 'global') loadGlobal(false);
+        };
+      });
+
+      var editBtn = root.querySelector('#btn2048EditProfile');
+      if (editBtn) editBtn.onclick = function () {
+        if (window.AppProfile) window.AppProfile.open();
+      };
 
       var certBtn = el.querySelector('#btn2048Cert');
       if (certBtn) certBtn.onclick = finish;
@@ -18525,6 +18656,8 @@ if ('serviceWorker' in navigator) {
     spawnTile();
     checkMax();
     renderUI();
+    // 桌面端榜单默认展开，进游戏就直接拉一次全服数据
+    if (lbOpen && lbTab === 'global') loadGlobal(false);
 
     return {
       destroy: function () {
@@ -30251,6 +30384,328 @@ if ('serviceWorker' in navigator) {
 })();
 
 ;
+/* === js/modules/profile.js === */
+/* =========================================================
+   玩家身份系统 (Player Profile)
+   右上角头像入口 + 昵称设置，供全服排行榜跨玩家比较
+   ---------------------------------------------------------
+   数据只存本机 localStorage，不上传任何个人信息；
+   排行榜只用到随机生成的 id、昵称、头像 emoji。
+   ========================================================= */
+
+(function () {
+  'use strict';
+
+  const KEY = 'juice_profile_v1';
+
+  // 16 个内置头像，够用且不用上传图片
+  const AVATARS = ['🙂', '😎', '🦊', '🐼', '🐸', '🐧', '🦄', '🐙',
+    '🍋', '🍉', '🥑', '🧋', '🌙', '⚡', '🔥', '👾'];
+
+  const DEFAULTS = { id: '', name: '', avatar: '🙂' };
+
+  let listeners = [];
+  let modalEl = null;
+
+  function randomId() {
+    const alphabet = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let out = '';
+    try {
+      const buf = new Uint8Array(16);
+      crypto.getRandomValues(buf);
+      for (let i = 0; i < buf.length; i++) out += alphabet[buf[i] % alphabet.length];
+    } catch (e) {
+      for (let i = 0; i < 16; i++) out += alphabet[Math.floor(Math.random() * alphabet.length)];
+    }
+    return out;
+  }
+
+  function read() {
+    let p = null;
+    try { p = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { p = null; }
+    if (!p || typeof p !== 'object') p = {};
+    if (!/^[A-Za-z0-9_-]{8,64}$/.test(p.id || '')) p.id = randomId();
+    p.name = typeof p.name === 'string' ? p.name : '';
+    p.avatar = AVATARS.indexOf(p.avatar) >= 0 ? p.avatar : DEFAULTS.avatar;
+    return p;
+  }
+
+  function write(p) {
+    try { localStorage.setItem(KEY, JSON.stringify(p)); } catch (e) {}
+    listeners.forEach(function (fn) {
+      try { fn(p); } catch (e) {}
+    });
+    syncHeader();
+  }
+
+  function get() {
+    const p = read();
+    // 首次访问就把 id 固化下来，避免每次刷新都换一个身份
+    try {
+      if (!localStorage.getItem(KEY)) localStorage.setItem(KEY, JSON.stringify(p));
+    } catch (e) {}
+    return p;
+  }
+
+  function displayName(p) {
+    return (p && p.name) ? p.name : '匿名玩家';
+  }
+
+  /* ---------------- 顶栏入口 ---------------- */
+
+  function syncHeader() {
+    const btn = document.getElementById('globalBtnProfile');
+    if (!btn) return;
+    const p = get();
+    const av = btn.querySelector('.gp-avatar');
+    if (av) av.textContent = p.avatar;
+    btn.title = p.name ? ('当前玩家：' + p.name) : '设置头像和昵称';
+    btn.classList.toggle('is-set', !!p.name);
+  }
+
+  /* ---------------- 设置弹窗 ---------------- */
+
+  function ensureModal() {
+    if (modalEl) return modalEl;
+    modalEl = document.createElement('div');
+    modalEl.className = 'gp-modal';
+    modalEl.id = 'modalProfile';
+    modalEl.setAttribute('aria-hidden', 'true');
+    modalEl.innerHTML =
+      '<div class="gp-backdrop" data-gp-close></div>' +
+      '<div class="gp-dialog" role="dialog" aria-modal="true" aria-label="设置玩家头像与昵称">' +
+      '<div class="gp-head">' +
+      '<div><h3>玩家身份</h3><p>设好头像昵称，就能和全服玩家一起比 2048</p></div>' +
+      '<button class="gp-close" type="button" data-gp-close aria-label="关闭">✕</button>' +
+      '</div>' +
+      '<div class="gp-body">' +
+      '<div class="gp-preview"><span class="gp-preview-avatar" id="gpPreviewAvatar">🙂</span>' +
+      '<div class="gp-preview-info"><b id="gpPreviewName">匿名玩家</b><span>全服排行榜上显示的名字</span></div></div>' +
+      '<div class="gp-label">选择头像</div>' +
+      '<div class="gp-avatars" id="gpAvatars"></div>' +
+      '<div class="gp-label">昵称 <span>最多 16 个字</span></div>' +
+      '<input class="gp-input" id="gpNameInput" type="text" maxlength="16" placeholder="给自己起个名字" autocomplete="off">' +
+      '<div class="gp-tip">昵称和头像只保存在本机，排行榜只上传随机 ID 与这两项，不含任何设备信息。</div>' +
+      '</div>' +
+      '<div class="gp-foot">' +
+      '<button class="gp-btn ghost" type="button" data-gp-close>取消</button>' +
+      '<button class="gp-btn primary" type="button" id="gpSave">保存</button>' +
+      '</div>' +
+      '</div>';
+    document.body.appendChild(modalEl);
+
+    const avBox = modalEl.querySelector('#gpAvatars');
+    AVATARS.forEach(function (a) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'gp-avatar-opt';
+      b.dataset.avatar = a;
+      b.textContent = a;
+      b.addEventListener('click', function () { pickAvatar(a); });
+      avBox.appendChild(b);
+    });
+
+    modalEl.querySelectorAll('[data-gp-close]').forEach(function (n) {
+      n.addEventListener('click', close);
+    });
+
+    const input = modalEl.querySelector('#gpNameInput');
+    input.addEventListener('input', function () {
+      modalEl.querySelector('#gpPreviewName').textContent = input.value.trim() || '匿名玩家';
+    });
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); save(); }
+      if (e.key === 'Escape') { e.preventDefault(); close(); }
+    });
+
+    modalEl.querySelector('#gpSave').addEventListener('click', save);
+
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && modalEl.classList.contains('open')) close();
+    });
+
+    return modalEl;
+  }
+
+  let draft = { avatar: '🙂' };
+
+  function pickAvatar(a) {
+    draft.avatar = a;
+    const m = ensureModal();
+    m.querySelector('#gpPreviewAvatar').textContent = a;
+    m.querySelectorAll('.gp-avatar-opt').forEach(function (b) {
+      b.classList.toggle('sel', b.dataset.avatar === a);
+    });
+  }
+
+  function open() {
+    const m = ensureModal();
+    const p = get();
+    draft = { avatar: p.avatar };
+    pickAvatar(p.avatar);
+    const input = m.querySelector('#gpNameInput');
+    input.value = p.name || '';
+    m.querySelector('#gpPreviewName').textContent = p.name || '匿名玩家';
+    m.classList.add('open');
+    m.setAttribute('aria-hidden', 'false');
+    if (window.SFX && window.SFX.tap) window.SFX.tap();
+    setTimeout(function () { try { input.focus(); } catch (e) {} }, 60);
+  }
+
+  function close() {
+    if (!modalEl) return;
+    modalEl.classList.remove('open');
+    modalEl.setAttribute('aria-hidden', 'true');
+  }
+
+  function save() {
+    const m = ensureModal();
+    const input = m.querySelector('#gpNameInput');
+    const p = get();
+    const name = Array.from(String(input.value || '').replace(/[\u0000-\u001F\u007F]/g, '').trim()).slice(0, 16).join('');
+    p.name = name;
+    p.avatar = draft.avatar || '🙂';
+    write(p);
+    close();
+    if (window.SFX && window.SFX.ok) window.SFX.ok();
+  }
+
+  function onChange(fn) {
+    if (typeof fn === 'function') listeners.push(fn);
+  }
+
+  function init() {
+    get();
+    syncHeader();
+    const btn = document.getElementById('globalBtnProfile');
+    if (btn) {
+      btn.addEventListener('click', function () {
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        open();
+      });
+    }
+  }
+
+  window.AppProfile = {
+    init: init,
+    get: get,
+    set: function (patch) {
+      const p = get();
+      if (patch && typeof patch.name === 'string') p.name = patch.name;
+      if (patch && patch.avatar) p.avatar = patch.avatar;
+      write(p);
+      return p;
+    },
+    displayName: displayName,
+    open: open,
+    close: close,
+    onChange: onChange,
+    AVATARS: AVATARS
+  };
+})();
+
+;
+/* === js/modules/leaderboard.js === */
+/* =========================================================
+   2048 全服排行榜客户端 (Online Leaderboard Client)
+   与 api/leaderboard.js 对接；后端不可用时自动退回本机战绩
+   ========================================================= */
+
+(function () {
+  'use strict';
+
+  const ENDPOINT = '/api/leaderboard';
+  const TIMEOUT = 8000;
+
+  // 最近一次成功拉到的榜单，用于断网时仍能展示上一份快照
+  let cache = { board: [], total: 0, online: false, at: 0 };
+  let pending = null;
+
+  function withTimeout(promise, ms) {
+    return new Promise(function (resolve, reject) {
+      const t = setTimeout(function () { reject(new Error('timeout')); }, ms);
+      promise.then(function (v) { clearTimeout(t); resolve(v); },
+        function (e) { clearTimeout(t); reject(e); });
+    });
+  }
+
+  function available() {
+    return typeof fetch === 'function';
+  }
+
+  async function getBoard(limit, force) {
+    if (!available()) return Object.assign({}, cache, { offline: true });
+    // 60 秒内复用结果，避免每次渲染都打网络
+    if (!force && cache.at && Date.now() - cache.at < 60000) return cache;
+    if (pending) return pending;
+
+    pending = withTimeout(fetch(ENDPOINT + '?limit=' + (limit || 50), {
+      headers: { Accept: 'application/json' }
+    }), TIMEOUT)
+      .then(function (res) {
+        return res.json().then(function (data) {
+          if (!res.ok || !data || !data.ok) {
+            throw new Error((data && data.error) || ('HTTP ' + res.status));
+          }
+          cache = {
+            board: Array.isArray(data.board) ? data.board : [],
+            total: data.total || 0,
+            online: !!data.online,
+            at: Date.now()
+          };
+          return cache;
+        });
+      })
+      .catch(function (err) {
+        return Object.assign({}, cache, { offline: true, error: err && err.message });
+      })
+      .then(function (out) { pending = null; return out; });
+
+    return pending;
+  }
+
+  async function submit(run) {
+    if (!available()) return { ok: false, offline: true, error: '当前浏览器不支持网络请求' };
+    const profile = window.AppProfile ? window.AppProfile.get() : null;
+    if (!profile) return { ok: false, error: '玩家身份未初始化' };
+
+    const payload = {
+      id: profile.id,
+      name: profile.name || '匿名玩家',
+      avatar: profile.avatar || '🙂',
+      score: run.score,
+      maxTile: run.maxTile,
+      moves: run.moves,
+      merges: run.merges
+    };
+
+    try {
+      const res = await withTimeout(fetch(ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify(payload)
+      }), TIMEOUT);
+      const data = await res.json();
+      if (!res.ok || !data || !data.ok) {
+        return { ok: false, error: (data && data.error) || ('HTTP ' + res.status) };
+      }
+      if (Array.isArray(data.board)) {
+        cache = { board: data.board, total: data.total || 0, online: !!data.online, at: Date.now() };
+      }
+      return data;
+    } catch (err) {
+      return { ok: false, offline: true, error: err && err.message };
+    }
+  }
+
+  window.AppLeaderboard = {
+    getBoard: getBoard,
+    submit: submit,
+    peek: function () { return cache; }
+  };
+})();
+
+;
 /* === js/modules/history.js === */
 /* =========================================================
    全所综合历史档案系统 (Universal History Archive System)
@@ -30849,6 +31304,9 @@ if ('serviceWorker' in navigator) {
   }
 
   function init() {
+    // 玩家身份（右上角头像 / 昵称），与路由无关，先初始化
+    if (window.AppProfile) window.AppProfile.init();
+
     // 绑定左上角模块胶囊标签点击事件
     document.querySelectorAll('.nav-tab').forEach((tab) => {
       tab.addEventListener('click', () => {

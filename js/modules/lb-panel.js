@@ -60,7 +60,7 @@
   /* ---------------- 面板 ---------------- */
 
   function create(cfg) {
-    var game = cfg.game;
+    var game = cfg.game;                    // 可被 setGame 改写（扫雷按难度分榜）
     var higher = cfg.higher !== false;      // 默认越高越好
     var unit = cfg.unit || '';
     var idp = cfg.idPrefix || game;
@@ -298,6 +298,21 @@
       }
     }
 
+    /* 切换榜单归属（扫雷换难度时用）。
+       换了 game 就得丢掉上一档的缓存和名次，否则会显示另一档的成绩。
+       storeKey 一并切换：本机战绩也按难度分开存。 */
+    function setGame(next, nextStoreKey) {
+      if (nextStoreKey) storeKey = nextStoreKey;
+      if (!next || next === game) { render(); return; }
+      game = next;
+      global = null;
+      myRank = 0;
+      error = '';
+      loading = false;
+      render();
+      if (open && tab === 'global') loadGlobal(true);
+    }
+
     function destroy() {
       destroyed = true;
       host = null;
@@ -308,6 +323,7 @@
       submit: submit,
       destroy: destroy,
       bestLocal: bestLocal,
+      setGame: setGame,
       refresh: function () { render(); }
     };
   }

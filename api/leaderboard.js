@@ -20,7 +20,21 @@ const GAMES = {
   '2048': { z: 'j2048:z', p: 'j2048:p', higher: true },
   reaction: { z: 'jreaction:z', p: 'jreaction:p', higher: false },
   color: { z: 'jcolor:z', p: 'jcolor:p', higher: true },
-  minesweeper: { z: 'jmine:z', p: 'jmine:p', higher: false }
+  // 扫雷三档难度各排各的：跨难度比时间没有意义，
+  // 初级 30 秒和高级 300 秒不是同一种成绩。
+  mine_easy: { z: 'jmine_e:z', p: 'jmine_e:p', higher: false },
+  mine_medium: { z: 'jmine_m:z', p: 'jmine_m:p', higher: false },
+  mine_hard: { z: 'jmine_h:z', p: 'jmine_h:p', higher: false },
+  // 旧版三档共用一个榜。保留只为兼容尚未刷新的客户端和后台删除接口，
+  // 前端已经不再写这里。
+  minesweeper: { z: 'jmine:z', p: 'jmine:p', higher: false, legacy: true }
+};
+
+/* 三个扫雷榜与难度的对应关系，服务端据此校验客户端没有串榜 */
+const MINE_LEVELS = {
+  mine_easy: 'easy',
+  mine_medium: 'medium',
+  mine_hard: 'hard'
 };
 
 const BOARD_CAP = 1000;          // 每个榜单只保留前 1000 名
@@ -196,19 +210,17 @@ function parseRun(game, body) {
     return { score: level, extra: {} };
   }
 
-  if (game === 'minesweeper') {
-    // 排名值是「难度权重 + 用时」，越小越好。
+  if (game === 'minesweeper' || MINE_LEVELS[game]) {
+    // 排名值就是用时（秒），越小越好。
     // 用时下限 1 秒：再快基本是脚本；上限 2 小时，覆盖高级慢局。
-    const cost = intIn(body.score, 1, 7200);
-    const sec = intIn(body.sec, 0, 7200);
+    const sec = intIn(body.score, 1, 7200);
     const lv = String(body.lv || '');
-    if (cost == null) return { error: '成绩不合法' };
-    if (sec == null) return { error: '用时不合法' };
+    if (sec == null) return { error: '成绩不合法' };
     if (['easy', 'medium', 'hard'].indexOf(lv) < 0) return { error: '难度不合法' };
-    // 权重由服务端说了算，防止客户端伪造低权重刷榜
-    const weight = { easy: 0, medium: 180, hard: 420 }[lv];
-    if (cost !== weight + sec) return { error: '成绩与难度不匹配' };
-    return { score: cost, extra: { sec, lv } };
+    // 分榜后必须对上号：往初级榜塞高级成绩直接拒绝。
+    // 旧版 minesweeper 榜不校验，免得老客户端提交失败。
+    if (MINE_LEVELS[game] && MINE_LEVELS[game] !== lv) return { error: '成绩与难度不匹配' };
+    return { score: sec, extra: { sec, lv } };
   }
 
   return { error: '未知游戏' };

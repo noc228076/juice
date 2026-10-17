@@ -18633,13 +18633,12 @@ if ('serviceWorker' in navigator) {
     function later(fn, ms) { var id = setTimeout(function () { if (!destroyed) fn(); }, ms); timers.push(id); return id; }
     function clearTimers() { timers.forEach(clearTimeout); timers = []; }
 
-    /* 三档难度。排名用「难度权重 + 用时」：
-       先把难度折算成用时，再按总时间升序——这样高级 300 秒
-       会排在初级 60 秒前面，避免大家都去刷最简单的那一档。 */
+    /* 三档难度。三档各有一个独立榜单，排名就是通关用时（秒），
+       所以这里不再需要跨难度折算的权重。 */
     var LEVELS = {
-      easy:   { key: 'easy',   name: '初级', cols: 9,  rows: 9,  mines: 10, weight: 0 },
-      medium: { key: 'medium', name: '中级', cols: 16, rows: 16, mines: 40, weight: 180 },
-      hard:   { key: 'hard',   name: '高级', cols: 30, rows: 16, mines: 99, weight: 420 }
+      easy:   { key: 'easy',   name: '初级', cols: 9,  rows: 9,  mines: 10 },
+      medium: { key: 'medium', name: '中级', cols: 16, rows: 16, mines: 40 },
+      hard:   { key: 'hard',   name: '高级', cols: 30, rows: 16, mines: 99 }
     };
     var level = LEVELS.easy;
 
@@ -18657,22 +18656,26 @@ if ('serviceWorker' in navigator) {
     var onResize = null;
 
     /* ---------------- 排行榜 ----------------
-       扫雷按「折算用时」排名，越小越好（higher:false）。
-       榜单上显示实际用时与难度，本机战绩同样带难度。 */
+       三档难度各排各的：跨难度比时间没有意义，初级 30 秒和
+       高级 300 秒不是同一种成绩。榜单跟着当前难度切换（setGame）。
+       本机战绩按难度分文件存，切档时不会看到别的档的成绩。 */
+    function storeKeyFor(lv) { return 'sm_minesweeper_runs_' + lv; }
+
     var lbPanel = window.AppLbPanel ? window.AppLbPanel.create({
-      game: 'minesweeper',
-      storeKey: 'sm_minesweeper_runs',
+      game: 'mine_easy',
+      storeKey: storeKeyFor('easy'),
       higher: false,
       idPrefix: 'lbmine',
       formatScore: function (v) { return v + ' 秒'; },
       describe: function (run) {
-        return { score: run.cost, extra: { sec: run.sec, lv: run.lv } };
+        return { score: run.sec, extra: { sec: run.sec, lv: run.lv } };
       },
       localCols: function (r) {
+        // 从旧版合并榜迁移过来的记录没有 mines 字段，按难度补上
+        var mines = r.mines || (LEVELS[r.lv] ? LEVELS[r.lv].mines : 0);
         return [
           '<span class="lb-score">' + (r.sec || 0) + '<small> 秒</small></span>',
-          '<span class="lb-tile">' + levelName(r.lv) + '</span>',
-          '<span class="lb-meta">' + (r.mines || 0) + ' 雷</span>',
+          '<span class="lb-meta">' + mines + ' 雷</span>',
           '<span class="lb-date">' + window.AppLbPanel.fmtDay(r.at) + '</span>'
         ];
       },
@@ -18681,11 +18684,16 @@ if ('serviceWorker' in navigator) {
           '<span class="lb-ava">' + window.AppLbPanel.esc(r.avatar || '🙂') + '</span>',
           '<span class="lb-name">' + window.AppLbPanel.esc(r.name || '匿名玩家') +
             (r.isMe ? '<i class="lb-me">我</i>' : '') + '</span>',
-          '<span class="lb-score">' + ((r.extra && r.extra.sec) || 0) + '<small> 秒</small></span>',
-          '<span class="lb-tile">' + levelName(r.extra && r.extra.lv) + '</span>'
+          '<span class="lb-score">' + ((r.extra && r.extra.sec) || 0) + '<small> 秒</small></span>'
         ];
       }
     }) : null;
+
+    // 难度切换时同步榜单归属与本机战绩文件
+    function syncLbLevel() {
+      if (!lbPanel) return;
+      lbPanel.setGame('mine_' + level.key, storeKeyFor(level.key));
+    }
 
     function levelName(key) {
       for (var k in LEVELS) {
@@ -18839,11 +18847,11 @@ if ('serviceWorker' in navigator) {
       else if (window.SFX && window.SFX.wrong) window.SFX.wrong();
 
       if (won) {
-        // 用时向上取整到 1 秒：服务端下限是 1，否则秒通关会被判成不合法成绩
-        var cost = level.weight + Math.max(1, elapsed);
+        // 用时下限 1 秒：服务端也是这个下限，否则秒通关会被判成不合法成绩
+        var sec = Math.max(1, elapsed);
         if (lbPanel) {
           lbPanel.submit({
-            cost: cost, sec: Math.max(1, elapsed), lv: level.key,
+            sec: sec, lv: level.key,
             mines: level.mines, rows: level.rows, cols: level.cols
           });
         }
@@ -19035,14 +19043,39 @@ if ('serviceWorker' in navigator) {
           if (k === level.key && !over && !started) return;
           if (window.SFX && window.SFX.tap) window.SFX.tap();
           reset(k);
+          syncLbLevel();     // 换难度 = 换榜单，否则会看到另一档的成绩
           paint();
         };
       });
     }
 
+    /* 老版本把三档混存在 sm_minesweeper_runs 里。
+       分榜后按 lv 拆到各自的文件，拆完删掉旧键，避免重复迁移。 */
+    function migrateLocal() {
+      var OLD = 'sm_minesweeper_runs';
+      var raw = null;
+      try { raw = localStorage.getItem(OLD); } catch (e) { return; }
+      if (!raw) return;
+      var list = [];
+      try { list = JSON.parse(raw) || []; } catch (e) { list = []; }
+      if (Array.isArray(list)) {
+        list.forEach(function (r) {
+          if (!r || !r.lv || ['easy', 'medium', 'hard'].indexOf(r.lv) < 0) return;
+          var key = storeKeyFor(r.lv);
+          var bucket = [];
+          try { bucket = JSON.parse(localStorage.getItem(key) || '[]') || []; } catch (e) { bucket = []; }
+          bucket.push(r);
+          try { localStorage.setItem(key, JSON.stringify(bucket.slice(0, 12))); } catch (e) {}
+        });
+      }
+      try { localStorage.removeItem(OLD); } catch (e) {}
+    }
+
     /* ---------------- 启动 ---------------- */
 
+    migrateLocal();
     reset('easy');
+    syncLbLevel();
     paint();
     mountLbHost();
 
@@ -31224,7 +31257,7 @@ if ('serviceWorker' in navigator) {
   /* ---------------- 面板 ---------------- */
 
   function create(cfg) {
-    var game = cfg.game;
+    var game = cfg.game;                    // 可被 setGame 改写（扫雷按难度分榜）
     var higher = cfg.higher !== false;      // 默认越高越好
     var unit = cfg.unit || '';
     var idp = cfg.idPrefix || game;
@@ -31462,6 +31495,21 @@ if ('serviceWorker' in navigator) {
       }
     }
 
+    /* 切换榜单归属（扫雷换难度时用）。
+       换了 game 就得丢掉上一档的缓存和名次，否则会显示另一档的成绩。
+       storeKey 一并切换：本机战绩也按难度分开存。 */
+    function setGame(next, nextStoreKey) {
+      if (nextStoreKey) storeKey = nextStoreKey;
+      if (!next || next === game) { render(); return; }
+      game = next;
+      global = null;
+      myRank = 0;
+      error = '';
+      loading = false;
+      render();
+      if (open && tab === 'global') loadGlobal(true);
+    }
+
     function destroy() {
       destroyed = true;
       host = null;
@@ -31472,6 +31520,7 @@ if ('serviceWorker' in navigator) {
       submit: submit,
       destroy: destroy,
       bestLocal: bestLocal,
+      setGame: setGame,
       refresh: function () { render(); }
     };
   }

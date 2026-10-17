@@ -41,6 +41,7 @@ const jsFiles = [
   'js/modules/scratch.js',
   'js/modules/profile.js',
   'js/modules/leaderboard.js',
+  'js/modules/lb-panel.js',
   'js/modules/history.js',
   'js/modules/router.js'
 ];

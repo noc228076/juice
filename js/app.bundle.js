@@ -17550,6 +17550,56 @@ if ('serviceWorker' in navigator) {
 
     var S1 = [], S2 = { correct: 0, rts: [], traps: 0 }, S3 = { goRts: [], falseHit: 0, trials: [] };
 
+    /* ---------------- 排行榜 ----------------
+       反应速度按「简单反应中位数」排名，毫秒越小越好（higher:false）。
+       全服榜显示毫秒与准度，本机战绩显示三关的关键数字。
+       ------------------------------------------ */
+    var lbPanel = window.AppLbPanel ? window.AppLbPanel.create({
+      game: 'reaction',
+      storeKey: 'sm_reaction_runs',
+      higher: false,
+      idPrefix: 'lbreact',
+      formatScore: function (v) { return v + ' ms'; },
+      describe: function (run) {
+        return { score: run.ms, extra: { acc: run.acc, age: run.age } };
+      },
+      localCols: function (r) {
+        return [
+          '<span class="lb-score">' + (r.score || 0) + '<small> ms</small></span>',
+          '<span class="lb-tile">' + (r.acc || 0) + '/20</span>',
+          '<span class="lb-meta">' + (r.age || '-') + ' 岁</span>',
+          '<span class="lb-date">' + window.AppLbPanel.fmtDay(r.at) + '</span>'
+        ];
+      },
+      globalCols: function (r) {
+        return [
+          '<span class="lb-ava">' + window.AppLbPanel.esc(r.avatar || '🙂') + '</span>',
+          '<span class="lb-name">' + window.AppLbPanel.esc(r.name || '匿名玩家') +
+            (r.isMe ? '<i class="lb-me">我</i>' : '') + '</span>',
+          '<span class="lb-score">' + (r.score || 0) + '<small> ms</small></span>',
+          '<span class="lb-tile">' + ((r.extra && r.extra.acc) || 0) + '/20</span>'
+        ];
+      }
+    }) : null;
+
+    function mountLbHost() {
+      if (!lbPanel) return;
+      var layout = root.querySelector('.sm-game-layout');
+      if (!layout) {
+        layout = document.createElement('div');
+        layout.className = 'sm-game-layout';
+        root.appendChild(layout);
+      }
+      if (el.parentNode !== layout) layout.appendChild(el);
+      var host = layout.querySelector('.lb-host');
+      if (!host) {
+        host = document.createElement('div');
+        host.className = 'lb-host';
+        layout.appendChild(host);
+      }
+      lbPanel.mount(host);
+    }
+
     /* ---------- 关卡说明 ---------- */
     function stageIntro(n) {
       clearTimers();
@@ -17805,6 +17855,8 @@ if ('serviceWorker' in navigator) {
           ? '红色对你来说只是个建议。'
           : '刹车片状态良好,日常够用。';
 
+      if (lbPanel) lbPanel.submit({ ms: m1, acc: S2.correct, age: age });
+
       onFinish({
         icon: ricon, name: rank, tag: '反应年龄 ' + age + ' 岁 · 三关综合判定',
         text: '简单反应中位数 ' + m1 + ' ms' + (age === 45 ? ',带着一点疲劳的痕迹——该睡个好觉了。' : age === 60 ? ',急事先预约,从容不是罪。' : ',手速在线。') +
@@ -17821,7 +17873,14 @@ if ('serviceWorker' in navigator) {
     }
 
     stageIntro(1);
-    return { destroy: function () { destroyed = true; clearTimers(); } };
+    mountLbHost();
+    return {
+      destroy: function () {
+        destroyed = true;
+        clearTimers();
+        if (lbPanel) lbPanel.destroy();
+      }
+    };
   };
 
   /* ==================================================================
@@ -17836,6 +17895,55 @@ if ('serviceWorker' in navigator) {
 
     var LIVES = 3, LIMIT = 8000;
     var lives, lv, rafId, tStart, dying = false;
+
+    /* ---------------- 排行榜 ----------------
+       色彩按「通过关卡数」排名，越多越好（higher:true）。
+       ------------------------------------------ */
+    var lbPanel = window.AppLbPanel ? window.AppLbPanel.create({
+      game: 'color',
+      storeKey: 'sm_color_runs',
+      higher: true,
+      idPrefix: 'lbcolor',
+      formatScore: function (v) { return v + ' 关'; },
+      describe: function (run) {
+        return { score: run.level, extra: {} };
+      },
+      localCols: function (r) {
+        return [
+          '<span class="lb-score">' + (r.score || 0) + '<small> 关</small></span>',
+          '<span class="lb-tile">' + (r.gridN || 2) + '×' + (r.gridN || 2) + '</span>',
+          '<span class="lb-meta">' + (r.left || 0) + ' 命</span>',
+          '<span class="lb-date">' + window.AppLbPanel.fmtDay(r.at) + '</span>'
+        ];
+      },
+      globalCols: function (r) {
+        return [
+          '<span class="lb-ava">' + window.AppLbPanel.esc(r.avatar || '🙂') + '</span>',
+          '<span class="lb-name">' + window.AppLbPanel.esc(r.name || '匿名玩家') +
+            (r.isMe ? '<i class="lb-me">我</i>' : '') + '</span>',
+          '<span class="lb-score">' + (r.score || 0) + '<small> 关</small></span>',
+          '<span class="lb-tile">' + (r.at ? window.AppLbPanel.fmtDay(r.at) : '--') + '</span>'
+        ];
+      }
+    }) : null;
+
+    function mountLbHost() {
+      if (!lbPanel) return;
+      var layout = root.querySelector('.sm-game-layout');
+      if (!layout) {
+        layout = document.createElement('div');
+        layout.className = 'sm-game-layout';
+        root.appendChild(layout);
+      }
+      if (el.parentNode !== layout) layout.appendChild(el);
+      var host = layout.querySelector('.lb-host');
+      if (!host) {
+        host = document.createElement('div');
+        host.className = 'lb-host';
+        layout.appendChild(host);
+      }
+      lbPanel.mount(host);
+    }
 
     function gridN(l) { return Math.min(7, 2 + Math.floor((l - 1) / 4)); }
     /* 色差曲线:奇数关动色相,偶数关动明度 */
@@ -17966,6 +18074,11 @@ if ('serviceWorker' in navigator) {
       try { best = parseInt(localStorage.getItem('sm_color_best') || '0', 10) || 0; } catch (e) {}
       if (passed > best) { best = passed; try { localStorage.setItem('sm_color_best', String(best)); } catch (e) {} }
 
+      // 一关没过就别上榜：挂机超时也会走到这里，0 关记录对谁都没意义
+      if (lbPanel && passed > 0) {
+        lbPanel.submit({ level: passed, gridN: gridN(Math.max(1, passed)), left: Math.max(0, lives) });
+      }
+
       onFinish({
         icon: cert.icon, name: cert.name, tag: '通过 ' + passed + ' 关' + (passed >= best && passed > 0 ? ' · 新纪录' : ''),
         text: cert.text,
@@ -17991,12 +18104,14 @@ if ('serviceWorker' in navigator) {
 
     lives = LIVES; lv = 1;
     startLevel();
+    mountLbHost();
     return {
       destroy: function () {
         destroyed = true;
         clearTimers();
         if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
         clearFloatMsgs();
+        if (lbPanel) lbPanel.destroy();
       }
     };
   };
@@ -18025,224 +18140,50 @@ if ('serviceWorker' in navigator) {
     try { bestScore = parseInt(localStorage.getItem('sm_2048_best') || '0', 10) || 0; } catch (e) {}
 
     /* ---------------- 战绩记录 ----------------
-       本机战绩存 localStorage（断网可用、最多 LB_MAX 条），
+       本机战绩存 localStorage（断网可用、最多 12 条），
        同时把「个人最高分」提交到全服排行榜（api/leaderboard.js）。
        后端不可用时榜单自动退回本机数据，不会报错打断游戏。
+       榜单的 DOM 与拉取逻辑在 lb-panel.js 里，三个游戏共用。
        ------------------------------------------------ */
-    var LB_KEY = 'sm_2048_runs';
-    var LB_MAX = 12;
-    // 'global' = 全服榜；'mine' = 本机战绩
-    var lbTab = 'global';
-    var lbGlobal = null;      // 最近一次拿到的全服榜单
-    var lbLoading = false;
-    var lbError = '';
-    var lbMyRank = 0;
-    // 桌面右侧有空间，榜单默认展开；窄屏收起，避免把棋盘挤出首屏
-    var lbOpen = typeof window.matchMedia === 'function'
-      ? window.matchMedia('(min-width: 700px)').matches
-      : false;
     var runRecorded = false;
 
-    function loadRuns() {
-      try {
-        var raw = localStorage.getItem(LB_KEY);
-        if (!raw) return [];
-        var arr = JSON.parse(raw);
-        if (!Array.isArray(arr)) return [];
-        var out = [];
-        for (var i = 0; i < arr.length; i++) {
-          var r = arr[i];
-          if (!r || typeof r.score !== 'number' || !isFinite(r.score)) continue;
-          out.push({
-            score: Math.max(0, Math.round(r.score)),
-            maxTile: Math.max(0, Math.round(+r.maxTile || 0)),
-            moves: Math.max(0, Math.round(+r.moves || 0)),
-            merges: Math.max(0, Math.round(+r.merges || 0)),
-            at: +r.at || 0
-          });
-        }
-        return out;
-      } catch (e) {
-        return [];
+    var lbPanel = window.AppLbPanel ? window.AppLbPanel.create({
+      game: '2048',
+      storeKey: 'sm_2048_runs',
+      higher: true,
+      idPrefix: 'lb2048',
+      formatScore: function (v) { return v + ' 分'; },
+      describe: function (run) {
+        return { score: run.score, extra: { maxTile: run.maxTile, moves: run.moves, merges: run.merges } };
+      },
+      // 本机战绩：分数 / 最高方块 / 步数 / 日期
+      localCols: function (r) {
+        return [
+          '<span class="lb-score">' + (r.score || 0) + '</span>',
+          '<span class="lb-tile">' + (r.maxTile || 0) + '</span>',
+          '<span class="lb-meta">' + (r.moves || 0) + ' 步</span>',
+          '<span class="lb-date">' + window.AppLbPanel.fmtDay(r.at) + '</span>'
+        ];
+      },
+      // 全服榜：头像 / 昵称 / 分数 / 最高方块
+      globalCols: function (r) {
+        return [
+          '<span class="lb-ava">' + window.AppLbPanel.esc(r.avatar || '🙂') + '</span>',
+          '<span class="lb-name">' + window.AppLbPanel.esc(r.name || '匿名玩家') +
+            (r.isMe ? '<i class="lb-me">我</i>' : '') + '</span>',
+          '<span class="lb-score">' + (r.score || 0) + '</span>',
+          '<span class="lb-tile">' + ((r.extra && r.extra.maxTile) || 0) + '</span>'
+        ];
       }
-    }
-
-    function saveRuns(list) {
-      try { localStorage.setItem(LB_KEY, JSON.stringify(list)); } catch (e) {}
-    }
-
-    // 分数降序；同分比最高合成；再同分则步数少者靠前
-    function sortRuns(list) {
-      return list.sort(function (a, b) {
-        if (b.score !== a.score) return b.score - a.score;
-        if (b.maxTile !== a.maxTile) return b.maxTile - a.maxTile;
-        if (a.moves !== b.moves) return a.moves - b.moves;
-        return a.at - b.at;
-      });
-    }
+    }) : null;
 
     // 每局只记一次：游戏结束和主动结算都调用，靠 runRecorded 去重
-    // 返回本局在榜单中的名次（1 起）；被去重时返回当前榜内名次或 0
+    // 返回本局在本机战绩中的名次（1 起）；被去重时返回 0
     function recordRun() {
       if (runRecorded) return 0;
       runRecorded = true;
-      var stamp = Date.now();
-      var list = loadRuns();
-      list.push({ score: score, maxTile: maxTile, moves: moves, merges: merges, at: stamp });
-      list = sortRuns(list);
-      var rank = 0;
-      for (var i = 0; i < list.length; i++) {
-        if (list[i].at === stamp) { rank = i + 1; break; }
-      }
-      saveRuns(list.slice(0, LB_MAX));
-      // 最高分卡片沿用同一个来源，避免两处数字打架
-      if (list.length && list[0].score > bestScore) {
-        bestScore = list[0].score;
-        try { localStorage.setItem('sm_2048_best', String(bestScore)); } catch (e) {}
-      }
-      submitRun();
-      return rank;
-    }
-
-    // 异步上传到全服榜：不阻塞结算，失败就静默保留本机战绩
-    function submitRun() {
-      if (!window.AppLeaderboard) return;
-      lbLoading = true;
-      window.AppLeaderboard.submit({
-        score: score, maxTile: maxTile, moves: moves, merges: merges
-      }).then(function (res) {
-        lbLoading = false;
-        if (res && res.ok) {
-          lbGlobal = { board: res.board || [], total: res.total || 0, online: !!res.online };
-          lbMyRank = res.rank || 0;
-          lbError = '';
-        } else {
-          lbError = (res && res.error) || '提交失败';
-        }
-        if (!destroyed) renderUI();
-      });
-    }
-
-    // 拉取全服榜（打开榜单时触发一次）
-    function loadGlobal(force) {
-      if (!window.AppLeaderboard || lbLoading) return;
-      lbLoading = true;
-      lbError = '';
-      renderUI();
-      window.AppLeaderboard.getBoard(50, force).then(function (res) {
-        lbLoading = false;
-        lbGlobal = {
-          board: (res && res.board) || [],
-          total: (res && res.total) || 0,
-          online: !!(res && res.online)
-        };
-        if (res && res.offline) lbError = '网络不可用，显示的是上次结果';
-        if (window.AppProfile) {
-          var me = window.AppProfile.get();
-          var mine = (lbGlobal.board || []).filter(function (r) { return r.id === me.id; })[0];
-          if (mine) lbMyRank = (lbGlobal.board.indexOf(mine) + 1);
-        }
-        if (!destroyed) renderUI();
-      });
-    }
-
-    function fmtDay(ts) {
-      var d = new Date(ts);
-      if (isNaN(d.getTime())) return '--';
-      return (d.getMonth() + 1) + '/' + d.getDate();
-    }
-
-    function esc(s) {
-      return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
-        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-      });
-    }
-
-    // 全服榜：其他玩家 + 自己，按最高分降序
-    function globalRowsHTML() {
-      var me = window.AppProfile ? window.AppProfile.get() : { id: '', name: '', avatar: '🙂' };
-      var board = (lbGlobal && lbGlobal.board) || [];
-
-      if (lbLoading && !board.length) {
-        return '<div class="g2048-lb-empty">正在连接全服排行榜…</div>';
-      }
-      if (!board.length) {
-        return '<div class="g2048-lb-empty">全服榜还没有战绩，打完一局就能上榜' +
-          (lbError ? '<br><span class="g2048-lb-err">' + esc(lbError) + '</span>' : '') + '</div>';
-      }
-
-      var html = '';
-      for (var i = 0; i < board.length; i++) {
-        var r = board[i];
-        var isMe = r.id === me.id;
-        var cls = 'g2048-lb-row is-global' + (i === 0 ? ' top' : '') + (isMe ? ' me' : '');
-        html += '<div class="' + cls + '">' +
-          '<span class="g2048-lb-rank">' + (i === 0 ? '👑' : (i + 1)) + '</span>' +
-          '<span class="g2048-lb-ava">' + esc(r.avatar || '🙂') + '</span>' +
-          '<span class="g2048-lb-name">' + esc(r.name || '匿名玩家') +
-          (isMe ? '<i class="g2048-lb-me">我</i>' : '') + '</span>' +
-          '<span class="g2048-lb-score">' + (r.score || 0) + '</span>' +
-          '<span class="g2048-lb-tile">' + (r.maxTile || 0) + '</span>' +
-          '</div>';
-      }
-      if (lbError) html += '<div class="g2048-lb-err">' + esc(lbError) + '</div>';
-      return html;
-    }
-
-    // 本机战绩：保留原来的完整明细
-    function mineRowsHTML() {
-      var runs = sortRuns(loadRuns());
-      if (!runs.length) return '<div class="g2048-lb-empty">还没有战绩，先来一局吧</div>';
-      var rows = '';
-      for (var i = 0; i < runs.length; i++) {
-        var rr = runs[i];
-        var cls = 'g2048-lb-row' + (i === 0 ? ' top' : '');
-        rows += '<div class="' + cls + '">' +
-          '<span class="g2048-lb-rank">' + (i === 0 ? '👑' : (i + 1)) + '</span>' +
-          '<span class="g2048-lb-score">' + rr.score + '</span>' +
-          '<span class="g2048-lb-tile">' + rr.maxTile + '</span>' +
-          '<span class="g2048-lb-moves">' + rr.moves + ' 步</span>' +
-          '<span class="g2048-lb-date">' + fmtDay(rr.at) + '</span>' +
-          '</div>';
-      }
-      return rows;
-    }
-
-    function leaderboardHTML() {
-      var runs = sortRuns(loadRuns());
-      var best = runs.length ? runs[0].score : 0;
-      var globalBest = (lbGlobal && lbGlobal.board && lbGlobal.board.length) ? lbGlobal.board[0].score : 0;
-
-      var head = '<button class="g2048-lb-toggle" id="btn2048Lb" aria-expanded="' + (lbOpen ? 'true' : 'false') + '">' +
-        (lbOpen ? '▼' : '▶') + ' 排行榜' +
-        (lbTab === 'global'
-          ? (globalBest ? ' · 全服最高 ' + globalBest + ' 分' : ' · 全服榜')
-          : (runs.length ? ' · 共 ' + runs.length + ' 局 · 最高 ' + best + ' 分' : ' · 暂无记录')) +
-        '</button>';
-      if (!lbOpen) return head;
-
-      var tabs = '<div class="g2048-lb-tabs">' +
-        '<button class="g2048-lb-tab' + (lbTab === 'global' ? ' active' : '') + '" data-lb-tab="global">🌍 全服榜</button>' +
-        '<button class="g2048-lb-tab' + (lbTab === 'mine' ? ' active' : '') + '" data-lb-tab="mine">📁 我的战绩</button>' +
-        '</div>';
-
-      var body;
-      if (lbTab === 'global') {
-        var me = window.AppProfile ? window.AppProfile.get() : null;
-        var myName = me ? (me.name || '匿名玩家') : '匿名玩家';
-        var myBest = runs.length ? best : 0;
-        body = '<div class="g2048-lb-me-card">' +
-          '<span class="g2048-lb-ava">' + esc(me ? me.avatar : '🙂') + '</span>' +
-          '<span class="g2048-lb-me-name">' + esc(myName) + '</span>' +
-          '<span class="g2048-lb-me-rank">' + (lbMyRank ? '全服第 ' + lbMyRank + ' 名' : '本机最高 ' + myBest + ' 分') + '</span>' +
-          '<button class="g2048-lb-edit" id="btn2048EditProfile">设置</button>' +
-          '</div>' +
-          '<div class="g2048-lb">' + globalRowsHTML() + '</div>';
-      } else {
-        body = '<div class="g2048-lb">' + mineRowsHTML() + '</div>';
-      }
-
-      return '<div class="g2048-lb-wrap">' + head + tabs + body + '</div>';
+      if (!lbPanel) return 0;
+      return lbPanel.submit({ score: score, maxTile: maxTile, moves: moves, merges: merges });
     }
 
     // 方块只显示数字本身。此前给每级方块配了「起步/转正/经理/总监」这类
@@ -18384,7 +18325,6 @@ if ('serviceWorker' in navigator) {
         if (!canMove()) {
           isOver = true;
           recordRun();
-          lbOpen = true;   // 自动展开，刚记下的这局要立刻可见
           if (window.SFX && window.SFX.wrong) window.SFX.wrong();
         }
 
@@ -18531,22 +18471,22 @@ if ('serviceWorker' in navigator) {
         '</div>';
 
       // 排行榜移出 .stage（深色游戏壳），作为兄弟节点放进
-      // .sm-2048-layout 这个双栏 wrapper：桌面并排，窄屏堆叠。
+      // .sm-game-layout 这个双栏 wrapper：桌面并排，窄屏堆叠。
       // 两套视觉体系——深色棋盘区 / 浅色战绩区。
-      var layout = root.querySelector('.sm-2048-layout');
+      var layout = root.querySelector('.sm-game-layout');
       if (!layout) {
         layout = document.createElement('div');
-        layout.className = 'sm-2048-layout';
+        layout.className = 'sm-game-layout';
         root.appendChild(layout);
       }
       if (el.parentNode !== layout) layout.appendChild(el);
-      var lbHost = layout.querySelector('.g2048-lb-host');
+      var lbHost = layout.querySelector('.lb-host');
       if (!lbHost) {
         lbHost = document.createElement('div');
-        lbHost.className = 'g2048-lb-host';
+        lbHost.className = 'lb-host';
         layout.appendChild(lbHost);
       }
-      lbHost.innerHTML = leaderboardHTML();
+      if (lbPanel) lbPanel.mount(lbHost);
 
       // 绑定按钮事件
       var undoBtn = el.querySelector('#btn2048Undo');
@@ -18555,28 +18495,6 @@ if ('serviceWorker' in navigator) {
       if (resetBtn) resetBtn.onclick = resetGame;
       var finishBtn = el.querySelector('#btn2048Finish');
       if (finishBtn) finishBtn.onclick = finish;
-
-      var lbBtn = root.querySelector('#btn2048Lb');
-      if (lbBtn) lbBtn.onclick = function () {
-        lbOpen = !lbOpen;
-        renderUI();
-        // 展开全服榜时才拉数据，避免每局都打网络
-        if (lbOpen && lbTab === 'global' && !lbGlobal) loadGlobal(false);
-      };
-
-      root.querySelectorAll('[data-lb-tab]').forEach(function (b) {
-        b.onclick = function () {
-          if (lbTab === b.getAttribute('data-lb-tab')) return;
-          lbTab = b.getAttribute('data-lb-tab');
-          renderUI();
-          if (lbTab === 'global') loadGlobal(false);
-        };
-      });
-
-      var editBtn = root.querySelector('#btn2048EditProfile');
-      if (editBtn) editBtn.onclick = function () {
-        if (window.AppProfile) window.AppProfile.open();
-      };
 
       var certBtn = el.querySelector('#btn2048Cert');
       if (certBtn) certBtn.onclick = finish;
@@ -18649,14 +18567,13 @@ if ('serviceWorker' in navigator) {
     spawnTile();
     checkMax();
     renderUI();
-    // 桌面端榜单默认展开，进游戏就直接拉一次全服数据
-    if (lbOpen && lbTab === 'global') loadGlobal(false);
 
     return {
       destroy: function () {
         destroyed = true;
         clearTimers();
         window.removeEventListener('keydown', onKeyDown);
+        if (lbPanel) lbPanel.destroy();
       }
     };
   };
@@ -30600,8 +30517,9 @@ if ('serviceWorker' in navigator) {
 ;
 /* === js/modules/leaderboard.js === */
 /* =========================================================
-   2048 全服排行榜客户端 (Online Leaderboard Client)
+   全服排行榜客户端 (Online Leaderboard Client)
    与 api/leaderboard.js 对接；后端不可用时自动退回本机战绩
+   三个游戏共用：2048 / reaction / color
    ========================================================= */
 
 (function () {
@@ -30610,9 +30528,13 @@ if ('serviceWorker' in navigator) {
   const ENDPOINT = '/api/leaderboard';
   const TIMEOUT = 8000;
 
-  // 最近一次成功拉到的榜单，用于断网时仍能展示上一份快照
-  let cache = { board: [], total: 0, online: false, at: 0 };
-  let pending = null;
+  // 每个游戏各自缓存最近一次成功拉到的榜单，断网时仍能展示上一份快照
+  const cache = Object.create(null);
+  const pending = Object.create(null);
+
+  function emptyCache() {
+    return { board: [], total: 0, online: false, at: 0 };
+  }
 
   function withTimeout(promise, ms) {
     return new Promise(function (resolve, reject) {
@@ -30626,35 +30548,38 @@ if ('serviceWorker' in navigator) {
     return typeof fetch === 'function';
   }
 
-  async function getBoard(limit, force) {
-    if (!available()) return Object.assign({}, cache, { offline: true });
+  async function getBoard(game, limit, force) {
+    game = game || '2048';
+    if (!available()) return Object.assign({}, cache[game] || emptyCache(), { offline: true });
     // 60 秒内复用结果，避免每次渲染都打网络
-    if (!force && cache.at && Date.now() - cache.at < 60000) return cache;
-    if (pending) return pending;
+    const c = cache[game];
+    if (!force && c && c.at && Date.now() - c.at < 60000) return c;
+    if (pending[game]) return pending[game];
 
-    pending = withTimeout(fetch(ENDPOINT + '?limit=' + (limit || 50), {
-      headers: { Accept: 'application/json' }
-    }), TIMEOUT)
+    pending[game] = withTimeout(fetch(
+      ENDPOINT + '?game=' + encodeURIComponent(game) + '&limit=' + (limit || 50),
+      { headers: { Accept: 'application/json' } }
+    ), TIMEOUT)
       .then(function (res) {
         return res.json().then(function (data) {
           if (!res.ok || !data || !data.ok) {
             throw new Error((data && data.error) || ('HTTP ' + res.status));
           }
-          cache = {
+          cache[game] = {
             board: Array.isArray(data.board) ? data.board : [],
             total: data.total || 0,
             online: !!data.online,
             at: Date.now()
           };
-          return cache;
+          return cache[game];
         });
       })
       .catch(function (err) {
-        return Object.assign({}, cache, { offline: true, error: err && err.message });
+        return Object.assign({}, cache[game] || emptyCache(), { offline: true, error: err && err.message });
       })
-      .then(function (out) { pending = null; return out; });
+      .then(function (out) { pending[game] = null; return out; });
 
-    return pending;
+    return pending[game];
   }
 
   async function submit(run) {
@@ -30662,15 +30587,13 @@ if ('serviceWorker' in navigator) {
     const profile = window.AppProfile ? window.AppProfile.get() : null;
     if (!profile) return { ok: false, error: '玩家身份未初始化' };
 
-    const payload = {
+    const game = run.game || '2048';
+    const payload = Object.assign({}, run, {
+      game: game,
       id: profile.id,
       name: profile.name || '匿名玩家',
-      avatar: profile.avatar || '🙂',
-      score: run.score,
-      maxTile: run.maxTile,
-      moves: run.moves,
-      merges: run.merges
-    };
+      avatar: profile.avatar || '🙂'
+    });
 
     try {
       const res = await withTimeout(fetch(ENDPOINT, {
@@ -30683,7 +30606,7 @@ if ('serviceWorker' in navigator) {
         return { ok: false, error: (data && data.error) || ('HTTP ' + res.status) };
       }
       if (Array.isArray(data.board)) {
-        cache = { board: data.board, total: data.total || 0, online: !!data.online, at: Date.now() };
+        cache[game] = { board: data.board, total: data.total || 0, online: !!data.online, at: Date.now() };
       }
       return data;
     } catch (err) {
@@ -30694,7 +30617,312 @@ if ('serviceWorker' in navigator) {
   window.AppLeaderboard = {
     getBoard: getBoard,
     submit: submit,
-    peek: function () { return cache; }
+    peek: function (game) { return cache[game || '2048'] || emptyCache(); }
+  };
+})();
+
+;
+/* === js/modules/lb-panel.js === */
+/* =========================================================
+   全服排行榜面板（三个小游戏共用）
+   ---------------------------------------------------------
+   2048 / 反应速度 / 色彩敏锐度 的榜单结构完全一致，只有
+   「指标怎么读、怎么显示」不同。这里把面板的 DOM、分页签、
+   本机战绩存取、全服榜拉取都收在一处，各游戏只提供一份
+   descriptor（见下），不再各写一遍。
+
+   用法：
+     var panel = window.AppLbPanel.create({
+       game: 'reaction',        // 对应 api/leaderboard.js 的 game 参数
+       storeKey: 'sm_reaction_runs',   // 本机战绩的 localStorage 键
+       higher: false,           // 数值越小越好（反应毫秒）
+       unit: ' ms',
+       idPrefix: 'reaction',    // 生成本页唯一的 DOM id
+       describe: function (run) { return { score: run.ms, extra: { acc: run.acc } }; },
+       formatScore: function (v) { return v + ' ms'; },
+       localRows: function (run, i) { return [...]; },   // 本机战绩的列
+       globalRows: function (row, i) { return [...]; }    // 全服榜的列
+     });
+     panel.mount(hostEl);       // 首次渲染
+     panel.submit(run);         // 每局结束时上报
+     panel.destroy();           // 退出游戏时解绑
+   ========================================================= */
+
+(function () {
+  'use strict';
+
+  var MAX_LOCAL = 12;
+
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function fmtDay(ts) {
+    var d = new Date(ts);
+    if (isNaN(d.getTime())) return '--';
+    return (d.getMonth() + 1) + '/' + d.getDate();
+  }
+
+  /* ---------------- 本机战绩 ---------------- */
+
+  function loadLocal(storeKey) {
+    try {
+      var raw = localStorage.getItem(storeKey);
+      if (!raw) return [];
+      var arr = JSON.parse(raw);
+      return Array.isArray(arr) ? arr : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function saveLocal(storeKey, list) {
+    try { localStorage.setItem(storeKey, JSON.stringify(list.slice(0, MAX_LOCAL))); } catch (e) {}
+  }
+
+  /* ---------------- 面板 ---------------- */
+
+  function create(cfg) {
+    var game = cfg.game;
+    var higher = cfg.higher !== false;      // 默认越高越好
+    var unit = cfg.unit || '';
+    var idp = cfg.idPrefix || game;
+    var storeKey = cfg.storeKey;
+
+    var tab = 'global';
+    var global = null;          // { board, total, online }
+    var loading = false;
+    var error = '';
+    var myRank = 0;
+    var open = typeof window.matchMedia === 'function'
+      ? window.matchMedia('(min-width: 700px)').matches
+      : false;
+
+    var host = null;
+    var destroyed = false;
+    var onProfileChange = null;
+
+    function localRuns() {
+      var list = loadLocal(storeKey).filter(function (r) {
+        return r && typeof r.score === 'number' && isFinite(r.score);
+      });
+      list.sort(function (a, b) {
+        if (a.score !== b.score) return higher ? b.score - a.score : a.score - b.score;
+        return (b.at || 0) - (a.at || 0);
+      });
+      return list;
+    }
+
+    function bestLocal() {
+      var runs = localRuns();
+      return runs.length ? runs[0].score : 0;
+    }
+
+    function loadGlobal(force) {
+      if (!window.AppLeaderboard || loading) return;
+      loading = true;
+      error = '';
+      render();
+      window.AppLeaderboard.getBoard(game, 50, force).then(function (res) {
+        loading = false;
+        global = {
+          board: (res && res.board) || [],
+          total: (res && res.total) || 0,
+          online: !!(res && res.online)
+        };
+        if (res && res.offline) error = '网络不可用，显示的是上次结果';
+        if (res && res.error && !(res.board && res.board.length)) error = res.error;
+        syncMyRank();
+        render();
+      });
+    }
+
+    function syncMyRank() {
+      if (!global || !window.AppProfile) return;
+      var me = window.AppProfile.get();
+      var board = global.board || [];
+      for (var i = 0; i < board.length; i++) {
+        if (board[i].id === me.id) { myRank = i + 1; return; }
+      }
+      myRank = 0;
+    }
+
+    // 返回本局在本机战绩里的名次（1 起），供结算文案引用
+    function submit(run) {
+      if (!window.AppLeaderboard) return 0;
+      var d = cfg.describe(run);
+      var stamp = Date.now();
+      var rec = { score: d.score, at: stamp };
+      if (d.extra) for (var k in d.extra) if (Object.prototype.hasOwnProperty.call(d.extra, k)) rec[k] = d.extra[k];
+      var list = loadLocal(storeKey);
+      list.push(rec);
+      list.sort(function (a, b) {
+        if (a.score !== b.score) return higher ? b.score - a.score : a.score - b.score;
+        return (b.at || 0) - (a.at || 0);
+      });
+      saveLocal(storeKey, list);
+      var localRank = 0;
+      for (var i = 0; i < list.length; i++) {
+        if (list[i].at === stamp) { localRank = i + 1; break; }
+      }
+
+      loading = true;
+      window.AppLeaderboard.submit(Object.assign({
+        game: game,
+        score: d.score
+      }, d.extra || {})).then(function (res) {
+        loading = false;
+        if (res && res.ok) {
+          global = { board: res.board || [], total: res.total || 0, online: !!res.online };
+          myRank = res.rank || 0;
+          error = '';
+        } else {
+          error = (res && res.error) || '提交失败';
+        }
+        if (!destroyed) render();
+      });
+      if (!destroyed) render();
+      return localRank;
+    }
+
+    /* ---------------- 渲染 ---------------- */
+
+    function rowsHTML(list, isGlobal) {
+      if (!list.length) return '';
+      var html = '';
+      for (var i = 0; i < list.length; i++) {
+        var cols = isGlobal ? cfg.globalCols(list[i], i) : cfg.localCols(list[i], i);
+        var extraCls = (i === 0 ? ' top' : '') + (isGlobal && list[i].isMe ? ' me' : '');
+        html += '<div class="lb-row' + (isGlobal ? ' is-global' : '') + extraCls + '">' +
+          '<span class="lb-rank">' + (i === 0 ? '👑' : (i + 1)) + '</span>' +
+          cols.join('') +
+          '</div>';
+      }
+      return html;
+    }
+
+    function globalHTML() {
+      var me = window.AppProfile ? window.AppProfile.get() : { id: '', name: '', avatar: '🙂' };
+      var board = (global && global.board) || [];
+
+      if (loading && !board.length) return '<div class="lb-empty">正在连接全服排行榜…</div>';
+      if (!board.length) {
+        return '<div class="lb-empty">全服榜还没有战绩，打完一局就能上榜' +
+          (error ? '<br><span class="lb-err">' + esc(error) + '</span>' : '') + '</div>';
+      }
+
+      var view = board.map(function (r) {
+        return Object.assign({}, r, { isMe: r.id === me.id });
+      });
+      var html = rowsHTML(view, true);
+      if (error) html += '<div class="lb-err">' + esc(error) + '</div>';
+      return html;
+    }
+
+    function mineHTML() {
+      var runs = localRuns();
+      if (!runs.length) return '<div class="lb-empty">还没有战绩，先来一局吧</div>';
+      return rowsHTML(runs, false);
+    }
+
+    function panelHTML() {
+      var runs = localRuns();
+      var best = runs.length ? runs[0].score : 0;
+      var top = (global && global.board && global.board.length) ? global.board[0].score : null;
+      var summary = tab === 'global'
+        ? (top != null ? ' · 全服最佳 ' + cfg.formatScore(top) : ' · 全服榜')
+        : (runs.length ? ' · 共 ' + runs.length + ' 局 · 最佳 ' + cfg.formatScore(best) : ' · 暂无记录');
+
+      var head = '<button class="lb-toggle" id="' + idp + 'Lb" aria-expanded="' + (open ? 'true' : 'false') + '">' +
+        (open ? '▼' : '▶') + ' 排行榜' + summary + '</button>';
+      if (!open) return head;
+
+      var tabs = '<div class="lb-tabs">' +
+        '<button class="lb-tab' + (tab === 'global' ? ' active' : '') + '" data-lb-tab="global">🌍 全服榜</button>' +
+        '<button class="lb-tab' + (tab === 'mine' ? ' active' : '') + '" data-lb-tab="mine">📁 我的战绩</button>' +
+        '</div>';
+
+      var body;
+      if (tab === 'global') {
+        var me = window.AppProfile ? window.AppProfile.get() : null;
+        var myName = me && me.name ? me.name : '匿名玩家';
+        var myBest = runs.length ? best : 0;
+        body = '<div class="lb-me-card">' +
+          '<span class="lb-ava">' + esc(me ? me.avatar : '🙂') + '</span>' +
+          '<span class="lb-me-name">' + esc(myName) + '</span>' +
+          '<span class="lb-me-rank">' + (myRank ? '全服第 ' + myRank + ' 名' : '本机最佳 ' + cfg.formatScore(myBest)) + '</span>' +
+          '<button class="lb-edit" id="' + idp + 'EditProfile">设置</button>' +
+          '</div>' +
+          '<div class="lb">' + globalHTML() + '</div>';
+      } else {
+        body = '<div class="lb">' + mineHTML() + '</div>';
+      }
+
+      return '<div class="lb-wrap">' + head + tabs + body + '</div>';
+    }
+
+    function render() {
+      if (!host || destroyed) return;
+      host.innerHTML = panelHTML();
+
+      var btn = host.querySelector('#' + idp + 'Lb');
+      if (btn) btn.onclick = function () {
+        open = !open;
+        render();
+        if (open && tab === 'global' && !global) loadGlobal(false);
+      };
+
+      host.querySelectorAll('[data-lb-tab]').forEach(function (b) {
+        b.onclick = function () {
+          var next = b.getAttribute('data-lb-tab');
+          if (tab === next) return;
+          tab = next;
+          render();
+          if (tab === 'global') loadGlobal(false);
+        };
+      });
+
+      var edit = host.querySelector('#' + idp + 'EditProfile');
+      if (edit) edit.onclick = function () {
+        if (window.AppProfile) window.AppProfile.open();
+      };
+    }
+
+    // renderUI() 每次重绘都会调用 mount()，所以这里不能重复注册监听、
+    // 也不能每次都打网络——只在第一次挂载时拉一次全服榜。
+    function mount(el) {
+      var first = host !== el;
+      host = el;
+      host.className = 'lb-host';
+      render();
+      if (first && open && tab === 'global') loadGlobal(false);
+      if (window.AppProfile && !onProfileChange) {
+        onProfileChange = function () { if (!destroyed) render(); };
+        window.AppProfile.onChange(onProfileChange);
+      }
+    }
+
+    function destroy() {
+      destroyed = true;
+      host = null;
+    }
+
+    return {
+      mount: mount,
+      submit: submit,
+      destroy: destroy,
+      bestLocal: bestLocal,
+      refresh: function () { render(); }
+    };
+  }
+
+  window.AppLbPanel = {
+    create: create,
+    esc: esc,
+    fmtDay: fmtDay,
+    loadLocal: loadLocal
   };
 })();
 

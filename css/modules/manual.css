@@ -1241,7 +1241,7 @@ html[data-theme="light"] #mod-manual {
     /* ============ 离线个人排行榜（纯本地，无网络） ============
        刻意不复用 .g2048-tile：那条是 position:absolute;inset:0 的
        棋盘格，塞进行内会被拉满整个父容器。 */
-    #mod-manual .g2048-lb-toggle {
+    #mod-manual .lb-toggle {
     width: 100%;
     margin-top: 10px;
     padding: 8px 10px;
@@ -1257,11 +1257,11 @@ html[data-theme="light"] #mod-manual {
     cursor: pointer;
     transition: border-color 0.2s, color 0.2s;
     }
-    #mod-manual .g2048-lb-toggle:hover {
+    #mod-manual .lb-toggle:hover {
     border-color: rgba(245, 158, 11, 0.45);
     color: #F5E9D0;
     }
-    #mod-manual .g2048-lb {
+    #mod-manual .lb {
     width: 100%;
     margin-top: 8px;
     background: #23202B;
@@ -1272,9 +1272,12 @@ html[data-theme="light"] #mod-manual {
     /* 用 grid 而不是 flex：删掉角色列后，flex 会把剩余空间按内容宽度
        分给各列，分数/方块/步数挤在一起、日期被推到最右，看起来像没对齐。
        这里给每列固定轨道，左对齐，右端留出呼吸位。 */
-    #mod-manual .g2048-lb-row {
+    #mod-manual .lb-row {
     display: grid;
-    grid-template-columns: 24px 52px 44px 1fr auto;
+    /* 名次 / 主指标 / 次指标 / 说明 / 日期。
+       三个游戏共用这套轨道：2048 是「分数·方块·步数」，
+       反应是「毫秒·准度·反应年龄」，色彩是「关数·格子·剩余命」。 */
+    grid-template-columns: 24px 58px 46px 1fr auto;
     align-items: center;
     column-gap: 8px;
     padding: 8px 12px;
@@ -1282,28 +1285,28 @@ html[data-theme="light"] #mod-manual {
     color: #C9C3B8;
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     }
-    #mod-manual .g2048-lb-row:last-child {
+    #mod-manual .lb-row:last-child {
     border-bottom: none;
     }
     /* 榜首：和棋盘的 MAX 卡一致用琥珀色 */
-    #mod-manual .g2048-lb-row.top {
+    #mod-manual .lb-row.top {
     background: linear-gradient(145deg, rgba(245, 158, 11, 0.12), rgba(245, 158, 11, 0.02));
     color: #F5E9D0;
     font-weight: 800;
     }
-    #mod-manual .g2048-lb-rank {
+    #mod-manual .lb-rank {
     text-align: center;
     color: #9A948A;
     font-size: 11px;
     }
-    #mod-manual .g2048-lb-row.top .g2048-lb-rank {
+    #mod-manual .lb-row.top .lb-rank {
     color: #F59E0B;
     }
-    #mod-manual .g2048-lb-score {
+    #mod-manual .lb-score {
     font-weight: 800;
     font-variant-numeric: tabular-nums;
     }
-    #mod-manual .g2048-lb-tile {
+    #mod-manual .lb-tile {
     justify-self: start;
     padding: 1px 7px;
     text-align: center;
@@ -1313,18 +1316,26 @@ html[data-theme="light"] #mod-manual {
     font-weight: 800;
     font-variant-numeric: tabular-nums;
     }
-    #mod-manual .g2048-lb-moves {
+    #mod-manual .lb-moves,
+    #mod-manual .lb-meta {
     font-size: 11px;
     color: #9A948A;
     font-variant-numeric: tabular-nums;
     }
-    #mod-manual .g2048-lb-date {
+    /* 分数右侧的单位（ms / 关）比主数字小一档，避免长数字把列撑开 */
+    #mod-manual .lb-score small {
+    margin-left: 2px;
+    font-size: 10px;
+    font-weight: 600;
+    color: #9A948A;
+    }
+    #mod-manual .lb-date {
     justify-self: end;
     font-size: 10px;
     color: #6E6862;
     font-variant-numeric: tabular-nums;
     }
-    #mod-manual .g2048-lb-empty {
+    #mod-manual .lb-empty {
     padding: 14px 10px;
     text-align: center;
     font-size: 12px;
@@ -1338,60 +1349,57 @@ html[data-theme="light"] #mod-manual {
        桌面端并排放在右侧，用站点常规卡片配色（--card / --line），
        和 2048 那套深色游戏壳明确分开。
        ---------------------------------------------------- */
-    #mod-manual .g2048-lb-host {
+    #mod-manual .lb-host {
     width: 100%;
     margin-top: 14px;
     }
-    #mod-manual .g2048-lb-wrap {
+    #mod-manual .lb-wrap {
     width: 100%;
     }
 
     @media (min-width: 900px) {
-    /* 游戏区 + 战绩区并排。.sm-2048-layout 是 JS 建的双栏 wrapper，
-       只有 2048 章节会生成，不影响另外两个游戏。 */
-    #mod-manual .sm-2048-layout {
+    /* 游戏区 + 战绩区并排。.sm-game-layout 是 JS 建的双栏 wrapper，
+       2048 / 反应速度 / 色彩敏锐度 三个游戏共用同一套布局。 */
+    #mod-manual .sm-game-layout {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 300px;
     gap: 16px;
     align-items: start;
     }
-    #mod-manual .sm-2048-layout .stage {
+    #mod-manual .sm-game-layout .stage {
     min-width: 0;
     /* .stage 全局带 margin:auto，在 grid 项里会收缩成内容宽，
        这里让它吃满左列 */
     width: 100%;
     }
-    #mod-manual .sm-2048-layout .g2048-lb-host {
+    #mod-manual .sm-game-layout .lb-host {
     margin-top: 0;
     position: sticky;
     top: 12px;
     }
-    #mod-manual .g2048-lb-score {
-    width: 46px;
-    }
     }
 
     /* 浅色卡片：和深色棋盘区明确区分 */
-    #mod-manual .g2048-lb-host .g2048-lb-toggle {
+    #mod-manual .lb-host .lb-toggle {
     background: var(--card-solid, #14161E);
     border: 1px solid var(--line, rgba(255,255,255,0.09));
     color: var(--tx, #F8FAFC);
     }
-    #mod-manual .g2048-lb-host .g2048-lb-toggle:hover {
+    #mod-manual .lb-host .lb-toggle:hover {
     border-color: rgba(245, 158, 11, 0.55);
     }
-    #mod-manual .g2048-lb-host .g2048-lb {
+    #mod-manual .lb-host .lb {
     background: var(--card, rgba(255,255,255,0.045));
     border: 1px solid var(--line, rgba(255,255,255,0.09));
     }
-    #mod-manual .g2048-lb-host .g2048-lb-row {
+    #mod-manual .lb-host .lb-row {
     color: var(--tx-dim, #A8B1C2);
     border-bottom-color: var(--line, rgba(255,255,255,0.09));
     }
-    #mod-manual .g2048-lb-host .g2048-lb-row.top {
+    #mod-manual .lb-host .lb-row.top {
     color: var(--tx, #F8FAFC);
     }
-    #mod-manual .g2048-lb-host .g2048-lb-empty {
+    #mod-manual .lb-host .lb-empty {
     color: var(--tx-faint, #828B9E);
     }
     
@@ -1768,6 +1776,26 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .g2048-cell {
 html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .rz-stage {
   background: rgba(255, 255, 255, 0.55);
 }
+/* 功能色优先级最高。上面这条亮色玻璃规则的优先级(1,3,2)高于
+   .rz-stage.gorun 的(1,2,1)，会把「变红」覆盖成白玻璃——玩家只听到
+   提示音、看不到该点，整个第一关就废了。这里用同等权重把两个功能态
+   重新钉死，确保任何主题/壁纸组合下红绿都必须是实色。 */
+html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .rz-stage.gorun,
+body.has-daily-ambient-bg #mod-manual .rz-stage.gorun {
+  background: #E23B2E;
+}
+html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .rz-stage.gozone,
+body.has-daily-ambient-bg #mod-manual .rz-stage.gozone {
+  background: #1FA05C;
+}
+html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .rz-stage.gorun .rz-big,
+html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .rz-stage.gorun .rz-sub,
+html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .rz-stage.gorun .rz-count,
+body.has-daily-ambient-bg #mod-manual .rz-stage.gorun .rz-big,
+body.has-daily-ambient-bg #mod-manual .rz-stage.gorun .rz-sub,
+body.has-daily-ambient-bg #mod-manual .rz-stage.gorun .rz-count {
+  color: #FFF6E8;
+}
 /* 玻璃底之下，.stage 内原本依赖深底的文字需要保底对比度 */
 body.has-daily-ambient-bg #mod-manual .stage,
 body.has-daily-ambient-bg #mod-manual .stage .hud b {
@@ -1782,7 +1810,7 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .stage {
    两个标签页共用同一个榜单外壳，只在数据源上不同：
    全服榜来自 /api/leaderboard，我的战绩来自 localStorage。
    ---------------------------------------------------- */
-#mod-manual .g2048-lb-tabs {
+#mod-manual .lb-tabs {
   display: flex;
   gap: 4px;
   padding: 3px;
@@ -1791,7 +1819,7 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .stage {
   background: var(--card);
   border: 1px solid var(--line);
 }
-#mod-manual .g2048-lb-tab {
+#mod-manual .lb-tab {
   flex: 1;
   padding: 7px 6px;
   border: none;
@@ -1805,14 +1833,14 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .stage {
   white-space: nowrap;
   transition: background 0.18s ease, color 0.18s ease;
 }
-#mod-manual .g2048-lb-tab:hover { color: var(--tx); }
-#mod-manual .g2048-lb-tab.active {
+#mod-manual .lb-tab:hover { color: var(--tx); }
+#mod-manual .lb-tab.active {
   background: var(--mod-ac);
   color: var(--mod-ac-ink);
 }
 
 /* 我在全服榜上的身份卡 */
-#mod-manual .g2048-lb-me-card {
+#mod-manual .lb-me-card {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -1822,7 +1850,7 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .stage {
   background: var(--mod-ac-soft);
   border: 1px solid var(--mod-ac);
 }
-#mod-manual .g2048-lb-me-name {
+#mod-manual .lb-me-name {
   flex: 1;
   min-width: 0;
   font-size: 13px;
@@ -1832,14 +1860,14 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .stage {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-#mod-manual .g2048-lb-me-rank {
+#mod-manual .lb-me-rank {
   flex: none;
   font-size: 11px;
   font-weight: 700;
   color: var(--tx-dim);
   font-variant-numeric: tabular-nums;
 }
-#mod-manual .g2048-lb-edit {
+#mod-manual .lb-edit {
   flex: none;
   padding: 4px 9px;
   border-radius: 999px;
@@ -1850,14 +1878,14 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .stage {
   font-weight: 700;
   cursor: pointer;
 }
-#mod-manual .g2048-lb-edit:hover { border-color: var(--mod-ac); }
+#mod-manual .lb-edit:hover { border-color: var(--mod-ac); }
 
 /* 全服榜行：名次 / 头像 / 昵称 / 分数 / 最大方块。
    列数和「我的战绩」不同，单独覆盖轨道。 */
-#mod-manual .g2048-lb-row.is-global {
-  grid-template-columns: 24px 24px minmax(0, 1fr) 52px 44px;
+#mod-manual .lb-row.is-global {
+  grid-template-columns: 24px 24px minmax(0, 1fr) 58px 46px;
 }
-#mod-manual .g2048-lb-ava {
+#mod-manual .lb-ava {
   flex: none;
   width: 22px;
   height: 22px;
@@ -1868,7 +1896,7 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .stage {
 }
 /* 不能是 flex 容器：flex 上的 text-overflow 不生效，长昵称会被硬切。
    用 block + 内部行内标签，省略号才出得来。 */
-#mod-manual .g2048-lb-name {
+#mod-manual .lb-name {
   flex: 1;
   min-width: 0;
   display: block;
@@ -1879,7 +1907,7 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .stage {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-#mod-manual .g2048-lb-me {
+#mod-manual .lb-me {
   display: inline-block;
   vertical-align: 1px;
   margin-left: 5px;
@@ -1891,11 +1919,11 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .stage {
   background: var(--mod-ac);
   color: var(--mod-ac-ink);
 }
-#mod-manual .g2048-lb-row.me {
+#mod-manual .lb-row.me {
   background: var(--mod-ac-soft);
   border-radius: 8px;
 }
-#mod-manual .g2048-lb-err {
+#mod-manual .lb-err {
   display: block;
   padding: 8px 10px;
   font-size: 11px;
@@ -1905,15 +1933,15 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .stage {
 
 /* 全服榜在窄屏也要放得下：昵称让位，数字不换行 */
 @media (max-width: 520px) {
-  #mod-manual .g2048-lb-row {
+  #mod-manual .lb-row {
     column-gap: 6px;
-    grid-template-columns: 20px 46px 38px 1fr auto;
+    grid-template-columns: 20px 50px 40px 1fr auto;
     padding: 8px 10px;
   }
-  #mod-manual .g2048-lb-row.is-global {
-    grid-template-columns: 20px 22px minmax(0, 1fr) 46px 38px;
+  #mod-manual .lb-row.is-global {
+    grid-template-columns: 20px 22px minmax(0, 1fr) 50px 40px;
   }
-  #mod-manual .g2048-lb-name { font-size: 11.5px; }
-  #mod-manual .g2048-lb-score { font-size: 12px; }
-  #mod-manual .g2048-lb-tile { font-size: 10px; }
+  #mod-manual .lb-name { font-size: 11.5px; }
+  #mod-manual .lb-score { font-size: 12px; }
+  #mod-manual .lb-tile { font-size: 10px; }
 }

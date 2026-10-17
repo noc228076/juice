@@ -1,22 +1,28 @@
 /* =========================================================
-   2048 全服排行榜 API (Vercel Serverless Function)
+   小游戏全服排行榜 API (Vercel Serverless Function)
+   支持 2048 / 反应速度 / 色彩敏锐度 三个榜单
    存储：Upstash Redis REST（Vercel Marketplace 安装后自动注入环境变量）
    零依赖：只用 Node 18+ 内置 fetch，不需要 npm install
    ---------------------------------------------------------
-   GET    /api/leaderboard?limit=50   读取排行榜
-   POST   /api/leaderboard            提交一局战绩
-          body: { id, name, avatar, score, maxTile, moves, merges }
-   DELETE /api/leaderboard            删除一条战绩（需 x-admin-token 请求头）
-          body: { id }
-          token 来自环境变量 ADMIN_TOKEN，未配置时该接口始终 403
+   GET    /api/leaderboard?game=2048&limit=50   读取排行榜
+   POST   /api/leaderboard                      提交一局战绩
+          body: { game, id, name, avatar, ...指标 }
+   DELETE /api/leaderboard                      删除一条战绩（需 x-admin-token）
+          body: { game, id }
    ========================================================= */
 
 'use strict';
 
-const ZSET = 'j2048:z';          // member = playerId, score = 最高分
-const HASH = 'j2048:p';          // field  = playerId, value = JSON 详情
-const RL_PREFIX = 'j2048:rl:';   // 每玩家提交频率限制
-const BOARD_CAP = 1000;          // 只保留前 1000 名，防止 zset 无限增长
+/* 每个游戏的存储键与排序方向。
+   higher=true：数值越大越好（分数、通关数），用 ZREVRANGE / ZREVRANK；
+   higher=false：数值越小越好（反应毫秒），用 ZRANGE / ZRANK。 */
+const GAMES = {
+  '2048': { z: 'j2048:z', p: 'j2048:p', higher: true },
+  reaction: { z: 'jreaction:z', p: 'jreaction:p', higher: false },
+  color: { z: 'jcolor:z', p: 'jcolor:p', higher: true }
+};
+
+const BOARD_CAP = 1000;          // 每个榜单只保留前 1000 名
 const RL_WINDOW = 60;            // 限流窗口（秒）
 const RL_MAX = 20;               // 窗口内最多提交次数
 
@@ -82,33 +88,55 @@ async function pipeline(commands) {
 
 /* ---------------- 内存实现（仅本地开发） ---------------- */
 
+function memZ(game) {
+  if (!mem.z.has(game)) mem.z.set(game, new Map());
+  return mem.z.get(game);
+}
+function memP(game) {
+  if (!mem.p.has(game)) mem.p.set(game, new Map());
+  return mem.p.get(game);
+}
+function sortedEntries(game, higher) {
+  const arr = [...memZ(game).entries()];
+  arr.sort((a, b) => (higher ? b[1] - a[1] : a[1] - b[1]));
+  return arr;
+}
+
 const memStore = {
-  zscore: (id) => (mem.z.has(id) ? mem.z.get(id) : null),
-  zadd: (id, score) => { mem.z.set(id, score); return 1; },
-  zcard: () => mem.z.size,
-  zrevrank: (id) => {
-    const sorted = [...mem.z.entries()].sort((a, b) => b[1] - a[1]);
-    const i = sorted.findIndex((e) => e[0] === id);
+  zscore: (game, id) => {
+    const m = memZ(game);
+    return m.has(id) ? m.get(id) : null;
+  },
+  zadd: (game, id, score) => { memZ(game).set(id, score); return 1; },
+  zcard: (game) => memZ(game).size,
+  zrank: (game, id, higher) => {
+    const i = sortedEntries(game, higher).findIndex((e) => e[0] === id);
     return i < 0 ? null : i;
   },
-  zrevrange: (start, stop) => {
-    const sorted = [...mem.z.entries()].sort((a, b) => b[1] - a[1]);
+  zrange: (game, higher, start, stop) => {
+    const sorted = sortedEntries(game, higher);
     const out = [];
     for (let i = start; i <= stop && i < sorted.length; i++) {
       out.push(sorted[i][0], String(sorted[i][1]));
     }
     return out;
   },
-  zremrangebyrank: () => 0,
-  hget: (id) => (mem.p.has(id) ? mem.p.get(id) : null),
-  hset: (id, val) => { mem.p.set(id, val); return 1; },
-  hmget: (ids) => ids.map((id) => (mem.p.has(id) ? mem.p.get(id) : null)),
+  hget: (game, id) => {
+    const m = memP(game);
+    return m.has(id) ? m.get(id) : null;
+  },
+  hset: (game, id, val) => { memP(game).set(id, val); return 1; },
+  hmget: (game, ids) => {
+    const m = memP(game);
+    return ids.map((id) => (m.has(id) ? m.get(id) : null));
+  },
+  hdel: (game, id) => { memP(game).delete(id); return 1; },
+  zrem: (game, id) => { memZ(game).delete(id); return 1; },
   incr: (key) => {
     const n = (mem.rl.get(key) || 0) + 1;
     mem.rl.set(key, n);
     return n;
-  },
-  expire: () => 1
+  }
 };
 
 /* ---------------- 校验与清洗 ---------------- */
@@ -123,51 +151,68 @@ function isPowerOfTwo(n) {
   return n >= 2 && n <= 1048576 && (n & (n - 1)) === 0;
 }
 
-function parseRun(body) {
-  const id = clampText(body.id, 64);
-  if (!/^[A-Za-z0-9_-]{8,64}$/.test(id)) return { error: '玩家标识不合法' };
-
-  const score = Math.round(Number(body.score));
-  const maxTile = Math.round(Number(body.maxTile));
-  const moves = Math.round(Number(body.moves));
-  const merges = Math.round(Number(body.merges));
-
-  if (!Number.isFinite(score) || score < 0 || score > 5e7) return { error: '分数不合法' };
-  if (!Number.isFinite(maxTile) || !isPowerOfTwo(maxTile)) return { error: '最大方块不合法' };
-  if (!Number.isFinite(moves) || moves < 0 || moves > 1e6) return { error: '步数不合法' };
-  if (!Number.isFinite(merges) || merges < 0 || merges > 1e6) return { error: '合并次数不合法' };
-  // 2 分方块合成 4 才得 4 分，所以分数不可能低于最大方块本身
-  if (score < maxTile) return { error: '分数与方块不匹配' };
-
-  return {
-    id,
-    name: clampText(body.name, 16) || '匿名玩家',
-    avatar: clampText(body.avatar, 8) || '🙂',
-    score,
-    maxTile,
-    moves,
-    merges
-  };
+function intIn(value, min, max) {
+  const n = Math.round(Number(value));
+  return Number.isFinite(n) && n >= min && n <= max ? n : null;
 }
 
-function escapeJsonSafe(obj) {
-  return JSON.stringify(obj);
+function resolveGame(raw) {
+  const key = String(raw || '2048').toLowerCase();
+  return GAMES[key] ? key : null;
+}
+
+/* 每个游戏返回 { score, extra }，score 是参与排名的指标。
+   三个游戏统一用 body.score 传排名值，差异只在合法区间与附加字段。 */
+function parseRun(game, body) {
+  if (game === '2048') {
+    const score = intIn(body.score, 0, 5e7);
+    const maxTile = intIn(body.maxTile, 2, 1048576);
+    const moves = intIn(body.moves, 0, 1e6);
+    const merges = intIn(body.merges, 0, 1e6);
+    if (score == null) return { error: '分数不合法' };
+    if (maxTile == null || !isPowerOfTwo(maxTile)) return { error: '最大方块不合法' };
+    if (moves == null) return { error: '步数不合法' };
+    if (merges == null) return { error: '合并次数不合法' };
+    // 2 分方块合成 4 才得 4 分，所以分数不可能低于最大方块本身
+    if (score < maxTile) return { error: '分数与方块不匹配' };
+    return { score, extra: { mt: maxTile } };
+  }
+
+  if (game === 'reaction') {
+    // 人类简单反应极限约 100ms，低于 80ms 基本是脚本或误触
+    const ms = intIn(body.score, 80, 3000);
+    const acc = intIn(body.acc, 0, 20);
+    const age = intIn(body.age, 10, 99);
+    if (ms == null) return { error: '反应时间不合法' };
+    if (acc == null) return { error: '正确次数不合法' };
+    if (age == null) return { error: '反应年龄不合法' };
+    return { score: ms, extra: { acc, age } };
+  }
+
+  if (game === 'color') {
+    const level = intIn(body.score, 0, 500);
+    if (level == null) return { error: '通关数不合法' };
+    return { score: level, extra: {} };
+  }
+
+  return { error: '未知游戏' };
 }
 
 /* ---------------- 读榜 ---------------- */
 
-async function readBoard(limit) {
+async function readBoard(game, limit) {
+  const cfgGame = GAMES[game];
   let flat;
   let total;
 
   if (useMemory) {
-    flat = memStore.zrevrange(0, limit - 1);
-    total = memStore.zcard();
+    flat = memStore.zrange(game, cfgGame.higher, 0, limit - 1);
+    total = memStore.zcard(game);
   } else {
-    const out = await pipeline([
-      ['ZREVRANGE', ZSET, '0', String(limit - 1), 'WITHSCORES'],
-      ['ZCARD', ZSET]
-    ]);
+    const rangeCmd = cfgGame.higher
+      ? ['ZREVRANGE', cfgGame.z, '0', String(limit - 1), 'WITHSCORES']
+      : ['ZRANGE', cfgGame.z, '0', String(limit - 1), 'WITHSCORES'];
+    const out = await pipeline([rangeCmd, ['ZCARD', cfgGame.z]]);
     flat = out[0] || [];
     total = out[1] || 0;
   }
@@ -178,21 +223,25 @@ async function readBoard(limit) {
 
   let details;
   if (useMemory) {
-    details = memStore.hmget(ids);
+    details = memStore.hmget(game, ids);
   } else {
-    details = await call(['HMGET', HASH].concat(ids));
+    details = await call(['HMGET', cfgGame.p].concat(ids));
   }
 
   const board = ids.map((id, i) => {
     let d = null;
     try { d = JSON.parse(details[i] || 'null'); } catch (e) { d = null; }
+    const extra = {};
+    if (d && d.mt != null) extra.maxTile = d.mt;
+    if (d && d.acc != null) extra.acc = d.acc;
+    if (d && d.age != null) extra.age = d.age;
     return {
       id,
       name: (d && d.n) || '匿名玩家',
       avatar: (d && d.a) || '🙂',
-      maxTile: (d && d.mt) || 0,
       at: (d && d.at) || 0,
-      score: Number(flat[i * 2 + 1]) || 0
+      score: Number(flat[i * 2 + 1]) || 0,
+      extra
     };
   });
 
@@ -221,9 +270,14 @@ module.exports = async function handler(req, res) {
   try {
     if (req.method === 'GET') {
       const q = req.query || {};
+      const game = resolveGame(q.game);
+      if (!game) {
+        res.status(400).json({ ok: false, error: '未知游戏' });
+        return;
+      }
       const limit = Math.min(100, Math.max(1, parseInt(q.limit, 10) || 50));
-      const { board, total } = await readBoard(limit);
-      res.status(200).json({ ok: true, board, total, online: !useMemory });
+      const { board, total } = await readBoard(game, limit);
+      res.status(200).json({ ok: true, game, board, total, online: !useMemory });
       return;
     }
 
@@ -237,20 +291,34 @@ module.exports = async function handler(req, res) {
         return;
       }
 
-      const run = parseRun(body);
+      const game = resolveGame(body.game);
+      if (!game) {
+        res.status(400).json({ ok: false, error: '未知游戏' });
+        return;
+      }
+      const cfgGame = GAMES[game];
+
+      const id = clampText(body.id, 64);
+      if (!/^[A-Za-z0-9_-]{8,64}$/.test(id)) {
+        res.status(400).json({ ok: false, error: '玩家标识不合法' });
+        return;
+      }
+
+      const run = parseRun(game, body);
       if (run.error) {
         res.status(400).json({ ok: false, error: run.error });
         return;
       }
 
-      // 限流：同一玩家 60 秒内最多 20 次提交
+      // 限流：同一玩家同一游戏 60 秒内最多 20 次提交
       let hits;
+      const rlKey = 'jrl:' + game + ':' + id;
       if (useMemory) {
-        hits = memStore.incr(RL_PREFIX + run.id);
+        hits = memStore.incr(rlKey);
       } else {
         const out = await pipeline([
-          ['INCR', RL_PREFIX + run.id],
-          ['EXPIRE', RL_PREFIX + run.id, String(RL_WINDOW)]
+          ['INCR', rlKey],
+          ['EXPIRE', rlKey, String(RL_WINDOW)]
         ]);
         hits = out[0] || 0;
       }
@@ -263,53 +331,74 @@ module.exports = async function handler(req, res) {
       let prevScore;
       let prevDetail = null;
       if (useMemory) {
-        prevScore = memStore.zscore(run.id);
-        prevDetail = memStore.hget(run.id);
+        prevScore = memStore.zscore(game, id);
+        prevDetail = memStore.hget(game, id);
       } else {
         const out = await pipeline([
-          ['ZSCORE', ZSET, run.id],
-          ['HGET', HASH, run.id]
+          ['ZSCORE', cfgGame.z, id],
+          ['HGET', cfgGame.p, id]
         ]);
         prevScore = out[0] == null ? null : Number(out[0]);
         prevDetail = out[1];
       }
       try { prevDetail = prevDetail ? JSON.parse(prevDetail) : null; } catch (e) { prevDetail = null; }
 
-      const isBest = prevScore == null || run.score > prevScore;
-      // 昵称/头像每次提交都同步；分数、最高方块、日期只在刷新纪录时更新。
+      // 反应时间是越低越好，其余是越高越好
+      const isBest = prevScore == null || (cfgGame.higher ? run.score > prevScore : run.score < prevScore);
+
+      // 昵称/头像每次提交都同步；成绩与日期只在刷新纪录时更新。
       // 未破纪录时必须沿用旧值——JSON.stringify 会丢掉值为 undefined 的字段，
       // 读回来就成了 0，榜单上会显示「最高方块 0」。
-      const detail = escapeJsonSafe({
-        n: run.name,
-        a: run.avatar,
-        mt: isBest ? run.maxTile : ((prevDetail && prevDetail.mt) || run.maxTile),
-        at: isBest ? stamp : ((prevDetail && prevDetail.at) || stamp)
-      });
+      const detail = {
+        n: clampText(body.name, 16) || '匿名玩家',
+        a: clampText(body.avatar, 8) || '🙂'
+      };
+      if (isBest) {
+        detail.at = stamp;
+        if (run.extra.mt != null) detail.mt = run.extra.mt;
+        if (run.extra.acc != null) detail.acc = run.extra.acc;
+        if (run.extra.age != null) detail.age = run.extra.age;
+      } else if (prevDetail) {
+        if (prevDetail.at != null) detail.at = prevDetail.at;
+        if (prevDetail.mt != null) detail.mt = prevDetail.mt;
+        if (prevDetail.acc != null) detail.acc = prevDetail.acc;
+        if (prevDetail.age != null) detail.age = prevDetail.age;
+      }
+      if (detail.at == null) detail.at = stamp;
+
+      const payload = JSON.stringify(detail);
 
       if (useMemory) {
-        if (isBest) memStore.zadd(run.id, run.score);
-        memStore.hset(run.id, detail);
+        if (isBest) memStore.zadd(game, id, run.score);
+        memStore.hset(game, id, payload);
       } else {
         const cmds = [];
         if (isBest) {
-          cmds.push(['ZADD', ZSET, String(run.score), run.id]);
-          cmds.push(['ZREMRANGEBYRANK', ZSET, '0', String(-(BOARD_CAP + 1))]);
+          cmds.push(['ZADD', cfgGame.z, String(run.score), id]);
+          // 超出上限的低分记录直接裁掉，防止 zset 无限增长
+          cmds.push(cfgGame.higher
+            ? ['ZREMRANGEBYRANK', cfgGame.z, '0', String(-(BOARD_CAP + 1))]
+            : ['ZREMRANGEBYRANK', cfgGame.z, String(BOARD_CAP), '-1']);
         }
-        cmds.push(['HSET', HASH, run.id, detail]);
+        cmds.push(['HSET', cfgGame.p, id, payload]);
         await pipeline(cmds);
       }
 
-      const rank = useMemory
-        ? memStore.zrevrank(run.id)
-        : await call(['ZREVRANK', ZSET, run.id]);
-      const { board, total } = await readBoard(50);
+      let rank;
+      if (useMemory) {
+        rank = memStore.zrank(game, id, cfgGame.higher);
+      } else {
+        rank = await call([cfgGame.higher ? 'ZREVRANK' : 'ZRANK', cfgGame.z, id]);
+      }
+      const { board, total } = await readBoard(game, 50);
 
       res.status(200).json({
         ok: true,
+        game,
         online: !useMemory,
         isBest,
         rank: rank == null ? null : rank + 1,
-        best: Math.max(run.score, prevScore || 0),
+        best: isBest ? run.score : prevScore,
         total,
         board
       });
@@ -333,22 +422,28 @@ module.exports = async function handler(req, res) {
       if (typeof body === 'string') {
         try { body = JSON.parse(body); } catch (e) { body = null; }
       }
+      const game = resolveGame(body && body.game);
+      if (!game) {
+        res.status(400).json({ ok: false, error: '未知游戏' });
+        return;
+      }
       const id = clampText(body && body.id, 64);
       if (!/^[A-Za-z0-9_-]{8,64}$/.test(id)) {
         res.status(400).json({ ok: false, error: '玩家标识不合法' });
         return;
       }
 
+      const cfgGame = GAMES[game];
       if (useMemory) {
-        mem.z.delete(id);
-        mem.p.delete(id);
+        memStore.zrem(game, id);
+        memStore.hdel(game, id);
       } else {
         await pipeline([
-          ['ZREM', ZSET, id],
-          ['HDEL', HASH, id]
+          ['ZREM', cfgGame.z, id],
+          ['HDEL', cfgGame.p, id]
         ]);
       }
-      res.status(200).json({ ok: true, removed: id });
+      res.status(200).json({ ok: true, game, removed: id });
       return;
     }
 

@@ -120,7 +120,7 @@ juice/
 ├── server.js               # 零依赖本地服务器（含 api/ 模拟）
 ├── build-bundles.js        # 打包脚本
 ├── api/
-│   └── leaderboard.js      # 2048 全服排行榜 Serverless 函数
+│   └── leaderboard.js      # 三个小游戏共用的全服排行榜 Serverless 函数
 ├── favicon.png
 │
 ├── js/
@@ -141,7 +141,8 @@ juice/
 │       │   └── manual-report.js    #   └ 报告渲染
 │       ├── decision.js / clock.js / merit.js
 │       ├── profile.js              # 玩家头像 / 昵称
-│       ├── leaderboard.js          # 全服排行榜客户端
+│       ├── leaderboard.js          # 全服排行榜客户端（按 game 分榜）
+│       ├── lb-panel.js             # 排行榜面板（三个小游戏共用）
 │       └── lifeguide.js / daily.js / scratch.js
 │
 ├── css/
@@ -219,14 +220,14 @@ Vercel 托管，连接 GitHub `main` 分支自动部署，无需手动构建命�
 
 `vercel.json` 中：
 
-- **`builds` 段**：`api/**/*.js` 走 `@vercel/node`（2048 全服排行榜），其余路径全部 `@vercel/static`；
+- **`builds` 段**：`api/**/*.js` 走 `@vercel/node`（小游戏全服排行榜），其余路径全部 `@vercel/static`；
 - **缓存策略分档**：`sw.js` 为 `no-cache, no-store, must-revalidate`；`index.html` 为 `max-age=0, must-revalidate`；`css`/`js` 为 `max-age=31536000, immutable`（文件自带 `?v=` 版本号，可以放心长缓存）；`assets` 为 1 周强缓存 + 1 月陈旧重验证。
 
 `.vercelignore` 排除 `node_modules`、`scratch`、`.git` 等非部署产物。
 
 ### 全服排行榜（需要一次性配置）
 
-`api/leaderboard.js` 使用 Upstash Redis 存储，**不配置也能部署**——此时接口返回 503，前端自动退回本机战绩，游戏不受影响。
+`api/leaderboard.js` 为 2048 / 反应速度 / 色彩敏锐度三个小游戏提供全服榜，使用 Upstash Redis 存储，**不配置也能部署**——此时接口返回 503，前端自动退回本机战绩，游戏不受影响。
 
 开启全服榜：
 
@@ -234,7 +235,17 @@ Vercel 托管，连接 GitHub `main` 分支自动部署，无需手动构建命�
 2. 集成会自动注入 `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN`（也兼容旧的 `KV_REST_API_*`）；
 3. 重新部署一次即可。
 
-数据结构：`j2048:z` 是 ZSET（成员 = 玩家随机 ID，分值 = 个人最高分，只保留前 1000 名），`j2048:p` 是 HASH（存昵称、头像、最高方块）。服务端会校验分数与最大方块的合法性、按玩家限流（60 秒 20 次），并按码点截断昵称，避免破坏 emoji。
+三个小游戏各有一个独立榜单，通过 `game` 参数区分：
+
+| `game` | 榜单 | 排名指标 | 方向 | Redis 键 |
+|---|---|---|---|---|
+| `2048` | 数字合体 | 单局最高分 | 越高越好 | `j2048:z` / `j2048:p` |
+| `reaction` | 反应速度擂台 | 简单反应中位数（ms） | **越低越好** | `jreaction:z` / `jreaction:p` |
+| `color` | 色彩敏锐度 | 通过关卡数 | 越高越好 | `jcolor:z` / `jcolor:p` |
+
+每个榜单的 `:z` 是 ZSET（成员 = 玩家随机 ID，分值 = 个人最好成绩，只保留前 1000 名），`:p` 是 HASH（存昵称、头像、日期与各游戏自己的附加字段）。反应榜用 `ZRANGE`/`ZRANK` 升序取榜，另外两个用 `ZREVRANGE`/`ZREVRANK`。
+
+服务端按游戏分别校验：2048 校验分数 ≥ 最大方块且方块为 2 的幂；反应时间限制在 80–3000 ms（低于 80 ms 基本是脚本或误触）；通关数 0–500。三个榜都按玩家限流（60 秒 20 次），并按码点截断昵称，避免破坏 emoji。
 
 本地开发 `node server.js` 时没有 Redis 会自动用进程内存储，接口行为完全一致，方便联调。
 
@@ -246,8 +257,10 @@ Vercel 托管，连接 GitHub `main` 分支自动部署，无需手动构建命�
 curl -X DELETE https://你的域名/api/leaderboard \
   -H "x-admin-token: 你的 ADMIN_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"id":"要删除的玩家ID"}'
+  -d '{"game":"reaction","id":"要删除的玩家ID"}'
 ```
+
+`game` 省略时默认 `2048`。
 
 玩家 ID 就是榜单返回里的 `id` 字段。**没配 `ADMIN_TOKEN` 时该接口始终返回 403**，不会留下一个谁都能调的删除入口。
 

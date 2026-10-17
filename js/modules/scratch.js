@@ -137,11 +137,7 @@
 
     const btnNext = document.getElementById('scBtnNextTicket');
     if (btnNext) btnNext.onclick = () => {
-      // 若当前卡片有任何刮开痕迹或号码区块露白且未结算，先自动结算保存，防止漏记
-      const hasRevealedBlocks = ticketBlocks && ticketBlocks.myCells && ticketBlocks.myCells.some(c => c.isRevealed);
-      if (!isSettled && (scratchedPct >= 1 || hasRevealedBlocks) && curTicketData) {
-        settleTicket(false);
-      }
+      // 没刮全就换票 = 弃票，不入账（结果只在全部号码露出后敲定）
       generateTicket(curThemeKey);
       if (window.SFX && window.SFX.advance) window.SFX.advance();
     };
@@ -152,11 +148,7 @@
     const btnHistToggle = document.getElementById('scBtnToggleHistory');
     if (btnHistToggle) {
       btnHistToggle.onclick = () => {
-        // 若当前卡片有任何刮开痕迹或号码区块露白且未结算，点击账本前先行自动结算保存
-        const hasRevealedBlocks = ticketBlocks && ticketBlocks.myCells && ticketBlocks.myCells.some(c => c.isRevealed);
-        if (!isSettled && (scratchedPct >= 1 || hasRevealedBlocks) && curTicketData) {
-          settleTicket(false);
-        }
+        // 只看账本不结算：没刮全的票不该出现在战绩里
         loadStats();
         renderHistory();
         const modScratch = document.getElementById('mod-scratch');
@@ -202,11 +194,7 @@
   // 3. 切换票种并生成票券
   function switchTheme(themeKey) {
     if (!THEMES[themeKey]) return;
-    // 切换票种时，若当前卡片有任何刮开痕迹或号码露白但未结算，先自动结算保存
-    const hasRevealedBlocks = ticketBlocks && ticketBlocks.myCells && ticketBlocks.myCells.some(c => c.isRevealed);
-    if (!isSettled && (scratchedPct >= 1 || hasRevealedBlocks) && curTicketData) {
-      settleTicket(false);
-    }
+    // 没刮全就切票种 = 弃票，不入账
     curThemeKey = themeKey;
 
     document.querySelectorAll('.sc-theme-btn').forEach(b => {
@@ -674,18 +662,9 @@
       lastPos = null;
       try { canvas.releasePointerCapture(e.pointerId); } catch (_) {}
       const imgData = checkProgress(canvas, ctx, w, h);
+      // 结算条件只看号码区块是否全部露出（见 checkBlockReveals），
+      // 抬手本身不再兜底触发。
       checkBlockReveals(canvas, ctx, imgData);
-
-      // 用户松开手指/鼠标时兜底结算：只要中奖号码区块已被刮出，或已刮看大部分号码
-      if (!isSettled && curTicketData) {
-        const hasHitRevealed = ticketBlocks.myCells && ticketBlocks.myCells.some(c => c.isRevealed && (c.isHit || c.isSpecial));
-        const myRevealed = ticketBlocks.myCells ? ticketBlocks.myCells.filter(c => c.isRevealed).length : 0;
-        const totalMy = ticketBlocks.myCells ? ticketBlocks.myCells.length : 8;
-
-        if (hasHitRevealed || (myRevealed >= Math.ceil(totalMy * 0.5))) {
-          settleTicket(false);
-        }
-      }
     };
 
     canvas.onpointerup = stopScratch;
@@ -768,7 +747,6 @@
 
     // 2. 扫描我的号码区 (Game 2)
     let myCellsRevealed = 0;
-    let hitCellRevealed = false;
     let hitCellObj = null;
 
     if (ticketBlocks.myCells) {
@@ -784,10 +762,7 @@
         }
         if (c.isRevealed) {
           myCellsRevealed++;
-          if (c.isHit || c.isSpecial) {
-            hitCellRevealed = true;
-            hitCellObj = c;
-          }
+          if (c.isHit || c.isSpecial) hitCellObj = c;
         }
       });
     }
@@ -796,48 +771,21 @@
     const totalWinBalls = (ticketBlocks.winningBalls && ticketBlocks.winningBalls.length) || 2;
 
     // ==========================================
-    // 真实彩票规则结算核心逻辑：
+    // 结算规则：全部号码区块露出才开奖
+    // ------------------------------------------
+    // 之前是按刮开面积比例（50%/70%/80%）和「命中格一露出就结算」
+    // 来猜，问题有二：
+    //   1. 玩家还没看全号码就被强行开奖，尤其未中奖票会显得莫名其妙；
+    //   2. 命中格刚露一角就结算，中奖号码本身可能还盖着，对不上账。
+    // 现在只认一件事：中奖号码球 + 我的号码格，每一个都被刮开了。
+    // 进度条仍按面积走，但它只做视觉反馈，不参与开奖判定。
     // ==========================================
-
-    // 【情景 1：中奖卡片】
-    if (curTicketData.isWin) {
-      // 只要中奖号码区块与我的号码命中区块被刮出（或刮出特殊翻倍图元）：
-      // 玩家亲眼见证中奖号码对上了！立即触发结算、印章与账本落盘！
-      if (hitCellRevealed && (winBallsRevealed > 0 || (hitCellObj && hitCellObj.isSpecial))) {
-        if (hitCellObj && hitCellObj.el) {
-          hitCellObj.el.classList.add('is-hit-highlight');
-        }
-        settleTicket(false);
-        return;
-      }
-      // 哪怕中奖球没刮，但命中号码格子已被刮出且玩家已刮看了一半以上的号码格子：
-      if (hitCellRevealed && myCellsRevealed >= Math.ceil(totalMyCells * 0.5)) {
-        if (hitCellObj && hitCellObj.el) {
-          hitCellObj.el.classList.add('is-hit-highlight');
-        }
-        settleTicket(false);
-        return;
-      }
-    }
-
-    // 【情景 2：未中奖卡片】
-    if (!curTicketData.isWin) {
-      // 玩家刮开了大部分的我的号码（>= 70%）并核对了中奖球：已确定未中奖，敲印结算！
-      if (myCellsRevealed >= Math.ceil(totalMyCells * 0.7) && winBallsRevealed > 0) {
-        settleTicket(false);
-        return;
-      }
-      // 哪怕中奖球没特意刮，如果玩家把 80% 以上的我的号码都刮开查验了：
-      if (myCellsRevealed >= Math.ceil(totalMyCells * 0.8)) {
-        settleTicket(false);
-        return;
-      }
-    }
-
-    // 所有号码区块均已完全露出
     if (myCellsRevealed === totalMyCells && winBallsRevealed === totalWinBalls) {
+      // 中奖票在开奖瞬间把命中格高亮，让玩家看清是哪一注中的
+      if (curTicketData.isWin && hitCellObj && hitCellObj.el) {
+        hitCellObj.el.classList.add('is-hit-highlight');
+      }
       settleTicket(false);
-      return;
     }
   }
 
@@ -864,15 +812,35 @@
       scratchedPct = pct;
       updateProgressUI(pct);
 
-      // 刮开率达到 90% 时，彻底清除最后一丝残余细屑
+      // 刮开率达到 90% 时，彻底清除最后一丝残余细屑。
+      // 画布一旦清空就等于所有号码都露出来了，同步把区块标记置位，
+      // 否则个别边角区块可能因为采样点落空而永远判不出来，
+      // 导致「已经刮干净却不开奖」。
       if (pct >= 90) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         updateProgressUI(100);
+        markAllBlocksRevealed();
       }
       return imgData;
     } catch (_) {
       return null;
     }
+  }
+
+  // 画布被整体清空后，把全部号码区块标记为已露出（与视觉状态保持一致）
+  function markAllBlocksRevealed() {
+    if (!ticketBlocks) return;
+    (ticketBlocks.winningBalls || []).forEach(b => {
+      b.isRevealed = true;
+      if (b.el) b.el.classList.add('is-scratched-open');
+    });
+    (ticketBlocks.myCells || []).forEach(c => {
+      c.isRevealed = true;
+      if (c.el) {
+        c.el.classList.add('is-scratched-open');
+        if (c.isHit || c.isSpecial) c.el.classList.add('is-hit-highlight');
+      }
+    });
   }
 
   function updateProgressUI(pct) {
@@ -885,13 +853,26 @@
 
     if (textEl) {
       if (pct === 0) {
-        textEl.textContent = '💡 拖动鼠标或手指在涂层上滑动刮奖（刮出中奖号码区块即可获胜）';
+        textEl.textContent = '💡 拖动鼠标或手指刮开涂层，把所有号码都露出来即开奖';
       } else if (isSettled) {
-        textEl.textContent = '✨ 结果已揭晓并入账！可继续滑动刮净或点击「换一张再刮」';
+        textEl.textContent = '✨ 结果已揭晓并入账！可点击「换一张再刮」';
       } else {
-        textEl.textContent = `⚡ 正在刮开... 核对【中奖号码】与【我的号码】中`;
+        // 提示还差几个区块，比单纯报百分比更能说明「为什么还没开奖」
+        const left = countUnrevealedBlocks();
+        textEl.textContent = left > 0
+          ? `⚡ 还剩 ${left} 个号码没刮出来，全部刮开即开奖`
+          : '⚡ 号码已全部露出，正在开奖…';
       }
     }
+  }
+
+  // 还有多少个号码区块没被刮出来
+  function countUnrevealedBlocks() {
+    if (!ticketBlocks) return 0;
+    let n = 0;
+    (ticketBlocks.winningBalls || []).forEach(b => { if (!b.isRevealed) n++; });
+    (ticketBlocks.myCells || []).forEach(c => { if (!c.isRevealed) n++; });
+    return n;
   }
 
   // 8. 票面结算：区分中奖与未中奖，敲下真实官方印章并展示战报
@@ -1015,24 +996,8 @@
         scratchedPct = 100;
         updateProgressUI(100);
 
-        // 揭晓所有号码区块并点亮中奖区块
-        if (ticketBlocks && ticketBlocks.winningBalls) {
-          ticketBlocks.winningBalls.forEach(b => {
-            b.isRevealed = true;
-            if (b.el) b.el.classList.add('is-scratched-open');
-          });
-        }
-        if (ticketBlocks && ticketBlocks.myCells) {
-          ticketBlocks.myCells.forEach(c => {
-            c.isRevealed = true;
-            if (c.el) {
-              c.el.classList.add('is-scratched-open');
-              if (c.isHit || c.isSpecial) {
-                c.el.classList.add('is-hit-highlight');
-              }
-            }
-          });
-        }
+        // 揭晓所有号码区块并点亮中奖区块（一键刮开 = 全部露出）
+        markAllBlocksRevealed();
 
         settleTicket(true);
         isQuickRevealing = false;

@@ -3,9 +3,12 @@
    存储：Upstash Redis REST（Vercel Marketplace 安装后自动注入环境变量）
    零依赖：只用 Node 18+ 内置 fetch，不需要 npm install
    ---------------------------------------------------------
-   GET  /api/leaderboard?limit=50   读取排行榜
-   POST /api/leaderboard            提交一局战绩
-        body: { id, name, avatar, score, maxTile, moves, merges }
+   GET    /api/leaderboard?limit=50   读取排行榜
+   POST   /api/leaderboard            提交一局战绩
+          body: { id, name, avatar, score, maxTile, moves, merges }
+   DELETE /api/leaderboard            删除一条战绩（需 x-admin-token 请求头）
+          body: { id }
+          token 来自环境变量 ADMIN_TOKEN，未配置时该接口始终 403
    ========================================================= */
 
 'use strict';
@@ -310,6 +313,42 @@ module.exports = async function handler(req, res) {
         total,
         board
       });
+      return;
+    }
+
+    if (req.method === 'DELETE') {
+      const expected = process.env.ADMIN_TOKEN || '';
+      // 未配置密钥时一律拒绝：宁可删不掉，也不能留一个谁都能调用的删除接口
+      if (!expected) {
+        res.status(403).json({ ok: false, error: '未配置 ADMIN_TOKEN，删除接口已禁用' });
+        return;
+      }
+      const given = String((req.headers && (req.headers['x-admin-token'] || req.headers['X-Admin-Token'])) || '');
+      if (given.length !== expected.length || given !== expected) {
+        res.status(403).json({ ok: false, error: '无权限' });
+        return;
+      }
+
+      let body = req.body;
+      if (typeof body === 'string') {
+        try { body = JSON.parse(body); } catch (e) { body = null; }
+      }
+      const id = clampText(body && body.id, 64);
+      if (!/^[A-Za-z0-9_-]{8,64}$/.test(id)) {
+        res.status(400).json({ ok: false, error: '玩家标识不合法' });
+        return;
+      }
+
+      if (useMemory) {
+        mem.z.delete(id);
+        mem.p.delete(id);
+      } else {
+        await pipeline([
+          ['ZREM', ZSET, id],
+          ['HDEL', HASH, id]
+        ]);
+      }
+      res.status(200).json({ ok: true, removed: id });
       return;
     }
 

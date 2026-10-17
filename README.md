@@ -238,6 +238,19 @@ Vercel 托管，连接 GitHub `main` 分支自动部署，无需手动构建命�
 
 本地开发 `node server.js` 时没有 Redis 会自动用进程内存储，接口行为完全一致，方便联调。
 
+#### 删除某条战绩
+
+给项目加一个环境变量 `ADMIN_TOKEN`（自己随便设一串足够长的随机字符），然后：
+
+```bash
+curl -X DELETE https://你的域名/api/leaderboard \
+  -H "x-admin-token: 你的 ADMIN_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"id":"要删除的玩家ID"}'
+```
+
+玩家 ID 就是榜单返回里的 `id` 字段。**没配 `ADMIN_TOKEN` 时该接口始终返回 403**，不会留下一个谁都能调的删除入口。
+
 ---
 
 ## 📄 License

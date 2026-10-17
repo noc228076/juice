@@ -707,7 +707,6 @@
           '<span class="g2048-lb-rank">' + (i === 0 ? '👑' : (i + 1)) + '</span>' +
           '<span class="g2048-lb-score">' + rr.score + '</span>' +
           '<span class="g2048-lb-tile">' + rr.maxTile + '</span>' +
-          '<span class="g2048-lb-role">' + (ROLE_MAP[rr.maxTile] || '高阶') + '</span>' +
           '<span class="g2048-lb-moves">' + rr.moves + ' 步</span>' +
           '<span class="g2048-lb-date">' + fmtDay(rr.at) + '</span>' +
           '</div>';
@@ -752,11 +751,8 @@
       return '<div class="g2048-lb-wrap">' + head + tabs + body + '</div>';
     }
 
-    var ROLE_MAP = {
-      2: '起步', 4: '转正', 8: '主力', 16: '核心',
-      32: '组长', 64: '经理', 128: '总监', 256: '副总',
-      512: '合伙人', 1024: '传奇', 2048: '终极架构师', 4096: '封神'
-    };
+    // 方块只显示数字本身。此前给每级方块配了「起步/转正/经理/总监」这类
+    // 职场头衔，既和 2048 无关，也让游戏显得廉价——已全部移除。
 
     function spawnTile() {
       var empty = [];
@@ -951,7 +947,6 @@
         if (maxTile >= certs[i].min) { cert = certs[i]; break; }
       }
 
-      var role = ROLE_MAP[maxTile] || '传奇';
       var planningPct = maxTile >= 2048 ? 100 : maxTile >= 1024 ? 92 : maxTile >= 512 ? 82 : maxTile >= 256 ? 70 : maxTile >= 128 ? 58 : 42;
       var decisionPct = Math.min(98, Math.max(45, Math.round((score / Math.max(1, moves * 12)) * 80)));
       var resiliencePct = isOver ? 72 : 90;
@@ -959,7 +954,7 @@
       onFinish({
         icon: cert.icon,
         name: cert.name,
-        tag: '最高合成 ' + maxTile + '（' + role + '）· 终局得分 ' + score + ' 分',
+        tag: '最高合成 ' + maxTile + ' · 终局得分 ' + score + ' 分',
         text: cert.text + ' 本局历经 ' + moves + ' 步推演与 ' + merges + ' 次合体，无论顺境还是逆风，你在方寸之间的运筹帷幄都令人叹服。',
         big: { label: '最高合成数字', value: maxTile + ' <small>分 ' + score + '</small>' },
         bars: [
@@ -968,7 +963,7 @@
           { label: '逆境容错率', pct: resiliencePct }
         ],
         blocks: [
-          { h: '职场段位认证', cert: '【' + role + '】' },
+          { h: '本局段位', cert: '【' + cert.name + '】' },
           { h: '对局复盘', text: '本局总步数 ' + moves + ' 步，合成总分 ' + score + ' 分，历史最佳分 ' + bestScore + ' 分。' + (myRank ? '本局在离线战绩榜上排名第 ' + myRank + '。' : '') },
           { h: '战略建议', text: '2048 的底层法则永远是“守住一个角落，大小有序排列”。现实亦如此，守好自己的基本盘，步步为营方能化险为夷。' }
         ],
@@ -979,7 +974,6 @@
     }
 
     function renderUI() {
-      var role = ROLE_MAP[maxTile] || '高阶';
       var boardCellsHTML = '';
       for (var i = 0; i < 16; i++) {
         var v = board[i];
@@ -987,15 +981,14 @@
           boardCellsHTML += '<div class="g2048-cell empty"></div>';
         } else {
           var cls = 'g2048-tile t' + (v <= 2048 ? v : 'super');
-          var rName = ROLE_MAP[v] || '进阶';
-          boardCellsHTML += '<div class="g2048-cell"><div class="' + cls + '"><span class="g2048-num">' + v + '</span><span class="g2048-tag">' + rName + '</span></div></div>';
+          boardCellsHTML += '<div class="g2048-cell"><div class="' + cls + '"><span class="g2048-num">' + v + '</span></div></div>';
         }
       }
 
       var overOverlayHTML = isOver ? (
         '<div class="g2048-overlay">' +
         '<div class="g2048-ov-title">无路可走 · 棋逢对手</div>' +
-        '<div class="g2048-ov-sub">最高合成 <b>' + maxTile + ' (' + role + ')</b> · 本局得分 ' + score + '</div>' +
+        '<div class="g2048-ov-sub">最高合成 <b>' + maxTile + '</b> · 本局得分 ' + score + '</div>' +
         '<div class="g2048-ov-btns">' +
         '<button class="g2048-btn accent" id="btn2048Cert">📜 查看说明书认证判词</button>' +
         '<button class="g2048-btn" id="btn2048Restart">🔄 再战一局</button>' +
@@ -1015,7 +1008,7 @@
         '</div>' +
         '<div class="g2048-score-card highlight">' +
         '<div class="g2048-sc-lbl">最高 MAX</div>' +
-        '<div class="g2048-sc-val">' + maxTile + ' <small>' + role + '</small></div>' +
+        '<div class="g2048-sc-val">' + maxTile + '</div>' +
         '</div>' +
         '</div>' +
 

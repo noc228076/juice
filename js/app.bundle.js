@@ -17972,6 +17972,29 @@ if ('serviceWorker' in navigator) {
       });
     }
 
+    /* 开始页：进来先停在说明页，玩家可以先看右边的榜单再开始。
+       此前一进章节就立刻起计时，想看榜反而会白白掉命。 */
+    function intro() {
+      clearTimers();
+      if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
+      el.innerHTML = hud('<b>色彩敏锐度挑战</b>', '共 3 条命') +
+        '<div class="rz-stage">' +
+        '<div class="rz-big" style="font-size:30px">找出颜色不同的那一块</div>' +
+        '<div class="rz-sub">每关限时 8 秒，答错或超时扣 1 条命。<br>' +
+        '关卡越深，格子越多、色差越小。3 条命用完即结算。</div>' +
+        '<button class="btn accent" id="clgo" style="margin-top:26px;width:auto;padding:12px 38px">开始挑战</button>' +
+        '</div>';
+      var btn = el.querySelector('#clgo');
+      if (btn) {
+        btn.onclick = function (e) {
+          e.stopPropagation();
+          if (window.SFX && window.SFX.tap) window.SFX.tap();
+          lives = LIVES; lv = 1;
+          startLevel();
+        };
+      }
+    }
+
     function startLevel() {
       if (destroyed || dying) return;
       if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
@@ -18103,7 +18126,7 @@ if ('serviceWorker' in navigator) {
     }
 
     lives = LIVES; lv = 1;
-    startLevel();
+    intro();          // 先停在开始页，点「开始挑战」才起计时
     mountLbHost();
     return {
       destroy: function () {

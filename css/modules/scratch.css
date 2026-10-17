@@ -1072,6 +1072,140 @@ html[data-theme="light"] .sc-security-box {
     gap: 8px;
   }
 
+  /* ---------- 一屏装下：压缩纵向留白 ----------
+     1920x1080 只差 4px，1440x900 差 184px，1366x768 差 316px。
+     空间不是不够，是各块之间的固定留白太厚：
+       hero 155px（badge+标题+副标题三行）
+       票面 body 固定 290px 而内容只有 228px
+       票面底部 padding 18px + 进度条 margin 14px
+     逐项收紧，不改变任何字号与触控尺寸。 */
+
+  /* hero 收成紧凑两行：badge 与副标题的间距减半 */
+  .scratch-hero { margin-bottom: 12px; }
+  .scratch-hero-badge { margin-bottom: 4px; }
+  .scratch-hero-title { margin-bottom: 3px; }
+  .scratch-hero-sub { margin-bottom: 8px; }
+
+  /* 主题栏与票面之间收紧 */
+  .scratch-themes-scroll { padding-bottom: 10px; margin-bottom: 10px; }
+
+  /* 票面内边距与外层留白收紧 */
+  .scratch-card-outer { padding: 16px 16px 14px; }
+  .sc-card-head { margin-bottom: 8px; padding-bottom: 8px; }
+  .sc-rule-banner { margin-bottom: 10px; padding: 6px 10px; }
+
+  /* body 不再强制 290px：内容多高就多高，涂层随容器尺寸绘制 */
+  .sc-ticket-body,
+  .sc-prize-surface { min-height: 0; }
+
+  .sc-card-foot { margin-top: 8px; padding-top: 8px; }
+
+  /* 进度条与操作按钮之间收紧 */
+  .sc-progress-wrap { margin-top: 10px; margin-bottom: 10px; }
+  .sc-action-row { margin-top: 0; }
+
+  /* 账本卡片也压一压，让 6 条记录能整屏放下 */
+  .scratch-history-panel { padding: 16px; }
+  .sc-history-head { margin-bottom: 12px; padding-bottom: 10px; }
+  .sc-hist-card { padding: 10px; }
+  .sc-hist-prize { margin-bottom: 2px; }
+
+  /* 底部原本留 64px（给移动端滚动缓冲），PC 上一屏装得下就收掉 */
+  #mod-scratch { padding-bottom: 20px; }
+
+  /* 票头：标题与面值并排更紧凑，SN 和最高奖金降到 10px */
+  .sc-card-head { align-items: center; }
+  .sc-ticket-title { font-size: 19px; }
+  .sc-logo-badge { margin-bottom: 2px; }
+  .sc-ticket-sn { margin-top: 2px; }
+  .sc-ticket-top-prize { margin-top: 3px; }
+
+  /* 保安区收成一行：条码与文案横向排布，省掉一整行高度。
+     注意别让内容互相挤压——security-box 可缩，标语不可缩，
+     否则条码文字会压到公益标语上。 */
+  .sc-card-foot {
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 10px;
+  }
+  .sc-security-box {
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    padding: 5px 8px;
+    min-width: 0;
+    flex: 0 1 auto;
+  }
+  .sc-security-header { flex: none; }
+  .sc-barcode-row { gap: 8px; min-width: 0; }
+  /* 条码信息原本竖排两行（BARCODE / VERIFY），PC 上横向并排省一行 */
+  .sc-sec-info {
+    flex-direction: row;
+    gap: 10px;
+    white-space: nowrap;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .sc-sec-info > span { line-height: 1.2; }
+  /* 公益标语是票面装饰，PC 空间紧张时优先保它不换行、不被压 */
+  .sc-guarantee-seal {
+    flex: none;
+    font-size: 10px;
+    white-space: nowrap;
+  }
+
+  /* 号码格子略微收高，一行 4/5 格仍保持 44px 以上的点击区域 */
+  .sc-lottery-cell { padding: 6px 4px; }
+  .sc-cell-num { font-size: 19px; }
+  .sc-cell-prize { margin-top: 2px; }
+  .sc-prize-amount { font-size: 11.5px; }
+  .sc-my-zone { gap: 6px; }
+  .sc-my-grid { gap: 6px; }
+  .sc-prize-surface { padding: 12px; }
+  .sc-winning-zone { padding: 6px 12px; }
+}
+
+/* ---------- 矮屏（≤ 800px 高）再压一档 ----------
+   1366×768 / 1280×720 这类笔记本屏，票面还能再扁一点：
+   号码格保持 44px 以上点击高度，只收内边距与行距。 */
+@media (min-width: 1025px) and (max-height: 800px) {
+  /* 矮屏底部不留白，省下最后一截 */
+  #mod-scratch { padding-top: 10px; padding-bottom: 8px; }
+  .scratch-hero { margin-bottom: 8px; }
+  .scratch-hero-title { font-size: 26px; }
+  .scratch-hero-sub { font-size: 12px; }
+  .scratch-themes-scroll { padding-bottom: 6px; margin-bottom: 8px; }
+  .sc-theme-btn { padding: 6px 8px; }
+  .sc-tb-sub { display: none; }
+
+  .scratch-card-outer { padding: 12px 14px 10px; }
+  .sc-card-head { margin-bottom: 6px; padding-bottom: 6px; }
+  .sc-rule-banner {
+    margin-bottom: 8px;
+    padding: 5px 10px;
+    font-size: 10.5px;
+    /* 规则文案两行压成一行，超出省略 */
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .sc-card-foot { margin-top: 6px; padding-top: 6px; }
+  .sc-lottery-cell { padding: 5px 4px; }
+  .sc-cell-num { font-size: 18px; }
+  .sc-winning-ball { width: 32px; height: 32px; font-size: 16px; }
+  .sc-winning-zone { padding: 5px 10px; }
+  .sc-my-grid { gap: 5px; }
+  .sc-my-zone { gap: 5px; }
+  .sc-prize-surface { padding: 10px; }
+
+  .sc-progress-wrap { margin: 6px 0; }
+  .sc-btn { padding: 8px 14px; font-size: 13px; }
+  .sc-card-foot { margin-top: 4px; padding-top: 4px; }
+}
+
+@media (min-width: 1025px) {
   /* ---------- 左右分栏：刮奖台 | 刮彩账本 ----------
      账本常驻右栏，不用滚到操作台下方才看得到。
      1024px 及以下退回单列，账本落回底部，DOM 顺序不变。 */
@@ -1083,23 +1217,40 @@ html[data-theme="light"] .sc-security-box {
     grid-template-areas:
       "hero hero"
       "main hist";
+    /* 第二行锁到 1fr：行高由容器高度决定，而不是由账本内容决定。
+       配合下面的 max-height，账本再长也不会把页面撑出滚动条。 */
+    grid-template-rows: auto minmax(0, 1fr);
     column-gap: 24px;
     align-items: start;
+    /* 用 height 而非 max-height：只有确定高度才能让 1fr 真正
+       分配剩余空间，max-height 下 1fr 仍按内容取高。
+       96 = nav 52 + 模块上下 padding 36 + 8 余量。 */
+    height: calc(100vh - 90px);
   }
   .scratch-hero { grid-area: hero; }
   .scratch-main-col { grid-area: main; }
+  /* grid 子项默认 min-height:auto，会被内容撑破固定行高 */
+  .scratch-main-col,
+  .scratch-history-panel { min-height: 0; }
 
   .scratch-history-panel {
     grid-area: hist;
     margin-top: 0;
-    /* 账本比操作台矮时跟随滚动，始终留在视野内。
-       100vh 含顶部导航，减去 nav(52) + sticky 间距(16) + 余量，
-       保证吸附后底边不越过视口。 */
-    position: sticky;
-    top: 16px;
-    max-height: calc(100vh - 84px);
+    /* 高度跟左列走，不跟视口走：
+       账本若按 100vh 算，在矮屏上会比左列高出一截，
+       反而把整个 .scratch-container 撑出滚动条。
+       align-self:stretch（grid 默认）让它在行内与左列等高。 */
     display: flex;
     flex-direction: column;
+    /* 高度跟随 grid 行（已由容器 height 锁死），
+       超出部分交给内部滚动。100% 而非 100vh：
+       视口高 ≠ 这一行的高度，用 100vh 会在矮屏上压不住。
+       不用 stretch —— 那会让账本参与行高计算，形成循环。 */
+    align-self: start;
+    max-height: 100%;
+    /* 左列内容超出视口时，账本跟着吸顶 */
+    position: sticky;
+    top: 16px;
   }
   /* 卡片多了在面板内部滚，标题栏保持可见。
      flex:1 1 auto 让它吃掉标题栏之外的高度；min-height:0 允许收缩到

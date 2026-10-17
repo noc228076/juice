@@ -99,12 +99,13 @@ css/base.css ──────┘
 npm run build
 ```
 
-同时更新两处版本号，使浏览器与 Service Worker 感知更新：
+**先手改 `sw.js` 的 `CACHE_NAME` 版本号**，再运行 `npm run build`。构建脚本会读出
+`sw.js` 的版本号并自动同步到 `index.html` 的两处 `?v=`，不需要手动改两遍：
 
-| 文件 | 字段 | 当前值 |
-|---|---|---|
-| `index.html` | `?v=` 查询参数（CSS / JS 各一处） | `58` |
-| `sw.js` | `CACHE_NAME` | `juice-persona-v58` |
+| 文件 | 字段 | 当前值 | 谁改 |
+|---|---|---|---|
+| `sw.js` | `CACHE_NAME` | `juice-persona-v65` | **手动**（唯一真值来源） |
+| `index.html` | `?v=` 查询参数（CSS / JS 各一处） | `65` | `npm run build` 自动同步 |
 
 ---
 
@@ -146,8 +147,8 @@ juice/
 │
 ├── assets/
 │   ├── icons/              # PWA 图标（192 / 512 / maskable）
-│   ├── mbti/               # 16 型人格立绘（.png + .webp）
-│   ├── sbti/               # 16 型 SBTI 立绘（.png + .webp）
+│   ├── mbti/               # 16 型 MBTI 立绘（16 个 .webp 在用，同名 .png 为孤儿）
+│   ├── sbti/               # 27 型 SBTI 立绘（.png + .webp，两种格式均在用）
 │   ├── milktea/            # 26 个奶茶品牌 logo
 │   └── tarot/              # 22 张大阿卡纳立绘
 │
@@ -195,7 +196,7 @@ juice/
 4. 在 `index.html` 中新增 `<section id="mod-foo" class="app-module">`；
 5. 在 `router.js` 的 `ALLOWED_MODS` 加入 `'foo'`，并在懒初始化分支加 `if (modKey === 'foo' && window.AppFoo) window.AppFoo.init();`；
 6. 若挂在已有顶栏下，将 `'foo'` 加入 `MOD_PARENT_MAP` 指向父 Tab，并补 `data-sub-jump="foo"` 按钮；
-7. `npm run build` 并更新两处版本号。
+7. 手改 `sw.js` 的 `CACHE_NAME`，再 `npm run build`（脚本会自动同步 `index.html` 的 `?v=`）。
 
 其他可定制点：
 
@@ -215,7 +216,7 @@ Vercel 静态托管，连接 GitHub `main` 分支自动部署，无需手动构�
 `vercel.json` 中：
 
 - **`builds` 段**将所有路径显式声明为 `@vercel/static`，确保项目按静态站点而非 Serverless 函数部署；
-- **缓存策略分档**：`sw.js` 与 `index.html` 为 `must-revalidate`；`css`/`js` 同为 `must-revalidate`；`assets` 为 1 周强缓存 + 1 月陈旧重验证。
+- **缓存策略分档**：`sw.js` 为 `no-cache, no-store, must-revalidate`；`index.html` 为 `max-age=0, must-revalidate`；`css`/`js` 为 `max-age=31536000, immutable`（文件自带 `?v=` 版本号，可以放心长缓存）；`assets` 为 1 周强缓存 + 1 月陈旧重验证。
 
 `.vercelignore` 排除 `node_modules`、`scratch`、`.git` 等非部署产物。
 

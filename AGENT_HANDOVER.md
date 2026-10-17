@@ -1,6 +1,6 @@
 # juice 项目交接文档
 
-> 更新：2026-10-17 · 覆盖至 `bf90db6`（线上 v65）
+> 更新：2026-10-17 · 覆盖至 `f72c2ad`（线上 v65）
 > 适用对象：接手本项目后续开发 / 维护的 agent 或人
 >
 > **本文档上一版严重过期**，其架构描述（`template.html`、单文件 `index.html`、
@@ -24,8 +24,8 @@
 
 ```
 index.html            130.6 KB   手写，含全部模块 DOM 结构与内联 SVG
-css/app.bundle.css    381.9 KB   ← 由 16 个 css 源文件拼接
-js/app.bundle.js    1,448.6 KB   ← 由 24 个 js 源文件拼接
+css/app.bundle.css    381.9 KB   ← 由 15 个 css 源文件拼接
+js/app.bundle.js    1,448.6 KB   ← 由 21 个 js 源文件拼接
 assets/                         静态图片，运行时按需加载
 ```
 
@@ -50,10 +50,10 @@ assets/                         静态图片，运行时按需加载
 | 目录 | 文件数 | 体积 | 说明 |
 |---|---|---|---|
 | `assets/tarot/` | 22 | 7.2 MB | 塔罗大阿卡纳立绘 |
-| `assets/sbti/` | 54 | 374 KB | SBTI 人格图（webp） |
-| `assets/mbti/` | 32 | 571 KB | MBTI 人格图，其中 **16 个 `.png` 无任何引用**（历史遗留，见第五节） |
+| `assets/sbti/` | 54 | 374 KB | SBTI 人格图，27 型 × png/webp，两种格式均在用 |
+| `assets/mbti/` | 32 | 571 KB | MBTI 人格图；16 个 `.webp` 在用，16 个同名 `.png` 无引用（历史遗留，见第五节） |
 | `assets/milktea/` | 26 | 193 KB | 奶茶品牌 logo（jpg） |
-| `assets/icons/` | 3 | 102 KB | `icon-maskable.png` 未被引用（manifest 可能用绝对路径） |
+| `assets/icons/` | 3 | 102 KB | PWA 图标，三个均被 `manifest.json` 引用 |
 
 ---
 
@@ -68,13 +68,17 @@ assets/                         静态图片，运行时按需加载
 ### 性能问题的排查路径（值得复用）
 
 用户反馈「加载慢」。**不要一上来就怀疑代码体积或模块没拆** —— 实测发现真正的
-大头是内联 base64 图片，占 JS 的 33.7%：
+大头是内联 base64 图片，占 JS 的 30%：
 
 ```
-core-drink.js   44 张  361.5 KB  占该文件 63%
-milktea.js      26 张  257.8 KB  占该文件 91%
-合计 619.3 KB / JS 总体积 1836 KB = 33.7%
+core-drink.js   44 张  361.5 KB  占该文件 54.9%
+milktea.js      26 张  257.8 KB  占该文件 89.9%
+合计 619.3 KB / JS 总体积 2065.5 KB = 30.0%
 ```
+
+> 口径说明：以上均为**字节数 ÷ 1024**。base64 负载是纯 ASCII，字符数 = 字节数；
+> 但 JS 文件本身含大量中文（UTF-8 每字 3 字节），按字符数算会把分母算小约 12%
+> （曾误得 63% / 91% / 33.7%）。比较体积时统一用字节。
 
 内联 base64 的真正代价不是「和代码打包在一起」，而是**随 JS 无条件下载**，
 哪怕那张图这辈子不会被显示。落成独立文件后，浏览器只在 `<img src>` 真正指向时才取。
@@ -129,8 +133,9 @@ app.bundle.js   11 ms   实际传输 0.0 KB
 `.foo{max-width:100%}` 写在文件头，`.foo{max-width:560px}` 写在文件尾的
 `@media` 里 → **基础规则赢**。PC 覆盖必须放文件末尾或提高特异性。
 
-> 实例：`scratch.css` 的票面限宽写在 L55，被 L284 的基础规则盖掉，
-> 修正完全没生效，而我自己的测试没发现。
+> 实例：`scratch.css` 的票面限宽规则被后面的基础规则按同特异性盖掉，
+> 修正完全没生效，而我自己的测试没发现。原复盘写死了行号（L55/L284），
+> 现已漂移失效——查这段历史请用 `git log -- css/modules/scratch.css`。
 
 ### 3. 选择器列表里每个选择器各自算特异性
 
@@ -252,11 +257,11 @@ C:\Users\NOC\AppData\Local\ms-playwright\chromium-1234\chrome-win64\chrome.exe
 
 1. **`assets/mbti/` 16 个 `.png` 无任何引用**（与同名 `.webp` 内容不同）。
    历史遗留，非本次改动引入。删不删你定。
-2. **`lunar.js` 还有 409 KB**，是真实代码（农历库）不是图片。
+2. **`lunar.js` 还有 426 KB**（436,144 字节），是真实代码（农历库）不是图片。
    它被 bazi 模块强依赖，动态加载的改动风险高于收益，暂未动。
    若要继续瘦身，这是唯一剩下的目标。
 3. **`css/app.bundle.css` 382 KB** 里最大的是 `tarot.css` 58 KB、
-   `base.css` 42 KB、`decision.css` 32 KB。没做单页级 CSS 拆分。
+   `base.css` 42 KB、`manual.css` 39 KB、`decision.css` 32 KB。没做单页级 CSS 拆分。
 4. **塔罗 768→900px 断点**：768–899px 平板会退化成单栏。
    这是有意改动（双栏需要空间），但确实牺牲了平板区间，用户尚未拍板。
 5. **移动端底部留白 36/40px → 24px**：为统一垂直节奏而收窄。
@@ -264,6 +269,13 @@ C:\Users\NOC\AppData\Local\ms-playwright\chromium-1234\chrome-win64\chrome.exe
 6. **`#scr-quiz` / `.result-scroll` / 封面移动端分支（8px）未纳入
    `--screen-pad-block`**，有意保持紧凑。已在 `css/base.css` 注释里写明范围，
    防止下一个人误以为「已经统一过了」。
+7. **4 个孤儿源文件仍在版本库中**：`js/app.js`（23.5 KB）、`js/data.js`（118.9 KB）、
+   `js/drinks-art.js`（38.5 KB）、`css/style.css`（37.3 KB）。它们被 git 跟踪，
+   但既不在 `build-bundles.js` 的 `cssFiles`/`jsFiles` 里，也不被 `index.html`
+   引用——是早期单文件架构的残留。删或留需要一次决策，别误以为它们在生效。
+8. **`f72c2ad` 已删掉 `bf90db6` 误加进 `assets/sbti/` 的 16 个 `.webp`**。
+   `assets/sbti/` 现在是 54 个文件（27 型 × png/webp），与上表一致；
+   若看到 `bf90db6` 的提交统计写「新增 16 个文件」，那是中间态，不是现状。
 
 ---
 

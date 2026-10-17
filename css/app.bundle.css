@@ -5689,12 +5689,9 @@ html[data-theme="light"] #mod-manual {
     grid-template-columns: 1fr 1fr;
     gap: 16px;
     }
-    /* 桌面 2 列共 7 个 tile，最后一行只剩 1 个、右侧空一格。
-       7 是质数，任何列数都无法整除；让落单的那个横跨两列，
-       读起来像刻意设计而不是排版出错。单列布局下此规则无副作用。 */
-    #mod-manual .manual-grid > .tile:last-child {
-    grid-column: 1 / -1;
-    }
+    /* 桌面 2 列。原先共 7 章（质数），最后一格落单，才让末项横跨两列
+       补满整行。现在并进人间清醒后是 8 章，正好整除 2 列，
+       再套「末项通栏」反而会让第 08 章变成一条突兀的大横条，所以去掉。 */
   #mod-manual .home-head {
     max-width: 960px;
   }

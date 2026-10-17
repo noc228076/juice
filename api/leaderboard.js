@@ -25,6 +25,10 @@ const GAMES = {
   mine_easy: { z: 'jmine_e:z', p: 'jmine_e:p', higher: false },
   mine_medium: { z: 'jmine_m:z', p: 'jmine_m:p', higher: false },
   mine_hard: { z: 'jmine_h:z', p: 'jmine_h:p', higher: false },
+  // 舒尔特方格同样按难度分榜：5×5 / 6×6 / 7×7 的用时不可比
+  schulte_easy: { z: 'jsch_e:z', p: 'jsch_e:p', higher: false },
+  schulte_medium: { z: 'jsch_m:z', p: 'jsch_m:p', higher: false },
+  schulte_hard: { z: 'jsch_h:z', p: 'jsch_h:p', higher: false },
   // 旧版三档共用一个榜。保留只为兼容尚未刷新的客户端和后台删除接口，
   // 前端已经不再写这里。
   minesweeper: { z: 'jmine:z', p: 'jmine:p', higher: false, legacy: true }
@@ -35,6 +39,12 @@ const MINE_LEVELS = {
   mine_easy: 'easy',
   mine_medium: 'medium',
   mine_hard: 'hard'
+};
+
+const SCHULTE_LEVELS = {
+  schulte_easy: 'easy',
+  schulte_medium: 'medium',
+  schulte_hard: 'hard'
 };
 
 const BOARD_CAP = 1000;          // 每个榜单只保留前 1000 名
@@ -223,6 +233,19 @@ function parseRun(game, body) {
     return { score: sec, extra: { sec, lv } };
   }
 
+  if (SCHULTE_LEVELS[game]) {
+    // 排名值就是总用时（秒），越小越好。
+    // 25 格最快也要几秒，下限 1 秒挡住脚本；上限 10 分钟够慢手了。
+    const sec = intIn(body.score, 1, 600);
+    const lv = String(body.lv || '');
+    const err = intIn(body.err, 0, 999);
+    if (sec == null) return { error: '成绩不合法' };
+    if (['easy', 'medium', 'hard'].indexOf(lv) < 0) return { error: '难度不合法' };
+    if (SCHULTE_LEVELS[game] !== lv) return { error: '成绩与难度不匹配' };
+    if (err == null) return { error: '错误次数不合法' };
+    return { score: sec, extra: { sec, lv, err } };
+  }
+
   return { error: '未知游戏' };
 }
 
@@ -265,6 +288,7 @@ async function readBoard(game, limit) {
     if (d && d.age != null) extra.age = d.age;
     if (d && d.sec != null) extra.sec = d.sec;
     if (d && d.lv != null) extra.lv = d.lv;
+    if (d && d.err != null) extra.err = d.err;
     return {
       id,
       name: (d && d.n) || '匿名玩家',
@@ -390,6 +414,7 @@ module.exports = async function handler(req, res) {
         if (run.extra.age != null) detail.age = run.extra.age;
         if (run.extra.sec != null) detail.sec = run.extra.sec;
         if (run.extra.lv != null) detail.lv = run.extra.lv;
+        if (run.extra.err != null) detail.err = run.extra.err;
       } else if (prevDetail) {
         if (prevDetail.at != null) detail.at = prevDetail.at;
         if (prevDetail.mt != null) detail.mt = prevDetail.mt;
@@ -397,6 +422,7 @@ module.exports = async function handler(req, res) {
         if (prevDetail.age != null) detail.age = prevDetail.age;
         if (prevDetail.sec != null) detail.sec = prevDetail.sec;
         if (prevDetail.lv != null) detail.lv = prevDetail.lv;
+        if (prevDetail.err != null) detail.err = prevDetail.err;
       }
       if (detail.at == null) detail.at = stamp;
 

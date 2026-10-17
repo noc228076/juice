@@ -623,11 +623,35 @@
       ]
     },
 
-    /* ============ 09 人间清醒指南 ============
+    /* ============ 09 舒尔特方格 ============
+       注意力测试：5×5 网格里按 1–25 顺序点击，计时。
+       复用扫雷的网格样式与排行榜，游戏逻辑见 manual-games.js。 */
+    schulte: {
+      id: 'schulte', num: '09', mode: 'interactive', engine: 'schulte',
+      title: '舒尔特方格', en: 'SCHULTE TABLE',
+      tagline: '在乱序里按 1 到 25 依次点完，看看你的注意力有多稳',
+      icon: 'grid', color: '#8B5CF6',
+      meta: '三档难度 · 约 1 分钟',
+      intro: [
+        '5×5 的方格里有 1 到 25 的数字，顺序被打乱了。',
+        '从 1 开始，按顺序依次点击每个数字，全部点完计时结束。',
+        '点错不会中断，但会记录错误次数，最终成绩按用时排名。',
+        '初级 5×5，中级 6×6（1–36），高级 7×7（1–49）。'
+      ],
+      disclaimer: '用时越短注意力越集中，但一次成绩说明不了什么——睡眠、心情、屏幕大小都会影响结果。仅供参考。',
+      certs: [
+        { min: 3, icon: 'crown', name: '鹰眼聚焦', text: '高级方格也能快速扫完，你的视觉搜索效率已经接近训练有素。' },
+        { min: 2, icon: 'gem', name: '注意力稳', text: '中级通关，说明你能在干扰中维持目标，不容易被旁边的数字带跑。' },
+        { min: 1, icon: 'bolt', name: '专注入门', text: '初级完成。眼睛跟得上，下一步是让注意力别在方格间乱跳。' },
+        { min: 0, icon: 'smile', name: '视线游移', text: '没关系，舒尔特方格本来就可以练。每天一次，两周后会明显变快。' }
+      ]
+    },
+
+    /* ============ 10 人间清醒指南 ============
        这一章不是答题引擎产物：正文由 lifeguide.js 自己渲染（体检 / 智库 / 抽卡），
        所以 mode 为 'external'，由 manual.js 转交 AppLifeguide.open()。 */
     lifeguide: {
-      id: 'lifeguide', num: '09', mode: 'external',
+      id: 'lifeguide', num: '10', mode: 'external',
       title: '人间清醒指南', en: 'EVIDENCE-BASED LIFE HANDBOOK',
       tagline: '低投入高回报的 16 项防线、36 条循证避坑与每日锦囊',
       icon: 'book', color: '#10B981',
@@ -636,5 +660,5 @@
   };
 
   /* 首页章节顺序 */
-  window.SM_ORDER = ['social-battery', 'procrastination', 'slacking', 'night-owl', 'reaction', 'color', 'game-2048', 'minesweeper', 'lifeguide'];
+  window.SM_ORDER = ['social-battery', 'procrastination', 'slacking', 'night-owl', 'reaction', 'color', 'game-2048', 'minesweeper', 'schulte', 'lifeguide'];
 })();

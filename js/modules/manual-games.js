@@ -1356,9 +1356,11 @@
       if (won) {
         // 只有通关才可能拿到「谨慎工兵」以上
         for (var i = 0; i < certs.length; i++) {
-          if (level.key === 'hard' && certs[i].min >= 3) { cert = certs[i]; break; }
-          if (level.key === 'medium' && certs[i].min >= 2) { cert = certs[i]; break; }
-          if (level.key === 'easy' && certs[i].min >= 1) { cert = certs[i]; break; }
+          // 精确匹配：certs 是 min 降序排列，用 >= 会在第一次迭代
+          // 就命中最高档，初级通关也会拿到高级证书。
+          if (level.key === 'hard' && certs[i].min === 3) { cert = certs[i]; break; }
+          if (level.key === 'medium' && certs[i].min === 2) { cert = certs[i]; break; }
+          if (level.key === 'easy' && certs[i].min === 1) { cert = certs[i]; break; }
         }
       }
 
@@ -1578,6 +1580,333 @@
         if (onResize) { window.removeEventListener('resize', onResize); onResize = null; }
         if (timerId) { clearInterval(timerId); timerId = 0; }
         if (longPressId) { clearTimeout(longPressId); longPressId = 0; }
+        if (lbPanel) lbPanel.destroy();
+      }
+    };
+  };
+
+  /* ==================================================================
+   * 09 舒尔特方格 (Schulte Table)
+   * 乱序网格里按 1..N 顺序点击，全部点完计时结束。
+   * 网格样式复用扫雷那套 .ms-grid / .ms-cell。
+   * ================================================================== */
+  window.startSchulte = function (root, onFinish) {
+    var el = makeRoot(root);
+    var timers = [];
+    var destroyed = false;
+    function later(fn, ms) { var id = setTimeout(function () { if (!destroyed) fn(); }, ms); timers.push(id); return id; }
+    function clearTimers() { timers.forEach(clearTimeout); timers = []; }
+
+    /* 三档难度。排名就是总用时（秒），越小越好。
+       格子数越多越难，所以三档各排各的榜。 */
+    var LEVELS = {
+      easy:   { key: 'easy',   name: '初级', n: 5, weight: 0 },
+      medium: { key: 'medium', name: '中级', n: 6, weight: 180 },
+      hard:   { key: 'hard',   name: '高级', n: 7, weight: 420 }
+    };
+    var level = LEVELS.easy;
+
+    var order = [];       // 每个格子里放哪个数字
+    var next = 1;         // 下一个该点的数字
+    var errors = 0;       // 点错次数
+    var started = false;
+    var over = false;
+    var t0 = 0;
+    var elapsed = 0;
+    var timerId = 0;
+    var sized = false;
+    var onResize = null;
+    var flashTimer = 0;
+
+    function storeKeyFor(lv) { return 'sm_schulte_runs_' + lv; }
+
+    var lbPanel = window.AppLbPanel ? window.AppLbPanel.create({
+      game: 'schulte_easy',
+      storeKey: storeKeyFor('easy'),
+      higher: false,
+      idPrefix: 'lbsch',
+      formatScore: function (v) { return v + ' 秒'; },
+      describe: function (run) {
+        return { score: run.sec, extra: { sec: run.sec, lv: run.lv, err: run.err } };
+      },
+      localCols: function (r) {
+        return [
+          '<span class="lb-score">' + (r.sec || 0) + '<small> 秒</small></span>',
+          '<span class="lb-tile">' + levelName(r.lv) + '</span>',
+          '<span class="lb-meta">' + (r.err || 0) + ' 次错</span>',
+          '<span class="lb-date">' + window.AppLbPanel.fmtDay(r.at) + '</span>'
+        ];
+      },
+      globalCols: function (r) {
+        return [
+          '<span class="lb-ava">' + window.AppLbPanel.esc(r.avatar || '🙂') + '</span>',
+          '<span class="lb-name">' + window.AppLbPanel.esc(r.name || '匿名玩家') +
+            (r.isMe ? '<i class="lb-me">我</i>' : '') + '</span>',
+          '<span class="lb-score">' + ((r.extra && r.extra.sec) || 0) + '<small> 秒</small></span>',
+          '<span class="lb-tile">' + ((r.extra && r.extra.err) || 0) + ' 错</span>'
+        ];
+      }
+    }) : null;
+
+    function levelName(key) {
+      for (var k in LEVELS) {
+        if (LEVELS.hasOwnProperty(k) && LEVELS[k].key === key) return LEVELS[k].name;
+      }
+      return '初级';
+    }
+
+    function syncLbLevel() {
+      if (!lbPanel) return;
+      lbPanel.setGame('schulte_' + level.key, storeKeyFor(level.key));
+    }
+
+    function mountLbHost() {
+      if (!lbPanel) return;
+      var layout = root.querySelector('.sm-game-layout');
+      if (!layout) {
+        layout = document.createElement('div');
+        layout.className = 'sm-game-layout';
+        root.appendChild(layout);
+      }
+      if (el.parentNode !== layout) layout.appendChild(el);
+      var host = layout.querySelector('.lb-host');
+      if (!host) {
+        host = document.createElement('div');
+        host.className = 'lb-host';
+        layout.appendChild(host);
+      }
+      lbPanel.mount(host);
+    }
+
+    /* ---------------- 棋盘 ---------------- */
+
+    function reset(newLevel) {
+      if (newLevel) level = LEVELS[newLevel];
+      var total = level.n * level.n;
+      order = [];
+      for (var i = 1; i <= total; i++) order.push(i);
+      shuffle(order);
+      next = 1;
+      errors = 0;
+      started = false;
+      over = false;
+      elapsed = 0;
+      if (timerId) { clearInterval(timerId); timerId = 0; }
+      if (flashTimer) { clearTimeout(flashTimer); flashTimer = 0; }
+      clearTimers();
+    }
+
+    function startTimer() {
+      if (timerId) return;
+      t0 = performance.now() - elapsed * 1000;
+      timerId = setInterval(function () {
+        if (destroyed || over) return;
+        elapsed = Math.floor((performance.now() - t0) / 1000);
+        var t = el.querySelector('#schTime');
+        if (t) t.textContent = elapsed;
+      }, 250);
+    }
+
+    function stopTimer() {
+      if (timerId) { clearInterval(timerId); timerId = 0; }
+      if (started) elapsed = Math.floor((performance.now() - t0) / 1000);
+    }
+
+    function onPick(idx) {
+      if (over || destroyed) return;
+      if (order[idx] !== next) {
+        // 点错不中断，只记一次并闪一下红
+        errors++;
+        var bad = el.querySelector('#schGrid .ms-cell[data-i="' + idx + '"]');
+        if (bad) {
+          bad.classList.add('sch-wrong');
+          if (flashTimer) clearTimeout(flashTimer);
+          flashTimer = later(function () {
+            var b = el.querySelector('#schGrid .ms-cell[data-i="' + idx + '"]');
+            if (b) b.classList.remove('sch-wrong');
+            flashTimer = 0;
+          }, 260);
+        }
+        if (window.SFX && window.SFX.wrong) window.SFX.wrong();
+        return;
+      }
+
+      if (!started) {
+        started = true;
+        startTimer();
+      }
+      if (window.SFX && window.SFX.tap) window.SFX.tap();
+
+      var btn = el.querySelector('#schGrid .ms-cell[data-i="' + idx + '"]');
+      if (btn) btn.classList.add('open');
+
+      next++;
+      var total = level.n * level.n;
+      if (next > total) {
+        over = true;
+        stopTimer();
+        if (window.SFX && window.SFX.win) window.SFX.win();
+        settle();
+      }
+    }
+
+    function settle() {
+      if (lbPanel) {
+        // 用时下限 1 秒，和服务端一致
+        lbPanel.submit({
+          sec: Math.max(1, elapsed),
+          lv: level.key,
+          err: errors
+        });
+      }
+      later(finish, 700);
+    }
+
+    /* ---------------- 结算 ---------------- */
+
+    function finish() {
+      var certs = window.SM_DATA.schulte.certs;
+      var cert = certs[certs.length - 1];
+      for (var i = 0; i < certs.length; i++) {
+        // 精确匹配：certs 是 min 降序排列，用 >= 会在第一次迭代
+        // 就命中最高档，初级通关也会拿到高级证书。
+        if (level.key === 'hard' && certs[i].min === 3) { cert = certs[i]; break; }
+        if (level.key === 'medium' && certs[i].min === 2) { cert = certs[i]; break; }
+        if (level.key === 'easy' && certs[i].min === 1) { cert = certs[i]; break; }
+      }
+
+      var total = level.n * level.n;
+      // 正确率：点错不扣分，但会影响这条
+      var acc = Math.round(total / Math.max(total, total + errors) * 100);
+      // 平均每格用时
+      var per = elapsed > 0 ? (elapsed / total).toFixed(2) : '0.00';
+
+      onFinish({
+        icon: cert.icon,
+        name: cert.name,
+        tag: level.name + ' · ' + level.n + '×' + level.n + ' · ' + elapsed + ' 秒',
+        text: cert.text,
+        big: { label: '总用时', value: elapsed + ' <small>秒</small>' },
+        bars: [
+          { label: '正确率', pct: acc, hi: true },
+          { label: '平均每格', pct: Math.min(100, Math.round(Number(per) / 3 * 100)) }
+        ],
+        blocks: [
+          { h: '本局战报', text: '难度 ' + level.name + '（' + level.n + '×' + level.n + '，' + total + ' 格），用时 ' + elapsed + ' 秒，点错 ' + errors + ' 次，平均每格 ' + per + ' 秒。' },
+          { h: '怎么练', text: '舒尔特方格的关键是「视线不动、余光搜索」：把视线固定在中心，用余光去找下一个数字，而不是让眼球满屏扫。每天一次，两周后速度会明显提升。' }
+        ],
+        quip: window.SM_DATA.schulte.disclaimer,
+        cert: cert.name + ' · 认证',
+        detail: {
+          type: cert.name, level: level.key, sec: elapsed,
+          errors: errors, cells: total
+        }
+      });
+    }
+
+    /* ---------------- 渲染 ---------------- */
+
+    /* 和扫雷同一套算法：按可用宽度算格子大小 */
+    function cellSize() {
+      var style = window.getComputedStyle(el);
+      var padX = (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.paddingRight) || 0);
+      var avail = (el.clientWidth || 0) - padX;
+      if (avail <= 0) return 48;
+      var gap = 2, pad = 6 * 2;
+      var size = Math.floor((avail - pad - gap * (level.n - 1)) / level.n);
+      // 舒尔特格子少，上限放宽到 96px，数字才看得清
+      return Math.max(34, Math.min(96, size));
+    }
+
+    function boardHTML() {
+      var cs = cellSize();
+      var html = '<div class="ms-grid sch-grid" id="schGrid" style="grid-template-columns:repeat(' +
+        level.n + ',' + cs + 'px);gap:2px;padding:6px">';
+      for (var i = 0; i < order.length; i++) {
+        html += '<button type="button" class="ms-cell sch-cell" data-i="' + i + '"' +
+          ' style="width:' + cs + 'px;height:' + cs + 'px;font-size:' + Math.round(cs * 0.42) + 'px">' +
+          order[i] + '</button>';
+      }
+      return html + '</div>';
+    }
+
+    function paint() {
+      el.innerHTML = hud(
+        '<b>舒尔特方格 · ' + level.name + '</b>',
+        '<span class="ms-stat">✅ ' + (next - 1) + '/' + (level.n * level.n) + '</span> ' +
+        '<span class="ms-stat">⏱ <span id="schTime">' + elapsed + '</span>s</span>'
+      ) +
+        '<div class="ms-toolbar">' +
+        '<div class="ms-levels">' +
+        ['easy', 'medium', 'hard'].map(function (k) {
+          return '<button type="button" class="ms-lv' + (level.key === k ? ' active' : '') +
+            '" data-lv="' + k + '">' + LEVELS[k].name + '</button>';
+        }).join('') +
+        '</div>' +
+        '<button type="button" class="ms-reset" id="schReset">↻ 重开</button>' +
+        '</div>' +
+        '<div class="ms-board-wrap">' + boardHTML() + '</div>' +
+        '<div class="rz-sub" style="margin-top:10px">按 1 到 ' + (level.n * level.n) + ' 的顺序依次点击</div>';
+
+      bindBoard();
+
+      if (!sized) {
+        sized = true;
+        requestAnimationFrame(function () {
+          if (!destroyed && el.querySelector('.ms-board-wrap')) paint();
+        });
+      }
+    }
+
+    function bindBoard() {
+      var grid = el.querySelector('#schGrid');
+      if (!grid) return;
+
+      grid.querySelectorAll('.ms-cell').forEach(function (btn) {
+        var i = parseInt(btn.getAttribute('data-i'), 10);
+        btn.addEventListener('click', function () { onPick(i); });
+      });
+
+      var resetBtn = el.querySelector('#schReset');
+      if (resetBtn) resetBtn.onclick = function () {
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        reset(level.key);
+        paint();
+      };
+
+      el.querySelectorAll('[data-lv]').forEach(function (b) {
+        b.onclick = function () {
+          var k = b.getAttribute('data-lv');
+          if (k === level.key && !started) return;
+          if (window.SFX && window.SFX.tap) window.SFX.tap();
+          reset(k);
+          syncLbLevel();
+          paint();
+        };
+      });
+    }
+
+    /* ---------------- 启动 ---------------- */
+
+    reset('easy');
+    syncLbLevel();
+    paint();
+    mountLbHost();
+
+    onResize = function () {
+      if (destroyed) return;
+      if (!el.querySelector('.ms-board-wrap')) return;
+      paint();
+    };
+    window.addEventListener('resize', onResize);
+
+    return {
+      destroy: function () {
+        destroyed = true;
+        clearTimers();
+        if (onResize) { window.removeEventListener('resize', onResize); onResize = null; }
+        if (timerId) { clearInterval(timerId); timerId = 0; }
+        if (flashTimer) { clearTimeout(flashTimer); flashTimer = 0; }
         if (lbPanel) lbPanel.destroy();
       }
     };

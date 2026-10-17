@@ -33,7 +33,8 @@
 | 06 | 色彩敏锐度挑战 | COLOR ACUITY | 交互小游戏 |
 | 07 | 数字合体 2048 | 2048 PUZZLE | 交互小游戏 |
 | 08 | 雷区排险 | MINESWEEPER | 交互小游戏 |
-| 09 | 人间清醒 | LIFE GUIDE | 独立章节 |
+| 09 | 舒尔特方格 | SCHULTE TABLE | 交互小游戏 |
+| 10 | 人间清醒 | LIFE GUIDE | 独立章节 |
 
 ### 3. ☯️ 东西玄学
 四个子屏通过「西方塔罗 / 东方灵签 / 生辰八字 / 工位风水」切换条互跳：
@@ -139,7 +140,7 @@ juice/
 │       ├── bazi.js / bazi-cities.js
 │       ├── manual.js               # 自我说明书主控
 │       │   ├── manual-data.js      #   └ 题库与结果
-│       │   ├── manual-games.js     #   └ 反应擂台 / 色彩 / 2048 / 扫雷
+│       │   ├── manual-games.js     #   └ 反应擂台 / 色彩 / 2048 / 扫雷 / 舒尔特
 │       │   └── manual-report.js    #   └ 报告渲染
 │       ├── decision.js / clock.js / merit.js
 │       ├── profile.js              # 玩家头像 / 昵称
@@ -247,8 +248,13 @@ Vercel 托管，连接 GitHub `main` 分支自动部署，无需手动构建命�
 | `mine_easy` | 扫雷 · 初级 | 通关用时（秒） | **越低越好** | `jmine_e:z` / `jmine_e:p` |
 | `mine_medium` | 扫雷 · 中级 | 通关用时（秒） | **越低越好** | `jmine_m:z` / `jmine_m:p` |
 | `mine_hard` | 扫雷 · 高级 | 通关用时（秒） | **越低越好** | `jmine_h:z` / `jmine_h:p` |
+| `schulte_easy` | 舒尔特 · 初级 | 总用时（秒） | **越低越好** | `jsch_e:z` / `jsch_e:p` |
+| `schulte_medium` | 舒尔特 · 中级 | 总用时（秒） | **越低越好** | `jsch_m:z` / `jsch_m:p` |
+| `schulte_hard` | 舒尔特 · 高级 | 总用时（秒） | **越低越好** | `jsch_h:z` / `jsch_h:p` |
 
 每个榜单的 `:z` 是 ZSET（成员 = 玩家随机 ID，分值 = 个人最好成绩，只保留前 1000 名），`:p` 是 HASH（存昵称、头像、日期与各游戏自己的附加字段）。反应榜和三个扫雷榜用 `ZRANGE`/`ZRANK` 升序取榜，另外两个用 `ZREVRANGE`/`ZREVRANK`。
+
+舒尔特方格同样按难度分榜（5×5 / 6×6 / 7×7），排名就是总用时，点错次数只做记录不影响排名，用时限制 1–600 秒。
 
 扫雷只提交通关成绩，踩雷不产生记录；用时限制 1–7200 秒。服务端会校验 `lv` 与榜单是否对应——往初级榜塞高级成绩直接拒绝，防止串榜刷分。前端切换难度时榜单和本机战绩一起切，本机战绩按难度分文件存在 `sm_minesweeper_runs_{easy,medium,hard}`（旧版的合并文件会在首次进入时自动拆分并删除）。
 

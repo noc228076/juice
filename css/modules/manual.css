@@ -2114,3 +2114,38 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .stage {
 @media (max-width: 420px) {
   #mod-manual .ms-lv { padding: 5px 9px; font-size: 11px; }
 }
+
+/* ============ 09 舒尔特方格 ============
+   网格复用扫雷的 .ms-grid / .ms-cell，这里只补数字和点错的反馈。 */
+#mod-manual .sch-grid {
+  background: #1F1B2B;
+  border-color: rgba(139, 92, 246, 0.22);
+}
+#mod-manual .sch-cell {
+  background: #3E3654;
+  color: #F2EEE3;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.5px;
+  transition: background 0.12s, transform 0.08s;
+}
+#mod-manual .sch-cell:hover:not(.open) {
+  background: #4F4569;
+  transform: translateY(-1px);
+}
+#mod-manual .sch-cell:active:not(.open) {
+  transform: translateY(0);
+}
+/* 已经点过的数字：保留可见但明显变暗，方便回看进度 */
+#mod-manual .sch-cell.open {
+  background: #1B1926;
+  color: #5A5368;
+  cursor: default;
+}
+/* 点错时闪一下红，不中断游戏 */
+#mod-manual .sch-cell.sch-wrong {
+  background: #7A1F1A;
+  color: #FFD9D4;
+}
+@media (max-width: 640px) {
+  #mod-manual .sch-grid { justify-content: center; }
+}

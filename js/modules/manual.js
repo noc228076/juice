@@ -331,7 +331,8 @@
       'reaction': { scr: 'scr-sm-reaction', top: 'sm-reacttop', body: 'sm-reactbody', start: 'startReaction' },
       'color': { scr: 'scr-sm-color', top: 'sm-colortop', body: 'sm-colorbody', start: 'startColor' },
       'game-2048': { scr: 'scr-sm-2048', top: 'sm-2048top', body: 'sm-2048body', start: 'startGame2048' },
-      'minesweeper': { scr: 'scr-sm-mine', top: 'sm-minetop', body: 'sm-minebody', start: 'startMinesweeper' }
+      'minesweeper': { scr: 'scr-sm-mine', top: 'sm-minetop', body: 'sm-minebody', start: 'startMinesweeper' },
+      'schulte': { scr: 'scr-sm-schulte', top: 'sm-schultetop', body: 'sm-schultebody', start: 'startSchulte' }
     };
     var gs = GAME_SCREENS[t.id] || GAME_SCREENS['game-2048'];
     var scrId = gs.scr;

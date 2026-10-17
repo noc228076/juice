@@ -258,20 +258,29 @@ module.exports = async function handler(req, res) {
 
       const stamp = Date.now();
       let prevScore;
+      let prevDetail = null;
       if (useMemory) {
         prevScore = memStore.zscore(run.id);
+        prevDetail = memStore.hget(run.id);
       } else {
-        const raw = await call(['ZSCORE', ZSET, run.id]);
-        prevScore = raw == null ? null : Number(raw);
+        const out = await pipeline([
+          ['ZSCORE', ZSET, run.id],
+          ['HGET', HASH, run.id]
+        ]);
+        prevScore = out[0] == null ? null : Number(out[0]);
+        prevDetail = out[1];
       }
+      try { prevDetail = prevDetail ? JSON.parse(prevDetail) : null; } catch (e) { prevDetail = null; }
 
       const isBest = prevScore == null || run.score > prevScore;
-      // 昵称/头像每次提交都同步，分数只在刷新纪录时更新
+      // 昵称/头像每次提交都同步；分数、最高方块、日期只在刷新纪录时更新。
+      // 未破纪录时必须沿用旧值——JSON.stringify 会丢掉值为 undefined 的字段，
+      // 读回来就成了 0，榜单上会显示「最高方块 0」。
       const detail = escapeJsonSafe({
         n: run.name,
         a: run.avatar,
-        mt: isBest ? run.maxTile : undefined,
-        at: isBest ? stamp : undefined
+        mt: isBest ? run.maxTile : ((prevDetail && prevDetail.mt) || run.maxTile),
+        at: isBest ? stamp : ((prevDetail && prevDetail.at) || stamp)
       });
 
       if (useMemory) {

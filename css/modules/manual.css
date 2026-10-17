@@ -1838,6 +1838,34 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .stage {
   background: var(--mod-ac);
   color: var(--mod-ac-ink);
 }
+/* 全服榜有 60 秒缓存，点这里强制拉一次最新结果 */
+#mod-manual .lb-refresh {
+  flex: 0 0 30px;
+  width: 30px;
+  padding: 0;
+  border: none;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--tx-dim);
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 0.18s ease, color 0.18s ease;
+}
+#mod-manual .lb-refresh:hover:not(:disabled) {
+  background: var(--line);
+  color: var(--tx);
+}
+#mod-manual .lb-refresh:disabled { cursor: default; }
+#mod-manual .lb-refresh.spin {
+  color: var(--mod-ac);
+  animation: lb-spin 0.8s linear infinite;
+}
+@keyframes lb-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  #mod-manual .lb-refresh.spin { animation: none; }
+}
 
 /* 我在全服榜上的身份卡 */
 #mod-manual .lb-me-card {
@@ -2009,9 +2037,9 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .stage {
 }
 #mod-manual .ms-grid {
   display: grid;
+  /* 格子尺寸由 JS 按可用宽度算好写进内联样式，
+     这里不再写死——初级 9 列在桌面上应该铺满整列。 */
   gap: 2px;
-  /* 高级 30 列：24px×30 + 间距 ≈ 786px，桌面双栏左列放得下，
-     更窄的屏幕交给 .ms-board-wrap 横向滚动。 */
   padding: 6px;
   border-radius: 12px;
   background: #23202B;
@@ -2022,8 +2050,7 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .stage {
   touch-action: manipulation;
 }
 #mod-manual .ms-cell {
-  width: 24px;
-  height: 24px;
+  /* 宽高与字号由 JS 内联写入（见 cellSize），这里只留兜底 */
   min-width: 0;
   padding: 0;
   border: none;
@@ -2060,16 +2087,10 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .stage {
 #mod-manual .ms-cell.n7 { color: #E8E2D6; }
 #mod-manual .ms-cell.n8 { color: #8A8378; }
 
-/* 高级 30 列在手机上放不下，格子收窄并允许横向滚动 */
+/* 高级 30 列在手机上放不下，格子由 JS 收到下限并允许横向滚动 */
 @media (max-width: 640px) {
-  #mod-manual .ms-cell {
-    width: 22px;
-    height: 22px;
-    font-size: 11px;
-  }
   #mod-manual .ms-board-wrap { justify-content: flex-start; }
 }
 @media (max-width: 420px) {
-  #mod-manual .ms-cell { width: 19px; height: 19px; font-size: 10px; border-radius: 3px; }
   #mod-manual .ms-lv { padding: 5px 9px; font-size: 11px; }
 }

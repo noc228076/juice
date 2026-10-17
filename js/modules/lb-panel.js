@@ -217,6 +217,10 @@
       var tabs = '<div class="lb-tabs">' +
         '<button class="lb-tab' + (tab === 'global' ? ' active' : '') + '" data-lb-tab="global">🌍 全服榜</button>' +
         '<button class="lb-tab' + (tab === 'mine' ? ' active' : '') + '" data-lb-tab="mine">📁 我的战绩</button>' +
+        // 榜单有 60 秒缓存，想立刻看到别人的新成绩就点这里。
+        // 加载中直接给旋转态——render() 会整块重绘，没法靠 class 维持动画。
+        '<button class="lb-refresh' + (loading ? ' spin' : '') + '" id="' + idp + 'Refresh"' +
+        (loading ? ' disabled' : '') + ' title="刷新全服榜" aria-label="刷新全服榜">↻</button>' +
         '</div>';
 
       var body;
@@ -258,6 +262,12 @@
           if (tab === 'global') loadGlobal(false);
         };
       });
+
+      var refreshBtn = host.querySelector('#' + idp + 'Refresh');
+      if (refreshBtn) refreshBtn.onclick = function () {
+        if (loading) return;
+        loadGlobal(true);   // 加载态会让按钮自己变成旋转
+      };
 
       var edit = host.querySelector('#' + idp + 'EditProfile');
       if (edit) edit.onclick = function () {

@@ -1137,6 +1137,8 @@
     var elapsed = 0;
     var timerId = 0;
     var longPressId = 0;
+    var sized = false;      // 首帧宽度确定后是否已重排过
+    var onResize = null;
 
     /* ---------------- 排行榜 ----------------
        扫雷按「折算用时」排名，越小越好（higher:false）。
@@ -1390,8 +1392,27 @@
       return 'n' + Math.min(n, 8);
     }
 
+    /* 格子尺寸跟着可用宽度走：初级 9 列本来就该铺满，
+       以前写死 24px，桌面上只剩巴掌大一块。
+       上下限保证高级 30 列不会挤成一团、初级也不会大到离谱。 */
+    function cellSize() {
+      // 用 el 的宽度而不是 .ms-board-wrap：paint() 每次重建 DOM，
+      // 旧 wrap 可能已经不在文档里，clientWidth 会读到 0。
+      // clientWidth 含 padding，.stage 左右各 16px 要扣掉
+      var style = window.getComputedStyle(el);
+      var padX = (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.paddingRight) || 0);
+      var avail = (el.clientWidth || 0) - padX;
+      if (avail <= 0) return 24;         // 还没进 DOM，用默认值，下一帧会重算
+      var gap = 2, pad = 6 * 2;          // .ms-grid 自身内边距
+      var size = Math.floor((avail - pad - gap * (level.cols - 1)) / level.cols);
+      // 上限 56px：初级 9 列在 668px 的舞台里能到 ~68px，
+      // 再大就像儿童玩具了，56 是「铺满且不蠢」的折中。
+      return Math.max(16, Math.min(56, size));
+    }
+
     function boardHTML() {
-      var html = '<div class="ms-grid" id="msGrid" style="grid-template-columns:repeat(' + level.cols + ',1fr)">';
+      var cs = cellSize();
+      var html = '<div class="ms-grid" id="msGrid" style="grid-template-columns:repeat(' + level.cols + ',' + cs + 'px);gap:2px;padding:6px">';
       for (var i = 0; i < cells.length; i++) {
         var c = cells[i];
         var cls = 'ms-cell';
@@ -1409,7 +1430,9 @@
           cls += ' open mine';
           inner = '💣';
         }
-        html += '<button type="button" class="' + cls + '" data-i="' + i + '">' + inner + '</button>';
+        html += '<button type="button" class="' + cls + '" data-i="' + i + '"' +
+          ' style="width:' + cs + 'px;height:' + cs + 'px;font-size:' + Math.round(cs * 0.55) + 'px">' +
+          inner + '</button>';
       }
       return html + '</div>';
     }
@@ -1433,6 +1456,15 @@
         '<div class="rz-sub" style="margin-top:10px">左键翻开 · 右键或长按插旗</div>';
 
       bindBoard();
+
+      // 首次 paint 时 .ms-board-wrap 刚进 DOM，clientWidth 可能还是 0，
+      // 上面算出来的是默认值。等一帧后宽度确定了再排一次。
+      if (!sized) {
+        sized = true;
+        requestAnimationFrame(function () {
+          if (!destroyed && el.querySelector('.ms-board-wrap')) paint();
+        });
+      }
     }
 
     function bindBoard() {
@@ -1498,10 +1530,19 @@
     paint();
     mountLbHost();
 
+    // 窗口变宽变窄时重排棋盘（侧栏折叠、旋转屏幕都会触发）
+    onResize = function () {
+      if (destroyed) return;
+      if (!el.querySelector('.ms-board-wrap')) return;
+      paint();
+    };
+    window.addEventListener('resize', onResize);
+
     return {
       destroy: function () {
         destroyed = true;
         clearTimers();
+        if (onResize) { window.removeEventListener('resize', onResize); onResize = null; }
         if (timerId) { clearInterval(timerId); timerId = 0; }
         if (longPressId) { clearTimeout(longPressId); longPressId = 0; }
         if (lbPanel) lbPanel.destroy();

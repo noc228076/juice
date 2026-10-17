@@ -34,6 +34,9 @@ function runApi(req, res, pathname) {
   const url = new URL(req.url, 'http://localhost');
   req.query = Object.fromEntries(url.searchParams.entries());
 
+  // 用 setEncoding 而不是 chunk.toString()：后者按 chunk 边界各自解码，
+  // 一个中文字/emoji 正好被切在边界上时会变成乱码。
+  req.setEncoding('utf8');
   let raw = '';
   req.on('data', (chunk) => { raw += chunk; });
   req.on('end', () => {

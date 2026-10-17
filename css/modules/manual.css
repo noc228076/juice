@@ -1682,3 +1682,83 @@ html[data-theme="light"] #mod-manual .g2048-cell {
     }
   }
 
+/* =========================================================
+   全站沉浸背景下的游戏容器（反应 / 色彩 / 2048）
+   ---------------------------------------------------------
+   三个游戏共用 .stage，原本硬编码 background:#17141C 不透明，
+   用户开启「设为全站沉浸背景」后，深色实底会把壁纸整块盖住，
+   视觉上就是一块与页面脱节的黑块。
+   这里只在 body.has-daily-ambient-bg 时降级为半透明玻璃，
+   未开启壁纸时保持原来的实底（对比度最稳）。
+   ========================================================= */
+body.has-daily-ambient-bg #mod-manual .stage {
+  background: rgba(23, 20, 28, 0.72);
+  backdrop-filter: blur(14px) saturate(1.05);
+  -webkit-backdrop-filter: blur(14px) saturate(1.05);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
+}
+/* 2048 棋盘是 .stage 内的独立实底块，同样要透 */
+body.has-daily-ambient-bg #mod-manual .g2048-board-wrap {
+  background: rgba(21, 18, 27, 0.78);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+/* 空格子在玻璃棋盘上会显成一块块闷黑，提亮一档 */
+body.has-daily-ambient-bg #mod-manual .g2048-cell {
+  background: rgba(255, 255, 255, 0.10);
+}
+/* 反应擂台的关卡区是 .stage 内又一层实底（#1E1B24），一并玻璃化 */
+body.has-daily-ambient-bg #mod-manual .rz-stage {
+  background: rgba(30, 27, 36, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+/* 等待态（.rz-pure-wait）与常态同属「可看穿」场景，一并玻璃化；
+   红色「该点了」(.gorun) 和绿色「可以点」(.gozone) 必须保持实色高对比，
+   否则玩家会分不清当前该不该出手——这两个是功能色，不参与玻璃化。 */
+body.has-daily-ambient-bg #mod-manual .rz-stage.rz-pure-wait {
+  background: rgba(35, 40, 59, 0.55);
+}
+body.has-daily-ambient-bg #mod-manual .rz-stage.gozone {
+  background: #1FA05C;
+}
+body.has-daily-ambient-bg #mod-manual .rz-stage.gorun {
+  background: #E23B2E;
+}
+/* 2048 分数卡/工具按钮原本是实色，壁纸模式下同步玻璃化 */
+body.has-daily-ambient-bg #mod-manual .g2048-score-card,
+body.has-daily-ambient-bg #mod-manual .g2048-tool-btn {
+  background: rgba(255, 255, 255, 0.07);
+  border-color: rgba(255, 255, 255, 0.14);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+/* 亮色主题 + 壁纸：玻璃要反过来用白底，否则深色玻璃在浅色壁纸上发脏 */
+html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .stage {
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(0, 0, 0, 0.10);
+}
+html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .g2048-board-wrap {
+  background: rgba(255, 255, 255, 0.60);
+}
+html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .g2048-score-card,
+html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .g2048-tool-btn {
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(0, 0, 0, 0.12);
+}
+html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .g2048-cell {
+  background: rgba(238, 228, 218, 0.55);
+}
+html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .rz-stage {
+  background: rgba(255, 255, 255, 0.55);
+}
+/* 玻璃底之下，.stage 内原本依赖深底的文字需要保底对比度 */
+body.has-daily-ambient-bg #mod-manual .stage,
+body.has-daily-ambient-bg #mod-manual .stage .hud b {
+  color: #F2EEE3;
+}
+html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .stage {
+  color: #2D2721;
+}
+

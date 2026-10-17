@@ -45,6 +45,12 @@ html[data-theme="light"] #mod-scratch::before {
   width: 100%;
 }
 
+/* 左右分栏的 .scratch-main-col 只是 grid 子项包装，
+   具体栅格定义在文件末尾的 PC 段（本文件的覆盖必须置后）。 */
+.scratch-main-col {
+  min-width: 0;
+}
+
 /* ============ 顶部 Hero 与统计看板 ============ */
 .scratch-hero {
   text-align: center;
@@ -1054,18 +1060,64 @@ html[data-theme="light"] .sc-security-box {
 /* =========================================================
    PC 端微调（必须置于文件末尾）
    ---------------------------------------------------------
-   本文件里 .scratch-stats-bar 与 .scratch-card-workbench 的基础规则
-   分别出现在 L718 与 L284（同为单类选择器），若把 PC 覆盖写在前���，
-   会被后面的基础规则按「同特异性后来者胜」直接盖掉——
-   媒体查询本身不提升特异性。放到文件末尾才能稳定生效。
+   本文件里 .scratch-stats-bar、.scratch-card-workbench、
+   .scratch-container 的基础规则都写在前面（同为单类选择器），
+   若把 PC 覆盖写在前面，会被后面的基础规则按
+   「同特异性后来者胜」直接盖掉——媒体查询本身不提升特异性。
+   放到文件末尾才能稳定生效。
    ========================================================= */
 @media (min-width: 1025px) {
   .scratch-stats-bar {
     flex-wrap: nowrap;
     gap: 8px;
   }
+
+  /* ---------- 左右分栏：刮奖台 | 刮彩账本 ----------
+     账本常驻右栏，不用滚到操作台下方才看得到。
+     1024px 及以下退回单列，账本落回底部，DOM 顺序不变。 */
+  .scratch-container {
+    /* 双栏比原来的 720px 单列更宽 */
+    max-width: 1120px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 380px;
+    grid-template-areas:
+      "hero hero"
+      "main hist";
+    column-gap: 24px;
+    align-items: start;
+  }
+  .scratch-hero { grid-area: hero; }
+  .scratch-main-col { grid-area: main; }
+
+  .scratch-history-panel {
+    grid-area: hist;
+    margin-top: 0;
+    /* 账本比操作台矮时跟随滚动，始终留在视野内。
+       100vh 含顶部导航，减去 nav(52) + sticky 间距(16) + 余量，
+       保证吸附后底边不越过视口。 */
+    position: sticky;
+    top: 16px;
+    max-height: calc(100vh - 84px);
+    display: flex;
+    flex-direction: column;
+  }
+  /* 卡片多了在面板内部滚，标题栏保持可见。
+     flex:1 1 auto 让它吃掉标题栏之外的高度；min-height:0 允许收缩到
+     比内容更矮，否则 flex 会按内容撑开、永远不触发滚动。 */
+  .scratch-history-panel .sc-history-grid {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    min-height: 0;
+    padding-right: 4px;
+    /* 容器有了确定高度后，grid 行默认会被拉伸平分；
+       max-content 让每行按卡片内容取高，溢出才交给滚动 */
+    grid-auto-rows: max-content;
+    align-content: start;
+  }
+
   .scratch-card-workbench {
-    max-width: 560px;
+    /* 左列吃满栅格；base 规则里的 560px 上限在双栏下会把票面缩得过窄 */
+    max-width: 100%;
     width: 100%;
     /* 写成完整 shorthand，保留基础规则的 28px 下边距 */
     margin: 0 auto 28px;

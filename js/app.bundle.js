@@ -18175,7 +18175,7 @@ if ('serviceWorker' in navigator) {
       for (var i = 0; i < board.length; i++) {
         var r = board[i];
         var isMe = r.id === me.id;
-        var cls = 'g2048-lb-row' + (i === 0 ? ' top' : '') + (isMe ? ' me' : '');
+        var cls = 'g2048-lb-row is-global' + (i === 0 ? ' top' : '') + (isMe ? ' me' : '');
         html += '<div class="' + cls + '">' +
           '<span class="g2048-lb-rank">' + (i === 0 ? '👑' : (i + 1)) + '</span>' +
           '<span class="g2048-lb-ava">' + esc(r.avatar || '🙂') + '</span>' +

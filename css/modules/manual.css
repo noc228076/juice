@@ -1269,11 +1269,15 @@ html[data-theme="light"] #mod-manual {
     border-radius: 12px;
     overflow: hidden;
     }
+    /* 用 grid 而不是 flex：删掉角色列后，flex 会把剩余空间按内容宽度
+       分给各列，分数/方块/步数挤在一起、日期被推到最右，看起来像没对齐。
+       这里给每列固定轨道，左对齐，右端留出呼吸位。 */
     #mod-manual .g2048-lb-row {
-    display: flex;
+    display: grid;
+    grid-template-columns: 24px 52px 44px 1fr auto;
     align-items: center;
-    gap: 6px;
-    padding: 7px 10px;
+    column-gap: 8px;
+    padding: 8px 12px;
     font-size: 12px;
     color: #C9C3B8;
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
@@ -1288,8 +1292,6 @@ html[data-theme="light"] #mod-manual {
     font-weight: 800;
     }
     #mod-manual .g2048-lb-rank {
-    flex: none;
-    width: 22px;
     text-align: center;
     color: #9A948A;
     font-size: 11px;
@@ -1298,15 +1300,12 @@ html[data-theme="light"] #mod-manual {
     color: #F59E0B;
     }
     #mod-manual .g2048-lb-score {
-    flex: none;
-    width: 46px;
     font-weight: 800;
     font-variant-numeric: tabular-nums;
     }
     #mod-manual .g2048-lb-tile {
-    flex: none;
-    min-width: 44px;
-    padding: 1px 6px;
+    justify-self: start;
+    padding: 1px 7px;
     text-align: center;
     background: rgba(255, 255, 255, 0.08);
     border-radius: 6px;
@@ -1315,13 +1314,12 @@ html[data-theme="light"] #mod-manual {
     font-variant-numeric: tabular-nums;
     }
     #mod-manual .g2048-lb-moves {
-    flex: none;
     font-size: 11px;
     color: #9A948A;
     font-variant-numeric: tabular-nums;
     }
     #mod-manual .g2048-lb-date {
-    flex: none;
+    justify-self: end;
     font-size: 10px;
     color: #6E6862;
     font-variant-numeric: tabular-nums;
@@ -1854,7 +1852,11 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .stage {
 }
 #mod-manual .g2048-lb-edit:hover { border-color: var(--mod-ac); }
 
-/* 全服榜行：名次 / 头像 / 昵称 / 分数 / 最大方块 */
+/* 全服榜行：名次 / 头像 / 昵称 / 分数 / 最大方块。
+   列数和「我的战绩」不同，单独覆盖轨道。 */
+#mod-manual .g2048-lb-row.is-global {
+  grid-template-columns: 24px 24px minmax(0, 1fr) 52px 44px;
+}
 #mod-manual .g2048-lb-ava {
   flex: none;
   width: 22px;
@@ -1903,8 +1905,15 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .stage {
 
 /* 全服榜在窄屏也要放得下：昵称让位，数字不换行 */
 @media (max-width: 520px) {
-  #mod-manual .g2048-lb-row { gap: 6px; }
+  #mod-manual .g2048-lb-row {
+    column-gap: 6px;
+    grid-template-columns: 20px 46px 38px 1fr auto;
+    padding: 8px 10px;
+  }
+  #mod-manual .g2048-lb-row.is-global {
+    grid-template-columns: 20px 22px minmax(0, 1fr) 46px 38px;
+  }
   #mod-manual .g2048-lb-name { font-size: 11.5px; }
-  #mod-manual .g2048-lb-score { width: 42px; font-size: 12px; }
-  #mod-manual .g2048-lb-tile { width: 32px; font-size: 10px; }
+  #mod-manual .g2048-lb-score { font-size: 12px; }
+  #mod-manual .g2048-lb-tile { font-size: 10px; }
 }

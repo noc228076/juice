@@ -1195,9 +1195,10 @@ html[data-theme="light"] .daily-hot-notice {
     max-width: 1240px;
   }
 
-  /* 必须 .daily-section.daily-hot-layout 才压得过
-     .daily-section.active { display:block } 的两个类 */
-  .daily-section.daily-hot-layout {
+  /* 必须带上 .active：这个选择器特异性高于 .daily-section{display:none}，
+     若不限定 .active，切到影视/壁纸时热点板块仍会显示，
+     新板块就排在它下面了。 */
+  .daily-section.daily-hot-layout.active {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 20px;

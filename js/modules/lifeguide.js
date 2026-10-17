@@ -1,5 +1,5 @@
 /* =========================================================
-   自我说明书 · 第 08 章：人间清醒指南 (Evidence-Based Life Handbook)
+   自我说明书 · 第 09 章：人间清醒指南 (Evidence-Based Life Handbook)
    灵感与循证数据源：eternity4719/HowToLiveBetter (CC BY 4.0)
    功能：
    1. 🩺 高性价比漏项自查（4大维度16项核心防线 + 优先补漏处方单）
@@ -1564,7 +1564,7 @@
     if (!top) return;
     top.innerHTML = '<button class="mt-iconbtn" id="sm-lifeguide-back">←</button>'
       + '<div class="mt-pick-head" style="flex:1;margin-bottom:0">'
-      + '<b>第 08 章 · 人间清醒指南</b><p>EVIDENCE-BASED LIFE HANDBOOK</p></div>';
+      + '<b>第 09 章 · 人间清醒指南</b><p>EVIDENCE-BASED LIFE HANDBOOK</p></div>';
     const back = top.querySelector('#sm-lifeguide-back');
     if (back) {
       back.onclick = () => {

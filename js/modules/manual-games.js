@@ -1106,4 +1106,406 @@
       }
     };
   };
+
+  /* ==================================================================
+   * 08 雷区排险 (MINESWEEPER)
+   * ================================================================== */
+  window.startMinesweeper = function (root, onFinish) {
+    var el = makeRoot(root);
+    var timers = [];
+    var destroyed = false;
+    function later(fn, ms) { var id = setTimeout(function () { if (!destroyed) fn(); }, ms); timers.push(id); return id; }
+    function clearTimers() { timers.forEach(clearTimeout); timers = []; }
+
+    /* 三档难度。排名用「难度权重 + 用时」：
+       先把难度折算成用时，再按总时间升序——这样高级 300 秒
+       会排在初级 60 秒前面，避免大家都去刷最简单的那一档。 */
+    var LEVELS = {
+      easy:   { key: 'easy',   name: '初级', cols: 9,  rows: 9,  mines: 10, weight: 0 },
+      medium: { key: 'medium', name: '中级', cols: 16, rows: 16, mines: 40, weight: 180 },
+      hard:   { key: 'hard',   name: '高级', cols: 30, rows: 16, mines: 99, weight: 420 }
+    };
+    var level = LEVELS.easy;
+
+    var cells = [];       // { mine, open, flag, near }
+    var started = false;  // 第一次点击后才布雷，保证首击必空
+    var over = false;
+    var won = false;
+    var flags = 0;
+    var openedCount = 0;
+    var t0 = 0;
+    var elapsed = 0;
+    var timerId = 0;
+    var longPressId = 0;
+
+    /* ---------------- 排行榜 ----------------
+       扫雷按「折算用时」排名，越小越好（higher:false）。
+       榜单上显示实际用时与难度，本机战绩同样带难度。 */
+    var lbPanel = window.AppLbPanel ? window.AppLbPanel.create({
+      game: 'minesweeper',
+      storeKey: 'sm_minesweeper_runs',
+      higher: false,
+      idPrefix: 'lbmine',
+      formatScore: function (v) { return v + ' 秒'; },
+      describe: function (run) {
+        return { score: run.cost, extra: { sec: run.sec, lv: run.lv } };
+      },
+      localCols: function (r) {
+        return [
+          '<span class="lb-score">' + (r.sec || 0) + '<small> 秒</small></span>',
+          '<span class="lb-tile">' + levelName(r.lv) + '</span>',
+          '<span class="lb-meta">' + (r.mines || 0) + ' 雷</span>',
+          '<span class="lb-date">' + window.AppLbPanel.fmtDay(r.at) + '</span>'
+        ];
+      },
+      globalCols: function (r) {
+        return [
+          '<span class="lb-ava">' + window.AppLbPanel.esc(r.avatar || '🙂') + '</span>',
+          '<span class="lb-name">' + window.AppLbPanel.esc(r.name || '匿名玩家') +
+            (r.isMe ? '<i class="lb-me">我</i>' : '') + '</span>',
+          '<span class="lb-score">' + ((r.extra && r.extra.sec) || 0) + '<small> 秒</small></span>',
+          '<span class="lb-tile">' + levelName(r.extra && r.extra.lv) + '</span>'
+        ];
+      }
+    }) : null;
+
+    function levelName(key) {
+      for (var k in LEVELS) {
+        if (LEVELS.hasOwnProperty(k) && LEVELS[k].key === key) return LEVELS[k].name;
+      }
+      return '初级';
+    }
+
+    function mountLbHost() {
+      if (!lbPanel) return;
+      var layout = root.querySelector('.sm-game-layout');
+      if (!layout) {
+        layout = document.createElement('div');
+        layout.className = 'sm-game-layout';
+        root.appendChild(layout);
+      }
+      if (el.parentNode !== layout) layout.appendChild(el);
+      var host = layout.querySelector('.lb-host');
+      if (!host) {
+        host = document.createElement('div');
+        host.className = 'lb-host';
+        layout.appendChild(host);
+      }
+      lbPanel.mount(host);
+    }
+
+    /* ---------------- 棋盘 ---------------- */
+
+    function idx(x, y) { return y * level.cols + x; }
+
+    function neighbors(i) {
+      var x = i % level.cols, y = Math.floor(i / level.cols);
+      var out = [];
+      for (var dy = -1; dy <= 1; dy++) {
+        for (var dx = -1; dx <= 1; dx++) {
+          if (!dx && !dy) continue;
+          var nx = x + dx, ny = y + dy;
+          if (nx < 0 || ny < 0 || nx >= level.cols || ny >= level.rows) continue;
+          out.push(idx(nx, ny));
+        }
+      }
+      return out;
+    }
+
+    function reset(newLevel) {
+      if (newLevel) level = LEVELS[newLevel];
+      cells = [];
+      for (var i = 0; i < level.cols * level.rows; i++) {
+        cells.push({ mine: false, open: false, flag: false, near: 0 });
+      }
+      started = false; over = false; won = false;
+      flags = 0; openedCount = 0; elapsed = 0;
+      if (timerId) { clearInterval(timerId); timerId = 0; }
+      // 上一局结算时排了个延时 finish()，重开必须掐掉。
+      // 否则它会在新一局中途弹结算，还会把新实例 destroy 掉。
+      clearTimers();
+    }
+
+    // 首击之后才布雷：第一下点到的格子及其周围八格都不放雷，
+    // 保证开局不会一上来就踩雷，也让第一次点击能翻开一片。
+    function placeMines(safeIdx) {
+      var safe = {};
+      safe[safeIdx] = true;
+      neighbors(safeIdx).forEach(function (n) { safe[n] = true; });
+
+      var pool = [];
+      for (var i = 0; i < cells.length; i++) if (!safe[i]) pool.push(i);
+      shuffle(pool);
+      for (var m = 0; m < level.mines && m < pool.length; m++) cells[pool[m]].mine = true;
+
+      for (var j = 0; j < cells.length; j++) {
+        if (cells[j].mine) continue;
+        var cnt = 0;
+        neighbors(j).forEach(function (n) { if (cells[n].mine) cnt++; });
+        cells[j].near = cnt;
+      }
+    }
+
+    function startTimer() {
+      if (timerId) return;
+      t0 = performance.now() - elapsed * 1000;
+      timerId = setInterval(function () {
+        if (destroyed || over) return;
+        elapsed = Math.floor((performance.now() - t0) / 1000);
+        var t = el.querySelector('#msTime');
+        if (t) t.textContent = elapsed;
+      }, 250);
+    }
+
+    function stopTimer() {
+      if (timerId) { clearInterval(timerId); timerId = 0; }
+      if (started) elapsed = Math.floor((performance.now() - t0) / 1000);
+    }
+
+    /* 翻开一格；遇到 0 自动扩散。用栈而不是递归，高级棋盘也不会爆栈。 */
+    function reveal(start) {
+      var stack = [start];
+      while (stack.length) {
+        var i = stack.pop();
+        var c = cells[i];
+        if (!c || c.open || c.flag) continue;
+        c.open = true;
+        openedCount++;
+        if (c.mine) { over = true; won = false; return; }
+        if (c.near === 0) neighbors(i).forEach(function (n) {
+          if (!cells[n].open && !cells[n].flag) stack.push(n);
+        });
+      }
+    }
+
+    function checkWin() {
+      if (openedCount === cells.length - level.mines) {
+        over = true; won = true;
+      }
+    }
+
+    /* ---------------- 交互 ---------------- */
+
+    function onOpen(i) {
+      if (over || destroyed) return;
+      var c = cells[i];
+      if (!c || c.flag || c.open) return;
+
+      if (!started) {
+        started = true;
+        placeMines(i);
+        startTimer();
+      }
+      if (window.SFX && window.SFX.tap) window.SFX.tap();
+      reveal(i);
+      // reveal() 踩到雷时已经把 over 置位了，这时不能再判胜：
+      // 最后一格恰好是雷的话，会被误判成通关。
+      if (!over) checkWin();
+      paint();
+      if (over) settle();
+    }
+
+    function onFlag(i) {
+      if (over || destroyed) return;
+      var c = cells[i];
+      if (!c || c.open) return;
+      c.flag = !c.flag;
+      flags += c.flag ? 1 : -1;
+      if (window.SFX && window.SFX.tick) window.SFX.tick();
+      paint();
+    }
+
+    function settle() {
+      stopTimer();
+      if (won && window.SFX && window.SFX.win) window.SFX.win();
+      else if (window.SFX && window.SFX.wrong) window.SFX.wrong();
+
+      if (won) {
+        // 用时向上取整到 1 秒：服务端下限是 1，否则秒通关会被判成不合法成绩
+        var cost = level.weight + Math.max(1, elapsed);
+        if (lbPanel) {
+          lbPanel.submit({
+            cost: cost, sec: Math.max(1, elapsed), lv: level.key,
+            mines: level.mines, rows: level.rows, cols: level.cols
+          });
+        }
+      }
+      paint();
+
+      // 给玩家看一眼完整的雷区再结算
+      later(function () {
+        if (!destroyed) finish();
+      }, won ? 900 : 1400);
+    }
+
+    /* ---------------- 结算 ---------------- */
+
+    function finish() {
+      var certs = window.SM_DATA.minesweeper.certs;
+      var cert = certs[certs.length - 1];
+      if (won) {
+        // 只有通关才可能拿到「谨慎工兵」以上
+        for (var i = 0; i < certs.length; i++) {
+          if (level.key === 'hard' && certs[i].min >= 3) { cert = certs[i]; break; }
+          if (level.key === 'medium' && certs[i].min >= 2) { cert = certs[i]; break; }
+          if (level.key === 'easy' && certs[i].min >= 1) { cert = certs[i]; break; }
+        }
+      }
+
+      var cleared = 0;
+      for (var j = 0; j < cells.length; j++) if (cells[j].open && !cells[j].mine) cleared++;
+      var progress = Math.round(cleared / Math.max(1, cells.length - level.mines) * 100);
+
+      onFinish({
+        icon: cert.icon,
+        name: cert.name,
+        tag: won
+          ? level.name + ' · ' + level.cols + '×' + level.rows + ' · ' + elapsed + ' 秒通关'
+          : level.name + ' · 踩雷阵亡 · 翻开 ' + progress + '%',
+        text: cert.text,
+        big: {
+          label: won ? '通关用时' : '排雷进度',
+          value: won ? (elapsed + ' <small>秒</small>') : (progress + ' <small>%</small>')
+        },
+        bars: [
+          { label: '排雷进度', pct: progress, hi: true },
+          { label: '旗帜准确率', pct: flags ? Math.min(100, Math.round(level.mines / Math.max(flags, level.mines) * 100)) : 0 }
+        ],
+        blocks: [
+          { h: '本局战报', text: '难度 ' + level.name + '（' + level.cols + '×' + level.rows + '，' + level.mines + ' 雷），翻开 ' + cleared + ' 格，插旗 ' + flags + ' 面，用时 ' + elapsed + ' 秒。' },
+          { h: '风险提示', text: '扫雷的核心从来不是运气，而是把「确定」和「猜测」分开：能推导的先推完，剩下的才交给概率。' }
+        ],
+        quip: window.SM_DATA.minesweeper.disclaimer,
+        cert: cert.name + ' · 认证',
+        detail: {
+          type: cert.name, won: won, level: level.key,
+          sec: elapsed, cleared: cleared, mines: level.mines
+        }
+      });
+    }
+
+    /* ---------------- 渲染 ---------------- */
+
+    function numClass(n) {
+      return 'n' + Math.min(n, 8);
+    }
+
+    function boardHTML() {
+      var html = '<div class="ms-grid" id="msGrid" style="grid-template-columns:repeat(' + level.cols + ',1fr)">';
+      for (var i = 0; i < cells.length; i++) {
+        var c = cells[i];
+        var cls = 'ms-cell';
+        var inner = '';
+        if (c.open) {
+          cls += ' open';
+          if (c.mine) { cls += ' boom'; inner = '💥'; }
+          else if (c.near > 0) { cls += ' ' + numClass(c.near); inner = String(c.near); }
+        } else if (c.flag) {
+          cls += ' flag';
+          inner = '🚩';
+        }
+        // 输了以后把没插旗的雷也亮出来，方便复盘
+        if (over && !won && !c.open && c.mine && !c.flag) {
+          cls += ' open mine';
+          inner = '💣';
+        }
+        html += '<button type="button" class="' + cls + '" data-i="' + i + '">' + inner + '</button>';
+      }
+      return html + '</div>';
+    }
+
+    function paint() {
+      var left = level.mines - flags;
+      el.innerHTML = hud(
+        '<b>雷区排险 · ' + level.name + '</b>',
+        '<span class="ms-stat">💣 ' + left + '</span> <span class="ms-stat">⏱ <span id="msTime">' + elapsed + '</span>s</span>'
+      ) +
+        '<div class="ms-toolbar">' +
+        '<div class="ms-levels">' +
+        ['easy', 'medium', 'hard'].map(function (k) {
+          return '<button type="button" class="ms-lv' + (level.key === k ? ' active' : '') +
+            '" data-lv="' + k + '">' + LEVELS[k].name + '</button>';
+        }).join('') +
+        '</div>' +
+        '<button type="button" class="ms-reset" id="msReset">↻ 重开</button>' +
+        '</div>' +
+        '<div class="ms-board-wrap">' + boardHTML() + '</div>' +
+        '<div class="rz-sub" style="margin-top:10px">左键翻开 · 右键或长按插旗</div>';
+
+      bindBoard();
+    }
+
+    function bindBoard() {
+      var grid = el.querySelector('#msGrid');
+      if (!grid) return;
+
+      grid.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+
+      grid.querySelectorAll('.ms-cell').forEach(function (btn) {
+        var i = parseInt(btn.getAttribute('data-i'), 10);
+
+        btn.addEventListener('click', function () { onOpen(i); });
+
+        btn.addEventListener('contextmenu', function (e) {
+          e.preventDefault();
+          onFlag(i);
+        });
+
+        // 移动端没有右键：按住 380ms 插旗
+        btn.addEventListener('pointerdown', function (e) {
+          if (e.pointerType === 'mouse') return;
+          longPressId = setTimeout(function () {
+            longPressId = 0;
+            onFlag(i);
+            btn.dataset.longPressed = '1';
+          }, 380);
+        });
+        ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (evt) {
+          btn.addEventListener(evt, function () {
+            if (longPressId) { clearTimeout(longPressId); longPressId = 0; }
+          });
+        });
+        btn.addEventListener('click', function (e) {
+          // 长按已经插过旗了，别再当成一次翻开
+          if (btn.dataset.longPressed) {
+            delete btn.dataset.longPressed;
+            e.stopPropagation();
+          }
+        }, true);
+      });
+
+      var resetBtn = el.querySelector('#msReset');
+      if (resetBtn) resetBtn.onclick = function () {
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        reset(level.key);
+        paint();
+      };
+
+      el.querySelectorAll('[data-lv]').forEach(function (b) {
+        b.onclick = function () {
+          var k = b.getAttribute('data-lv');
+          if (k === level.key && !over && !started) return;
+          if (window.SFX && window.SFX.tap) window.SFX.tap();
+          reset(k);
+          paint();
+        };
+      });
+    }
+
+    /* ---------------- 启动 ---------------- */
+
+    reset('easy');
+    paint();
+    mountLbHost();
+
+    return {
+      destroy: function () {
+        destroyed = true;
+        clearTimers();
+        if (timerId) { clearInterval(timerId); timerId = 0; }
+        if (longPressId) { clearTimeout(longPressId); longPressId = 0; }
+        if (lbPanel) lbPanel.destroy();
+      }
+    };
+  };
 })();

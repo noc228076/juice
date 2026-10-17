@@ -116,7 +116,7 @@
           window.AppTarot.restore(item.data);
         }
       } else if (mod === 'manual') {
-        // 说明书存档有两种：答题/游戏报告（test+res），和并入第 08 章的人间清醒（mode）
+        // 说明书存档有两种：答题/游戏报告（test+res），和并入第 09 章的人间清醒（mode）
         const d = item.data || {};
         if (d.mode && !d.test && window.AppLifeguide) {
           window.AppManual.openTest('lifeguide');
@@ -141,7 +141,7 @@
           window.AppMerit.restore(item.data);
         }
       } else if (mod === 'lifeguide') {
-        // 人间清醒已并入说明书：先切到说明书，再由它翻开第 08 章并恢复现场
+        // 人间清醒已并入说明书：先切到说明书，再由它翻开第 09 章并恢复现场
         if (window.AppManual) {
           window.AppManual.openTest('lifeguide');
         }

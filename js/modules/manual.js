@@ -38,8 +38,8 @@
   function saveStore(s) {
     try { localStorage.setItem('sm_history_v1', JSON.stringify(s)); } catch (e) {}
   }
-  // 第 08 章（人间清醒）不出分数报告，存档在它自己的 key 里，
-  // 所以「是否已测」要单独判定，否则 8 章的目录永远只能点亮 7 个点。
+  // 人间清醒（第 09 章）不出分数报告，存档在它自己的 key 里，
+  // 所以「是否已测」要单独判定，否则目录永远少点亮一个点。
   function chapterDone(id, s) {
     if (id === 'lifeguide') {
       try {
@@ -91,7 +91,7 @@
     var ORDER = window.SM_ORDER || ['social-battery', 'procrastination', 'slacking', 'night-owl', 'reaction', 'color'];
     var s = store();
     var done = ORDER.filter(function (id) { return chapterDone(id, s); }).length;
-    // 存档份数只统计答题/游戏章：第 08 章没有分数报告，计入会虚高
+    // 存档份数只统计答题/游戏章：人间清醒没有分数报告，计入会虚高
     var total = ORDER.reduce(function (n, id) {
       return n + (DATA[id] && DATA[id].mode === 'external' ? 0 : (s[id] ? s[id].length : 0));
     }, 0);
@@ -326,12 +326,17 @@
       state.gameCtl = null;
     }
     state.mode = 'game';
-    var isReaction = t.id === 'reaction';
-    var isColor = t.id === 'color';
-    var is2048 = t.id === 'game-2048';
-    var scrId = isReaction ? 'scr-sm-reaction' : (isColor ? 'scr-sm-color' : 'scr-sm-2048');
-    var topId = isReaction ? 'sm-reacttop' : (isColor ? 'sm-colortop' : 'sm-2048top');
-    var bodyId = isReaction ? 'sm-reactbody' : (isColor ? 'sm-colorbody' : 'sm-2048body');
+    // 每个交互章节一个独立屏幕，按章节 id 映射过去
+    var GAME_SCREENS = {
+      'reaction': { scr: 'scr-sm-reaction', top: 'sm-reacttop', body: 'sm-reactbody', start: 'startReaction' },
+      'color': { scr: 'scr-sm-color', top: 'sm-colortop', body: 'sm-colorbody', start: 'startColor' },
+      'game-2048': { scr: 'scr-sm-2048', top: 'sm-2048top', body: 'sm-2048body', start: 'startGame2048' },
+      'minesweeper': { scr: 'scr-sm-mine', top: 'sm-minetop', body: 'sm-minebody', start: 'startMinesweeper' }
+    };
+    var gs = GAME_SCREENS[t.id] || GAME_SCREENS['game-2048'];
+    var scrId = gs.scr;
+    var topId = gs.top;
+    var bodyId = gs.body;
 
     var topEl = document.getElementById(topId);
     if (topEl) {
@@ -352,7 +357,7 @@
       };
     }
 
-    var startFn = isReaction ? window.startReaction : (isColor ? window.startColor : window.startGame2048);
+    var startFn = window[gs.start];
     var bodyEl = document.getElementById(bodyId);
     if (startFn && bodyEl) {
       state.gameCtl = startFn(bodyEl, function (rawRes) {

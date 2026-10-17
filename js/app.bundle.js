@@ -17474,11 +17474,33 @@ if ('serviceWorker' in navigator) {
       ]
     },
 
-    /* ============ 08 人间清醒指南 ============
+    /* ============ 08 雷区排险 · 扫雷 ============ */
+    minesweeper: {
+      id: 'minesweeper', num: '08', mode: 'interactive', engine: 'minesweeper',
+      title: '雷区排险', en: 'MINESWEEPER',
+      tagline: '在信息不全的棋盘上,判断哪一步值得冒险',
+      icon: 'target', color: '#38BDF8',
+      meta: '三档难度 · 约 2 分钟',
+      intro: [
+        '棋盘下埋着雷,数字是它周围八格的雷数。',
+        '左键翻开格子,右键(或长按)插旗标记你认定的雷。',
+        '翻开所有非雷格即胜利;踩到雷即结束。',
+        '初级 9×9 十雷,中级 16×16 四十雷,高级 16×30 九十九雷。'
+      ],
+      disclaimer: '成绩按完成时间排名,难度越高越靠前。仅供参考,现实中的雷请勿用右键排查。',
+      certs: [
+        { min: 3, icon: 'crown', name: '拆弹专家', text: '高级棋盘也能拿下,你对风险分布的直觉已经接近统计学本身。' },
+        { min: 2, icon: 'gem', name: '排雷老手', text: '中级稳过,说明你既能算概率,也懂得什么时候该赌一把。' },
+        { min: 1, icon: 'bolt', name: '谨慎工兵', text: '初级通关。步子不大,但每一步都踩在确定性上。' },
+        { min: 0, icon: 'smile', name: '踩雷新兵', text: '雷区无情,多试几次就熟了。至少你知道了:数字是周围八格,不是上下左右。' }
+      ]
+    },
+
+    /* ============ 09 人间清醒指南 ============
        这一章不是答题引擎产物：正文由 lifeguide.js 自己渲染（体检 / 智库 / 抽卡），
        所以 mode 为 'external'，由 manual.js 转交 AppLifeguide.open()。 */
     lifeguide: {
-      id: 'lifeguide', num: '08', mode: 'external',
+      id: 'lifeguide', num: '09', mode: 'external',
       title: '人间清醒指南', en: 'EVIDENCE-BASED LIFE HANDBOOK',
       tagline: '低投入高回报的 16 项防线、36 条循证避坑与每日锦囊',
       icon: 'book', color: '#10B981',
@@ -17487,7 +17509,7 @@ if ('serviceWorker' in navigator) {
   };
 
   /* 首页章节顺序 */
-  window.SM_ORDER = ['social-battery', 'procrastination', 'slacking', 'night-owl', 'reaction', 'color', 'game-2048', 'lifeguide'];
+  window.SM_ORDER = ['social-battery', 'procrastination', 'slacking', 'night-owl', 'reaction', 'color', 'game-2048', 'minesweeper', 'lifeguide'];
 })();
 
 ;
@@ -18600,6 +18622,408 @@ if ('serviceWorker' in navigator) {
       }
     };
   };
+
+  /* ==================================================================
+   * 08 雷区排险 (MINESWEEPER)
+   * ================================================================== */
+  window.startMinesweeper = function (root, onFinish) {
+    var el = makeRoot(root);
+    var timers = [];
+    var destroyed = false;
+    function later(fn, ms) { var id = setTimeout(function () { if (!destroyed) fn(); }, ms); timers.push(id); return id; }
+    function clearTimers() { timers.forEach(clearTimeout); timers = []; }
+
+    /* 三档难度。排名用「难度权重 + 用时」：
+       先把难度折算成用时，再按总时间升序——这样高级 300 秒
+       会排在初级 60 秒前面，避免大家都去刷最简单的那一档。 */
+    var LEVELS = {
+      easy:   { key: 'easy',   name: '初级', cols: 9,  rows: 9,  mines: 10, weight: 0 },
+      medium: { key: 'medium', name: '中级', cols: 16, rows: 16, mines: 40, weight: 180 },
+      hard:   { key: 'hard',   name: '高级', cols: 30, rows: 16, mines: 99, weight: 420 }
+    };
+    var level = LEVELS.easy;
+
+    var cells = [];       // { mine, open, flag, near }
+    var started = false;  // 第一次点击后才布雷，保证首击必空
+    var over = false;
+    var won = false;
+    var flags = 0;
+    var openedCount = 0;
+    var t0 = 0;
+    var elapsed = 0;
+    var timerId = 0;
+    var longPressId = 0;
+
+    /* ---------------- 排行榜 ----------------
+       扫雷按「折算用时」排名，越小越好（higher:false）。
+       榜单上显示实际用时与难度，本机战绩同样带难度。 */
+    var lbPanel = window.AppLbPanel ? window.AppLbPanel.create({
+      game: 'minesweeper',
+      storeKey: 'sm_minesweeper_runs',
+      higher: false,
+      idPrefix: 'lbmine',
+      formatScore: function (v) { return v + ' 秒'; },
+      describe: function (run) {
+        return { score: run.cost, extra: { sec: run.sec, lv: run.lv } };
+      },
+      localCols: function (r) {
+        return [
+          '<span class="lb-score">' + (r.sec || 0) + '<small> 秒</small></span>',
+          '<span class="lb-tile">' + levelName(r.lv) + '</span>',
+          '<span class="lb-meta">' + (r.mines || 0) + ' 雷</span>',
+          '<span class="lb-date">' + window.AppLbPanel.fmtDay(r.at) + '</span>'
+        ];
+      },
+      globalCols: function (r) {
+        return [
+          '<span class="lb-ava">' + window.AppLbPanel.esc(r.avatar || '🙂') + '</span>',
+          '<span class="lb-name">' + window.AppLbPanel.esc(r.name || '匿名玩家') +
+            (r.isMe ? '<i class="lb-me">我</i>' : '') + '</span>',
+          '<span class="lb-score">' + ((r.extra && r.extra.sec) || 0) + '<small> 秒</small></span>',
+          '<span class="lb-tile">' + levelName(r.extra && r.extra.lv) + '</span>'
+        ];
+      }
+    }) : null;
+
+    function levelName(key) {
+      for (var k in LEVELS) {
+        if (LEVELS.hasOwnProperty(k) && LEVELS[k].key === key) return LEVELS[k].name;
+      }
+      return '初级';
+    }
+
+    function mountLbHost() {
+      if (!lbPanel) return;
+      var layout = root.querySelector('.sm-game-layout');
+      if (!layout) {
+        layout = document.createElement('div');
+        layout.className = 'sm-game-layout';
+        root.appendChild(layout);
+      }
+      if (el.parentNode !== layout) layout.appendChild(el);
+      var host = layout.querySelector('.lb-host');
+      if (!host) {
+        host = document.createElement('div');
+        host.className = 'lb-host';
+        layout.appendChild(host);
+      }
+      lbPanel.mount(host);
+    }
+
+    /* ---------------- 棋盘 ---------------- */
+
+    function idx(x, y) { return y * level.cols + x; }
+
+    function neighbors(i) {
+      var x = i % level.cols, y = Math.floor(i / level.cols);
+      var out = [];
+      for (var dy = -1; dy <= 1; dy++) {
+        for (var dx = -1; dx <= 1; dx++) {
+          if (!dx && !dy) continue;
+          var nx = x + dx, ny = y + dy;
+          if (nx < 0 || ny < 0 || nx >= level.cols || ny >= level.rows) continue;
+          out.push(idx(nx, ny));
+        }
+      }
+      return out;
+    }
+
+    function reset(newLevel) {
+      if (newLevel) level = LEVELS[newLevel];
+      cells = [];
+      for (var i = 0; i < level.cols * level.rows; i++) {
+        cells.push({ mine: false, open: false, flag: false, near: 0 });
+      }
+      started = false; over = false; won = false;
+      flags = 0; openedCount = 0; elapsed = 0;
+      if (timerId) { clearInterval(timerId); timerId = 0; }
+      // 上一局结算时排了个延时 finish()，重开必须掐掉。
+      // 否则它会在新一局中途弹结算，还会把新实例 destroy 掉。
+      clearTimers();
+    }
+
+    // 首击之后才布雷：第一下点到的格子及其周围八格都不放雷，
+    // 保证开局不会一上来就踩雷，也让第一次点击能翻开一片。
+    function placeMines(safeIdx) {
+      var safe = {};
+      safe[safeIdx] = true;
+      neighbors(safeIdx).forEach(function (n) { safe[n] = true; });
+
+      var pool = [];
+      for (var i = 0; i < cells.length; i++) if (!safe[i]) pool.push(i);
+      shuffle(pool);
+      for (var m = 0; m < level.mines && m < pool.length; m++) cells[pool[m]].mine = true;
+
+      for (var j = 0; j < cells.length; j++) {
+        if (cells[j].mine) continue;
+        var cnt = 0;
+        neighbors(j).forEach(function (n) { if (cells[n].mine) cnt++; });
+        cells[j].near = cnt;
+      }
+    }
+
+    function startTimer() {
+      if (timerId) return;
+      t0 = performance.now() - elapsed * 1000;
+      timerId = setInterval(function () {
+        if (destroyed || over) return;
+        elapsed = Math.floor((performance.now() - t0) / 1000);
+        var t = el.querySelector('#msTime');
+        if (t) t.textContent = elapsed;
+      }, 250);
+    }
+
+    function stopTimer() {
+      if (timerId) { clearInterval(timerId); timerId = 0; }
+      if (started) elapsed = Math.floor((performance.now() - t0) / 1000);
+    }
+
+    /* 翻开一格；遇到 0 自动扩散。用栈而不是递归，高级棋盘也不会爆栈。 */
+    function reveal(start) {
+      var stack = [start];
+      while (stack.length) {
+        var i = stack.pop();
+        var c = cells[i];
+        if (!c || c.open || c.flag) continue;
+        c.open = true;
+        openedCount++;
+        if (c.mine) { over = true; won = false; return; }
+        if (c.near === 0) neighbors(i).forEach(function (n) {
+          if (!cells[n].open && !cells[n].flag) stack.push(n);
+        });
+      }
+    }
+
+    function checkWin() {
+      if (openedCount === cells.length - level.mines) {
+        over = true; won = true;
+      }
+    }
+
+    /* ---------------- 交互 ---------------- */
+
+    function onOpen(i) {
+      if (over || destroyed) return;
+      var c = cells[i];
+      if (!c || c.flag || c.open) return;
+
+      if (!started) {
+        started = true;
+        placeMines(i);
+        startTimer();
+      }
+      if (window.SFX && window.SFX.tap) window.SFX.tap();
+      reveal(i);
+      // reveal() 踩到雷时已经把 over 置位了，这时不能再判胜：
+      // 最后一格恰好是雷的话，会被误判成通关。
+      if (!over) checkWin();
+      paint();
+      if (over) settle();
+    }
+
+    function onFlag(i) {
+      if (over || destroyed) return;
+      var c = cells[i];
+      if (!c || c.open) return;
+      c.flag = !c.flag;
+      flags += c.flag ? 1 : -1;
+      if (window.SFX && window.SFX.tick) window.SFX.tick();
+      paint();
+    }
+
+    function settle() {
+      stopTimer();
+      if (won && window.SFX && window.SFX.win) window.SFX.win();
+      else if (window.SFX && window.SFX.wrong) window.SFX.wrong();
+
+      if (won) {
+        // 用时向上取整到 1 秒：服务端下限是 1，否则秒通关会被判成不合法成绩
+        var cost = level.weight + Math.max(1, elapsed);
+        if (lbPanel) {
+          lbPanel.submit({
+            cost: cost, sec: Math.max(1, elapsed), lv: level.key,
+            mines: level.mines, rows: level.rows, cols: level.cols
+          });
+        }
+      }
+      paint();
+
+      // 给玩家看一眼完整的雷区再结算
+      later(function () {
+        if (!destroyed) finish();
+      }, won ? 900 : 1400);
+    }
+
+    /* ---------------- 结算 ---------------- */
+
+    function finish() {
+      var certs = window.SM_DATA.minesweeper.certs;
+      var cert = certs[certs.length - 1];
+      if (won) {
+        // 只有通关才可能拿到「谨慎工兵」以上
+        for (var i = 0; i < certs.length; i++) {
+          if (level.key === 'hard' && certs[i].min >= 3) { cert = certs[i]; break; }
+          if (level.key === 'medium' && certs[i].min >= 2) { cert = certs[i]; break; }
+          if (level.key === 'easy' && certs[i].min >= 1) { cert = certs[i]; break; }
+        }
+      }
+
+      var cleared = 0;
+      for (var j = 0; j < cells.length; j++) if (cells[j].open && !cells[j].mine) cleared++;
+      var progress = Math.round(cleared / Math.max(1, cells.length - level.mines) * 100);
+
+      onFinish({
+        icon: cert.icon,
+        name: cert.name,
+        tag: won
+          ? level.name + ' · ' + level.cols + '×' + level.rows + ' · ' + elapsed + ' 秒通关'
+          : level.name + ' · 踩雷阵亡 · 翻开 ' + progress + '%',
+        text: cert.text,
+        big: {
+          label: won ? '通关用时' : '排雷进度',
+          value: won ? (elapsed + ' <small>秒</small>') : (progress + ' <small>%</small>')
+        },
+        bars: [
+          { label: '排雷进度', pct: progress, hi: true },
+          { label: '旗帜准确率', pct: flags ? Math.min(100, Math.round(level.mines / Math.max(flags, level.mines) * 100)) : 0 }
+        ],
+        blocks: [
+          { h: '本局战报', text: '难度 ' + level.name + '（' + level.cols + '×' + level.rows + '，' + level.mines + ' 雷），翻开 ' + cleared + ' 格，插旗 ' + flags + ' 面，用时 ' + elapsed + ' 秒。' },
+          { h: '风险提示', text: '扫雷的核心从来不是运气，而是把「确定」和「猜测」分开：能推导的先推完，剩下的才交给概率。' }
+        ],
+        quip: window.SM_DATA.minesweeper.disclaimer,
+        cert: cert.name + ' · 认证',
+        detail: {
+          type: cert.name, won: won, level: level.key,
+          sec: elapsed, cleared: cleared, mines: level.mines
+        }
+      });
+    }
+
+    /* ---------------- 渲染 ---------------- */
+
+    function numClass(n) {
+      return 'n' + Math.min(n, 8);
+    }
+
+    function boardHTML() {
+      var html = '<div class="ms-grid" id="msGrid" style="grid-template-columns:repeat(' + level.cols + ',1fr)">';
+      for (var i = 0; i < cells.length; i++) {
+        var c = cells[i];
+        var cls = 'ms-cell';
+        var inner = '';
+        if (c.open) {
+          cls += ' open';
+          if (c.mine) { cls += ' boom'; inner = '💥'; }
+          else if (c.near > 0) { cls += ' ' + numClass(c.near); inner = String(c.near); }
+        } else if (c.flag) {
+          cls += ' flag';
+          inner = '🚩';
+        }
+        // 输了以后把没插旗的雷也亮出来，方便复盘
+        if (over && !won && !c.open && c.mine && !c.flag) {
+          cls += ' open mine';
+          inner = '💣';
+        }
+        html += '<button type="button" class="' + cls + '" data-i="' + i + '">' + inner + '</button>';
+      }
+      return html + '</div>';
+    }
+
+    function paint() {
+      var left = level.mines - flags;
+      el.innerHTML = hud(
+        '<b>雷区排险 · ' + level.name + '</b>',
+        '<span class="ms-stat">💣 ' + left + '</span> <span class="ms-stat">⏱ <span id="msTime">' + elapsed + '</span>s</span>'
+      ) +
+        '<div class="ms-toolbar">' +
+        '<div class="ms-levels">' +
+        ['easy', 'medium', 'hard'].map(function (k) {
+          return '<button type="button" class="ms-lv' + (level.key === k ? ' active' : '') +
+            '" data-lv="' + k + '">' + LEVELS[k].name + '</button>';
+        }).join('') +
+        '</div>' +
+        '<button type="button" class="ms-reset" id="msReset">↻ 重开</button>' +
+        '</div>' +
+        '<div class="ms-board-wrap">' + boardHTML() + '</div>' +
+        '<div class="rz-sub" style="margin-top:10px">左键翻开 · 右键或长按插旗</div>';
+
+      bindBoard();
+    }
+
+    function bindBoard() {
+      var grid = el.querySelector('#msGrid');
+      if (!grid) return;
+
+      grid.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+
+      grid.querySelectorAll('.ms-cell').forEach(function (btn) {
+        var i = parseInt(btn.getAttribute('data-i'), 10);
+
+        btn.addEventListener('click', function () { onOpen(i); });
+
+        btn.addEventListener('contextmenu', function (e) {
+          e.preventDefault();
+          onFlag(i);
+        });
+
+        // 移动端没有右键：按住 380ms 插旗
+        btn.addEventListener('pointerdown', function (e) {
+          if (e.pointerType === 'mouse') return;
+          longPressId = setTimeout(function () {
+            longPressId = 0;
+            onFlag(i);
+            btn.dataset.longPressed = '1';
+          }, 380);
+        });
+        ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (evt) {
+          btn.addEventListener(evt, function () {
+            if (longPressId) { clearTimeout(longPressId); longPressId = 0; }
+          });
+        });
+        btn.addEventListener('click', function (e) {
+          // 长按已经插过旗了，别再当成一次翻开
+          if (btn.dataset.longPressed) {
+            delete btn.dataset.longPressed;
+            e.stopPropagation();
+          }
+        }, true);
+      });
+
+      var resetBtn = el.querySelector('#msReset');
+      if (resetBtn) resetBtn.onclick = function () {
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        reset(level.key);
+        paint();
+      };
+
+      el.querySelectorAll('[data-lv]').forEach(function (b) {
+        b.onclick = function () {
+          var k = b.getAttribute('data-lv');
+          if (k === level.key && !over && !started) return;
+          if (window.SFX && window.SFX.tap) window.SFX.tap();
+          reset(k);
+          paint();
+        };
+      });
+    }
+
+    /* ---------------- 启动 ---------------- */
+
+    reset('easy');
+    paint();
+    mountLbHost();
+
+    return {
+      destroy: function () {
+        destroyed = true;
+        clearTimers();
+        if (timerId) { clearInterval(timerId); timerId = 0; }
+        if (longPressId) { clearTimeout(longPressId); longPressId = 0; }
+        if (lbPanel) lbPanel.destroy();
+      }
+    };
+  };
 })();
 
 ;
@@ -18630,6 +19054,7 @@ if ('serviceWorker' in navigator) {
     spiral: '<path d="M12 12a2.2 2.2 0 0 1 4.4 0 4.8 4.8 0 0 1-9.6 0A7.2 7.2 0 0 1 21 12a9.6 9.6 0 0 1-19.2 0"/>',
     candle: '<path d="M12 2.5c1.3 1.5 2 2.6 2 3.6a2 2 0 1 1-4 0c0-1 .7-2.1 2-3.6Z"/><rect x="8.5" y="9" width="7" height="12" rx="1.5"/><path d="M6 21h12"/>',
     gear: '<circle cx="12" cy="12" r="3.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.2 5.2l2.1 2.1M16.7 16.7l2.1 2.1M18.8 5.2l-2.1 2.1M7.3 16.7l-2.1 2.1"/>',
+    target: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3"/>',
     cloud: '<path d="M7 18.5a4.6 4.6 0 1 1 .9-9.1 6 6 0 0 1 11.5 1.8 3.8 3.8 0 0 1-1.4 7.3H7Z"/>',
     eye: '<path d="M2.5 12S6 5.8 12 5.8 21.5 12 21.5 12 18 18.2 12 18.2 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="2.9"/>',
     palette: '<path d="M12 3a9 9 0 1 0 0 18h1.7a2.1 2.1 0 0 0 1.5-3.6c-.9-1-.1-2.2 1.1-2.2h1.9a3 3 0 0 0 2.8-3.1C20.7 7 16.7 3 12 3Z"/><circle cx="7.5" cy="10.5" r=".9"/><circle cx="11" cy="7" r=".9"/><circle cx="15.5" cy="7.8" r=".9"/>',
@@ -19105,8 +19530,8 @@ if ('serviceWorker' in navigator) {
   function saveStore(s) {
     try { localStorage.setItem('sm_history_v1', JSON.stringify(s)); } catch (e) {}
   }
-  // 第 08 章（人间清醒）不出分数报告，存档在它自己的 key 里，
-  // 所以「是否已测」要单独判定，否则 8 章的目录永远只能点亮 7 个点。
+  // 人间清醒（第 09 章）不出分数报告，存档在它自己的 key 里，
+  // 所以「是否已测」要单独判定，否则目录永远少点亮一个点。
   function chapterDone(id, s) {
     if (id === 'lifeguide') {
       try {
@@ -19158,7 +19583,7 @@ if ('serviceWorker' in navigator) {
     var ORDER = window.SM_ORDER || ['social-battery', 'procrastination', 'slacking', 'night-owl', 'reaction', 'color'];
     var s = store();
     var done = ORDER.filter(function (id) { return chapterDone(id, s); }).length;
-    // 存档份数只统计答题/游戏章：第 08 章没有分数报告，计入会虚高
+    // 存档份数只统计答题/游戏章：人间清醒没有分数报告，计入会虚高
     var total = ORDER.reduce(function (n, id) {
       return n + (DATA[id] && DATA[id].mode === 'external' ? 0 : (s[id] ? s[id].length : 0));
     }, 0);
@@ -19393,12 +19818,17 @@ if ('serviceWorker' in navigator) {
       state.gameCtl = null;
     }
     state.mode = 'game';
-    var isReaction = t.id === 'reaction';
-    var isColor = t.id === 'color';
-    var is2048 = t.id === 'game-2048';
-    var scrId = isReaction ? 'scr-sm-reaction' : (isColor ? 'scr-sm-color' : 'scr-sm-2048');
-    var topId = isReaction ? 'sm-reacttop' : (isColor ? 'sm-colortop' : 'sm-2048top');
-    var bodyId = isReaction ? 'sm-reactbody' : (isColor ? 'sm-colorbody' : 'sm-2048body');
+    // 每个交互章节一个独立屏幕，按章节 id 映射过去
+    var GAME_SCREENS = {
+      'reaction': { scr: 'scr-sm-reaction', top: 'sm-reacttop', body: 'sm-reactbody', start: 'startReaction' },
+      'color': { scr: 'scr-sm-color', top: 'sm-colortop', body: 'sm-colorbody', start: 'startColor' },
+      'game-2048': { scr: 'scr-sm-2048', top: 'sm-2048top', body: 'sm-2048body', start: 'startGame2048' },
+      'minesweeper': { scr: 'scr-sm-mine', top: 'sm-minetop', body: 'sm-minebody', start: 'startMinesweeper' }
+    };
+    var gs = GAME_SCREENS[t.id] || GAME_SCREENS['game-2048'];
+    var scrId = gs.scr;
+    var topId = gs.top;
+    var bodyId = gs.body;
 
     var topEl = document.getElementById(topId);
     if (topEl) {
@@ -19419,7 +19849,7 @@ if ('serviceWorker' in navigator) {
       };
     }
 
-    var startFn = isReaction ? window.startReaction : (isColor ? window.startColor : window.startGame2048);
+    var startFn = window[gs.start];
     var bodyEl = document.getElementById(bodyId);
     if (startFn && bodyEl) {
       state.gameCtl = startFn(bodyEl, function (rawRes) {
@@ -23529,7 +23959,7 @@ if ('serviceWorker' in navigator) {
 ;
 /* === js/modules/lifeguide.js === */
 /* =========================================================
-   自我说明书 · 第 08 章：人间清醒指南 (Evidence-Based Life Handbook)
+   自我说明书 · 第 09 章：人间清醒指南 (Evidence-Based Life Handbook)
    灵感与循证数据源：eternity4719/HowToLiveBetter (CC BY 4.0)
    功能：
    1. 🩺 高性价比漏项自查（4大维度16项核心防线 + 优先补漏处方单）
@@ -25094,7 +25524,7 @@ if ('serviceWorker' in navigator) {
     if (!top) return;
     top.innerHTML = '<button class="mt-iconbtn" id="sm-lifeguide-back">←</button>'
       + '<div class="mt-pick-head" style="flex:1;margin-bottom:0">'
-      + '<b>第 08 章 · 人间清醒指南</b><p>EVIDENCE-BASED LIFE HANDBOOK</p></div>';
+      + '<b>第 09 章 · 人间清醒指南</b><p>EVIDENCE-BASED LIFE HANDBOOK</p></div>';
     const back = top.querySelector('#sm-lifeguide-back');
     if (back) {
       back.onclick = () => {
@@ -31123,7 +31553,7 @@ if ('serviceWorker' in navigator) {
           window.AppTarot.restore(item.data);
         }
       } else if (mod === 'manual') {
-        // 说明书存档有两种：答题/游戏报告（test+res），和并入第 08 章的人间清醒（mode）
+        // 说明书存档有两种：答题/游戏报告（test+res），和并入第 09 章的人间清醒（mode）
         const d = item.data || {};
         if (d.mode && !d.test && window.AppLifeguide) {
           window.AppManual.openTest('lifeguide');
@@ -31148,7 +31578,7 @@ if ('serviceWorker' in navigator) {
           window.AppMerit.restore(item.data);
         }
       } else if (mod === 'lifeguide') {
-        // 人间清醒已并入说明书：先切到说明书，再由它翻开第 08 章并恢复现场
+        // 人间清醒已并入说明书：先切到说明书，再由它翻开第 09 章并恢复现场
         if (window.AppManual) {
           window.AppManual.openTest('lifeguide');
         }
@@ -31447,7 +31877,7 @@ if ('serviceWorker' in navigator) {
   let lastDrinkMod = 'drinks';
   let lastMysticMod = 'tarot';
   let lastRelaxMod = 'clock';
-  // lifeguide 已并入说明书成为第 08 章，不再是独立顶层模块；
+  // lifeguide 已并入说明书成为第 09 章，不再是独立顶层模块；
   // 保留在 ALLOWED_MODS 里只为兼容老链接，进入后立刻转成说明书 + 该章。
   const ALLOWED_MODS = ['drinks', 'milktea', 'manual', 'fengshui', 'tarot', 'lingqian', 'decision', 'clock', 'merit', 'lifeguide', 'bazi', 'daily', 'scratch'];
   const initializedModules = new Set(['drinks']);
@@ -31577,7 +32007,7 @@ if ('serviceWorker' in navigator) {
       if (modKey === 'bazi' && window.AppBazi) window.AppBazi.init();
       if (modKey === 'daily' && window.AppDaily) window.AppDaily.init();
       if (modKey === 'scratch' && window.AppScratch) window.AppScratch.init();
-      // 老链接 #/lifeguide：先进说明书，再直接翻开第 08 章
+      // 老链接 #/lifeguide：先进说明书，再直接翻开第 09 章
       // 走 openTest 而不是 AppLifeguide.open()，这样侧栏高亮/当前章状态才对
       if (modKey === 'lifeguide' && window.AppManual) window.AppManual.openTest('lifeguide');
     } else {

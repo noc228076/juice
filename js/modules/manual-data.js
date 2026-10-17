@@ -601,11 +601,33 @@
       ]
     },
 
-    /* ============ 08 人间清醒指南 ============
+    /* ============ 08 雷区排险 · 扫雷 ============ */
+    minesweeper: {
+      id: 'minesweeper', num: '08', mode: 'interactive', engine: 'minesweeper',
+      title: '雷区排险', en: 'MINESWEEPER',
+      tagline: '在信息不全的棋盘上,判断哪一步值得冒险',
+      icon: 'target', color: '#38BDF8',
+      meta: '三档难度 · 约 2 分钟',
+      intro: [
+        '棋盘下埋着雷,数字是它周围八格的雷数。',
+        '左键翻开格子,右键(或长按)插旗标记你认定的雷。',
+        '翻开所有非雷格即胜利;踩到雷即结束。',
+        '初级 9×9 十雷,中级 16×16 四十雷,高级 16×30 九十九雷。'
+      ],
+      disclaimer: '成绩按完成时间排名,难度越高越靠前。仅供参考,现实中的雷请勿用右键排查。',
+      certs: [
+        { min: 3, icon: 'crown', name: '拆弹专家', text: '高级棋盘也能拿下,你对风险分布的直觉已经接近统计学本身。' },
+        { min: 2, icon: 'gem', name: '排雷老手', text: '中级稳过,说明你既能算概率,也懂得什么时候该赌一把。' },
+        { min: 1, icon: 'bolt', name: '谨慎工兵', text: '初级通关。步子不大,但每一步都踩在确定性上。' },
+        { min: 0, icon: 'smile', name: '踩雷新兵', text: '雷区无情,多试几次就熟了。至少你知道了:数字是周围八格,不是上下左右。' }
+      ]
+    },
+
+    /* ============ 09 人间清醒指南 ============
        这一章不是答题引擎产物：正文由 lifeguide.js 自己渲染（体检 / 智库 / 抽卡），
        所以 mode 为 'external'，由 manual.js 转交 AppLifeguide.open()。 */
     lifeguide: {
-      id: 'lifeguide', num: '08', mode: 'external',
+      id: 'lifeguide', num: '09', mode: 'external',
       title: '人间清醒指南', en: 'EVIDENCE-BASED LIFE HANDBOOK',
       tagline: '低投入高回报的 16 项防线、36 条循证避坑与每日锦囊',
       icon: 'book', color: '#10B981',
@@ -614,5 +636,5 @@
   };
 
   /* 首页章节顺序 */
-  window.SM_ORDER = ['social-battery', 'procrastination', 'slacking', 'night-owl', 'reaction', 'color', 'game-2048', 'lifeguide'];
+  window.SM_ORDER = ['social-battery', 'procrastination', 'slacking', 'night-owl', 'reaction', 'color', 'game-2048', 'minesweeper', 'lifeguide'];
 })();

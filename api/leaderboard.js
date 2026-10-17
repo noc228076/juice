@@ -19,7 +19,8 @@
 const GAMES = {
   '2048': { z: 'j2048:z', p: 'j2048:p', higher: true },
   reaction: { z: 'jreaction:z', p: 'jreaction:p', higher: false },
-  color: { z: 'jcolor:z', p: 'jcolor:p', higher: true }
+  color: { z: 'jcolor:z', p: 'jcolor:p', higher: true },
+  minesweeper: { z: 'jmine:z', p: 'jmine:p', higher: false }
 };
 
 const BOARD_CAP = 1000;          // 每个榜单只保留前 1000 名
@@ -195,6 +196,21 @@ function parseRun(game, body) {
     return { score: level, extra: {} };
   }
 
+  if (game === 'minesweeper') {
+    // 排名值是「难度权重 + 用时」，越小越好。
+    // 用时下限 1 秒：再快基本是脚本；上限 2 小时，覆盖高级慢局。
+    const cost = intIn(body.score, 1, 7200);
+    const sec = intIn(body.sec, 0, 7200);
+    const lv = String(body.lv || '');
+    if (cost == null) return { error: '成绩不合法' };
+    if (sec == null) return { error: '用时不合法' };
+    if (['easy', 'medium', 'hard'].indexOf(lv) < 0) return { error: '难度不合法' };
+    // 权重由服务端说了算，防止客户端伪造低权重刷榜
+    const weight = { easy: 0, medium: 180, hard: 420 }[lv];
+    if (cost !== weight + sec) return { error: '成绩与难度不匹配' };
+    return { score: cost, extra: { sec, lv } };
+  }
+
   return { error: '未知游戏' };
 }
 
@@ -235,6 +251,8 @@ async function readBoard(game, limit) {
     if (d && d.mt != null) extra.maxTile = d.mt;
     if (d && d.acc != null) extra.acc = d.acc;
     if (d && d.age != null) extra.age = d.age;
+    if (d && d.sec != null) extra.sec = d.sec;
+    if (d && d.lv != null) extra.lv = d.lv;
     return {
       id,
       name: (d && d.n) || '匿名玩家',
@@ -358,11 +376,15 @@ module.exports = async function handler(req, res) {
         if (run.extra.mt != null) detail.mt = run.extra.mt;
         if (run.extra.acc != null) detail.acc = run.extra.acc;
         if (run.extra.age != null) detail.age = run.extra.age;
+        if (run.extra.sec != null) detail.sec = run.extra.sec;
+        if (run.extra.lv != null) detail.lv = run.extra.lv;
       } else if (prevDetail) {
         if (prevDetail.at != null) detail.at = prevDetail.at;
         if (prevDetail.mt != null) detail.mt = prevDetail.mt;
         if (prevDetail.acc != null) detail.acc = prevDetail.acc;
         if (prevDetail.age != null) detail.age = prevDetail.age;
+        if (prevDetail.sec != null) detail.sec = prevDetail.sec;
+        if (prevDetail.lv != null) detail.lv = prevDetail.lv;
       }
       if (detail.at == null) detail.at = stamp;
 

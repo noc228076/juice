@@ -27756,7 +27756,7 @@ if ('serviceWorker' in navigator) {
   // 跨域缓存获取器。
   // source 用于让调用方判断数据是否来自兜底：
   // 'network' 实时接口 | 'cache' 本地缓存 | 'stale' 过期缓存 | 'fallback' 离线种子
-  async function fetchWithCacheDetail(url, cacheKey, fallback) {
+  async function fetchWithCacheDetail(url, cacheKey, fallback, timeoutMs = 7500) {
     try {
       const cached = localStorage.getItem(CACHE_PREFIX + cacheKey);
       if (cached) {
@@ -27769,7 +27769,7 @@ if ('serviceWorker' in navigator) {
 
     try {
       const controller = new AbortController();
-      const timer = setTimeout(() => controller.abort(), 7500);
+      const timer = setTimeout(() => controller.abort(), timeoutMs);
       const res = await fetch(url, { signal: controller.signal });
       clearTimeout(timer);
 
@@ -27902,6 +27902,153 @@ if ('serviceWorker' in navigator) {
     );
   }
 
+  /* ---------------- 热榜多源降级 ----------------
+     同一个平台配多个源，按顺序尝试，任一成功即止。
+     背景：原来 7 个平台全押在 60s.viki.moe 一个服务上，
+     实测 B站 500、小红书/AI/头条 429（Cloudflare 限流），
+     这些平台的标签页永远是离线示例。
+
+     实测各源可用性（2026-10）：
+       60s.viki.moe   微博/知乎/抖音/小红书/AI/头条 可用，B站 500
+       api.codelife.cc 微博/知乎/抖音 可用（按 id 区分），需 ACAO 回显
+       v2.xxapi.cn     B站/微博/抖音 可用（ACAO: *）
+     B站与抖音的官方接口虽然能拿到数据，但不返回 CORS 头，
+     浏览器里必然失败，所以只能用这些聚合源。
+
+     normalize 把各家的字段差异拉平为 { title, hot_value, link }：
+       viki:      { title, hot_value, link }        B站除外
+       zhihu:     { title, hot_value_desc, link }
+       codelife:  { title, hotValue(如 "108万"), link }
+       xxapi:     { title, hot(如 "108万"), url } / B站为纯字符串数组
+       rednote:   { title, score(如 "947.5w"), link }
+       ai-news:   { date, news: [{ title, link, detail }] } —— 不是数组
+     ------------------------------------------------ */
+  // 热榜请求超时：比通用接口宽松，给慢源留出时间，避免误判为不可用
+  const HOT_FETCH_TIMEOUT_MS = 12000;
+
+  const HOT_SOURCES = {
+    weibo: [
+      { url: 'https://60s.viki.moe/v2/weibo', kind: 'viki' },
+      { url: 'https://api.codelife.cc/api/top/list?lang=cn&id=KqndgxeLl9', kind: 'codelife' },
+      { url: 'https://v2.xxapi.cn/api/weibohot', kind: 'xxapi' }
+    ],
+    zhihu: [
+      { url: 'https://60s.viki.moe/v2/zhihu', kind: 'zhihu' },
+      { url: 'https://api.codelife.cc/api/top/list?lang=cn&id=mproPpoq6O', kind: 'codelife' }
+    ],
+    // viki 的 B站接口稳定 500，把能用的 xxapi 放主源
+    bili: [
+      { url: 'https://v2.xxapi.cn/api/bilibilihot', kind: 'xxapi-bili' },
+      { url: 'https://60s.viki.moe/v2/bili', kind: 'viki' }
+    ],
+    douyin: [
+      { url: 'https://60s.viki.moe/v2/douyin', kind: 'viki' },
+      { url: 'https://api.codelife.cc/api/top/list?lang=cn&id=DpQvNABoNE', kind: 'codelife' },
+      { url: 'https://v2.xxapi.cn/api/douyinhot', kind: 'xxapi' }
+    ],
+    rednote: [
+      { url: 'https://60s.viki.moe/v2/rednote', kind: 'rednote' }
+    ],
+    'ai-news': [
+      { url: 'https://60s.viki.moe/v2/ai-news', kind: 'ai-news' }
+    ],
+    toutiao: [
+      { url: 'https://60s.viki.moe/v2/toutiao', kind: 'viki' }
+    ]
+  };
+
+  // 把 "108万" / "1.2亿" / "947.5w" / 数字 统一成数值，便于按热度排序与展示
+  function parseHotValue(v) {
+    if (v == null) return 0;
+    if (typeof v === 'number') return v;
+    const s = String(v).trim();
+    const m = s.match(/^([\d.]+)\s*(万|亿|w|W)?/);
+    if (!m) return 0;
+    const n = parseFloat(m[1]);
+    if (!isFinite(n)) return 0;
+    if (m[2] === '亿') return Math.round(n * 1e8);
+    if (m[2] === '万' || m[2] === 'w' || m[2] === 'W') return Math.round(n * 1e4);
+    return Math.round(n);
+  }
+
+  function normalizeHotItem(item, kind) {
+    // xxapi 的 B站热榜只给字符串数组：["韩立", "垃圾焚烧…", ...]
+    if (typeof item === 'string') {
+      const t = item.trim();
+      return t ? { title: t, hot_value: 0, link: '' } : null;
+    }
+    if (!item || typeof item !== 'object') return null;
+    const title = item.title || item.name || item.word || '';
+    if (!title) return null;
+    const link = item.link || item.url || '';
+    let hot = 0;
+    if (kind === 'zhihu') hot = parseHotValue(item.hot_value_desc || item.hot_value);
+    else if (kind === 'codelife') hot = parseHotValue(item.hotValue || item.hot_value);
+    else if (kind === 'xxapi') hot = parseHotValue(item.hot || item.hot_value || item.heat);
+    else if (kind === 'rednote') hot = parseHotValue(item.score || item.hot_value);
+    else if (kind === 'any') hot = parseHotValue(
+      item.hot_value || item.hotValue || item.hot_value_desc || item.hot || item.score || item.heat
+    );
+    else hot = parseHotValue(item.hot_value || item.heat);
+    return { title, hot_value: hot, link };
+  }
+
+  // 各家列表挂载位置不一致，统一取出条目数组
+  function extractHotArray(raw) {
+    if (Array.isArray(raw)) return raw;
+    if (!raw || typeof raw !== 'object') return [];
+    if (Array.isArray(raw.news)) return raw.news; // ai-news: { date, news: [...] }
+    if (Array.isArray(raw.list)) return raw.list;
+    if (Array.isArray(raw.data)) return raw.data;
+    return [];
+  }
+
+  // 依次尝试该平台的源；全部失败则回落到缓存/离线种子
+  // 注意：某个源的「过期缓存」不能提前返回，否则会挡住后面仍然可用的备用源。
+  // 所以先把过期缓存记下来，等所有源都试完再用。
+  async function fetchHotWithFallback(platform) {
+    const sources = HOT_SOURCES[platform] || HOT_SOURCES.weibo;
+    let staleHit = null;
+
+    for (let i = 0; i < sources.length; i++) {
+      const src = sources[i];
+      const key = 'hot_' + platform + '_s' + i;
+      // 热榜接口普遍 2~5s（AI 快讯最慢，实测 4~5s），单独放宽超时，
+      // 否则会在数据到达前就 abort，白白回落到离线示例
+      const { data: raw, source } = await fetchWithCacheDetail(src.url, key, null, HOT_FETCH_TIMEOUT_MS);
+      if (source === 'fallback') continue; // 该源不可用，试下一个
+
+      const list = extractHotArray(raw)
+        .map(it => normalizeHotItem(it, src.kind))
+        .filter(Boolean);
+      if (!list.length) continue;
+
+      // 全部条目都有热度才重排；部分缺失时保留接口给出的原始名次
+      if (list.every(x => x.hot_value > 0)) list.sort((a, b) => b.hot_value - a.hot_value);
+      if (source === 'stale') {
+        if (!staleHit) staleHit = list;
+        continue; // 继续找还活着的源
+      }
+      return { data: list, source: source }; // 'cache' | 'network'
+    }
+
+    if (staleHit) return { data: staleHit, source: 'stale' };
+
+    // 连过期缓存都没有：翻改造前的老 key，再不行用离线种子
+    try {
+      const cached = localStorage.getItem(CACHE_PREFIX + 'hot_' + platform);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        const old = extractHotArray(parsed.data)
+          .map(it => normalizeHotItem(it, 'any'))
+          .filter(Boolean);
+        if (old.length) return { data: old, source: 'stale' };
+      }
+    } catch (_) {}
+
+    return { data: HOT_SEED_TOPICS, source: 'fallback' };
+  }
+
   async function loadHotList(platform = 'weibo') {
     curPlatform = platform;
     const listEl = document.getElementById('dlHotList');
@@ -27911,22 +28058,7 @@ if ('serviceWorker' in navigator) {
     const meta = PLATFORM_META[platform] || PLATFORM_META.weibo;
     showSkeleton(listEl, hotSkeletonHtml());
 
-    const endpointMap = {
-      weibo: 'https://60s.viki.moe/v2/weibo',
-      zhihu: 'https://60s.viki.moe/v2/zhihu',
-      bili: 'https://60s.viki.moe/v2/bili',
-      douyin: 'https://60s.viki.moe/v2/douyin',
-      rednote: 'https://60s.viki.moe/v2/rednote',
-      'ai-news': 'https://60s.viki.moe/v2/ai-news',
-      toutiao: 'https://60s.viki.moe/v2/toutiao'
-    };
-
-    const url = endpointMap[platform] || endpointMap.weibo;
-    const { data: raw, source } = await fetchWithCacheDetail(
-      url,
-      'hot_' + platform,
-      HOT_SEED_TOPICS
-    );
+    const { data: raw, source } = await fetchHotWithFallback(platform);
     // 响应回来时用户可能已切到别的平台，丢弃过期结果，避免「切回时显示别的平台数据」
     if (token !== hotLoadToken) return;
 

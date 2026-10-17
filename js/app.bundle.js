@@ -31321,6 +31321,28 @@ if ('serviceWorker' in navigator) {
       myRank = 0;
     }
 
+    /* 把一条成绩发到服务端。silent=true 时不写本机战绩、不动 loading 态，
+       用于补交历史记录——那些记录本来就在 localStorage 里，再存一遍会重复。 */
+    function post(d, silent) {
+      if (!window.AppLeaderboard) return Promise.resolve(null);
+      if (!silent) loading = true;
+      return window.AppLeaderboard.submit(Object.assign({
+        game: game,
+        score: d.score
+      }, d.extra || {})).then(function (res) {
+        if (!silent) loading = false;
+        if (res && res.ok) {
+          global = { board: res.board || [], total: res.total || 0, online: !!res.online };
+          myRank = res.rank || 0;
+          error = '';
+        } else if (!silent) {
+          error = (res && res.error) || '提交失败';
+        }
+        if (!destroyed && !silent) render();
+        return res;
+      });
+    }
+
     // 返回本局在本机战绩里的名次（1 起），供结算文案引用
     function submit(run) {
       if (!window.AppLeaderboard) return 0;
@@ -31340,23 +31362,37 @@ if ('serviceWorker' in navigator) {
         if (list[i].at === stamp) { localRank = i + 1; break; }
       }
 
-      loading = true;
-      window.AppLeaderboard.submit(Object.assign({
-        game: game,
-        score: d.score
-      }, d.extra || {})).then(function (res) {
-        loading = false;
-        if (res && res.ok) {
-          global = { board: res.board || [], total: res.total || 0, online: !!res.online };
-          myRank = res.rank || 0;
-          error = '';
-        } else {
-          error = (res && res.error) || '提交失败';
-        }
-        if (!destroyed) render();
-      });
+      post(d, false);
       if (!destroyed) render();
       return localRank;
+    }
+
+    /* 历史战绩补交。
+       以前只有「本局结束时」才提交，老玩家在分榜/上线前打过的成绩
+       一直躺在 localStorage 里，全服榜上永远是空的。
+       这里把本机最好的一条补交上去——服务端只在更好时才覆盖，
+       重复提交没有副作用。 */
+    function syncLocal() {
+      if (!window.AppLeaderboard) return;
+      var runs = localRuns();
+      if (!runs.length) return;
+      var best = runs[0];
+      // 同一条成绩只补交一次。否则每次进游戏都发 POST，
+      // 虽然服务端幂等，但会白白吃掉限流额度（60 秒 20 次）。
+      var mark = 'lb_synced_' + game;
+      var sig = String(best.score) + '|' + String(best.at || 0);
+      try { if (localStorage.getItem(mark) === sig) return; } catch (e) {}
+
+      var extra = {};
+      ['sec', 'lv', 'acc', 'age', 'maxTile', 'moves', 'merges'].forEach(function (k) {
+        if (best[k] != null) extra[k] = best[k];
+      });
+      // 成功了才落标记：断网时下次进游戏还能再试一次
+      post({ score: best.score, extra: extra }, true).then(function (res) {
+        if (res && res.ok) {
+          try { localStorage.setItem(mark, sig); } catch (e) {}
+        }
+      });
     }
 
     /* ---------------- 渲染 ---------------- */
@@ -31479,7 +31515,11 @@ if ('serviceWorker' in navigator) {
       host = el;
       host.className = 'lb-host';
       render();
-      if (first && open && tab === 'global') loadGlobal(false);
+      if (first) {
+        // 老玩家本机有战绩但服务端没有，进游戏时补交一次
+        syncLocal();
+        if (open && tab === 'global') loadGlobal(false);
+      }
       if (window.AppProfile && !onProfileChange) {
         // 改完资料要重新拉一次：缓存里还是旧昵称，光重绘换不掉。
         // 服务端同步由 profile.js 的 save() 负责（它先发 PATCH），
@@ -31506,6 +31546,8 @@ if ('serviceWorker' in navigator) {
       myRank = 0;
       error = '';
       loading = false;
+      // 换了榜就补交这一档的本机最好成绩（旧版合并榜的老记录）
+      syncLocal();
       render();
       if (open && tab === 'global') loadGlobal(true);
     }
@@ -31521,6 +31563,7 @@ if ('serviceWorker' in navigator) {
       destroy: destroy,
       bestLocal: bestLocal,
       setGame: setGame,
+      syncLocal: syncLocal,
       refresh: function () { render(); }
     };
   }

@@ -972,6 +972,11 @@ html[data-theme="light"] #mod-manual {
     max-width: 960px;
     padding: var(--screen-pad-block) 32px var(--screen-pad-block);
   }
+  /* 扫雷高级 30 列，960px 减去 300px 榜单列后每格只剩 19px。
+     这一屏单独放宽，让棋盘能铺开；其它章节不受影响。 */
+  #mod-manual .sm-screen#scr-sm-mine .wrap {
+    max-width: 1180px;
+  }
 #mod-manual .manual-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -992,6 +997,10 @@ html[data-theme="light"] #mod-manual {
     margin-left: auto;
     margin-right: auto;
     box-sizing: border-box;
+  }
+  /* 扫雷棋盘要吃掉左列全部宽度，720px 的上限会让高级 30 列挤成一团 */
+  #mod-manual .sm-screen#scr-sm-mine .stage {
+    max-width: none;
   }
   #mod-manual .racts {
     margin-top: 20px;
@@ -1365,6 +1374,17 @@ html[data-theme="light"] #mod-manual {
     grid-template-columns: minmax(0, 1fr) 300px;
     gap: 16px;
     align-items: start;
+    }
+    /* 扫雷高级 30 列，窄窗口下双栏会把棋盘压到每格 16px。
+       宽度不够时改成榜单在下的单栏，把整行让给棋盘。 */
+    @media (max-width: 1439px) {
+      #mod-manual .sm-screen#scr-sm-mine .sm-game-layout {
+        grid-template-columns: minmax(0, 1fr);
+      }
+      #mod-manual .sm-screen#scr-sm-mine .sm-game-layout .lb-host {
+        position: static;
+        margin-top: 14px;
+      }
     }
     #mod-manual .sm-game-layout .stage {
     min-width: 0;

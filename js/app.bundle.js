@@ -17472,11 +17472,22 @@ if ('serviceWorker' in navigator) {
         { min: 128, icon: 'medal', name: '潜能进阶者', text: '打出 128！手感在线，节奏良好，再多推演几步，更大的格局就在眼前。' },
         { min: 0, icon: 'smile', name: '随性合体家', text: '佛系滑动，重在重温经典纯粹的合成乐趣。快乐摸鱼，拒绝焦虑，适度用脑就是最好状态。' }
       ]
+    },
+
+    /* ============ 08 人间清醒指南 ============
+       这一章不是答题引擎产物：正文由 lifeguide.js 自己渲染（体检 / 智库 / 抽卡），
+       所以 mode 为 'external'，由 manual.js 转交 AppLifeguide.open()。 */
+    lifeguide: {
+      id: 'lifeguide', num: '08', mode: 'external',
+      title: '人间清醒指南', en: 'EVIDENCE-BASED LIFE HANDBOOK',
+      tagline: '低投入高回报的 16 项防线、36 条循证避坑与每日锦囊',
+      icon: 'book', color: '#10B981',
+      meta: '3 个子模块 · 随时可查'
     }
   };
 
   /* 首页章节顺序 */
-  window.SM_ORDER = ['social-battery', 'procrastination', 'slacking', 'night-owl', 'reaction', 'color', 'game-2048'];
+  window.SM_ORDER = ['social-battery', 'procrastination', 'slacking', 'night-owl', 'reaction', 'color', 'game-2048', 'lifeguide'];
 })();
 
 ;
@@ -19028,6 +19039,18 @@ if ('serviceWorker' in navigator) {
   function saveStore(s) {
     try { localStorage.setItem('sm_history_v1', JSON.stringify(s)); } catch (e) {}
   }
+  // 第 08 章（人间清醒）不出分数报告，存档在它自己的 key 里，
+  // 所以「是否已测」要单独判定，否则 8 章的目录永远只能点亮 7 个点。
+  function chapterDone(id, s) {
+    if (id === 'lifeguide') {
+      try {
+        var audit = JSON.parse(localStorage.getItem('juice_lifeguide_audit_v1') || '[]');
+        return !!(audit && audit.length);
+      } catch (e) { return false; }
+    }
+    return !!(s[id] && s[id].length);
+  }
+
   function pushHistory(testId, res) {
     var s = store();
     s[testId] = s[testId] || [];
@@ -19068,19 +19091,22 @@ if ('serviceWorker' in navigator) {
     var DATA = window.SM_DATA || {};
     var ORDER = window.SM_ORDER || ['social-battery', 'procrastination', 'slacking', 'night-owl', 'reaction', 'color'];
     var s = store();
-    var done = ORDER.filter(function (id) { return s[id] && s[id].length; }).length;
-    var total = ORDER.reduce(function (n, id) { return n + (s[id] ? s[id].length : 0); }, 0);
+    var done = ORDER.filter(function (id) { return chapterDone(id, s); }).length;
+    // 存档份数只统计答题/游戏章：第 08 章没有分数报告，计入会虚高
+    var total = ORDER.reduce(function (n, id) {
+      return n + (DATA[id] && DATA[id].mode === 'external' ? 0 : (s[id] ? s[id].length : 0));
+    }, 0);
 
     var html = '';
     html += '<div class="home-head"><div class="brandmark">我</div><div>'
-      + '<div class="home-title">自我说明书</div><div class="home-sub">SELF MANUAL · 七份关于你的出厂说明书</div></div></div>';
-    html += '<div class="home-desc">你是哪种拖延病患者？社交电量还剩多少？反应能力几岁？2048能合出多大？挑一章，把自己拆开看看。</div>';
+      + '<div class="home-title">自我说明书</div><div class="home-sub">SELF MANUAL · 八份关于你的出厂说明书</div></div></div>';
+    html += '<div class="home-desc">你是哪种拖延病患者？社交电量还剩多少？反应能力几岁？2048能合出多大？还有一份人间清醒防坑指南。挑一章，把自己拆开看看。</div>';
 
     html += '<div class="stat-strip"><div style="display:flex;gap:5px">'
       + ORDER.map(function (id) {
         var t = DATA[id];
         var c = t ? t.color : '#38BDF8';
-        var on = s[id] && s[id].length;
+        var on = chapterDone(id, s);
         return '<span class="dot' + (on ? ' done' : '') + '" style="' + (on ? 'background:' + c : '') + '"></span>';
       }).join('')
       + '</div><div style="flex:1"></div><div>已测 <b>' + done + '</b>/' + ORDER.length + ' 章 · 存档 <b>' + total + '</b> 份</div></div>';
@@ -19127,6 +19153,13 @@ if ('serviceWorker' in navigator) {
     state.test = t;
     if (t.mode === 'interactive') {
       openGame(t);
+      return;
+    }
+    // 外部章节：正文由自己的模块渲染（目前只有 08 人间清醒）
+    if (t.mode === 'external') {
+      if (window.AppLifeguide && typeof window.AppLifeguide.open === 'function') {
+        window.AppLifeguide.open();
+      }
       return;
     }
     openCover(t);
@@ -19414,13 +19447,15 @@ if ('serviceWorker' in navigator) {
       var id = c.getAttribute('data-test');
       c.classList.toggle('active', !!cur && id === cur);
       var dot = c.querySelector('.sm-rail-dot');
-      if (dot) dot.classList.toggle('done', !!(s[id] && s[id].length));
+      if (dot) dot.classList.toggle('done', chapterDone(id, s));
     });
 
     var sum = document.getElementById('sm-rail-sum');
     if (sum) {
-      var done = ORDER.filter(function (id) { return s[id] && s[id].length; }).length;
-      var total = ORDER.reduce(function (n, id) { return n + (s[id] ? s[id].length : 0); }, 0);
+      var done = ORDER.filter(function (id) { return chapterDone(id, s); }).length;
+      var total = ORDER.reduce(function (n, id) {
+        return n + (DATA[id] && DATA[id].mode === 'external' ? 0 : (s[id] ? s[id].length : 0));
+      }, 0);
       sum.innerHTML = '已测 <b>' + done + '</b>/' + ORDER.length + ' 章 · 存档 <b>' + total + '</b> 份';
     }
   }
@@ -23428,12 +23463,16 @@ if ('serviceWorker' in navigator) {
 ;
 /* === js/modules/lifeguide.js === */
 /* =========================================================
-   模块 10：人间清醒指南 (Evidence-Based Life Handbook)
+   自我说明书 · 第 08 章：人间清醒指南 (Evidence-Based Life Handbook)
    灵感与循证数据源：eternity4719/HowToLiveBetter (CC BY 4.0)
    功能：
    1. 🩺 高性价比漏项自查（4大维度16项核心防线 + 优先补漏处方单）
    2. 📚 循证避坑智库（36条顶刊RCT/Cochrane/现行法条硬核生存指南）
    3. 💊 每日清醒锦囊（随机抽取救命/防坑/反智商税卡片）
+
+   本模块原先是一个独立顶层模块（#mod-lifeguide），现并入说明书，
+   作为 sm-screen#scr-sm-lifeguide 存在；模块根节点改由 #mod-manual 承担，
+   所以下面所有 DOM 查询都限定在 #mod-manual 里，避免与说明书其他章撞车。
    ========================================================= */
 
 (function () {
@@ -24952,16 +24991,17 @@ if ('serviceWorker' in navigator) {
      ========================================================= */
   function switchSubMod(subKey) {
     curSubMod = subKey;
-    document.querySelectorAll('#mod-lifeguide .lg-tab').forEach(btn => {
+    document.querySelectorAll('#scr-sm-lifeguide .lg-tab').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.lgsub === subKey);
     });
-    document.querySelectorAll('#mod-lifeguide .lg-substage').forEach(stage => {
+    document.querySelectorAll('#scr-sm-lifeguide .lg-substage').forEach(stage => {
       stage.classList.toggle('active', stage.id === `lg-sub-${subKey}`);
     });
   }
 
   function restore(data) {
     if (!data) return;
+    open();
     if (data.mode === 'audit' && Array.isArray(data.checkedIds)) {
       checkedAuditIds = new Set(data.checkedIds);
       saveAuditStorage();
@@ -24979,11 +25019,45 @@ if ('serviceWorker' in navigator) {
     }
   }
 
+  /* 作为说明书的第 08 章打开：顶栏由说明书统一渲染，返回按钮回到目录。
+     懒初始化，避免说明书一进来就把 36 条智库和体检网格全渲染一遍。 */
+  let inited = false;
+
+  function renderTopbar() {
+    const top = document.getElementById('sm-lifeguide-top');
+    if (!top) return;
+    top.innerHTML = '<button class="mt-iconbtn" id="sm-lifeguide-back">←</button>'
+      + '<div class="mt-pick-head" style="flex:1;margin-bottom:0">'
+      + '<b>第 08 章 · 人间清醒指南</b><p>EVIDENCE-BASED LIFE HANDBOOK</p></div>';
+    const back = top.querySelector('#sm-lifeguide-back');
+    if (back) {
+      back.onclick = () => {
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        if (window.AppManual) {
+          window.AppManual.renderHome();
+          window.AppManual.showScreen('scr-sm-home');
+        }
+      };
+    }
+  }
+
+  function open() {
+    if (!inited) {
+      inited = true;
+      init();
+    }
+    renderTopbar();
+    if (window.AppManual && typeof window.AppManual.showScreen === 'function') {
+      window.AppManual.showScreen('scr-sm-lifeguide');
+    }
+  }
+
   function init() {
+    inited = true;
     loadStorage();
 
     // 子模式 Tab 切换
-    document.querySelectorAll('#mod-lifeguide .lg-tab').forEach(btn => {
+    document.querySelectorAll('#scr-sm-lifeguide .lg-tab').forEach(btn => {
       btn.addEventListener('click', () => {
         if (window.SFX && window.SFX.tap) window.SFX.tap();
         switchSubMod(btn.dataset.lgsub);
@@ -25116,6 +25190,7 @@ if ('serviceWorker' in navigator) {
 
   window.AppLifeguide = {
     init,
+    open,
     restore,
     switchSubMod
   };
@@ -30295,7 +30370,12 @@ if ('serviceWorker' in navigator) {
           window.AppTarot.restore(item.data);
         }
       } else if (mod === 'manual') {
-        if (window.AppManual && typeof window.AppManual.restore === 'function' && item.data) {
+        // 说明书存档有两种：答题/游戏报告（test+res），和并入第 08 章的人间清醒（mode）
+        const d = item.data || {};
+        if (d.mode && !d.test && window.AppLifeguide) {
+          window.AppManual.openTest('lifeguide');
+          window.AppLifeguide.restore(d);
+        } else if (window.AppManual && typeof window.AppManual.restore === 'function' && item.data) {
           window.AppManual.restore(item.data);
         }
       } else if (mod === 'decision') {
@@ -30315,6 +30395,10 @@ if ('serviceWorker' in navigator) {
           window.AppMerit.restore(item.data);
         }
       } else if (mod === 'lifeguide') {
+        // 人间清醒已并入说明书：先切到说明书，再由它翻开第 08 章并恢复现场
+        if (window.AppManual) {
+          window.AppManual.openTest('lifeguide');
+        }
         if (window.AppLifeguide && typeof window.AppLifeguide.restore === 'function' && item.data) {
           window.AppLifeguide.restore(item.data);
         }
@@ -30335,20 +30419,25 @@ if ('serviceWorker' in navigator) {
   function renderDrawer(filterMod = 'all') {
     curFilter = filterMod;
     const list = getRecords();
-    const filtered = filterMod === 'all' ? list : list.filter(r => r.module === filterMod);
+    // 「说明书」这一档同时收编旧的人间清醒记录（见下方 counts.manual）
+    const matchMod = (r) => filterMod === 'manual'
+      ? (r.module === 'manual' || r.module === 'lifeguide')
+      : r.module === filterMod;
+    const filtered = filterMod === 'all' ? list : list.filter(matchMod);
 
     const counts = {
       all: list.length,
       drinks: list.filter(r => r.module === 'drinks').length,
       milktea: list.filter(r => r.module === 'milktea').length,
-      manual: list.filter(r => r.module === 'manual').length,
       fengshui: list.filter(r => r.module === 'fengshui').length,
       tarot: list.filter(r => r.module === 'tarot').length,
       lingqian: list.filter(r => r.module === 'lingqian').length,
       decision: list.filter(r => r.module === 'decision').length,
       clock: list.filter(r => r.module === 'clock').length,
       merit: list.filter(r => r.module === 'merit').length,
-      lifeguide: list.filter(r => r.module === 'lifeguide').length,
+      // 人间清醒并入说明书后，新记录归到 manual；旧记录仍是 lifeguide，
+      // 所以「说明书」筛选要把两者都算进去，不然老存档会凭空消失
+      manual: list.filter(r => r.module === 'manual' || r.module === 'lifeguide').length,
       bazi: list.filter(r => r.module === 'bazi').length,
       scratch: list.filter(r => r.module === 'scratch').length
     };
@@ -30367,7 +30456,6 @@ if ('serviceWorker' in navigator) {
         <button class="uni-filter-chip ${filterMod === 'decision' ? 'active' : ''}" data-mod="decision">🪙 决策 <span class="chip-count">${counts.decision}</span></button>
         <button class="uni-filter-chip ${filterMod === 'clock' ? 'active' : ''}" data-mod="clock">⏰ 摸鱼 <span class="chip-count">${counts.clock}</span></button>
         <button class="uni-filter-chip ${filterMod === 'merit' ? 'active' : ''}" data-mod="merit">📿 功德 <span class="chip-count">${counts.merit}</span></button>
-        <button class="uni-filter-chip ${filterMod === 'lifeguide' ? 'active' : ''}" data-mod="lifeguide">🛡️ 清醒 <span class="chip-count">${counts.lifeguide}</span></button>
         <button class="uni-filter-chip ${filterMod === 'bazi' ? 'active' : ''}" data-mod="bazi">📜 八字 <span class="chip-count">${counts.bazi}</span></button>
         <button class="uni-filter-chip ${filterMod === 'scratch' ? 'active' : ''}" data-mod="scratch">🎟️ 刮刮乐 <span class="chip-count">${counts.scratch}</span></button>
       `;
@@ -30606,6 +30694,8 @@ if ('serviceWorker' in navigator) {
   let lastDrinkMod = 'drinks';
   let lastMysticMod = 'tarot';
   let lastRelaxMod = 'clock';
+  // lifeguide 已并入说明书成为第 08 章，不再是独立顶层模块；
+  // 保留在 ALLOWED_MODS 里只为兼容老链接，进入后立刻转成说明书 + 该章。
   const ALLOWED_MODS = ['drinks', 'milktea', 'manual', 'fengshui', 'tarot', 'lingqian', 'decision', 'clock', 'merit', 'lifeguide', 'bazi', 'daily', 'scratch'];
   const initializedModules = new Set(['drinks']);
 
@@ -30617,7 +30707,8 @@ if ('serviceWorker' in navigator) {
     bazi: 'tarot',
     fengshui: 'tarot',
     clock: 'clock',
-    merit: 'clock'
+    merit: 'clock',
+    lifeguide: 'manual'
   };
 
   function updateGlider(activeTab) {
@@ -30706,11 +30797,15 @@ if ('serviceWorker' in navigator) {
       btn.classList.toggle('active', btn.dataset.ewJump === modKey);
     });
 
-    // 切换模块视图
+    // 切换模块视图。
+    // 注意：MOD_PARENT_MAP 只用于顶栏 Tab 高亮，不能拿来定位模块——
+    // milktea/fengshui/lingqian/merit/bazi 都有自己的 section，必须直接激活自己。
+    // 唯一的例外是 lifeguide：它已经并进说明书，没有独立 section 了。
     document.querySelectorAll('.app-module').forEach(mod => {
       mod.classList.remove('active');
     });
-    const targetModuleEl = document.getElementById('mod-' + modKey);
+    const ownEl = document.getElementById('mod-' + modKey);
+    const targetModuleEl = ownEl || document.getElementById('mod-' + parentModKey);
     if (targetModuleEl) {
       targetModuleEl.classList.add('active');
     }
@@ -30726,15 +30821,19 @@ if ('serviceWorker' in navigator) {
       if (modKey === 'lingqian' && window.AppLingqian) window.AppLingqian.init();
       if (modKey === 'clock' && window.AppClock) window.AppClock.init();
       if (modKey === 'merit' && window.AppMerit) window.AppMerit.init();
-      if (modKey === 'lifeguide' && window.AppLifeguide) window.AppLifeguide.init();
       if (modKey === 'bazi' && window.AppBazi) window.AppBazi.init();
       if (modKey === 'daily' && window.AppDaily) window.AppDaily.init();
       if (modKey === 'scratch' && window.AppScratch) window.AppScratch.init();
+      // 老链接 #/lifeguide：先进说明书，再直接翻开第 08 章
+      // 走 openTest 而不是 AppLifeguide.open()，这样侧栏高亮/当前章状态才对
+      if (modKey === 'lifeguide' && window.AppManual) window.AppManual.openTest('lifeguide');
     } else {
       if (modKey === 'manual' && window.AppManual) {
         const body = document.getElementById('sm-homebody');
         if (!body || !body.children.length) window.AppManual.init();
       }
+      // 已经初始化过说明书、又从老链接进来：只要把那一章重新翻开即可
+      if (modKey === 'lifeguide' && window.AppManual) window.AppManual.openTest('lifeguide');
     }
 
     if (updateHash) {

@@ -10,6 +10,8 @@
   let lastDrinkMod = 'drinks';
   let lastMysticMod = 'tarot';
   let lastRelaxMod = 'clock';
+  // lifeguide 已并入说明书成为第 08 章，不再是独立顶层模块；
+  // 保留在 ALLOWED_MODS 里只为兼容老链接，进入后立刻转成说明书 + 该章。
   const ALLOWED_MODS = ['drinks', 'milktea', 'manual', 'fengshui', 'tarot', 'lingqian', 'decision', 'clock', 'merit', 'lifeguide', 'bazi', 'daily', 'scratch'];
   const initializedModules = new Set(['drinks']);
 
@@ -21,7 +23,8 @@
     bazi: 'tarot',
     fengshui: 'tarot',
     clock: 'clock',
-    merit: 'clock'
+    merit: 'clock',
+    lifeguide: 'manual'
   };
 
   function updateGlider(activeTab) {
@@ -110,11 +113,15 @@
       btn.classList.toggle('active', btn.dataset.ewJump === modKey);
     });
 
-    // 切换模块视图
+    // 切换模块视图。
+    // 注意：MOD_PARENT_MAP 只用于顶栏 Tab 高亮，不能拿来定位模块——
+    // milktea/fengshui/lingqian/merit/bazi 都有自己的 section，必须直接激活自己。
+    // 唯一的例外是 lifeguide：它已经并进说明书，没有独立 section 了。
     document.querySelectorAll('.app-module').forEach(mod => {
       mod.classList.remove('active');
     });
-    const targetModuleEl = document.getElementById('mod-' + modKey);
+    const ownEl = document.getElementById('mod-' + modKey);
+    const targetModuleEl = ownEl || document.getElementById('mod-' + parentModKey);
     if (targetModuleEl) {
       targetModuleEl.classList.add('active');
     }
@@ -130,15 +137,19 @@
       if (modKey === 'lingqian' && window.AppLingqian) window.AppLingqian.init();
       if (modKey === 'clock' && window.AppClock) window.AppClock.init();
       if (modKey === 'merit' && window.AppMerit) window.AppMerit.init();
-      if (modKey === 'lifeguide' && window.AppLifeguide) window.AppLifeguide.init();
       if (modKey === 'bazi' && window.AppBazi) window.AppBazi.init();
       if (modKey === 'daily' && window.AppDaily) window.AppDaily.init();
       if (modKey === 'scratch' && window.AppScratch) window.AppScratch.init();
+      // 老链接 #/lifeguide：先进说明书，再直接翻开第 08 章
+      // 走 openTest 而不是 AppLifeguide.open()，这样侧栏高亮/当前章状态才对
+      if (modKey === 'lifeguide' && window.AppManual) window.AppManual.openTest('lifeguide');
     } else {
       if (modKey === 'manual' && window.AppManual) {
         const body = document.getElementById('sm-homebody');
         if (!body || !body.children.length) window.AppManual.init();
       }
+      // 已经初始化过说明书、又从老链接进来：只要把那一章重新翻开即可
+      if (modKey === 'lifeguide' && window.AppManual) window.AppManual.openTest('lifeguide');
     }
 
     if (updateHash) {

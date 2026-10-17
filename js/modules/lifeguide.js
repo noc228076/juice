@@ -1,10 +1,14 @@
 /* =========================================================
-   模块 10：人间清醒指南 (Evidence-Based Life Handbook)
+   自我说明书 · 第 08 章：人间清醒指南 (Evidence-Based Life Handbook)
    灵感与循证数据源：eternity4719/HowToLiveBetter (CC BY 4.0)
    功能：
    1. 🩺 高性价比漏项自查（4大维度16项核心防线 + 优先补漏处方单）
    2. 📚 循证避坑智库（36条顶刊RCT/Cochrane/现行法条硬核生存指南）
    3. 💊 每日清醒锦囊（随机抽取救命/防坑/反智商税卡片）
+
+   本模块原先是一个独立顶层模块（#mod-lifeguide），现并入说明书，
+   作为 sm-screen#scr-sm-lifeguide 存在；模块根节点改由 #mod-manual 承担，
+   所以下面所有 DOM 查询都限定在 #mod-manual 里，避免与说明书其他章撞车。
    ========================================================= */
 
 (function () {
@@ -1523,16 +1527,17 @@
      ========================================================= */
   function switchSubMod(subKey) {
     curSubMod = subKey;
-    document.querySelectorAll('#mod-lifeguide .lg-tab').forEach(btn => {
+    document.querySelectorAll('#scr-sm-lifeguide .lg-tab').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.lgsub === subKey);
     });
-    document.querySelectorAll('#mod-lifeguide .lg-substage').forEach(stage => {
+    document.querySelectorAll('#scr-sm-lifeguide .lg-substage').forEach(stage => {
       stage.classList.toggle('active', stage.id === `lg-sub-${subKey}`);
     });
   }
 
   function restore(data) {
     if (!data) return;
+    open();
     if (data.mode === 'audit' && Array.isArray(data.checkedIds)) {
       checkedAuditIds = new Set(data.checkedIds);
       saveAuditStorage();
@@ -1550,11 +1555,45 @@
     }
   }
 
+  /* 作为说明书的第 08 章打开：顶栏由说明书统一渲染，返回按钮回到目录。
+     懒初始化，避免说明书一进来就把 36 条智库和体检网格全渲染一遍。 */
+  let inited = false;
+
+  function renderTopbar() {
+    const top = document.getElementById('sm-lifeguide-top');
+    if (!top) return;
+    top.innerHTML = '<button class="mt-iconbtn" id="sm-lifeguide-back">←</button>'
+      + '<div class="mt-pick-head" style="flex:1;margin-bottom:0">'
+      + '<b>第 08 章 · 人间清醒指南</b><p>EVIDENCE-BASED LIFE HANDBOOK</p></div>';
+    const back = top.querySelector('#sm-lifeguide-back');
+    if (back) {
+      back.onclick = () => {
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        if (window.AppManual) {
+          window.AppManual.renderHome();
+          window.AppManual.showScreen('scr-sm-home');
+        }
+      };
+    }
+  }
+
+  function open() {
+    if (!inited) {
+      inited = true;
+      init();
+    }
+    renderTopbar();
+    if (window.AppManual && typeof window.AppManual.showScreen === 'function') {
+      window.AppManual.showScreen('scr-sm-lifeguide');
+    }
+  }
+
   function init() {
+    inited = true;
     loadStorage();
 
     // 子模式 Tab 切换
-    document.querySelectorAll('#mod-lifeguide .lg-tab').forEach(btn => {
+    document.querySelectorAll('#scr-sm-lifeguide .lg-tab').forEach(btn => {
       btn.addEventListener('click', () => {
         if (window.SFX && window.SFX.tap) window.SFX.tap();
         switchSubMod(btn.dataset.lgsub);
@@ -1687,6 +1726,7 @@
 
   window.AppLifeguide = {
     init,
+    open,
     restore,
     switchSubMod
   };

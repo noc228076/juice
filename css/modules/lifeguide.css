@@ -1,20 +1,32 @@
 /* =========================================================
-   模块 10：人间清醒指南 (Evidence-Based Life Handbook)
+   自我说明书 · 第 08 章：人间清醒指南 (Evidence-Based Life Handbook)
    基于开源项目 eternity4719/HowToLiveBetter (CC BY 4.0)
    涵盖：高性价比漏项体检 / 循证避坑智库 / 每日清醒锦囊
+
+   原先它是独立模块 #mod-lifeguide，自带 overflow 与背景；
+   并入说明书后，滚动由 #mod-manual 承担（.app-module 已带 overflow-y:auto），
+   所以这里只保留章节内容本身的样式，不再声明滚动容器。
    ========================================================= */
 
-#mod-lifeguide {
-  overflow-y: auto;
-  overflow-x: hidden;
-  background: var(--bg);
+#scr-sm-lifeguide {
+  width: 100%;
+  min-height: 100%;
+  /* 说明书的 --ac 是天蓝 (#38BDF8)，但本章的通篇渐变、选中态、
+     进度条都配着 #10B981 的绿在写。不在这里改回去，
+     绿底蓝按钮会撞色，所以把强调色限定在本章内部。 */
+  --ac: #10B981;
+  --ac-ink: #022C22;
+  --ac-glow: rgba(16, 185, 129, 0.35);
+  --ac-soft: rgba(16, 185, 129, 0.12);
 }
 
 .lg-wrap {
   max-width: 1080px;
   width: 100%;
   margin: 0 auto;
-  padding: calc(var(--sat) + var(--screen-pad-block)) 20px calc(var(--sab) + var(--screen-pad-block));
+  /* 并入说明书后，顶部安全区与顶栏已由 #mod-manual 与 .mt-topbar 承担，
+     这里不再叠加 --sat，否则手机上会多出一整条空白 */
+  padding: 4px 20px calc(var(--sab) + var(--screen-pad-block));
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -97,9 +109,17 @@ html[data-theme="light"] .lg-eyebrow {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
   font-size: 12px;
   font-weight: 700;
   color: var(--tx-dim);
+  /* 并入说明书后右栏变窄，390px 下「当前人间清醒指数 / 满分100」
+     会被挤成四行。允许换行但不许逐字断，右侧那半句也不参与压缩。 */
+  flex-wrap: wrap;
+  line-height: 1.35;
+}
+.lg-stat-top > span {
+  white-space: nowrap;
 }
 
 .lg-stat-val {
@@ -1411,7 +1431,8 @@ html[data-theme="light"] .lg-credit-footer a {
 /* 响应式移动端适配 */
 @media (max-width: 768px) {
   .lg-wrap {
-    padding: calc(var(--sat) + var(--screen-pad-block)) 14px calc(var(--sab) + var(--screen-pad-block));
+    /* 与桌面同理：安全区已由 #mod-manual 承担，这里只留内容留白 */
+    padding: 2px 14px calc(var(--sab) + var(--screen-pad-block));
     gap: 14px;
   }
   .lg-stats-banner {
@@ -1430,9 +1451,20 @@ html[data-theme="light"] .lg-credit-footer a {
     /* 移动端 tab 用 9px padding 自然撑高；不解除桌面那个
        40px 固定高度，实测下边距会变成 -4px，胶囊撞上圆端。 */
     height: auto;
+    /* 三列等分在 390px 下会撑破容器：三个标签的 min-content 之和
+       超过可用宽度，grid 的 1fr 不会自动缩到内容以下。
+       移动端改成单行横滑，标签保持 nowrap 不被压成两行。 */
+    display: flex;
+    grid-template-columns: none;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .lg-subnav::-webkit-scrollbar {
+    display: none;
   }
   .lg-tab {
-    padding: 9px 8px;
+    flex: 0 0 auto;
+    padding: 9px 10px;
     font-size: 12px;
     letter-spacing: 0.2px;
   }

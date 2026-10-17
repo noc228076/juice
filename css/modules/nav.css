@@ -69,12 +69,6 @@ html[data-active-module="bazi"] {
   --mod-ac-glow: rgba(245, 158, 11, 0.35);
   --mod-ambient: rgba(245, 158, 11, 0.06);
 }
-html[data-active-module="lifeguide"] {
-  --mod-ac: #10B981;
-  --mod-ac-ink: #022C22;
-  --mod-ac-glow: rgba(16, 185, 129, 0.35);
-  --mod-ambient: rgba(16, 185, 129, 0.06);
-}
 html[data-active-module="daily"] {
   --mod-ac: #3B82F6;
   --mod-ac-ink: #041738;
@@ -354,7 +348,6 @@ html {
 #mod-lingqian,
 #mod-clock,
 #mod-merit,
-#mod-lifeguide,
 #mod-bazi,
 #mod-daily,
 #mod-scratch,
@@ -379,7 +372,6 @@ html {
 #mod-lingqian.active,
 #mod-clock.active,
 #mod-merit.active,
-#mod-lifeguide.active,
 #mod-bazi.active,
 #mod-daily.active,
 #mod-scratch.active,

@@ -38,6 +38,18 @@
   function saveStore(s) {
     try { localStorage.setItem('sm_history_v1', JSON.stringify(s)); } catch (e) {}
   }
+  // 第 08 章（人间清醒）不出分数报告，存档在它自己的 key 里，
+  // 所以「是否已测」要单独判定，否则 8 章的目录永远只能点亮 7 个点。
+  function chapterDone(id, s) {
+    if (id === 'lifeguide') {
+      try {
+        var audit = JSON.parse(localStorage.getItem('juice_lifeguide_audit_v1') || '[]');
+        return !!(audit && audit.length);
+      } catch (e) { return false; }
+    }
+    return !!(s[id] && s[id].length);
+  }
+
   function pushHistory(testId, res) {
     var s = store();
     s[testId] = s[testId] || [];
@@ -78,19 +90,22 @@
     var DATA = window.SM_DATA || {};
     var ORDER = window.SM_ORDER || ['social-battery', 'procrastination', 'slacking', 'night-owl', 'reaction', 'color'];
     var s = store();
-    var done = ORDER.filter(function (id) { return s[id] && s[id].length; }).length;
-    var total = ORDER.reduce(function (n, id) { return n + (s[id] ? s[id].length : 0); }, 0);
+    var done = ORDER.filter(function (id) { return chapterDone(id, s); }).length;
+    // 存档份数只统计答题/游戏章：第 08 章没有分数报告，计入会虚高
+    var total = ORDER.reduce(function (n, id) {
+      return n + (DATA[id] && DATA[id].mode === 'external' ? 0 : (s[id] ? s[id].length : 0));
+    }, 0);
 
     var html = '';
     html += '<div class="home-head"><div class="brandmark">我</div><div>'
-      + '<div class="home-title">自我说明书</div><div class="home-sub">SELF MANUAL · 七份关于你的出厂说明书</div></div></div>';
-    html += '<div class="home-desc">你是哪种拖延病患者？社交电量还剩多少？反应能力几岁？2048能合出多大？挑一章，把自己拆开看看。</div>';
+      + '<div class="home-title">自我说明书</div><div class="home-sub">SELF MANUAL · 八份关于你的出厂说明书</div></div></div>';
+    html += '<div class="home-desc">你是哪种拖延病患者？社交电量还剩多少？反应能力几岁？2048能合出多大？还有一份人间清醒防坑指南。挑一章，把自己拆开看看。</div>';
 
     html += '<div class="stat-strip"><div style="display:flex;gap:5px">'
       + ORDER.map(function (id) {
         var t = DATA[id];
         var c = t ? t.color : '#38BDF8';
-        var on = s[id] && s[id].length;
+        var on = chapterDone(id, s);
         return '<span class="dot' + (on ? ' done' : '') + '" style="' + (on ? 'background:' + c : '') + '"></span>';
       }).join('')
       + '</div><div style="flex:1"></div><div>已测 <b>' + done + '</b>/' + ORDER.length + ' 章 · 存档 <b>' + total + '</b> 份</div></div>';
@@ -137,6 +152,13 @@
     state.test = t;
     if (t.mode === 'interactive') {
       openGame(t);
+      return;
+    }
+    // 外部章节：正文由自己的模块渲染（目前只有 08 人间清醒）
+    if (t.mode === 'external') {
+      if (window.AppLifeguide && typeof window.AppLifeguide.open === 'function') {
+        window.AppLifeguide.open();
+      }
       return;
     }
     openCover(t);
@@ -424,13 +446,15 @@
       var id = c.getAttribute('data-test');
       c.classList.toggle('active', !!cur && id === cur);
       var dot = c.querySelector('.sm-rail-dot');
-      if (dot) dot.classList.toggle('done', !!(s[id] && s[id].length));
+      if (dot) dot.classList.toggle('done', chapterDone(id, s));
     });
 
     var sum = document.getElementById('sm-rail-sum');
     if (sum) {
-      var done = ORDER.filter(function (id) { return s[id] && s[id].length; }).length;
-      var total = ORDER.reduce(function (n, id) { return n + (s[id] ? s[id].length : 0); }, 0);
+      var done = ORDER.filter(function (id) { return chapterDone(id, s); }).length;
+      var total = ORDER.reduce(function (n, id) {
+        return n + (DATA[id] && DATA[id].mode === 'external' ? 0 : (s[id] ? s[id].length : 0));
+      }, 0);
       sum.innerHTML = '已测 <b>' + done + '</b>/' + ORDER.length + ' 章 · 存档 <b>' + total + '</b> 份';
     }
   }

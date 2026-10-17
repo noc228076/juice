@@ -599,9 +599,20 @@
         { min: 128, icon: 'medal', name: '潜能进阶者', text: '打出 128！手感在线，节奏良好，再多推演几步，更大的格局就在眼前。' },
         { min: 0, icon: 'smile', name: '随性合体家', text: '佛系滑动，重在重温经典纯粹的合成乐趣。快乐摸鱼，拒绝焦虑，适度用脑就是最好状态。' }
       ]
+    },
+
+    /* ============ 08 人间清醒指南 ============
+       这一章不是答题引擎产物：正文由 lifeguide.js 自己渲染（体检 / 智库 / 抽卡），
+       所以 mode 为 'external'，由 manual.js 转交 AppLifeguide.open()。 */
+    lifeguide: {
+      id: 'lifeguide', num: '08', mode: 'external',
+      title: '人间清醒指南', en: 'EVIDENCE-BASED LIFE HANDBOOK',
+      tagline: '低投入高回报的 16 项防线、36 条循证避坑与每日锦囊',
+      icon: 'book', color: '#10B981',
+      meta: '3 个子模块 · 随时可查'
     }
   };
 
   /* 首页章节顺序 */
-  window.SM_ORDER = ['social-battery', 'procrastination', 'slacking', 'night-owl', 'reaction', 'color', 'game-2048'];
+  window.SM_ORDER = ['social-battery', 'procrastination', 'slacking', 'night-owl', 'reaction', 'color', 'game-2048', 'lifeguide'];
 })();

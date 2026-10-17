@@ -116,7 +116,12 @@
           window.AppTarot.restore(item.data);
         }
       } else if (mod === 'manual') {
-        if (window.AppManual && typeof window.AppManual.restore === 'function' && item.data) {
+        // 说明书存档有两种：答题/游戏报告（test+res），和并入第 08 章的人间清醒（mode）
+        const d = item.data || {};
+        if (d.mode && !d.test && window.AppLifeguide) {
+          window.AppManual.openTest('lifeguide');
+          window.AppLifeguide.restore(d);
+        } else if (window.AppManual && typeof window.AppManual.restore === 'function' && item.data) {
           window.AppManual.restore(item.data);
         }
       } else if (mod === 'decision') {
@@ -136,6 +141,10 @@
           window.AppMerit.restore(item.data);
         }
       } else if (mod === 'lifeguide') {
+        // 人间清醒已并入说明书：先切到说明书，再由它翻开第 08 章并恢复现场
+        if (window.AppManual) {
+          window.AppManual.openTest('lifeguide');
+        }
         if (window.AppLifeguide && typeof window.AppLifeguide.restore === 'function' && item.data) {
           window.AppLifeguide.restore(item.data);
         }
@@ -156,20 +165,25 @@
   function renderDrawer(filterMod = 'all') {
     curFilter = filterMod;
     const list = getRecords();
-    const filtered = filterMod === 'all' ? list : list.filter(r => r.module === filterMod);
+    // 「说明书」这一档同时收编旧的人间清醒记录（见下方 counts.manual）
+    const matchMod = (r) => filterMod === 'manual'
+      ? (r.module === 'manual' || r.module === 'lifeguide')
+      : r.module === filterMod;
+    const filtered = filterMod === 'all' ? list : list.filter(matchMod);
 
     const counts = {
       all: list.length,
       drinks: list.filter(r => r.module === 'drinks').length,
       milktea: list.filter(r => r.module === 'milktea').length,
-      manual: list.filter(r => r.module === 'manual').length,
       fengshui: list.filter(r => r.module === 'fengshui').length,
       tarot: list.filter(r => r.module === 'tarot').length,
       lingqian: list.filter(r => r.module === 'lingqian').length,
       decision: list.filter(r => r.module === 'decision').length,
       clock: list.filter(r => r.module === 'clock').length,
       merit: list.filter(r => r.module === 'merit').length,
-      lifeguide: list.filter(r => r.module === 'lifeguide').length,
+      // 人间清醒并入说明书后，新记录归到 manual；旧记录仍是 lifeguide，
+      // 所以「说明书」筛选要把两者都算进去，不然老存档会凭空消失
+      manual: list.filter(r => r.module === 'manual' || r.module === 'lifeguide').length,
       bazi: list.filter(r => r.module === 'bazi').length,
       scratch: list.filter(r => r.module === 'scratch').length
     };
@@ -188,7 +202,6 @@
         <button class="uni-filter-chip ${filterMod === 'decision' ? 'active' : ''}" data-mod="decision">🪙 决策 <span class="chip-count">${counts.decision}</span></button>
         <button class="uni-filter-chip ${filterMod === 'clock' ? 'active' : ''}" data-mod="clock">⏰ 摸鱼 <span class="chip-count">${counts.clock}</span></button>
         <button class="uni-filter-chip ${filterMod === 'merit' ? 'active' : ''}" data-mod="merit">📿 功德 <span class="chip-count">${counts.merit}</span></button>
-        <button class="uni-filter-chip ${filterMod === 'lifeguide' ? 'active' : ''}" data-mod="lifeguide">🛡️ 清醒 <span class="chip-count">${counts.lifeguide}</span></button>
         <button class="uni-filter-chip ${filterMod === 'bazi' ? 'active' : ''}" data-mod="bazi">📜 八字 <span class="chip-count">${counts.bazi}</span></button>
         <button class="uni-filter-chip ${filterMod === 'scratch' ? 'active' : ''}" data-mod="scratch">🎟️ 刮刮乐 <span class="chip-count">${counts.scratch}</span></button>
       `;

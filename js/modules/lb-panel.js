@@ -274,7 +274,16 @@
       render();
       if (first && open && tab === 'global') loadGlobal(false);
       if (window.AppProfile && !onProfileChange) {
-        onProfileChange = function () { if (!destroyed) render(); };
+        // 改完资料要重新拉一次：缓存里还是旧昵称，光重绘换不掉。
+        // 服务端同步由 profile.js 的 save() 负责（它先发 PATCH），
+        // 这里只等一拍再强制刷新，避免和 PATCH 抢跑导致拉回旧名字。
+        onProfileChange = function () {
+          if (destroyed) return;
+          render();
+          setTimeout(function () {
+            if (!destroyed) loadGlobal(true);
+          }, 300);
+        };
         window.AppProfile.onChange(onProfileChange);
       }
     }

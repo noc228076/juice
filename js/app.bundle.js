@@ -30501,6 +30501,12 @@ if ('serviceWorker' in navigator) {
     write(p);
     close();
     if (window.SFX && window.SFX.ok) window.SFX.ok();
+
+    // 服务端榜单里已经存着旧昵称，改完要立刻推上去，
+    // 否则玩家改完头像回来一看，榜上还是旧名字。
+    if (window.AppLeaderboard && window.AppLeaderboard.syncProfile) {
+      window.AppLeaderboard.syncProfile();
+    }
   }
 
   function onChange(fn) {
@@ -30637,9 +30643,48 @@ if ('serviceWorker' in navigator) {
     }
   }
 
+  /* 改完昵称/头像后，把新资料同步到服务端已有的记录上。
+     不传 game，服务端会把三个榜里属于这个 ID 的记录一起改名。 */
+  async function syncProfile() {
+    if (!available()) return { ok: false, offline: true };
+    const profile = window.AppProfile ? window.AppProfile.get() : null;
+    if (!profile) return { ok: false, error: '玩家身份未初始化' };
+
+    try {
+      const res = await withTimeout(fetch(ENDPOINT, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify({
+          id: profile.id,
+          name: profile.name || '匿名玩家',
+          avatar: profile.avatar || '🙂'
+        })
+      }), TIMEOUT);
+      const data = await res.json();
+      if (!res.ok || !data || !data.ok) {
+        return { ok: false, error: (data && data.error) || ('HTTP ' + res.status) };
+      }
+      // 本地缓存里的旧昵称也一并换掉，否则下次读榜会先闪一下旧名字
+      Object.keys(cache).forEach(function (g) {
+        const c = cache[g];
+        if (!c || !Array.isArray(c.board)) return;
+        c.board.forEach(function (row) {
+          if (row.id === profile.id) {
+            row.name = profile.name || '匿名玩家';
+            row.avatar = profile.avatar || '🙂';
+          }
+        });
+      });
+      return data;
+    } catch (err) {
+      return { ok: false, offline: true, error: err && err.message };
+    }
+  }
+
   window.AppLeaderboard = {
     getBoard: getBoard,
     submit: submit,
+    syncProfile: syncProfile,
     peek: function (game) { return cache[game || '2048'] || emptyCache(); }
   };
 })();
@@ -30922,7 +30967,16 @@ if ('serviceWorker' in navigator) {
       render();
       if (first && open && tab === 'global') loadGlobal(false);
       if (window.AppProfile && !onProfileChange) {
-        onProfileChange = function () { if (!destroyed) render(); };
+        // 改完资料要重新拉一次：缓存里还是旧昵称，光重绘换不掉。
+        // 服务端同步由 profile.js 的 save() 负责（它先发 PATCH），
+        // 这里只等一拍再强制刷新，避免和 PATCH 抢跑导致拉回旧名字。
+        onProfileChange = function () {
+          if (destroyed) return;
+          render();
+          setTimeout(function () {
+            if (!destroyed) loadGlobal(true);
+          }, 300);
+        };
         window.AppProfile.onChange(onProfileChange);
       }
     }

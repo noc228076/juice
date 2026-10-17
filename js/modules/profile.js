@@ -181,6 +181,12 @@
     write(p);
     close();
     if (window.SFX && window.SFX.ok) window.SFX.ok();
+
+    // 服务端榜单里已经存着旧昵称，改完要立刻推上去，
+    // 否则玩家改完头像回来一看，榜上还是旧名字。
+    if (window.AppLeaderboard && window.AppLeaderboard.syncProfile) {
+      window.AppLeaderboard.syncProfile();
+    }
   }
 
   function onChange(fn) {

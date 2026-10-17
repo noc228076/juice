@@ -405,6 +405,64 @@ module.exports = async function handler(req, res) {
       return;
     }
 
+    /* 只改昵称/头像，不动成绩。
+       玩家在右上角改完资料后，三个榜都要立刻换名字——以前只有下次
+       提交战绩才会同步，于是改完看榜还是旧名字。 */
+    if (req.method === 'PATCH') {
+      let body = req.body;
+      if (typeof body === 'string') {
+        try { body = JSON.parse(body); } catch (e) { body = null; }
+      }
+      if (!body || typeof body !== 'object') {
+        res.status(400).json({ ok: false, error: '请求体不是合法 JSON' });
+        return;
+      }
+
+      const id = clampText(body.id, 64);
+      if (!/^[A-Za-z0-9_-]{8,64}$/.test(id)) {
+        res.status(400).json({ ok: false, error: '玩家标识不合法' });
+        return;
+      }
+
+      const name = clampText(body.name, 16) || '匿名玩家';
+      const avatar = clampText(body.avatar, 8) || '🙂';
+
+      // 不传 game 就更新全部榜单：玩家只有一份身份，三个榜理应一致
+      const games = body.game ? [resolveGame(body.game)] : Object.keys(GAMES);
+      if (games.some((g) => !g)) {
+        res.status(400).json({ ok: false, error: '未知游戏' });
+        return;
+      }
+
+      const updated = [];
+      for (const g of games) {
+        const cfgGame = GAMES[g];
+        let raw;
+        if (useMemory) {
+          raw = memStore.hget(g, id);
+        } else {
+          raw = await call(['HGET', cfgGame.p, id]);
+        }
+        if (!raw) continue;   // 该榜还没有这个人的记录，跳过
+
+        let d = null;
+        try { d = JSON.parse(raw); } catch (e) { d = null; }
+        if (!d || typeof d !== 'object') d = {};
+        d.n = name;
+        d.a = avatar;
+
+        if (useMemory) {
+          memStore.hset(g, id, JSON.stringify(d));
+        } else {
+          await call(['HSET', cfgGame.p, id, JSON.stringify(d)]);
+        }
+        updated.push(g);
+      }
+
+      res.status(200).json({ ok: true, updated });
+      return;
+    }
+
     if (req.method === 'DELETE') {
       const expected = process.env.ADMIN_TOKEN || '';
       // 未配置密钥时一律拒绝：宁可删不掉，也不能留一个谁都能调用的删除接口

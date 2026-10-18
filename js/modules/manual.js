@@ -38,7 +38,7 @@
   function saveStore(s) {
     try { localStorage.setItem('sm_history_v1', JSON.stringify(s)); } catch (e) {}
   }
-  // 人间清醒（第 09 章）不出分数报告，存档在它自己的 key 里，
+  // 人间清醒（第 05 章）不出分数报告，存档在它自己的 key 里，
   // 所以「是否已测」要单独判定，否则目录永远少点亮一个点。
   function chapterDone(id, s) {
     if (id === 'lifeguide') {

@@ -17411,9 +17411,9 @@ if ('serviceWorker' in navigator) {
       }
     },
 
-    /* ============ 05 反应速度擂台 ============ */
+    /* ============ 06 反应速度擂台 ============ */
     'reaction': {
-      id: 'reaction', num: '05', mode: 'interactive', engine: 'reaction',
+      id: 'reaction', num: '06', mode: 'interactive', engine: 'reaction',
       title: '反应速度擂台', en: 'REACTION ARENA',
       tagline: '三关打完,宣判你的反应年龄',
       icon: 'bolt', color: '#E05B4E',
@@ -17429,9 +17429,9 @@ if ('serviceWorker' in navigator) {
       ranks: ['闪电侠', '电竞手', '正常人', '树懒本懒']
     },
 
-    /* ============ 06 色彩敏锐度挑战 ============ */
+    /* ============ 07 色彩敏锐度挑战 ============ */
     'color': {
-      id: 'color', num: '06', mode: 'interactive', engine: 'color',
+      id: 'color', num: '07', mode: 'interactive', engine: 'color',
       title: '色彩敏锐度挑战', en: 'COLOR ACUITY',
       tagline: '色块里藏着一个叛徒,色差一级级缩小',
       icon: 'eye', color: '#D6478F',
@@ -17450,9 +17450,9 @@ if ('serviceWorker' in navigator) {
       ]
     },
 
-    /* ============ 07 数字合体 2048 ============ */
+    /* ============ 08 数字合体 2048 ============ */
     'game-2048': {
-      id: 'game-2048', num: '07', mode: 'interactive', engine: 'game2048',
+      id: 'game-2048', num: '08', mode: 'interactive', engine: 'game2048',
       title: '数字合体 2048', en: '2048 PUZZLE',
       tagline: '滑动合体,测测你的逻辑规划与抗压上限',
       icon: 'crown', color: '#F59E0B',
@@ -17474,9 +17474,9 @@ if ('serviceWorker' in navigator) {
       ]
     },
 
-    /* ============ 08 雷区排险 · 扫雷 ============ */
+    /* ============ 09 雷区排险 · 扫雷 ============ */
     minesweeper: {
-      id: 'minesweeper', num: '08', mode: 'interactive', engine: 'minesweeper',
+      id: 'minesweeper', num: '09', mode: 'interactive', engine: 'minesweeper',
       title: '雷区排险', en: 'MINESWEEPER',
       tagline: '在信息不全的棋盘上,判断哪一步值得冒险',
       icon: 'target', color: '#38BDF8',
@@ -17496,11 +17496,11 @@ if ('serviceWorker' in navigator) {
       ]
     },
 
-    /* ============ 09 舒尔特方格 ============
+    /* ============ 10 舒尔特方格 ============
        注意力测试：5×5 网格里按 1–25 顺序点击，计时。
        复用扫雷的网格样式与排行榜，游戏逻辑见 manual-games.js。 */
     schulte: {
-      id: 'schulte', num: '09', mode: 'interactive', engine: 'schulte',
+      id: 'schulte', num: '10', mode: 'interactive', engine: 'schulte',
       title: '舒尔特方格', en: 'SCHULTE TABLE',
       tagline: '在乱序里按 1 到 25 依次点完，看看你的注意力有多稳',
       icon: 'grid', color: '#8B5CF6',
@@ -17520,11 +17520,11 @@ if ('serviceWorker' in navigator) {
       ]
     },
 
-    /* ============ 10 人间清醒指南 ============
+    /* ============ 05 人间清醒指南 ============
        这一章不是答题引擎产物：正文由 lifeguide.js 自己渲染（体检 / 智库 / 抽卡），
        所以 mode 为 'external'，由 manual.js 转交 AppLifeguide.open()。 */
     lifeguide: {
-      id: 'lifeguide', num: '10', mode: 'external',
+      id: 'lifeguide', num: '05', mode: 'external',
       title: '人间清醒指南', en: 'EVIDENCE-BASED LIFE HANDBOOK',
       tagline: '低投入高回报的 16 项防线、36 条循证避坑与每日锦囊',
       icon: 'book', color: '#10B981',
@@ -17533,7 +17533,7 @@ if ('serviceWorker' in navigator) {
   };
 
   /* 首页章节顺序 */
-  window.SM_ORDER = ['social-battery', 'procrastination', 'slacking', 'night-owl', 'reaction', 'color', 'game-2048', 'minesweeper', 'schulte', 'lifeguide'];
+  window.SM_ORDER = ['social-battery', 'procrastination', 'slacking', 'night-owl', 'lifeguide', 'reaction', 'color', 'game-2048', 'minesweeper', 'schulte'];
 })();
 
 ;
@@ -19958,7 +19958,7 @@ if ('serviceWorker' in navigator) {
   function saveStore(s) {
     try { localStorage.setItem('sm_history_v1', JSON.stringify(s)); } catch (e) {}
   }
-  // 人间清醒（第 09 章）不出分数报告，存档在它自己的 key 里，
+  // 人间清醒（第 05 章）不出分数报告，存档在它自己的 key 里，
   // 所以「是否已测」要单独判定，否则目录永远少点亮一个点。
   function chapterDone(id, s) {
     if (id === 'lifeguide') {
@@ -24388,7 +24388,7 @@ if ('serviceWorker' in navigator) {
 ;
 /* === js/modules/lifeguide.js === */
 /* =========================================================
-   自我说明书 · 第 09 章：人间清醒指南 (Evidence-Based Life Handbook)
+   自我说明书 · 第 05 章：人间清醒指南 (Evidence-Based Life Handbook)
    灵感与循证数据源：eternity4719/HowToLiveBetter (CC BY 4.0)
    功能：
    1. 🩺 高性价比漏项自查（4大维度16项核心防线 + 优先补漏处方单）
@@ -25944,7 +25944,7 @@ if ('serviceWorker' in navigator) {
     }
   }
 
-  /* 作为说明书的第 08 章打开：顶栏由说明书统一渲染，返回按钮回到目录。
+  /* 作为说明书的第 05 章打开：顶栏由说明书统一渲染，返回按钮回到目录。
      懒初始化，避免说明书一进来就把 36 条智库和体检网格全渲染一遍。 */
   let inited = false;
 
@@ -25953,7 +25953,7 @@ if ('serviceWorker' in navigator) {
     if (!top) return;
     top.innerHTML = '<button class="mt-iconbtn" id="sm-lifeguide-back">←</button>'
       + '<div class="mt-pick-head" style="flex:1;margin-bottom:0">'
-      + '<b>第 09 章 · 人间清醒指南</b><p>EVIDENCE-BASED LIFE HANDBOOK</p></div>';
+      + '<b>第 05 章 · 人间清醒指南</b><p>EVIDENCE-BASED LIFE HANDBOOK</p></div>';
     const back = top.querySelector('#sm-lifeguide-back');
     if (back) {
       back.onclick = () => {
@@ -32051,7 +32051,7 @@ if ('serviceWorker' in navigator) {
           window.AppTarot.restore(item.data);
         }
       } else if (mod === 'manual') {
-        // 说明书存档有两种：答题/游戏报告（test+res），和并入第 09 章的人间清醒（mode）
+        // 说明书存档有两种：答题/游戏报告（test+res），和并入第 05 章的人间清醒（mode）
         const d = item.data || {};
         if (d.mode && !d.test && window.AppLifeguide) {
           window.AppManual.openTest('lifeguide');
@@ -32076,7 +32076,7 @@ if ('serviceWorker' in navigator) {
           window.AppMerit.restore(item.data);
         }
       } else if (mod === 'lifeguide') {
-        // 人间清醒已并入说明书：先切到说明书，再由它翻开第 09 章并恢复现场
+        // 人间清醒已并入说明书：先切到说明书，再由它翻开第 05 章并恢复现场
         if (window.AppManual) {
           window.AppManual.openTest('lifeguide');
         }
@@ -32375,7 +32375,7 @@ if ('serviceWorker' in navigator) {
   let lastDrinkMod = 'drinks';
   let lastMysticMod = 'tarot';
   let lastRelaxMod = 'clock';
-  // lifeguide 已并入说明书成为第 09 章，不再是独立顶层模块；
+  // lifeguide 已并入说明书成为第 05 章，不再是独立顶层模块；
   // 保留在 ALLOWED_MODS 里只为兼容老链接，进入后立刻转成说明书 + 该章。
   const ALLOWED_MODS = ['drinks', 'milktea', 'manual', 'fengshui', 'tarot', 'lingqian', 'decision', 'clock', 'merit', 'lifeguide', 'bazi', 'daily', 'scratch'];
   const initializedModules = new Set(['drinks']);
@@ -32505,7 +32505,7 @@ if ('serviceWorker' in navigator) {
       if (modKey === 'bazi' && window.AppBazi) window.AppBazi.init();
       if (modKey === 'daily' && window.AppDaily) window.AppDaily.init();
       if (modKey === 'scratch' && window.AppScratch) window.AppScratch.init();
-      // 老链接 #/lifeguide：先进说明书，再直接翻开第 09 章
+      // 老链接 #/lifeguide：先进说明书，再直接翻开第 05 章
       // 走 openTest 而不是 AppLifeguide.open()，这样侧栏高亮/当前章状态才对
       if (modKey === 'lifeguide' && window.AppManual) window.AppManual.openTest('lifeguide');
     } else {

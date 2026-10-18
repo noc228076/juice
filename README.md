@@ -29,12 +29,12 @@
 | 02 | 拖延症类型鉴定 | PROCRASTINATION | 问答 |
 | 03 | 摸鱼段位测试 | SLACKING RANK | 问答 |
 | 04 | 熬夜类型鉴定 | NIGHT OWL | 问答 |
-| 05 | 反应速度擂台 | REACTION ARENA | 交互小游戏 |
-| 06 | 色彩敏锐度挑战 | COLOR ACUITY | 交互小游戏 |
-| 07 | 数字合体 2048 | 2048 PUZZLE | 交互小游戏 |
-| 08 | 雷区排险 | MINESWEEPER | 交互小游戏 |
-| 09 | 舒尔特方格 | SCHULTE TABLE | 交互小游戏 |
-| 10 | 人间清醒 | LIFE GUIDE | 独立章节 |
+| 05 | 人间清醒 | LIFE GUIDE | 独立章节 |
+| 06 | 反应速度擂台 | REACTION ARENA | 交互小游戏 |
+| 07 | 色彩敏锐度挑战 | COLOR ACUITY | 交互小游戏 |
+| 08 | 数字合体 2048 | 2048 PUZZLE | 交互小游戏 |
+| 09 | 雷区排险 | MINESWEEPER | 交互小游戏 |
+| 10 | 舒尔特方格 | SCHULTE TABLE | 交互小游戏 |
 
 ### 3. ☯️ 东西玄学
 四个子屏通过「西方塔罗 / 东方灵签 / 生辰八字 / 工位风水」切换条互跳：

@@ -10,7 +10,7 @@
   let lastDrinkMod = 'drinks';
   let lastMysticMod = 'tarot';
   let lastRelaxMod = 'clock';
-  // lifeguide 已并入说明书成为第 09 章，不再是独立顶层模块；
+  // lifeguide 已并入说明书成为第 05 章，不再是独立顶层模块；
   // 保留在 ALLOWED_MODS 里只为兼容老链接，进入后立刻转成说明书 + 该章。
   const ALLOWED_MODS = ['drinks', 'milktea', 'manual', 'fengshui', 'tarot', 'lingqian', 'decision', 'clock', 'merit', 'lifeguide', 'bazi', 'daily', 'scratch'];
   const initializedModules = new Set(['drinks']);
@@ -140,7 +140,7 @@
       if (modKey === 'bazi' && window.AppBazi) window.AppBazi.init();
       if (modKey === 'daily' && window.AppDaily) window.AppDaily.init();
       if (modKey === 'scratch' && window.AppScratch) window.AppScratch.init();
-      // 老链接 #/lifeguide：先进说明书，再直接翻开第 09 章
+      // 老链接 #/lifeguide：先进说明书，再直接翻开第 05 章
       // 走 openTest 而不是 AppLifeguide.open()，这样侧栏高亮/当前章状态才对
       if (modKey === 'lifeguide' && window.AppManual) window.AppManual.openTest('lifeguide');
     } else {

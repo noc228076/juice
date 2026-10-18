@@ -8128,6 +8128,7 @@ if ('serviceWorker' in navigator) {
     // its own init exactly once. Tying init to the first requester leaves the
     // next tab switching its nav highlight while the old page stays visible.
     const task = loadChunk(chunk).then(() => {
+      if (currentModule !== modKey || initializedModules.has(modKey)) return;
       const api = window[apiName];
       if (!api) {
         console.warn('[Router] module API missing after chunk load:', modKey, apiName);

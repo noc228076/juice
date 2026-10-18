@@ -6649,6 +6649,22 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .rz-half.hit.ng {
   #mod-manual .sm-screen#scr-sm-mine .stage {
     max-width: none;
   }
+  /* 游戏区（棋盘 + 榜单）整体居中，标题跟随同一边界左对齐。
+     .wrap 在扫雷页原本 max-width:none 会从最左铺到最右，
+     导致棋盘居中、标题贴左，两者错位。收窄到 1400px 并居中。 */
+  #mod-manual .sm-screen#scr-sm-mine .wrap,
+  #mod-manual .sm-screen#scr-sm-schulte .wrap {
+    max-width: 1400px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  /* 扫雷 / 舒尔特：棋盘在左列内左对齐，左缘与同宽容器内的标题一致。 */
+  #mod-manual .sm-screen#scr-sm-mine .sm-game-layout .stage,
+  #mod-manual .sm-screen#scr-sm-schulte .sm-game-layout .stage {
+    justify-self: start;
+    margin-left: 0;
+    margin-right: 0;
+  }
   /* 但宽度铺满后格子会按可用宽度算尺寸，总高度被撑起来，
      .stage 底部就出现一大片空白。改成按内容高度收，外框贴合棋盘。 */
   #mod-manual .sm-screen#scr-sm-mine .stage,
@@ -6685,9 +6701,11 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .rz-half.hit.ng {
   /* 交互游戏页：标题要和下面的游戏区左对齐。
      .wrap 在这些页面已经放宽（扫雷 max-width:none），
      标题再锁 720px 居中就会和棋盘错开半个屏。 */
+  /* 标题跟随游戏区居中，宽度与 .sm-game-layout 一致。 */
   #mod-manual .sm-screen .mt-topbar {
-    max-width: none;
-    margin: 0;
+    max-width: 1400px;
+    margin: 0 auto;
+    box-sizing: border-box;
   }
   /* 第 05 章（人间清醒）正文是 1080px 宽的，顶栏再锁 720px
      会和下方内容对不齐。这里连同左右内边距一起对齐 .lg-wrap：
@@ -7037,8 +7055,11 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .rz-half.hit.ng {
     }
     /* 扫雷页放宽后，宽屏多出来的宽度应该全给棋盘，而不是把榜单列一起拉宽。
        榜单保持 300–340px，棋盘列吃掉剩余空间。 */
+    /* 棋盘 + 榜单整体居中：左列吃剩余宽度（高级 30 列需要），
+       棋盘在列内左对齐，整组由 .wrap 居中。 */
     #mod-manual .sm-screen#scr-sm-mine .sm-game-layout {
       grid-template-columns: minmax(0, 1fr) clamp(300px, 18vw, 340px);
+      column-gap: 12px;
     }
     /* 扫雷高级 30 列，窄窗口下双栏会把棋盘压到每格 16px。
        宽度不够时改成榜单在下的单栏，把整行让给棋盘。 */
@@ -7063,6 +7084,8 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .rz-half.hit.ng {
        左对齐（而不是居中）才能和上方章节标题左边缘对齐。 */
     #mod-manual .sm-screen#scr-sm-mine .sm-game-layout .stage,
     #mod-manual .sm-screen#scr-sm-schulte .sm-game-layout .stage {
+      /* 棋盘在左列内左对齐：这样它的左缘与上方标题（同宽容器）
+         的左缘一致。列内居中会让标题和棋盘错开一截。 */
       width: max-content;
       max-width: 100%;
       justify-self: start;

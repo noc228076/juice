@@ -1449,10 +1449,10 @@
       if (twoCol) {
         // 不能用 .app-module 的 clientHeight：棋盘变高会把它撑高，
         // 高度约束永远不触发（反馈循环）。改用视口高度。
-        // 预留 250px：顶栏 + 章节标题 + HUD + 难度条 + 棋盘下提示行 + 底部留白。
-        // 之前按 190 算，中级 16 行会超出视口底部被截断。
+        // 预留 200px：顶栏 + 游戏 HUD + 难度条 + 棋盘下提示行 + 底部留白。
+        // 章节标题已挪到左上角与棋盘并排，不再占一整行，所以比原来的 250 少。
         var viewH = window.innerHeight || 900;
-        var byH = Math.floor((viewH - 250 - pad - gap * (level.rows - 1)) / level.rows);
+        var byH = Math.floor((viewH - 230 - pad - gap * (level.rows - 1)) / level.rows);
         if (byH > 0) size = Math.min(size, byH);
       }
 

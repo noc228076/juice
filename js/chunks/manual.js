@@ -2230,6 +2230,13 @@
     renderUI();
 
     return {
+      // 2048 没有计时器，切走不需要做什么；实例保留，切回来重绘即可
+      pause: function () {},
+      // 切走再回来只重绘，棋盘/得分/撤销次数全部保留
+      repaint: function () {
+        if (destroyed) return;
+        renderUI();
+      },
       destroy: function () {
         destroyed = true;
         clearTimers();
@@ -2570,6 +2577,13 @@
       }
 
       // 上限 56px：再大就像儿童玩具了。
+      // 下限不只是 16：格子太大时总高度会撑开 .stage，
+      // 外框底部留出一大片空白（用户反馈「不贴合」）。
+      // 按行数给一个目标高度上限，宽度有余量就让棋盘居中、由 .ms-board-wrap 兜住。
+      var maxBoardH = 460;                       // 棋盘目标高度上限（像素）
+      var byRows = Math.floor((maxBoardH - pad - gap * (level.rows - 1)) / level.rows);
+      if (byRows > 0) size = Math.min(size, byRows);
+
       return Math.max(16, Math.min(56, size));
     }
 
@@ -2727,6 +2741,17 @@
     window.addEventListener('resize', onResize);
 
     return {
+      // 离开模块：停表但保留棋盘与已翻开状态
+      pause: function () {
+        if (destroyed || over) return;
+        stopTimer();
+      },
+      // 回到模块：恢复计时并重绘
+      repaint: function () {
+        if (destroyed) return;
+        if (started && !over) startTimer();
+        paint();
+      },
       destroy: function () {
         destroyed = true;
         clearTimers();
@@ -3096,6 +3121,7 @@
   };
 })();
 
+
 ;
 /* === js/modules/manual.js === */
 /* =========================================================
@@ -3183,9 +3209,13 @@
   function renderHome() {
     state.mode = 'home';
     state.test = null;   // 回到目录时侧栏不该还高亮某一章
-    if (state.gameCtl && state.gameCtl.destroy) {
-      state.gameCtl.destroy();
-      state.gameCtl = null;
+    // 扫雷 / 2048 的实例是暂停态，回目录不销毁——否则切回来进度就没了。
+    // 只跳过销毁，侧栏渲染照常往下走。
+    if (!(state.gameCtl && typeof state.gameCtl.pause === 'function')) {
+      if (state.gameCtl && state.gameCtl.destroy) {
+        state.gameCtl.destroy();
+        state.gameCtl = null;
+      }
     }
     var DATA = window.SM_DATA || {};
     var ORDER = window.SM_ORDER || ['social-battery', 'procrastination', 'slacking', 'night-owl', 'lifeguide', 'reaction', 'color', 'game-2048', 'minesweeper', 'schulte'];
@@ -3445,21 +3475,35 @@
     };
   }
 
+  // 每个交互章节一个独立屏幕，按章节 id 映射过去。
+  // 提到模块作用域：openGame 的「恢复进度」分支在函数前部就要用它。
+  var GAME_SCREENS = {
+    'reaction': { scr: 'scr-sm-reaction', top: 'sm-reacttop', body: 'sm-reactbody', start: 'startReaction' },
+    'color': { scr: 'scr-sm-color', top: 'sm-colortop', body: 'sm-colorbody', start: 'startColor' },
+    'game-2048': { scr: 'scr-sm-2048', top: 'sm-2048top', body: 'sm-2048body', start: 'startGame2048' },
+    'minesweeper': { scr: 'scr-sm-mine', top: 'sm-minetop', body: 'sm-minebody', start: 'startMinesweeper' },
+    'schulte': { scr: 'scr-sm-schulte', top: 'sm-schultetop', body: 'sm-schultebody', start: 'startSchulte' }
+  };
+
   function openGame(t, options) {
     options = options || {};
+    // 扫雷 / 2048：同一章节已有被暂停的实例时，直接恢复进度而不是重开一局
+    if (!options.forceNew && state.gameCtl && state.test && state.test.id === t.id
+        && typeof state.gameCtl.repaint === 'function') {
+      state.mode = 'game';
+      state.test = t;
+      var gsSame = GAME_SCREENS[t.id] || GAME_SCREENS['game-2048'];
+      var topElSame = document.getElementById(gsSame.top);
+      if (topElSame) topElSame.innerHTML = topbarHTML(t);
+      showScreen(gsSame.scr);
+      state.gameCtl.repaint();
+      return;
+    }
     if (state.gameCtl && state.gameCtl.destroy) {
       state.gameCtl.destroy();
       state.gameCtl = null;
     }
     state.mode = 'game';
-    // 每个交互章节一个独立屏幕，按章节 id 映射过去
-    var GAME_SCREENS = {
-      'reaction': { scr: 'scr-sm-reaction', top: 'sm-reacttop', body: 'sm-reactbody', start: 'startReaction' },
-      'color': { scr: 'scr-sm-color', top: 'sm-colortop', body: 'sm-colorbody', start: 'startColor' },
-      'game-2048': { scr: 'scr-sm-2048', top: 'sm-2048top', body: 'sm-2048body', start: 'startGame2048' },
-      'minesweeper': { scr: 'scr-sm-mine', top: 'sm-minetop', body: 'sm-minebody', start: 'startMinesweeper' },
-      'schulte': { scr: 'scr-sm-schulte', top: 'sm-schultetop', body: 'sm-schultebody', start: 'startSchulte' }
-    };
     var gs = GAME_SCREENS[t.id] || GAME_SCREENS['game-2048'];
     var scrId = gs.scr;
     var topId = gs.top;
@@ -3616,6 +3660,12 @@
     document.querySelectorAll('.floatmsg').forEach(function (n) {
       if (n && n.parentNode) n.remove();
     });
+    // 扫雷 / 2048 支持保留进度：只暂停不销毁，实例留在 state.gameCtl 里，
+    // 下次进入同一章节时走 resumeGame() 重绘恢复。其余游戏仍按原逻辑销毁。
+    if (state.gameCtl && typeof state.gameCtl.pause === 'function') {
+      state.gameCtl.pause();
+      return;
+    }
     if (state.gameCtl && state.gameCtl.destroy) {
       state.gameCtl.destroy();
       state.gameCtl = null;
@@ -3624,6 +3674,15 @@
         showScreen('scr-sm-home');
       }
     }
+  }
+
+  // 切回说明书时，如果有一个被暂停的游戏实例，重绘恢复它
+  function resumeGame() {
+    if (state.gameCtl && typeof state.gameCtl.repaint === 'function') {
+      state.gameCtl.repaint();
+      return true;
+    }
+    return false;
   }
 
   window.AppManual = {
@@ -3640,6 +3699,10 @@
       }
       if (view === 'chapter' || view === 'game') {
         var id = payload.testId || (payload.test && payload.test.id);
+        // 有被暂停的实例（扫雷 / 2048）且正是同一章节时，直接恢复进度
+        if (id && state.gameCtl && state.test && state.test.id === id && resumeGame()) {
+          return;
+        }
         if (id) openTest(id, { silent: true });
         else { renderHome(); showScreen('scr-sm-home'); }
         return;
@@ -3651,7 +3714,8 @@
       renderHome();
       showScreen('scr-sm-home');
     },
-    stopActiveGame
+    stopActiveGame,
+    resumeGame
   };
 })();
 

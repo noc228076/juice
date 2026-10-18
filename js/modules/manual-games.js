@@ -1099,6 +1099,13 @@
     renderUI();
 
     return {
+      // 2048 没有计时器，切走不需要做什么；实例保留，切回来重绘即可
+      pause: function () {},
+      // 切走再回来只重绘，棋盘/得分/撤销次数全部保留
+      repaint: function () {
+        if (destroyed) return;
+        renderUI();
+      },
       destroy: function () {
         destroyed = true;
         clearTimers();
@@ -1439,6 +1446,13 @@
       }
 
       // 上限 56px：再大就像儿童玩具了。
+      // 下限不只是 16：格子太大时总高度会撑开 .stage，
+      // 外框底部留出一大片空白（用户反馈「不贴合」）。
+      // 按行数给一个目标高度上限，宽度有余量就让棋盘居中、由 .ms-board-wrap 兜住。
+      var maxBoardH = 460;                       // 棋盘目标高度上限（像素）
+      var byRows = Math.floor((maxBoardH - pad - gap * (level.rows - 1)) / level.rows);
+      if (byRows > 0) size = Math.min(size, byRows);
+
       return Math.max(16, Math.min(56, size));
     }
 
@@ -1596,6 +1610,17 @@
     window.addEventListener('resize', onResize);
 
     return {
+      // 离开模块：停表但保留棋盘与已翻开状态
+      pause: function () {
+        if (destroyed || over) return;
+        stopTimer();
+      },
+      // 回到模块：恢复计时并重绘
+      repaint: function () {
+        if (destroyed) return;
+        if (started && !over) startTimer();
+        paint();
+      },
       destroy: function () {
         destroyed = true;
         clearTimers();
@@ -1964,3 +1989,4 @@
     };
   };
 })();
+

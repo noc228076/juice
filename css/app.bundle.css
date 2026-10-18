@@ -6649,6 +6649,12 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .rz-half.hit.ng {
   #mod-manual .sm-screen#scr-sm-mine .stage {
     max-width: none;
   }
+  /* 但宽度铺满后格子会按可用宽度算尺寸，总高度被撑起来，
+     .stage 底部就出现一大片空白。改成按内容高度收，外框贴合棋盘。 */
+  #mod-manual .sm-screen#scr-sm-mine .stage,
+  #mod-manual .sm-screen#scr-sm-schulte .stage {
+    align-self: start;
+  }
   #mod-manual .racts {
     margin-top: 20px;
     display: flex;
@@ -7504,129 +7510,6 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .stage .ms-reset 
   background: rgba(255, 255, 255, 0.55);
 }
 
-/* =========================================================
-   浅色主题 · 常规背景下的游戏区（不依赖壁纸开关）
-   ---------------------------------------------------------
-   此前 .stage / .rz-stage / 扫雷棋盘只有深色定义，浅色主题下
-   它们仍是一整块深色，和米白页面撞在一起就是用户说的「大黑块」。
-   壁纸模式那套规则又都挂在 body.has-daily-ambient-bg 下，
-   不开壁纸时完全不生效。
-   这里补一套独立的浅色皮肤：纸感底 + 细线 + 深色文字，
-   与说明书其余章节的米白纸张保持一致。
-   ========================================================= */
-html[data-theme="light"] #mod-manual .stage {
-  background: linear-gradient(160deg, #FFFDF7 0%, #F7F2E7 100%);
-  border: 1px solid #E4DCC9;
-  box-shadow: inset 0 1px 0 #FFFFFF, 0 10px 28px rgba(90, 72, 42, 0.10);
-  color: #2D2721;
-}
-html[data-theme="light"] #mod-manual .rz-stage {
-  background: linear-gradient(165deg, #FBF7EE 0%, #F1EADD 100%);
-  border: 1px solid #E4DCC9;
-}
-/* 功能色优先：等待态仍要能一眼看出「还没开始」，
-   红/绿必须保持实色高对比，不跟随浅色皮肤。 */
-html[data-theme="light"] #mod-manual .rz-stage.rz-pure-wait {
-  background: #EDE7F5;
-}
-html[data-theme="light"] #mod-manual .rz-stage.gorun {
-  background: #E23B2E;
-}
-html[data-theme="light"] #mod-manual .rz-stage.gozone {
-  background: #1FA05C;
-}
-html[data-theme="light"] #mod-manual .rz-stage.gorun .rz-big,
-html[data-theme="light"] #mod-manual .rz-stage.gorun .rz-sub,
-html[data-theme="light"] #mod-manual .rz-stage.gorun .rz-count,
-html[data-theme="light"] #mod-manual .rz-stage.gozone .rz-big,
-html[data-theme="light"] #mod-manual .rz-stage.gozone .rz-sub,
-html[data-theme="light"] #mod-manual .rz-stage.gozone .rz-count {
-  color: #FFF6E8;
-}
-/* 文字：浅色纸上全部翻成深色 */
-html[data-theme="light"] #mod-manual .stage .hud,
-html[data-theme="light"] #mod-manual .stage .hud b {
-  color: #2D2721;
-}
-html[data-theme="light"] #mod-manual .rz-big {
-  color: #2D2721;
-}
-html[data-theme="light"] #mod-manual .rz-sub {
-  color: #6B6152;
-}
-html[data-theme="light"] #mod-manual .rz-count {
-  color: #8A8172;
-}
-html[data-theme="light"] #mod-manual .timerbar {
-  background: rgba(0, 0, 0, 0.10);
-}
-/* 扫雷 / 舒尔特：棋盘与工具栏 */
-html[data-theme="light"] #mod-manual .ms-grid {
-  background: #E8DFCC;
-  border-color: #D3C7AD;
-  box-shadow: 0 6px 18px rgba(90, 72, 42, 0.12);
-}
-html[data-theme="light"] #mod-manual .ms-cell {
-  background: #D9CDB6;
-  color: #2D2721;
-}
-html[data-theme="light"] #mod-manual .ms-cell:hover:not(.open) {
-  background: #E4D9C4;
-}
-html[data-theme="light"] #mod-manual .ms-cell:active:not(.open) {
-  background: #CBBEA4;
-}
-html[data-theme="light"] #mod-manual .ms-cell.open {
-  background: #FBF7EE;
-}
-html[data-theme="light"] #mod-manual .ms-cell.flag {
-  background: #E8D3B8;
-}
-html[data-theme="light"] #mod-manual .ms-cell.boom {
-  background: #F3C6C1;
-}
-html[data-theme="light"] #mod-manual .ms-cell.mine {
-  background: #E9CFCB;
-}
-html[data-theme="light"] #mod-manual .ms-cell.n7 {
-  color: #2D2721;
-}
-html[data-theme="light"] #mod-manual .ms-cell.n8 {
-  color: #6B6152;
-}
-html[data-theme="light"] #mod-manual .ms-levels {
-  background: rgba(0, 0, 0, 0.04);
-  border-color: #E4DCC9;
-}
-html[data-theme="light"] #mod-manual .ms-lv {
-  color: #6B6152;
-}
-html[data-theme="light"] #mod-manual .ms-lv:hover {
-  color: #2D2721;
-}
-html[data-theme="light"] #mod-manual .ms-lv.active {
-  background: #0284C7;
-  color: #FFFFFF;
-}
-html[data-theme="light"] #mod-manual .ms-reset {
-  background: #FFFDF7;
-  border-color: #D8CFB9;
-  color: #3A332B;
-}
-html[data-theme="light"] #mod-manual .ms-reset:hover {
-  border-color: #0284C7;
-  color: #1F1914;
-}
-html[data-theme="light"] #mod-manual .ms-stat {
-  color: #3A332B;
-}
-/* 色彩挑战：格盘外框在浅色下不用纯白，避免和卡片同色 */
-html[data-theme="light"] #mod-manual .cl-grid {
-  background: #FFFDF7;
-  border: 1px solid #E4DCC9;
-}
-
-
 /* ============ 2048 排行榜：全服榜 / 我的战绩 ============
    两个标签页共用同一个榜单外壳，只在数据源上不同：
    全服榜来自 /api/leaderboard，我的战绩来自 localStorage。
@@ -7950,6 +7833,128 @@ html[data-theme="light"] #mod-manual .cl-grid {
 }
 @media (max-width: 640px) {
   #mod-manual .sch-grid { justify-content: center; }
+}
+
+/* =========================================================
+   浅色主题 · 常规背景下的游戏区（不依赖壁纸开关）
+   ---------------------------------------------------------
+   此前 .stage / .rz-stage / 扫雷棋盘只有深色定义，浅色主题下
+   它们仍是一整块深色，和米白页面撞在一起就是用户说的「大黑块」。
+   壁纸模式那套规则又都挂在 body.has-daily-ambient-bg 下，
+   不开壁纸时完全不生效。
+   这里补一套独立的浅色皮肤：纸感底 + 细线 + 深色文字，
+   与说明书其余章节的米白纸张保持一致。
+   ========================================================= */
+html[data-theme="light"] #mod-manual .stage {
+  background: linear-gradient(160deg, #FFFDF7 0%, #F7F2E7 100%);
+  border: 1px solid #E4DCC9;
+  box-shadow: inset 0 1px 0 #FFFFFF, 0 10px 28px rgba(90, 72, 42, 0.10);
+  color: #2D2721;
+}
+html[data-theme="light"] #mod-manual .rz-stage {
+  background: linear-gradient(165deg, #FBF7EE 0%, #F1EADD 100%);
+  border: 1px solid #E4DCC9;
+}
+/* 功能色优先：等待态仍要能一眼看出「还没开始」，
+   红/绿必须保持实色高对比，不跟随浅色皮肤。 */
+html[data-theme="light"] #mod-manual .rz-stage.rz-pure-wait {
+  background: #EDE7F5;
+}
+html[data-theme="light"] #mod-manual .rz-stage.gorun {
+  background: #E23B2E;
+}
+html[data-theme="light"] #mod-manual .rz-stage.gozone {
+  background: #1FA05C;
+}
+html[data-theme="light"] #mod-manual .rz-stage.gorun .rz-big,
+html[data-theme="light"] #mod-manual .rz-stage.gorun .rz-sub,
+html[data-theme="light"] #mod-manual .rz-stage.gorun .rz-count,
+html[data-theme="light"] #mod-manual .rz-stage.gozone .rz-big,
+html[data-theme="light"] #mod-manual .rz-stage.gozone .rz-sub,
+html[data-theme="light"] #mod-manual .rz-stage.gozone .rz-count {
+  color: #FFF6E8;
+}
+/* 文字：浅色纸上全部翻成深色 */
+html[data-theme="light"] #mod-manual .stage .hud,
+html[data-theme="light"] #mod-manual .stage .hud b {
+  color: #2D2721;
+}
+html[data-theme="light"] #mod-manual .rz-big {
+  color: #2D2721;
+}
+html[data-theme="light"] #mod-manual .rz-sub {
+  color: #6B6152;
+}
+html[data-theme="light"] #mod-manual .rz-count {
+  color: #8A8172;
+}
+html[data-theme="light"] #mod-manual .timerbar {
+  background: rgba(0, 0, 0, 0.10);
+}
+/* 扫雷 / 舒尔特：棋盘与工具栏 */
+html[data-theme="light"] #mod-manual .ms-grid {
+  background: #E8DFCC;
+  border-color: #D3C7AD;
+  box-shadow: 0 6px 18px rgba(90, 72, 42, 0.12);
+}
+html[data-theme="light"] #mod-manual .ms-cell {
+  background: #D9CDB6;
+  color: #2D2721;
+}
+html[data-theme="light"] #mod-manual .ms-cell:hover:not(.open) {
+  background: #E4D9C4;
+}
+html[data-theme="light"] #mod-manual .ms-cell:active:not(.open) {
+  background: #CBBEA4;
+}
+html[data-theme="light"] #mod-manual .ms-cell.open {
+  background: #FBF7EE;
+}
+html[data-theme="light"] #mod-manual .ms-cell.flag {
+  background: #E8D3B8;
+}
+html[data-theme="light"] #mod-manual .ms-cell.boom {
+  background: #F3C6C1;
+}
+html[data-theme="light"] #mod-manual .ms-cell.mine {
+  background: #E9CFCB;
+}
+html[data-theme="light"] #mod-manual .ms-cell.n7 {
+  color: #2D2721;
+}
+html[data-theme="light"] #mod-manual .ms-cell.n8 {
+  color: #6B6152;
+}
+html[data-theme="light"] #mod-manual .ms-levels {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: #E4DCC9;
+}
+html[data-theme="light"] #mod-manual .ms-lv {
+  color: #6B6152;
+}
+html[data-theme="light"] #mod-manual .ms-lv:hover {
+  color: #2D2721;
+}
+html[data-theme="light"] #mod-manual .ms-lv.active {
+  background: #0284C7;
+  color: #FFFFFF;
+}
+html[data-theme="light"] #mod-manual .ms-reset {
+  background: #FFFDF7;
+  border-color: #D8CFB9;
+  color: #3A332B;
+}
+html[data-theme="light"] #mod-manual .ms-reset:hover {
+  border-color: #0284C7;
+  color: #1F1914;
+}
+html[data-theme="light"] #mod-manual .ms-stat {
+  color: #3A332B;
+}
+/* 色彩挑战：格盘外框在浅色下不用纯白，避免和卡片同色 */
+html[data-theme="light"] #mod-manual .cl-grid {
+  background: #FFFDF7;
+  border: 1px solid #E4DCC9;
 }
 
 

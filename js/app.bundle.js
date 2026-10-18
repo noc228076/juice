@@ -17785,9 +17785,10 @@ if ('serviceWorker' in navigator) {
         }
         var half = el.querySelector(side === 'L' ? '#L' : (side === 'R' ? '#R' : (need === 'L' ? '#L' : '#R')));
         if (half) {
+          // 颜色交给 .hit.ok / .hit.ng 的 CSS，别在这里写内联样式——
+          // 内联 borderColor 会盖掉样式表，改配色时两边要同时改。
           half.classList.add('hit');
           half.classList.add(ok ? 'ok' : 'ng');
-          half.style.borderColor = ok ? '#2FBF6B' : '#E23B2E';
         }
         i++;
         later(function () {

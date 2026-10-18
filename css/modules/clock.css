@@ -1128,19 +1128,66 @@ body.zen-screensaver-active::-webkit-scrollbar {
    这里适度放宽并加密内部列数换取免滚，但不再拉到 1440px——
    时钟与工资卡有合适的阅读宽度，铺太宽会横向稀疏。
    ========================================================= */
+/* 窄屏：单栏纵向堆叠（宽屏的两栏规则见下方 media query） */
+.ck-main-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+/* 平板与 1024 笔记本仍走单栏，收紧间距少滚一点 */
+@media (max-width: 1024px) {
+  .ck-main-grid,
+  .ck-col-main,
+  .ck-col-side {
+    gap: 10px;
+  }
+  .ck-salary-hero { padding: 14px 16px 16px; }
+  .ck-countdown-grid { gap: 8px; }
+}
+.ck-col-main,
+.ck-col-side {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-width: 0;
+}
+
 @media (min-width: 1025px) {
   .ck-wrap {
-    max-width: 960px;
+    /* 1366 屏上 1280 只剩 43px 边距，收到 1200 更透气 */
+    max-width: 1200px;
   }
-  /* 四张倒计时卡排成一行 */
+  /* 双栏主体：左栏是时钟 / 工资 / 摸鱼计时这些主要视觉，
+     右栏是倒计时与参数配置这些信息密度高的卡片。
+     原来全部纵向堆叠总高 1025px，1440x900 和 1366x768 都必须滚动；
+     并排之后高度减半，笔记本上一屏放得下。 */
+  .ck-main-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+    gap: 14px;
+    align-items: start;
+  }
+  .ck-col-main,
+  .ck-col-side {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-width: 0;
+  }
+  /* 倒计时在右栏改成 2x2，四列在窄右栏里会挤成一条 */
   .ck-countdown-grid {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(2, 1fr);
   }
-  /* 配置项铺成三列 */
+  /* 配置项在右栏铺两列 */
   .ck-cfg-grid {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
   }
   .ck-topbar {
     justify-content: space-between;
   }
+  /* 右栏卡片本身不宽，倒计时数字略收一点 */
+  .ck-col-side .ck-cd-val {
+    font-size: 18px;
+  }
 }
+

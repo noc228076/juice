@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <meta name="theme-color" content="#0B0C10">
 <title>饮料人格研究所</title>
-<link rel="icon" type="image/png" href="favicon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/icons/favicon-32.png">
 <link rel="manifest" href="manifest.json">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -17,7 +17,8 @@
 <meta property="og:title" content="饮料人格研究所 · 测测你的精神状态与灵魂特调">
 <meta property="og:description" content="当代年轻人精神状态测试 (SBTI) / 经典 16 型人格 (MBTI) / 16 款灵魂饮料特调，测出你的独家出厂配方与精神病友。">
 <meta property="og:image" content="assets/icons/icon-512.png">
-  <link rel="stylesheet" href="css/app.bundle.css?v=94">
+  <link rel="stylesheet" href="css/core.bundle.css?v=97">
+  <script defer src="js/app.bundle.js?v=97" fetchpriority="high"></script>
   <script>
     (function(){
       // 主题必须在首次绘制前定下来。以前只有 <html data-theme="dark"> 的硬编码默认值，
@@ -58,7 +59,7 @@
   <!-- 全站 4K 沉浸壁纸背景渲染层 -->
   <div id="appAmbientBackdrop" class="app-ambient-backdrop" aria-hidden="true"></div>
 
-  <!-- 全局常驻顶栏 (左上角 5 模块胶囊标签 + 右上角控制中枢) -->
+  <!-- 全局常驻顶栏 (左上角 7 模块胶囊标签 + 右上角控制中枢) -->
   <header id="global-header">
     <div class="global-nav-left">
       <div class="nav-tabs-wrapper">
@@ -117,7 +118,7 @@
     </div>
   </header>
 
-  <!-- 5 大模块总视口 -->
+  <!-- 7 大模块总视口 -->
   <main id="modules-viewport">
     <!-- 首屏骨架：主包执行到 show('cover') 之前，内容区本来是纯黑。
          这里用和真实封面同布局的静态骨架顶上，避免「顶栏孤零零挂在一片空黑上」。
@@ -440,7 +441,7 @@
       </div>
     </section>
 
-    <!-- 模块 3：自我说明书 (6大篇章) -->
+    <!-- 模块 3：自我说明书 (10 章) -->
     <section id="mod-manual" class="app-module">
       <aside class="sm-rail" id="sm-rail">
         <div class="sm-rail-head">
@@ -450,14 +451,15 @@
             <p>SELF MANUAL</p>
           </div>
         </div>
-        <div class="sm-rail-sum" id="sm-rail-sum">已测 0/8 章 · 存档 0 份</div>
+        <div class="sm-rail-sum" id="sm-rail-sum">已测 0/10 章 · 存档 0 份</div>
         <nav class="sm-rail-nav" id="sm-rail-nav"></nav>
         <button class="sm-rail-home" id="sm-rail-home">← 返回目录</button>
       </aside>
       <div class="sm-main">
       <div class="sm-screen active" id="scr-sm-home">
         <div class="wrap" id="sm-homebody">
-<div class="home-head"><div class="brandmark">我</div><div><div class="home-title">自我说明书</div><div class="home-sub">SELF MANUAL · 八份关于你的出厂说明书</div></div></div><div class="home-desc">你是哪种拖延病患者？社交电量还剩多少？反应能力几岁？2048能合出多大？还有一份人间清醒防坑指南。挑一章，把自己拆开看看。</div><div class="stat-strip"><div style="display:flex;gap:5px"><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span></div><div style="flex:1"></div><div>已测 <b>0</b>/8 章 · 存档 <b>0</b> 份</div></div><div class="manual-grid"><div class="tile" data-test="social-battery"><span class="t-num">01</span><span class="t-ico" style="background:rgba(14,159,110,0.1);color:#0E9F6E"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"  aria-hidden="true"><rect x="2.5" y="7.5" width="16" height="9" rx="2.5"/><path d="M21.5 10.5v3"/><path d="M11.5 9.5 9 12.2h3l-2.4 2.6"/></svg></span><div class="t-info"><div style="display:flex;align-items:center;gap:6px;"><span class="t-title">社交电池电量测试</span></div><div class="t-meta">你是充电宝,还是耗电怪?3 分钟见分晓</div></div><span class="t-arrow">→</span></div><div class="tile" data-test="procrastination"><span class="t-num">02</span><span class="t-ico" style="background:rgba(124,92,191,0.1);color:#7C5CBF"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"  aria-hidden="true"><path d="M6.5 3h11M6.5 21h11M7.5 3v2.4l4.5 6-4.5 6V21M16.5 3v2.4l-4.5 6 4.5 6V21"/></svg></span><div class="t-info"><div style="display:flex;align-items:center;gap:6px;"><span class="t-title">拖延症类型鉴定</span></div><div class="t-meta">拖延不是懒,是 5 种不同的病——先确诊,再开方</div></div><span class="t-arrow">→</span></div><div class="tile" data-test="slacking"><span class="t-num">03</span><span class="t-ico" style="background:rgba(217,161,20,0.1);color:#D9A114"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"  aria-hidden="true"><path d="M6.8 12c2.4-3.8 5.8-5.8 9.2-5.8 2.6 0 4.6 2.4 5.2 5.8-.6 3.4-2.6 5.8-5.2 5.8-3.4 0-6.8-2-9.2-5.8Z"/><path d="M6.8 12 2.2 8.8v6.4L6.8 12Z"/><circle cx="17.6" cy="10.6" r=".7"/></svg></span><div class="t-info"><div style="display:flex;align-items:center;gap:6px;"><span class="t-title">摸鱼段位测试</span></div><div class="t-meta">摸鱼是一门手艺,12 道情景题测出你的段位</div></div><span class="t-arrow">→</span></div><div class="tile" data-test="night-owl"><span class="t-num">04</span><span class="t-ico" style="background:rgba(75,90,198,0.1);color:#4B5AC6"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"  aria-hidden="true"><path d="M20 14.2A8.6 8.6 0 1 1 9.8 4 6.8 6.8 0 0 0 20 14.2Z"/></svg></span><div class="t-info"><div style="display:flex;align-items:center;gap:6px;"><span class="t-title">熬夜类型鉴定</span></div><div class="t-meta">报复性熬夜的 5 种病,你中的是哪一种</div></div><span class="t-arrow">→</span></div><div class="tile" data-test="reaction"><span class="t-num">05</span><span class="t-ico" style="background:rgba(224,91,78,0.1);color:#E05B4E"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"  aria-hidden="true"><path d="M13 2.5 4.8 13.4h6L9.6 21.5l8.7-11.4h-6.1L13 2.5Z"/></svg></span><div class="t-info"><div style="display:flex;align-items:center;gap:6px;"><span class="t-title">反应速度擂台</span></div><div class="t-meta">三关打完,宣判你的反应年龄</div></div><span class="t-arrow">→</span></div><div class="tile" data-test="color"><span class="t-num">06</span><span class="t-ico" style="background:rgba(214,71,143,0.1);color:#D6478F"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"  aria-hidden="true"><path d="M2.5 12S6 5.8 12 5.8 21.5 12 21.5 12 18 18.2 12 18.2 2.5 12 2.5 12Z"/><circle cx="12" cy="12" r="2.9"/></svg></span><div class="t-info"><div style="display:flex;align-items:center;gap:6px;"><span class="t-title">色彩敏锐度挑战</span></div><div class="t-meta">色块里藏着一个叛徒,色差一级级缩小</div></div><span class="t-arrow">→</span></div><div class="tile" data-test="game-2048"><span class="t-num">07</span><span class="t-ico" style="background:rgba(245,158,11,0.1);color:#F59E0B"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3.5 8 4.4 3.8L12 5l4.1 6.8L20.5 8l-1.7 10.5H5.2L3.5 8Z"/></svg></span><div class="t-info"><div style="display:flex;align-items:center;gap:6px;"><span class="t-title">数字合体 2048</span></div><div class="t-meta">滑动合体,测测你的逻辑规划与抗压上限</div></div><span class="t-arrow">→</span><div class="tile" data-test="lifeguide"><span class="t-num">08</span><span class="t-ico" style="background:rgba(16,185,129,0.1);color:#10B981"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.5 5A2.5 2.5 0 0 1 7 2.5h12.5v16H7a2.5 2.5 0 0 0-2.5 2.5V5Z"/><path d="M4.5 21A2.5 2.5 0 0 1 7 18.5h12.5"/></svg></span><div class="t-info"><div style="display:flex;align-items:center;gap:6px;"><span class="t-title">人间清醒指南</span></div><div class="t-meta">低投入高回报的 16 项防线、36 条循证避坑与每日锦囊</div></div><span class="t-arrow">→</span></div></div></div>
+          <!-- 章节目录由 manual.js renderHome() 渲染，避免与 SM_ORDER 双份维护 -->
+        </div>
       </div>
       </div>
 
@@ -689,7 +691,6 @@
           </div>
         </footer>
         </div>
-      </div>
       </div>
     </section>
 
@@ -2515,6 +2516,5 @@
   <canvas id="shareCanvas" width="1080" height="1620" hidden></canvas>
 </div>
 
-  <script defer src="js/app.bundle.js?v=94"></script>
 </body>
 </html>

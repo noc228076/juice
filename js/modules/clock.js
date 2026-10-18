@@ -167,6 +167,14 @@
     return '';
   }
 
+  // 农历 chunk 晚于时钟到达时，只刷新日期文本；时钟本身的 tick 不会因此停摆。
+  function refreshLunar() {
+    if (!isInitialized) return;
+    try {
+      updateTick();
+    } catch (e) {}
+  }
+
   // 计算当前加班已持续的秒数
   function getOvertimeSeconds(now, todayIsRest, startOfTodayWork, endOfTodayWork) {
     if (overtimeMode === 'none') return 0;
@@ -1216,6 +1224,7 @@
 
   window.AppClock = {
     init,
+    refreshLunar,
     restore,
     toggleSlacking,
     drawClockPoster,

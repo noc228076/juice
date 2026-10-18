@@ -88,15 +88,16 @@
     closeDrawer();
 
     const mod = item.module || 'drinks';
+    let ready = Promise.resolve();
     if (window.AppRouter && typeof window.AppRouter.switchModule === 'function') {
-      window.AppRouter.switchModule(mod);
+      ready = Promise.resolve(window.AppRouter.switchModule(mod));
     }
 
     if (window.SFX && window.SFX.page) {
       window.SFX.page();
     }
 
-    try {
+    ready.then(() => {
       if (mod === 'drinks') {
         if (typeof window.__restoreDrinkRecord === 'function') {
           window.__restoreDrinkRecord(item);
@@ -157,9 +158,9 @@
           window.AppScratch.restore(item.data);
         }
       }
-    } catch (e) {
+    }).catch((e) => {
       console.warn('restore record error:', e);
-    }
+    });
   }
 
   function renderDrawer(filterMod = 'all') {

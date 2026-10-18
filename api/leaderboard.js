@@ -1,6 +1,6 @@
 /* =========================================================
    小游戏全服排行榜 API (Vercel Serverless Function)
-   支持 2048 / 反应速度 / 色彩敏锐度 三个榜单
+   支持 10 个 game key（9 个在役 + legacy minesweeper）
    存储：Upstash Redis REST（Vercel Marketplace 安装后自动注入环境变量）
    零依赖：只用 Node 18+ 内置 fetch，不需要 npm install
    ---------------------------------------------------------
@@ -15,7 +15,7 @@
 
 /* 每个游戏的存储键与排序方向。
    higher=true：数值越大越好（分数、通关数），用 ZREVRANGE / ZREVRANK；
-   higher=false：数值越小越好（反应毫秒），用 ZRANGE / ZRANK。 */
+   higher=false：数值越小越好（反应毫秒 / 扫雷与舒尔特用时），用 ZRANGE / ZRANK。 */
 const GAMES = {
   '2048': { z: 'j2048:z', p: 'j2048:p', higher: true },
   reaction: { z: 'jreaction:z', p: 'jreaction:p', higher: false },

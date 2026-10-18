@@ -1,6 +1,6 @@
 /* =========================================================
    全局顶栏调度器与单页路由系统 (App Master Router)
-   管理 5 大模块视图切换、URL Hash 监听与移动端视口同步
+   管理 7 个顶栏模块 / 13 条路由的视图切换、URL Hash 监听与移动端视口同步
    ========================================================= */
 
 (function () {
@@ -14,6 +14,238 @@
   // 保留在 ALLOWED_MODS 里只为兼容老链接，进入后立刻转成说明书 + 该章。
   const ALLOWED_MODS = ['drinks', 'milktea', 'manual', 'fengshui', 'tarot', 'lingqian', 'decision', 'clock', 'merit', 'lifeguide', 'bazi', 'daily', 'scratch'];
   const initializedModules = new Set(['drinks']);
+  const initializingModules = new Map();
+
+  // 按需 chunk。顺序在 build-bundles.js 中定义，这里只负责 URL 与初始化。
+  const MODULE_CHUNKS = {
+    milktea: 'milktea',
+    manual: 'manual',
+    lifeguide: 'manual',
+    tarot: 'mystic',
+    lingqian: 'mystic',
+    fengshui: 'mystic',
+    bazi: 'bazi',
+    clock: 'relax',
+    merit: 'relax',
+    decision: 'decision',
+    scratch: 'scratch'
+  };
+
+  const MODULE_API = {
+    daily: 'AppDaily',
+    milktea: 'AppMilktea',
+    manual: 'AppManual',
+    lifeguide: 'AppManual',
+    tarot: 'AppTarot',
+    lingqian: 'AppLingqian',
+    fengshui: 'AppFengshui',
+    bazi: 'AppBazi',
+    clock: 'AppClock',
+    merit: 'AppMerit',
+    decision: 'AppDecision',
+    scratch: 'AppScratch'
+  };
+
+  const chunkLoads = Object.create(null);
+  const MODULE_CSS_HREF = 'css/modules.bundle.css';
+  let moduleCssLoad = null;
+  let lunarScheduled = false;
+
+  function appVersion() {
+    if (window.__APP_VERSION__) return String(window.__APP_VERSION__);
+    const script = document.querySelector('script[src*="app.bundle.js"]');
+    const match = script && script.src.match(/[?&]v=(\d+)/);
+    return match ? match[1] : '';
+  }
+
+  function loadChunk(name) {
+    if (chunkLoads[name]) return chunkLoads[name];
+    chunkLoads[name] = new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      const ver = appVersion();
+      script.src = `js/chunks/${name}.js` + (ver ? `?v=${ver}` : '');
+      script.async = true;
+      script.onload = () => resolve();
+      script.onerror = () => {
+        script.remove();
+        delete chunkLoads[name];
+        reject(new Error('chunk load failed: ' + name));
+      };
+      document.head.appendChild(script);
+    });
+    return chunkLoads[name];
+  }
+
+  // 非饮品模块的样式独立成包。首次进入时与 JS chunk 并行加载，
+  // CSS 就绪后再激活 section，避免深链先显示一帧无样式内容。
+  function loadModuleCss() {
+    if (moduleCssLoad) return moduleCssLoad;
+    moduleCssLoad = new Promise((resolve, reject) => {
+      const existing = document.querySelector('link[data-module-css]');
+      if (existing) {
+        if (existing.sheet) {
+          resolve();
+          return;
+        }
+        existing.addEventListener('load', resolve, { once: true });
+        existing.addEventListener('error', reject, { once: true });
+        return;
+      }
+      const link = document.createElement('link');
+      const ver = appVersion();
+      link.rel = 'stylesheet';
+      link.href = MODULE_CSS_HREF + (ver ? `?v=${ver}` : '');
+      link.dataset.moduleCss = '';
+      link.onload = () => resolve();
+      link.onerror = () => {
+        link.remove();
+        moduleCssLoad = null;
+        reject(new Error('module css load failed'));
+      };
+      document.head.appendChild(link);
+    });
+    return moduleCssLoad;
+  }
+
+  function activateModule(modKey) {
+    const parentModKey = MOD_PARENT_MAP[modKey] || modKey;
+    document.querySelectorAll('.app-module').forEach(mod => {
+      mod.classList.remove('active');
+    });
+    const ownEl = document.getElementById('mod-' + modKey);
+    const targetModuleEl = ownEl || document.getElementById('mod-' + parentModKey);
+    if (targetModuleEl) {
+      targetModuleEl.classList.add('active');
+    }
+    // 首屏骨架只属于饮品封面。用户在主包还没执行完时切到别的模块（深链、
+    // 或极快的手速），骨架必须让位，否则会盖住真正要看的模块。
+    document.documentElement.classList.add('cover-ready');
+  }
+
+  // lunar 也被 bazi chunk 包含；若 bazi 已加载过，这里直接跳过重复请求。
+  function ensureLunarReady() {
+    return new Promise((resolve) => {
+      const done = () => resolve(!!window.Solar);
+      if (window.Solar) return done();
+      loadChunk('lunar').then(done).catch(done);
+    });
+  }
+
+  // 农历库只补日期文本：Daily / Clock 先渲染主内容，等它到达再刷新。
+  // 不要在这里重新 init，否则 Daily 会重复请求四组接口。
+  function refreshLunarConsumers() {
+    if (window.AppDaily && typeof window.AppDaily.refreshLunar === 'function') {
+      window.AppDaily.refreshLunar();
+    }
+    if (window.AppClock && typeof window.AppClock.refreshLunar === 'function') {
+      window.AppClock.refreshLunar();
+    }
+  }
+
+  // lunar 体积大，不能进首屏；Daily / Clock 的农历显示依赖它。
+  // 只有真正进入这两个模块后才调度，首页不下载这份 89 KB Brotli 的库。
+  // 内容先渲染，农历到达后只刷新日期文本，不重复 init。
+  function scheduleIdleChunk(name) {
+    if (name !== 'lunar' || lunarScheduled) return;
+    lunarScheduled = true;
+    const run = () => {
+      ensureLunarReady().then(refreshLunarConsumers).catch(() => {});
+    };
+    if ('requestIdleCallback' in window) {
+      window.requestIdleCallback(run, { timeout: 4000 });
+    } else {
+      setTimeout(run, 2500);
+    }
+  }
+
+  // 所有入口（首次加载、chunk 已就绪、共享 chunk 等待完成）都走同一套初始化，
+  // 避免 manual / lifeguide 共用 manual chunk 时，后发入口漏掉 init 或 openTest。
+  // Daily / Clock 首屏即渲染，农历库只补日期文本，绝不阻塞内容加载。
+  function runModuleInit(modKey) {
+    if (modKey === 'manual' && window.AppManual) {
+      const body = document.getElementById('sm-homebody');
+      if (!body || !body.children.length) window.AppManual.init();
+    }
+    if (modKey === 'lifeguide' && window.AppManual) {
+      if (!initializedModules.has('manual')) window.AppManual.init();
+      window.AppManual.openTest('lifeguide');
+    }
+    if (modKey === 'daily' && window.AppDaily) {
+      window.AppDaily.init();
+      scheduleIdleChunk('lunar');
+    }
+    if (modKey === 'clock' && window.AppClock) {
+      window.AppClock.init();
+      scheduleIdleChunk('lunar');
+    }
+    if (modKey !== 'manual' && modKey !== 'lifeguide' && modKey !== 'daily' && modKey !== 'clock') {
+      const apiName = MODULE_API[modKey];
+      const api = apiName && window[apiName];
+      if (api && typeof api.init === 'function') api.init();
+    }
+  }
+
+  // 核心模块（已在主包）没有 chunk，但仍需要 init。
+  // 共享入口 manual / lifeguide 每次都要补跑，处理空目录与章节恢复；
+  // 其余模块只初始化一次，避免 Daily 重复拉取四组接口。
+  function shouldReinit(modKey) {
+    return modKey === 'manual' || modKey === 'lifeguide';
+  }
+
+  function initModuleOnce(modKey) {
+    // 同一次访问里既点 #/manual 又点 #/lifeguide 时，两者共用 manual chunk。
+    // 等共享 chunk 加载完后再按当前入口补初始化，而不是复用旧 task 的初始化结果。
+    const sharedChunk = MODULE_CHUNKS[modKey];
+    const pending = Array.from(initializingModules.entries()).find(([key, task]) => (
+      task && MODULE_CHUNKS[key] === sharedChunk
+    ));
+    if (pending) {
+      return pending[1].then(() => {
+        if (currentModule !== modKey) return;
+        runModuleInit(modKey);
+      });
+    }
+
+    if (initializedModules.has(modKey)) {
+      if (shouldReinit(modKey)) runModuleInit(modKey);
+      return Promise.resolve();
+    }
+    if (initializingModules.has(modKey)) return initializingModules.get(modKey);
+
+    const chunk = MODULE_CHUNKS[modKey];
+    const apiName = MODULE_API[modKey];
+    if (!chunk) {
+      if (apiName) {
+        initializedModules.add(modKey);
+        runModuleInit(modKey);
+        return Promise.resolve();
+      }
+      initializedModules.add(modKey);
+      return Promise.resolve();
+    }
+
+    const task = loadChunk(chunk).then(() => {
+      if (chunk === 'lunar') refreshLunarConsumers();
+      if (currentModule !== modKey) return;
+      const api = window[apiName];
+      if (!api) {
+        console.warn('[Router] module API missing after chunk load:', modKey, apiName);
+        return;
+      }
+      initializedModules.add(modKey);
+      if (modKey === 'daily' || modKey === 'clock' || modKey === 'manual' || modKey === 'lifeguide') {
+        runModuleInit(modKey);
+      } else if (typeof api.init === 'function') {
+        api.init();
+      }
+    }).catch((err) => {
+      console.error('[Router]', err);
+    }).finally(() => {
+      initializingModules.delete(modKey);
+    });
+    initializingModules.set(modKey, task);
+    return task;
+  }
 
   const MOD_PARENT_MAP = {
     milktea: 'drinks',
@@ -39,7 +271,7 @@
   }
 
   // 把激活 tab 滚动到可见区域。
-  // 顶栏在窄屏是横向滚动容器，8 个 tab 放不下，深链/子屏跳转时必须显式定位，
+  // 顶栏在窄屏是横向滚动容器，7 个 tab 放不下，深链/子屏跳转时必须显式定位，
   // 否则激活项可能落在可视区之外，用户看不到当前处于哪个模块。
   // 用 getBoundingClientRect 做纯视口坐标比较，避免 offsetLeft 混用不同定位祖先坐标系。
   let navScrollReady = false;
@@ -113,51 +345,24 @@
       btn.classList.toggle('active', btn.dataset.ewJump === modKey);
     });
 
-    // 切换模块视图。
-    // 注意：MOD_PARENT_MAP 只用于顶栏 Tab 高亮，不能拿来定位模块——
-    // milktea/fengshui/lingqian/merit/bazi 都有自己的 section，必须直接激活自己。
-    // 唯一的例外是 lifeguide：它已经并进说明书，没有独立 section 了。
-    document.querySelectorAll('.app-module').forEach(mod => {
-      mod.classList.remove('active');
-    });
-    const ownEl = document.getElementById('mod-' + modKey);
-    const targetModuleEl = ownEl || document.getElementById('mod-' + parentModKey);
-    if (targetModuleEl) {
-      targetModuleEl.classList.add('active');
-    }
-    // 首屏骨架只属于饮品封面。用户在主包还没执行完时切到别的模块（深链、
-    // 或极快的手速），骨架必须让位，否则会盖住真正要看的模块。
-    document.documentElement.classList.add('cover-ready');
-
-    // 延迟初始化模块（仅在首次切入时初始化，按需加载，节省初始化开销）
-    if (!initializedModules.has(modKey)) {
-      initializedModules.add(modKey);
-      if (modKey === 'milktea' && window.AppMilktea) window.AppMilktea.init();
-      if (modKey === 'fengshui' && window.AppFengshui) window.AppFengshui.init();
-      if (modKey === 'tarot' && window.AppTarot) window.AppTarot.init();
-      if (modKey === 'manual' && window.AppManual) window.AppManual.init();
-      if (modKey === 'decision' && window.AppDecision) window.AppDecision.init();
-      if (modKey === 'lingqian' && window.AppLingqian) window.AppLingqian.init();
-      if (modKey === 'clock' && window.AppClock) window.AppClock.init();
-      if (modKey === 'merit' && window.AppMerit) window.AppMerit.init();
-      if (modKey === 'bazi' && window.AppBazi) window.AppBazi.init();
-      if (modKey === 'daily' && window.AppDaily) window.AppDaily.init();
-      if (modKey === 'scratch' && window.AppScratch) window.AppScratch.init();
-      // 老链接 #/lifeguide：先进说明书，再直接翻开第 05 章
-      // 走 openTest 而不是 AppLifeguide.open()，这样侧栏高亮/当前章状态才对
-      if (modKey === 'lifeguide' && window.AppManual) window.AppManual.openTest('lifeguide');
-    } else {
-      if (modKey === 'manual' && window.AppManual) {
-        const body = document.getElementById('sm-homebody');
-        if (!body || !body.children.length) window.AppManual.init();
-      }
-      // 已经初始化过说明书、又从老链接进来：只要把那一章重新翻开即可
-      if (modKey === 'lifeguide' && window.AppManual) window.AppManual.openTest('lifeguide');
-    }
-
     if (updateHash) {
       window.location.hash = '#/' + modKey;
     }
+
+    // 饮品相关视图的样式都在核心包里，立即切换。
+    // 其余模块先并行取 CSS / JS，CSS 就绪后再激活 section。
+    if (modKey === 'drinks') {
+      activateModule(modKey);
+      return initModuleOnce(modKey);
+    }
+
+    const moduleTask = initModuleOnce(modKey);
+    const cssTask = loadModuleCss().catch((err) => {
+      console.error('[Router]', err);
+    });
+    return Promise.all([cssTask, moduleTask]).then(() => {
+      if (currentModule === modKey) activateModule(modKey);
+    });
   }
 
   function handleHash() {

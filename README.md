@@ -1,27 +1,27 @@
-# 饮料人格研究所 · 八合一趣味实验矩阵 🍹
+# 饮料人格研究所 · 七合一趣味实验矩阵 🍹
 
-纯静态、零运行时依赖的网页趣味测试矩阵，包含 8 大模块 / 13 个功能屏，支持 PWA 安装与离线图片缓存。
+纯静态、零运行时依赖的网页趣味测试矩阵，包含 7 大模块 / 13 个功能屏，支持 PWA 安装与离线图片缓存。
 
 | 项 | 内容 |
 |---|---|
 | 定位 | 纯前端趣味测试 / 玄学 / 轻游戏合集 |
 | 技术栈 | 原生 HTML + CSS + JavaScript，无框架、无运行时依赖 |
 | 构建 | 自研轻量打包脚本（`build-bundles.js`），Node 仅用于本地静态服务 |
-| 运行环境 | 任意现代浏览器（Chrome / Edge / Safari），Node ≥ 16 仅用于本地开发 |
+| 运行环境 | 任意现代浏览器（Chrome / Edge / Safari），Node ≥ 24 仅用于本地开发 |
 | 部署 | Vercel 静态托管，连接 GitHub `main` 自动部署 |
 
 ---
 
 ## 📦 功能模块
 
-顶栏 8 个胶囊标签，部分标签下挂有子导航条，视图状态同步到 URL hash（`#/<模块>`）。
+顶栏 7 个胶囊标签，部分标签下挂有子导航条，视图状态同步到 URL hash（`#/<模块>`）。
 
 ### 1. 🍹 饮品测评
 - **`drinks` 16 款灵魂特调** — MBTI × 饮料人格，四维度计分裁定 16 型人格配方
 - **`milktea` 奶茶人格配方** — 26 个品牌 logo + 人格解析
 
 ### 2. 📖 自我说明书
-`manual` — 7 份出厂说明书，区分问答型与小游戏型：
+`manual` — 10 章出厂说明书，区分问答型、外链章节与小游戏型：
 
 | # | 测试 | 英文名 | 类型 |
 |---|---|---|---|
@@ -51,16 +51,14 @@
 ### 5. 🪙 纠结拯救
 `decision` — 转盘决策 + 终局裁定单（可写批注，生成裁定小票）
 
-### 6. 🛡️ 人间清醒
-`lifeguide` — 循证生存与防坑智库，每条结论附医学顶刊 RCT 证据或现行法律条文
-
-### 7. 🗞️ 今日风向
+### 6. 🗞️ 今日风向
 `daily` — 今日风向标，每日灵感补给站（时间看板 + 运势播报）
 
-### 8. 🎟️ 幸运刮刮乐
+### 7. 🎟️ 幸运刮刮乐
 `scratch` — 刮刮卡抽奖，支持即时结算与中奖记录
 
 另有 `history` 全局档案中心，通过顶栏「📜 档案」入口访问，聚合各模块历史测评记录。
+`lifeguide` 不再是独立顶层模块，而是说明书第 05 章；旧链接 `#/lifeguide` 仍会打开该章。
 
 ---
 
@@ -90,9 +88,9 @@ python -m http.server 3456
 
 ```
 js/modules/*.js  ──┐
-js/libs/lunar.js ──┼─► node build-bundles.js ─► js/app.bundle.js
-                   │                    └─►  css/app.bundle.css
-css/modules/*.css ─┘
+js/libs/lunar.js ──┼─► node build-bundles.js ─► js/app.bundle.js + js/chunks/*.js
+                   │
+css/modules/*.css ─┴─────────────────────────► css/core.bundle.css + css/modules.bundle.css
 css/base.css ──────┘
 ```
 
@@ -103,12 +101,16 @@ npm run build
 ```
 
 **先手改 `sw.js` 的 `CACHE_NAME` 版本号**，再运行 `npm run build`。构建脚本会读出
-`sw.js` 的版本号并自动同步到 `index.html` 的两处 `?v=`，不需要手动改两遍：
+`sw.js` 的版本号并自动同步到 `index.html` 的 `?v=`，不需要手动改两遍：
 
 | 文件 | 字段 | 当前值 | 谁改 |
 |---|---|---|---|
-| `sw.js` | `CACHE_NAME` | `juice-persona-v65` | **手动**（唯一真值来源） |
-| `index.html` | `?v=` 查询参数（CSS / JS 各一处） | `65` | `npm run build` 自动同步 |
+| `sw.js` | `CACHE_NAME` | `juice-persona-v97` | **手动**（唯一真值来源） |
+| `index.html` | `?v=` 查询参数（核心 CSS / 主 JS） | `97` | `npm run build` 自动同步 |
+| `router.js` | 按需 CSS / JS chunk URL | `97` | 从主包注入的版本号读取 |
+
+首屏只引用 `css/core.bundle.css`（`base + nav + history`）；
+其余 12 个模块样式打包为 `css/modules.bundle.css`，首次进入非饮品模块时加载。
 
 ---
 
@@ -123,11 +125,12 @@ juice/
 ├── server.js               # 零依赖本地服务器（含 api/ 模拟）
 ├── build-bundles.js        # 打包脚本
 ├── api/
-│   └── leaderboard.js      # 三个小游戏共用的全服排行榜 Serverless 函数
-├── favicon.png
+│   └── leaderboard.js      # 10 个 game key 的全服排行榜 Serverless 函数
+├── favicon.png             # 旧版 192px 图标（已不再被 index.html 引用）
 │
 ├── js/
 │   ├── app.bundle.js       # 【构建产物】勿手改
+│   ├── chunks/             # 【构建产物】按需模块包
 │   ├── core-drink.js       # 饮品人格核心（计分、Canvas 分享长图）
 │   ├── sfx.js              # WebAudio 合成音效引擎（零音频文件）
 │   ├── libs/
@@ -145,16 +148,18 @@ juice/
 │       ├── decision.js / clock.js / merit.js
 │       ├── profile.js              # 玩家头像 / 昵称
 │       ├── leaderboard.js          # 全服排行榜客户端（按 game 分榜）
-│       ├── lb-panel.js             # 排行榜面板（三个小游戏共用）
+│       ├── lb-panel.js             # 排行榜面板（各游戏分榜共用）
 │       └── lifeguide.js / daily.js / scratch.js
 │
 ├── css/
-│   ├── app.bundle.css      # 【构建产物】勿手改
+│   ├── core.bundle.css     # 【构建产物】首屏核心：base + nav + history
+│   ├── modules.bundle.css  # 【构建产物】按需模块样式
+│   ├── app.bundle.css      # 【构建产物】旧版兼容包，勿手改
 │   ├── base.css            # 全局基础样式、主题变量、双主题
 │   └── modules/            # 与 js/modules 对应的模块样式
 │
 ├── assets/
-│   ├── icons/              # PWA 图标（192 / 512 / maskable）
+│   ├── icons/              # PWA 图标（192 / 512 / maskable）+ 32px favicon
 │   ├── mbti/               # 16 型 MBTI 立绘（16 个 .webp 在用，同名 .png 为孤儿）
 │   ├── sbti/               # 27 型 SBTI 立绘（.png + .webp，两种格式均在用）
 │   ├── milktea/            # 26 个奶茶品牌 logo
@@ -190,6 +195,25 @@ juice/
 - `fetch` 阶段跳过导航请求与 `/_vercel/` 等路径，仅处理 `/assets/` 与 `.png` / `.jpg`；
 - 写缓存前校验响应头，避免缓存到错误页。
 
+### Daily 数据源
+
+`daily` 全部使用浏览器可直接跨域访问的公开接口；失败时回落本地缓存或离线种子。
+
+| 内容 | 数据源 | 降级 |
+|---|---|---|
+| 60 秒新闻 | `60s-static.viki.moe/60s/YYYY-MM-DD.json`（当天 → 昨天 → 前天） | 本地缓存 → 内置早报 |
+| 微博 / 知乎 / 抖音 | `api.codelife.cc` 热榜 API | 备用聚合源 → 缓存 → 离线示例 |
+| B站 / 微博 / 抖音备用 | `v2.xxapi.cn` | 缓存 → 离线示例 |
+| AI 快讯 | `api.codelife.cc` 科技/AI 频道（36kr 内容） | 缓存 → 离线示例 |
+| 小红书 / 今日头条 | 暂无稳定跨域实时源 | 直接显示离线精选，不发无效请求 |
+| 必应壁纸 | `bing.biturl.top`（今日 + 近 6 日） | 内置壁纸种子 |
+| 影视榜 | 本地片单（电影 / 华语剧 / 全球剧） | — |
+
+豆瓣影视接口不返回 `Access-Control-Allow-Origin`，浏览器直连必然 CORS 失败；
+60s 的豆瓣代理也已下线。因此影视与心情配片使用本地片单与本地海报兜底，
+不会产生死链或控制台报错。热榜接口会校验 `code` 与列表非空，
+避免把「HTTP 200 + 空数据」误判为可用。
+
 ### PWA
 
 `manifest.json` 声明 standalone + 竖屏 + 深色主题色，配 `assets/icons/` 三档图标（含 maskable）。
@@ -200,7 +224,8 @@ juice/
 
 1. 新建 `js/modules/foo.js`，遵循现有约定 —— IIFE 包裹、暴露 `window.AppFoo = { init }`；
 2. 新建 `css/modules/foo.css`；
-3. 在 `build-bundles.js` 的 `cssFiles` / `jsFiles` 中登记（`jsFiles` 顺序即执行顺序）；
+3. 在 `build-bundles.js` 的 `moduleCssFiles` 中登记样式，并在 `chunks` 的对应入口
+   登记 JS（顺序即依赖顺序）；首屏核心才放进 `coreCssFiles` / `coreJsFiles`；
 4. 在 `index.html` 中新增 `<section id="mod-foo" class="app-module">`；
 5. 在 `router.js` 的 `ALLOWED_MODS` 加入 `'foo'`，并在懒初始化分支加 `if (modKey === 'foo' && window.AppFoo) window.AppFoo.init();`；
 6. 若挂在已有顶栏下，将 `'foo'` 加入 `MOD_PARENT_MAP` 指向父 Tab，并补 `data-sub-jump="foo"` 按钮；
@@ -230,7 +255,7 @@ Vercel 托管，连接 GitHub `main` 分支自动部署，无需手动构建命�
 
 ### 全服排行榜（需要一次性配置）
 
-`api/leaderboard.js` 为 2048 / 反应速度 / 色彩敏锐度 / 扫雷四个小游戏提供全服榜，使用 Upstash Redis 存储，**不配置也能部署**——此时接口返回 503，前端自动退回本机战绩，游戏不受影响。
+`api/leaderboard.js` 为 2048 / 反应速度 / 色彩敏锐度 / 扫雷三档 / 舒尔特三档提供全服榜（共 9 个在役 key，另有 legacy `minesweeper`），使用 Upstash Redis 存储，**不配置也能部署**——此时接口返回 503，前端自动退回本机战绩，游戏不受影响。
 
 开启全服榜：
 
@@ -252,7 +277,7 @@ Vercel 托管，连接 GitHub `main` 分支自动部署，无需手动构建命�
 | `schulte_medium` | 舒尔特 · 中级 | 总用时（秒） | **越低越好** | `jsch_m:z` / `jsch_m:p` |
 | `schulte_hard` | 舒尔特 · 高级 | 总用时（秒） | **越低越好** | `jsch_h:z` / `jsch_h:p` |
 
-每个榜单的 `:z` 是 ZSET（成员 = 玩家随机 ID，分值 = 个人最好成绩，只保留前 1000 名），`:p` 是 HASH（存昵称、头像、日期与各游戏自己的附加字段）。反应榜和三个扫雷榜用 `ZRANGE`/`ZRANK` 升序取榜，另外两个用 `ZREVRANGE`/`ZREVRANK`。
+每个榜单的 `:z` 是 ZSET（成员 = 玩家随机 ID，分值 = 个人最好成绩，只保留前 1000 名），`:p` 是 HASH（存昵称、头像、日期与各游戏自己的附加字段）。反应榜、三档扫雷榜、三档舒尔特榜用 `ZRANGE`/`ZRANK` 升序取榜（共 7 个），`2048` 与 `color` 用 `ZREVRANGE`/`ZREVRANK` 降序取榜。
 
 舒尔特方格同样按难度分榜（5×5 / 6×6 / 7×7），排名就是总用时，点错次数只做记录不影响排名，用时限制 1–600 秒。
 

@@ -1490,13 +1490,25 @@
     ctx.fillText(line, x, y);
   }
 
-  function preloadTarotImages() {
-    CARDS.forEach(c => {
-      if (c.image) {
-        const img = new Image();
-        img.src = c.image;
+  let preloadTimer = null;
+
+  function preloadTarotImages(priorityCard) {
+    const queue = CARDS.filter(c => c.image && (!priorityCard || c.image !== priorityCard.image));
+    const preloadOne = () => {
+      const card = queue.shift();
+      if (!card) {
+        preloadTimer = null;
+        return;
       }
-    });
+      const img = new Image();
+      img.onload = img.onerror = () => {
+        if (preloadTimer) clearTimeout(preloadTimer);
+        preloadTimer = setTimeout(preloadOne, 160);
+      };
+      img.src = card.image;
+    };
+    if (preloadTimer) clearTimeout(preloadTimer);
+    preloadTimer = setTimeout(preloadOne, 600);
   }
 
   function updateMeditationHint() {
@@ -1561,8 +1573,11 @@
   }
 
   function init() {
-    preloadTarotImages();
     initDailyAlmanacAndGallery();
+    // 只优先加载今日值日牌；其余 21 张在首屏渲染后逐张预热，
+    // 避免一进塔罗就同时抢 7.3 MB 带宽，把真正可见的牌面拖慢。
+    const dailyCard = CARDS[dailyCardIdx] || CARDS[19];
+    preloadTarotImages(dailyCard);
     updateMeditationHint();
 
     const domainGrid = document.getElementById('trDomainGrid');

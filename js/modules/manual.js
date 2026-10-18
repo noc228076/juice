@@ -1,6 +1,6 @@
 /* =========================================================
    模块 3：自我说明书 (Self Manual Module) 控制中枢
-   6 大打工人说明书：社交电池 / 拖延症 / 摸鱼能力 / 熬夜形态 / 反应力 / 色彩敏感
+   10 章打工人说明书：4 个问答 + 人间清醒 + 5 个交互小游戏
    ========================================================= */
 
 (function () {
@@ -88,7 +88,7 @@
       state.gameCtl = null;
     }
     var DATA = window.SM_DATA || {};
-    var ORDER = window.SM_ORDER || ['social-battery', 'procrastination', 'slacking', 'night-owl', 'reaction', 'color'];
+    var ORDER = window.SM_ORDER || ['social-battery', 'procrastination', 'slacking', 'night-owl', 'lifeguide', 'reaction', 'color', 'game-2048', 'minesweeper', 'schulte'];
     var s = store();
     var done = ORDER.filter(function (id) { return chapterDone(id, s); }).length;
     // 存档份数只统计答题/游戏章：人间清醒没有分数报告，计入会虚高
@@ -98,7 +98,7 @@
 
     var html = '';
     html += '<div class="home-head"><div class="brandmark">我</div><div>'
-      + '<div class="home-title">自我说明书</div><div class="home-sub">SELF MANUAL · 八份关于你的出厂说明书</div></div></div>';
+      + '<div class="home-title">自我说明书</div><div class="home-sub">SELF MANUAL · 十份关于你的出厂说明书</div></div></div>';
     html += '<div class="home-desc">你是哪种拖延病患者？社交电量还剩多少？反应能力几岁？2048能合出多大？还有一份人间清醒防坑指南。挑一章，把自己拆开看看。</div>';
 
     html += '<div class="stat-strip"><div style="display:flex;gap:5px">'
@@ -154,7 +154,7 @@
       openGame(t);
       return;
     }
-    // 外部章节：正文由自己的模块渲染（目前只有 08 人间清醒）
+    // 外部章节：正文由自己的模块渲染（目前只有第 05 章人间清醒）
     if (t.mode === 'external') {
       if (window.AppLifeguide && typeof window.AppLifeguide.open === 'function') {
         window.AppLifeguide.open();
@@ -496,10 +496,4 @@
     restore,
     stopActiveGame
   };
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
 })();

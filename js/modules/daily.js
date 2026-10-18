@@ -31,6 +31,11 @@
     { title: '微调作息与自我生活节奏的 5 个实用习惯', hot_value: 410000 }
   ];
 
+  // 本地海报兜底：豆瓣 CDN 需要 Referer，浏览器直链会 403/418，
+  // 而图片代理对这批旧海报 ID 已返回 404。影视与心情配片统一用站点图标，
+  // 保证任何网络环境下都不出现死图。
+  const LOCAL_POSTER = 'assets/icons/icon-192.png';
+
   // 优质离线/超时兜底数据种子（确保网络异常或接口受限时界面绝不空白）
   const FALLBACK_SEEDS = {
     news60s: {
@@ -66,7 +71,7 @@
         title: '罗斯',
         rating: 8.5,
         card_subtitle: '奥地利 / 德国 / 剧情 / 马库斯·施莱泽 / 桑德拉·惠勒',
-        cover_proxy: 'https://doubanio.viki.moe/view/photo/m_ratio_poster/public/p2935294362.jpg',
+        cover_proxy: LOCAL_POSTER,
         url: 'https://movie.douban.com',
         tags: ['高分力荐', '年度佳作']
       },
@@ -75,7 +80,7 @@
         title: '生化危机：爆发夜',
         rating: 7.3,
         card_subtitle: '德国 / 法国 / 科幻 惊悚 / 扎克·克雷格',
-        cover_proxy: 'https://doubanio.viki.moe/view/photo/m_ratio_poster/public/p2936442661.jpg',
+        cover_proxy: LOCAL_POSTER,
         url: 'https://movie.douban.com',
         tags: ['惊险刺激', '视觉盛宴']
       },
@@ -84,7 +89,7 @@
         title: '野兽之心',
         rating: 7.3,
         card_subtitle: '美国 / 剧情 动作 冒险 / 大卫·阿耶 / 布拉德·皮特',
-        cover_proxy: 'https://doubanio.viki.moe/view/photo/m_ratio_poster/public/p2933185536.jpg',
+        cover_proxy: LOCAL_POSTER,
         url: 'https://movie.douban.com',
         tags: ['硬核动作', '热血冒险']
       },
@@ -93,7 +98,7 @@
         title: '500英里',
         rating: 7.6,
         card_subtitle: '英国 / 爱尔兰 / 剧情 / 摩根·马修斯',
-        cover_proxy: 'https://doubanio.viki.moe/view/photo/m_ratio_poster/public/p2932686404.jpg',
+        cover_proxy: LOCAL_POSTER,
         url: 'https://movie.douban.com',
         tags: ['公路温情', '治愈心灵']
       }
@@ -109,7 +114,7 @@
       score: 9.2,
       desc: '笑中带泪的顶级喜剧经典，专治精神内耗与生活焦虑，看完一身轻快。',
       drink: '🍹 推荐特调：【快乐暴击微气泡杨枝甘露】（多加脆啵啵，嚼碎烦恼）',
-      cover: 'https://doubanio.viki.moe/view/photo/m_ratio_poster/public/p579729551.jpg'
+      cover: LOCAL_POSTER
     },
     brain: {
       label: '深度烧脑',
@@ -118,7 +123,7 @@
       score: 9.4,
       desc: '诺兰硬核科幻巅峰之作，关于爱、引力与时空的永恒交织，维度跳跃极致震撼。',
       drink: '☕ 推荐特调：【超光速冷萃冰美式】（双倍浓缩加冰，逻辑瞬间苏醒）',
-      cover: 'https://doubanio.viki.moe/view/photo/m_ratio_poster/public/p2614988097.jpg'
+      cover: LOCAL_POSTER
     },
     heal: {
       label: '治愈温暖',
@@ -127,7 +132,7 @@
       score: 9.0,
       desc: '把四季晨昏与一蔬一饭过成诗，安静从容，抚平所有浮躁与焦虑。',
       drink: '🥛 推荐特调：【热白桃乌龙厚乳茶】（三分微糖，暖胃抚平一切褶皱）',
-      cover: 'https://doubanio.viki.moe/view/photo/m_ratio_poster/public/p2564498893.jpg'
+      cover: LOCAL_POSTER
     },
     rush: {
       label: '热血刺激',
@@ -136,7 +141,7 @@
       score: 8.7,
       desc: '全程无尿点的纯粹重金属废土狂飙，引擎轰鸣，肾上腺素瞬间狂飙到顶。',
       drink: '🍋 推荐特调：【手打香水浓柠暴打苏打水】（满杯冰块，激情回血）',
-      cover: 'https://doubanio.viki.moe/view/photo/m_ratio_poster/public/p2236242605.jpg'
+      cover: LOCAL_POSTER
     },
     work: {
       label: '社畜共鸣',
@@ -145,7 +150,7 @@
       score: 8.6,
       desc: '跳出格子间的平庸桎梏，去格陵兰跳海、去冰岛滑板，找回生命原本的旷野。',
       drink: '🧋 推荐特调：【焦糖海盐红茶拿铁五分甜】（生活微苦，焦糖自渡）',
-      cover: 'https://doubanio.viki.moe/view/photo/m_ratio_poster/public/p2160195181.jpg'
+      cover: LOCAL_POSTER
     }
   };
 
@@ -157,6 +162,7 @@
   let cachedHotData = [];
   let hotDataSource = 'fallback'; // 'network' | 'cache' | 'stale' | 'fallback'
   let hotLoadToken = 0;           // 竞态令牌：快速切换平台时丢弃过期响应
+  let lastNewsMeta = null;        // 农历库晚到时只补日期徽标，不重拉新闻
 
   // 跨域缓存获取器。
   // source 用于让调用方判断数据是否来自兜底：
@@ -172,13 +178,25 @@
       }
     } catch (_) {}
 
+    // 完全离线时连 fetch 都不发：浏览器会为每个失败请求打印 net::ERR_FAILED，
+    // 即使业务层已经降级，控制台仍会一片红。这里直接返回缓存 / 种子。
+    if (navigator.onLine === false) {
+      try {
+        const cached = localStorage.getItem(CACHE_PREFIX + cacheKey);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed.data) return { data: parsed.data, source: 'stale' };
+        }
+      } catch (_) {}
+      return { data: fallback, source: 'fallback' };
+    }
+
     try {
       const controller = new AbortController();
       const timer = setTimeout(() => controller.abort(), timeoutMs);
-      const res = await fetch(url, { signal: controller.signal });
-      clearTimeout(timer);
-
-      if (res.ok) {
+      try {
+        const res = await fetch(url, { signal: controller.signal });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
         const json = await res.json();
         const data = json.data || json;
         try {
@@ -188,6 +206,8 @@
           );
         } catch (_) {}
         return { data, source: 'network' };
+      } finally {
+        clearTimeout(timer);
       }
     } catch (e) {
       console.warn('[Daily] Fetch API warning, using cache/fallback:', cacheKey, e);
@@ -271,28 +291,130 @@
   }
 
   // ================= 1. 每日 60 秒与全网热搜 =================
+  function dateKey(d) {
+    return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+  }
+
+  // 静态源不带星期与农历，用本地日期推导，避免依赖任何第三方日历接口。
+  function newsDateMeta(dateStr) {
+    const d = new Date(dateStr + 'T12:00:00');
+    if (isNaN(d.getTime())) return { dateLabel: '', day_of_week: '', lunar_date: '' };
+    const dayOfWeek = '星期' + ['日', '一', '二', '三', '四', '五', '六'][d.getDay()];
+    let lunarDate = '';
+    try {
+      if (window.Solar) {
+        const lunar = window.Solar.fromDate(d).getLunar();
+        lunarDate = '农历' + lunar.getMonthInChinese() + '月' + lunar.getDayInChinese();
+      }
+    } catch (_) {}
+    return { dateLabel: dateStr, day_of_week: dayOfWeek, lunar_date: lunarDate };
+  }
+
+  function isValidNews60s(data) {
+    return !!(data && Array.isArray(data.news) && data.news.length);
+  }
+
+  function renderNewsDateBadge(data) {
+    const dateEl = document.getElementById('dl60sDateBadge');
+    if (!dateEl || !data) return;
+    const meta = newsDateMeta(data.date || dateKey(new Date()));
+    lastNewsMeta = { data, meta };
+    const dateText = data.date || meta.dateLabel;
+    const parts = [dateText, data.day_of_week || meta.day_of_week, data.lunar_date || meta.lunar_date].filter(Boolean);
+    if (parts.length) dateEl.textContent = parts.join(' · ');
+  }
+
+  // 主包先渲染新闻，农历 chunk 到达后只更新徽标。
+  // 这样 Daily 深链不会被 89 KB Brotli 的 lunar 库卡住首屏。
+  function refreshLunar() {
+    if (!lastNewsMeta || !window.Solar) return;
+    renderNewsDateBadge(lastNewsMeta.data);
+  }
+
+  // 60s 官方静态 JSON：https://60s-static.viki.moe/60s/YYYY-MM-DD.json
+  // 只保留当天 / 昨天 / 前天三个候选，避免跨天时静态文件尚未生成而空白。
+  async function fetch60sStatic() {
+    const today = new Date();
+    let stale = null;
+    for (let offset = 0; offset < 3; offset++) {
+      const d = new Date(today.getFullYear(), today.getMonth(), today.getDate() - offset);
+      const key = dateKey(d);
+      const cacheKey = 'news_60s_' + key;
+
+      try {
+        const cached = localStorage.getItem(CACHE_PREFIX + cacheKey);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (isValidNews60s(parsed.data)) {
+            if (Date.now() - parsed.ts < CACHE_TTL_MS) return { data: parsed.data, source: 'cache' };
+            if (!stale) stale = parsed.data;
+          }
+        }
+      } catch (_) {}
+
+      if (navigator.onLine === false) continue;
+
+      try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 7500);
+        try {
+          const res = await fetch('https://60s-static.viki.moe/60s/' + key + '.json', {
+            signal: controller.signal
+          });
+          if (!res.ok) continue;
+          const json = await res.json();
+          if (!isValidNews60s(json)) continue;
+          try {
+            localStorage.setItem(
+              CACHE_PREFIX + cacheKey,
+              JSON.stringify({ ts: Date.now(), data: json })
+            );
+          } catch (_) {}
+          return { data: json, source: 'network' };
+        } finally {
+          clearTimeout(timer);
+        }
+      } catch (_) {}
+    }
+
+    if (stale) return { data: stale, source: 'stale' };
+
+    // 三个候选都失败时才读改造前的老 key，最后才用本地种子
+    try {
+      const cached = localStorage.getItem(CACHE_PREFIX + 'news_60s');
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (isValidNews60s(parsed.data)) {
+          const oldData = parsed.data;
+          // 老缓存来自 60s 动态接口，可能带星期 / 农历；缺失时补本地推导
+          if (!oldData.day_of_week || !oldData.lunar_date) {
+            const meta = newsDateMeta(oldData.date || dateKey(new Date()));
+            oldData.day_of_week = oldData.day_of_week || meta.day_of_week;
+            oldData.lunar_date = oldData.lunar_date || meta.lunar_date;
+          }
+          return { data: oldData, source: 'stale' };
+        }
+      }
+    } catch (_) {}
+
+    return { data: FALLBACK_SEEDS.news60s, source: 'fallback' };
+  }
+
   async function load60sNews() {
     const box = document.getElementById('dl60sList');
     const tipEl = document.getElementById('dl60sTip');
-    const dateEl = document.getElementById('dl60sDateBadge');
     if (!box) return;
 
     showSkeleton(box, newsSkeletonHtml());
 
-    const data = await fetchWithCache(
-      'https://60s.viki.moe/v2/60s',
-      'news_60s',
-      FALLBACK_SEEDS.news60s
-    );
-
-    if (dateEl && data.date) {
-      dateEl.textContent = `${data.date} · ${data.day_of_week || ''} · ${data.lunar_date || ''}`;
-    }
+    const result = await fetch60sStatic();
+    const data = result.data;
+    renderNewsDateBadge(data);
     if (tipEl && data.tip) {
       tipEl.textContent = `“ ${data.tip} ”`;
     }
 
-    const newsArr = Array.isArray(data.news) ? data.news : FALLBACK_SEEDS.news60s.news;
+    const newsArr = isValidNews60s(data) ? data.news : FALLBACK_SEEDS.news60s.news;
     fillWithContent(
       box,
       newsArr
@@ -309,57 +431,49 @@
 
   /* ---------------- 热榜多源降级 ----------------
      同一个平台配多个源，按顺序尝试，任一成功即止。
-     背景：原来 7 个平台全押在 60s.viki.moe 一个服务上，
-     实测 B站 500、小红书/AI/头条 429（Cloudflare 限流），
-     这些平台的标签页永远是离线示例。
+     背景：原来 7 个平台全押在 60s.viki.moe 一个服务上。
+     2026-10 实测该域名全部路径返回 Cloudflare 403 且无 ACAO，
+     浏览器里会直接报 CORS 错误，因此已全部移除，不再发死请求。
 
      实测各源可用性（2026-10）：
-       60s.viki.moe   微博/知乎/抖音/小红书/AI/头条 可用，B站 500
-       api.codelife.cc 微博/知乎/抖音 可用（按 id 区分），需 ACAO 回显
-       v2.xxapi.cn     B站/微博/抖音 可用（ACAO: *）
+       api.codelife.cc 微博/知乎/抖音/AI 可用（按 id 区分），需 ACAO 回显
+       v2.xxapi.cn     微博/B站/抖音 可用（ACAO: *）
      B站与抖音的官方接口虽然能拿到数据，但不返回 CORS 头，
      浏览器里必然失败，所以只能用这些聚合源。
+     小红书与头条暂无已验证的跨域实时源，直接走本地兜底并显示离线提示。
+
+     注意：codelife 对未知 id 会返回 HTTP 200 + 空 data，
+     所以不能只看 res.ok，必须校验列表非空。
 
      normalize 把各家的字段差异拉平为 { title, hot_value, link }：
-       viki:      { title, hot_value, link }        B站除外
-       zhihu:     { title, hot_value_desc, link }
        codelife:  { title, hotValue(如 "108万"), link }
        xxapi:     { title, hot(如 "108万"), url } / B站为纯字符串数组
-       rednote:   { title, score(如 "947.5w"), link }
-       ai-news:   { date, news: [{ title, link, detail }] } —— 不是数组
      ------------------------------------------------ */
   // 热榜请求超时：比通用接口宽松，给慢源留出时间，避免误判为不可用
   const HOT_FETCH_TIMEOUT_MS = 12000;
 
   const HOT_SOURCES = {
     weibo: [
-      { url: 'https://60s.viki.moe/v2/weibo', kind: 'viki' },
       { url: 'https://api.codelife.cc/api/top/list?lang=cn&id=KqndgxeLl9', kind: 'codelife' },
       { url: 'https://v2.xxapi.cn/api/weibohot', kind: 'xxapi' }
     ],
     zhihu: [
-      { url: 'https://60s.viki.moe/v2/zhihu', kind: 'zhihu' },
       { url: 'https://api.codelife.cc/api/top/list?lang=cn&id=mproPpoq6O', kind: 'codelife' }
     ],
-    // viki 的 B站接口稳定 500，把能用的 xxapi 放主源
     bili: [
-      { url: 'https://v2.xxapi.cn/api/bilibilihot', kind: 'xxapi-bili' },
-      { url: 'https://60s.viki.moe/v2/bili', kind: 'viki' }
+      { url: 'https://v2.xxapi.cn/api/bilibilihot', kind: 'xxapi' }
     ],
     douyin: [
-      { url: 'https://60s.viki.moe/v2/douyin', kind: 'viki' },
       { url: 'https://api.codelife.cc/api/top/list?lang=cn&id=DpQvNABoNE', kind: 'codelife' },
       { url: 'https://v2.xxapi.cn/api/douyinhot', kind: 'xxapi' }
     ],
-    rednote: [
-      { url: 'https://60s.viki.moe/v2/rednote', kind: 'rednote' }
-    ],
+    // 暂无已验证的跨域实时源：空数组表示直接走缓存 / 离线种子，不发死请求
+    rednote: [],
     'ai-news': [
-      { url: 'https://60s.viki.moe/v2/ai-news', kind: 'ai-news' }
+      // 36kr 科技/AI 快讯（codelife 的科技频道），字段与普通热榜一致
+      { url: 'https://api.codelife.cc/api/top/list?lang=cn&id=Q1Vd5Ko85R', kind: 'codelife' }
     ],
-    toutiao: [
-      { url: 'https://60s.viki.moe/v2/toutiao', kind: 'viki' }
-    ]
+    toutiao: []
   };
 
   // 把 "108万" / "1.2亿" / "947.5w" / 数字 统一成数值，便于按热度排序与展示
@@ -387,10 +501,8 @@
     if (!title) return null;
     const link = item.link || item.url || '';
     let hot = 0;
-    if (kind === 'zhihu') hot = parseHotValue(item.hot_value_desc || item.hot_value);
-    else if (kind === 'codelife') hot = parseHotValue(item.hotValue || item.hot_value);
+    if (kind === 'codelife') hot = parseHotValue(item.hotValue || item.hot_value);
     else if (kind === 'xxapi') hot = parseHotValue(item.hot || item.hot_value || item.heat);
-    else if (kind === 'rednote') hot = parseHotValue(item.score || item.hot_value);
     else if (kind === 'any') hot = parseHotValue(
       item.hot_value || item.hotValue || item.hot_value_desc || item.hot || item.score || item.heat
     );
@@ -422,6 +534,7 @@
       // 否则会在数据到达前就 abort，白白回落到离线示例
       const { data: raw, source } = await fetchWithCacheDetail(src.url, key, null, HOT_FETCH_TIMEOUT_MS);
       if (source === 'fallback') continue; // 该源不可用，试下一个
+      if (raw && typeof raw === 'object' && raw.code != null && Number(raw.code) !== 200) continue;
 
       const list = extractHotArray(raw)
         .map(it => normalizeHotItem(it, src.kind))
@@ -470,10 +583,10 @@
     const list = Array.isArray(raw) ? raw : (raw && raw.list) || HOT_SEED_TOPICS;
     cachedHotData = list;
     hotDataSource = source;
-    renderHotItems(list, meta, source);
+    renderHotItems(list, meta, source, true, platform);
   }
 
-  function renderHotItems(list, meta = PLATFORM_META[curPlatform] || PLATFORM_META.weibo, source = hotDataSource, showNotice = true) {
+  function renderHotItems(list, meta = PLATFORM_META[curPlatform] || PLATFORM_META.weibo, source = hotDataSource, showNotice = true, platform = curPlatform) {
     const listEl = document.getElementById('dlHotList');
     if (!listEl) return;
 
@@ -486,12 +599,16 @@
     // 兜底文案没有真实条目链接，一律指向当前平台的官方热榜页，
     // 绝不能出现「知乎标签点进去是微博热搜」这类错位
     const isFallback = source === 'fallback';
+    const isUnavailable = source === 'fallback' && !(HOT_SOURCES[platform] || []).length;
+    const noticeText = isUnavailable
+      ? `${meta.name}暂无稳定的跨域实时源，当前为离线精选内容，点条目将前往官方页面`
+      : `${meta.name}数据源暂不可用，当前为离线示例，点条目将前往官方热榜页`;
     const notice = !showNotice
       ? ''
       : isFallback
         ? `
       <div class="daily-hot-notice">
-        <span class="daily-hot-notice-txt">⚠️ ${esc(meta.name)}数据源暂不可用，当前为离线示例，点条目将前往官方热榜页</span>
+        <span class="daily-hot-notice-txt">⚠️ ${esc(noticeText)}</span>
         <button type="button" class="daily-hot-retry" data-retry-hot>重试</button>
       </div>`
         : source === 'stale'
@@ -543,6 +660,36 @@
   }
 
   // ================= 2. 影视风向标 & 心情选片 =================
+  // 豆瓣影视接口不返回 ACAO，浏览器直连必然 CORS 失败；
+  // 60s 的豆瓣代理已下线。这里改为本地片单，不制造无效请求。
+  const MOVIE_SEEDS = {
+    weekly_movie: FALLBACK_SEEDS.movies,
+    tv_chinese: [
+      { title: '漫长的季节', rating: 9.4, card_subtitle: '中国大陆 / 剧情 悬疑 / 辛爽 / 范伟 秦昊', tags: ['年度口碑', '悬疑佳作'] },
+      { title: '我的阿勒泰', rating: 8.9, card_subtitle: '中国大陆 / 剧情 / 滕丛丛 / 马伊琍 周依然', tags: ['治愈系', '高分短剧'] },
+      { title: '繁花', rating: 8.7, card_subtitle: '中国大陆 / 剧情 / 王家卫 / 胡歌 马伊琍', tags: ['年代质感', '沪上风情'] },
+      { title: '三体', rating: 8.7, card_subtitle: '中国大陆 / 科幻 悬疑 / 杨磊 / 张鲁一 于和伟', tags: ['硬核科幻', '原著改编'] }
+    ],
+    tv_global: [
+      { title: '切尔诺贝利', rating: 9.6, card_subtitle: '美国 / 剧情 历史 / 约翰·伦克 / 杰瑞德·哈里斯', tags: ['封神之作', '历史灾难'] },
+      { title: '绝命毒师', rating: 9.6, card_subtitle: '美国 / 剧情 犯罪 / 文斯·吉利根 / 布莱恩·科兰斯顿', tags: ['犯罪经典', '全程高能'] },
+      { title: '老友记', rating: 9.8, card_subtitle: '美国 / 喜剧 爱情 / 大卫·克莱恩 / 詹妮弗·安妮斯顿', tags: ['下饭神剧', '温暖治愈'] },
+      { title: '黑镜', rating: 9.0, card_subtitle: '英国 / 科幻 剧情 / 查理·布鲁克 / 丹尼尔·卡卢亚', tags: ['科技寓言', '细思极恐'] }
+    ]
+  };
+
+  function normalizeMovieSeed(m, idx) {
+    return {
+      rank: idx + 1,
+      title: m.title,
+      rating: m.rating,
+      card_subtitle: m.card_subtitle || m.description || '',
+      cover_proxy: m.cover_proxy || m.cover || LOCAL_POSTER,
+      url: m.url || 'https://movie.douban.com',
+      tags: Array.isArray(m.tags) ? m.tags : []
+    };
+  }
+
   async function loadMovieList(type = 'weekly_movie') {
     curMovieType = type;
     const grid = document.getElementById('dlMovieGrid');
@@ -553,35 +700,28 @@
       .map(() => '<div class="daily-skeleton" style="height:140px;border-radius:16px;"></div>')
       .join('');
 
-    const urlMap = {
-      weekly_movie: 'https://60s.viki.moe/v2/douban/weekly/movie',
-      tv_chinese: 'https://60s.viki.moe/v2/douban/weekly/tv_chinese',
-      tv_global: 'https://60s.viki.moe/v2/douban/weekly/tv_global'
-    };
-
-    const url = urlMap[type] || urlMap.weekly_movie;
-    const raw = await fetchWithCache(url, 'movie_' + type, FALLBACK_SEEDS.movies);
-    const list = Array.isArray(raw) ? raw : (raw.list || FALLBACK_SEEDS.movies);
+    const seeds = MOVIE_SEEDS[type] || MOVIE_SEEDS.weekly_movie;
+    const list = seeds.map(normalizeMovieSeed);
 
     fillWithContent(
       grid,
       list
         .map((m, idx) => {
-          const poster = m.cover_proxy || m.cover || 'assets/icons/icon-192.png';
+          const poster = m.cover_proxy || m.cover || LOCAL_POSTER;
           const rating = m.rating ? `★ ${m.rating}` : '暂无评分';
           const tags = Array.isArray(m.tags) ? m.tags : [];
           return `
           <a class="daily-movie-card" style="--i:${idx < 8 ? idx : 7}" href="${m.url || '#'}" target="_blank" rel="noopener noreferrer">
-            <img class="daily-mcard-poster" src="${poster}" alt="${m.title}" loading="lazy" onerror="this.src='assets/icons/icon-192.png'" />
+            <img class="daily-mcard-poster" src="${poster}" alt="${esc(m.title)}" loading="lazy" onerror="this.src='${LOCAL_POSTER}'" />
             <div class="daily-mcard-info">
               <div>
                 <div class="daily-mcard-head">
-                  <span class="daily-mcard-title">#${idx + 1} ${m.title}</span>
+                  <span class="daily-mcard-title">#${idx + 1} ${esc(m.title)}</span>
                   <span class="daily-mcard-score">${rating}</span>
                 </div>
-                ${tags.length ? `<div class="daily-mcard-tags">${tags.map(t => `<span class="daily-mcard-tag">${t}</span>`).join('')}</div>` : ''}
+                ${tags.length ? `<div class="daily-mcard-tags">${tags.map(t => `<span class="daily-mcard-tag">${esc(t)}</span>`).join('')}</div>` : ''}
               </div>
-              <div class="daily-mcard-sub">${m.card_subtitle || m.description || '高口碑精品之作'}</div>
+              <div class="daily-mcard-sub">${esc(m.card_subtitle || m.description || '高口碑精品之作')}</div>
             </div>
           </a>
         `;
@@ -596,12 +736,12 @@
     if (!resEl) return;
 
     resEl.innerHTML = `
-      <img class="daily-mood-res-img" src="${data.cover}" alt="${data.title}" onerror="this.src='assets/icons/icon-192.png'" />
+      <img class="daily-mood-res-img" src="${esc(data.cover)}" alt="${esc(data.title)}" onerror="this.src='${LOCAL_POSTER}'" />
       <div class="daily-mood-res-info">
-        <div class="daily-mood-res-title">${data.title}</div>
+        <div class="daily-mood-res-title">${esc(data.title)}</div>
         <div class="daily-mood-res-score">★ ${data.score} 豆瓣高分经典</div>
-        <div class="daily-mood-res-drink">${data.drink}</div>
-        <div class="daily-mood-res-desc">${data.desc}</div>
+        <div class="daily-mood-res-drink">${esc(data.drink)}</div>
+        <div class="daily-mood-res-desc">${esc(data.desc)}</div>
       </div>
     `;
 
@@ -613,14 +753,30 @@
   }
 
   // ================= 3. 必应 4K 每日壁纸 =================
+  // bing.biturl.top 返回 { start_date, end_date, url, copyright, copyright_link }，
+  // 字段与 60s 的 bing 接口不同，这里统一归一化，避免渲染层到处判空。
+  function normalizeBingWallpaper(raw) {
+    if (!raw || !raw.url) return null;
+    const copyright = String(raw.copyright || '').trim();
+    const title = copyright.split('(')[0].trim() || '今日必应壁纸';
+    return {
+      title: title,
+      copyright: copyright,
+      description: copyright,
+      cover: raw.url,
+      cover_4k: raw.url.replace('_1920x1080.jpg', '_UHD.jpg'),
+      date: raw.end_date || raw.start_date || dateKey(new Date())
+    };
+  }
+
   async function loadBingWallpaper() {
     const raw = await fetchWithCache(
-      'https://60s.viki.moe/v2/bing',
+      'https://bing.biturl.top/?resolution=1920&format=json&index=0&mkt=zh-CN',
       'bing_today',
-      FALLBACK_SEEDS.bing
+      null
     );
 
-    activeWp = raw && raw.cover ? raw : FALLBACK_SEEDS.bing;
+    activeWp = normalizeBingWallpaper(raw) || FALLBACK_SEEDS.bing;
     renderMainWallpaper(activeWp);
     loadRecentWallpapers();
   }
@@ -658,6 +814,9 @@
     };
     imgEl.addEventListener('load', onReady);
     imgEl.addEventListener('error', onErr);
+    // 离线时图片必然加载失败，浏览器会打印 net::ERR_INTERNET_DISCONNECTED。
+    // 保留已有画面，不发起注定失败的请求。
+    if (navigator.onLine === false) return;
     imgEl.src = src;
   }
 
@@ -680,7 +839,7 @@
     );
 
     const results = await Promise.all(promises);
-    const valid = results.filter(Boolean);
+    const valid = results.map(normalizeBingWallpaper).filter(Boolean);
 
     fillWithContent(
       galleryGrid,
@@ -698,10 +857,10 @@
             .map(
               (item, i) => `
         <div class="daily-wp-thumb-card ${i === 0 ? 'active' : ''}" style="--i:${i}" data-idx="${i}">
-          <img class="daily-wp-thumb-img" src="${item.url}" alt="${item.copyright}" loading="lazy" />
+          <img class="daily-wp-thumb-img" src="${esc(item.cover)}" alt="${esc(item.copyright)}" loading="lazy" />
           <div class="daily-wp-thumb-meta">
-            <span class="daily-wp-thumb-date">${item.end_date || `近第 ${i + 1} 日`}</span>
-            <div class="daily-wp-thumb-title" title="${item.copyright}">${item.copyright.split('(')[0] || item.copyright}</div>
+            <span class="daily-wp-thumb-date">${esc(item.date || `近第 ${i + 1} 日`)}</span>
+            <div class="daily-wp-thumb-title" title="${esc(item.copyright)}">${esc(item.title)}</div>
           </div>
         </div>
       `
@@ -716,13 +875,7 @@
         galleryGrid.querySelectorAll('.daily-wp-thumb-card').forEach(c => c.classList.remove('active'));
         card.classList.add('active');
 
-        activeWp = {
-          title: item.copyright.split('(')[0].trim() || '必应风光大片',
-          description: item.copyright,
-          copyright: item.copyright,
-          cover: item.url,
-          cover_4k: item.url.replace('_1920x1080.jpg', '_UHD.jpg')
-        };
+        activeWp = item;
         renderMainWallpaper(activeWp);
         if (isSiteBgActive) {
           applySiteBackground(activeWp.cover_4k || activeWp.cover, activeWp.title);
@@ -1029,6 +1182,7 @@
   window.AppDaily = {
     init,
     restoreSavedAmbientBg,
+    refreshLunar,
     load60sNews,
     loadHotList,
     loadMovieList,

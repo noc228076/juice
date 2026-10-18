@@ -133,6 +133,23 @@
     document.documentElement.classList.add('cover-ready');
   }
 
+  function setNavLoading(isLoading) {
+    document.documentElement.classList.toggle('nav-loading', !!isLoading);
+    let el = document.getElementById('navLoadOverlay');
+    if (!isLoading) {
+      if (el) el.remove();
+      return;
+    }
+    if (el) return;
+    el = document.createElement('div');
+    el.id = 'navLoadOverlay';
+    el.setAttribute('role', 'status');
+    el.setAttribute('aria-live', 'polite');
+    el.innerHTML = '<div class="nav-load-card"><span class="nav-load-spinner" aria-hidden="true"></span><b>正在打开…</b><small>首次进入需要加载该模块</small></div>';
+    const viewport = document.getElementById('modules-viewport');
+    (viewport || document.body).appendChild(el);
+  }
+
   function ensureLunarReady() {
     return new Promise((resolve) => {
       const done = () => resolve(!!window.Solar);
@@ -189,16 +206,6 @@
 
   function initModuleOnce(modKey) {
     const sharedChunk = MODULE_CHUNKS[modKey];
-    const pending = Array.from(initializingModules.entries()).find(([key, task]) => (
-      task && MODULE_CHUNKS[key] === sharedChunk
-    ));
-    if (pending) {
-      return pending[1].then(() => {
-        if (currentModule !== modKey) return;
-        runModuleInit(modKey);
-      });
-    }
-
     if (initializedModules.has(modKey)) {
       if (shouldReinit(modKey)) runModuleInit(modKey);
       return Promise.resolve();
@@ -213,8 +220,11 @@
       return Promise.resolve();
     }
 
+    // Multiple modules can share one chunk (tarot/lingqian/fengshui all use
+    // mystic). Cache the chunk promise separately, but let every module run
+    // its own init exactly once. Tying init to the first requester leaves the
+    // next tab switching its nav highlight while the old page stays visible.
     const task = loadChunk(chunk).then(() => {
-      if (currentModule !== modKey) return;
       const api = window[apiName];
       if (!api) {
         console.warn('[Router] module API missing after chunk load:', modKey, apiName);
@@ -425,6 +435,7 @@
       return Promise.resolve();
     }
 
+    if (source === 'program') setNavLoading(true);
     const moduleTask = initModuleOnce(state.mod);
     const cssTask = loadModuleCss().catch((err) => {
       console.error('[Router]', err);
@@ -434,6 +445,8 @@
       activateModule(state.mod);
       restoreModuleView(state);
       if (state.layer) openLayerDom(state.layer, state.payload);
+    }).finally(() => {
+      if (seq === navSeq) setNavLoading(false);
     });
   }
 

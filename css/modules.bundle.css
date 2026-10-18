@@ -4628,45 +4628,6 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .rz-half.hit.ng {
   #mod-manual .sm-screen#scr-sm-mine .wrap {
     max-width: none;
   }
-  /* 扫雷 / 舒尔特：章节标题挪到左上角，和棋盘并排，
-     把原本被标题独占的那一整行高度让给棋盘，格子就能更大。
-     标题列固定窄宽度，右侧整块留给 .sm-game-layout。 */
-  #mod-manual .sm-screen#scr-sm-mine .wrap,
-  #mod-manual .sm-screen#scr-sm-schulte .wrap {
-    display: grid;
-    grid-template-columns: 210px minmax(0, 1fr);
-    grid-template-rows: auto 1fr;
-    align-items: start;
-    column-gap: 20px;
-  }
-  #mod-manual .sm-screen#scr-sm-mine #sm-minetop,
-  #mod-manual .sm-screen#scr-sm-schulte #sm-schultetop {
-    grid-column: 1;
-    grid-row: 1 / span 2;
-    position: sticky;
-    top: 12px;
-  }
-  #mod-manual .sm-screen#scr-sm-mine #sm-minebody,
-  #mod-manual .sm-screen#scr-sm-schulte #sm-schultebody {
-    grid-column: 2;
-    grid-row: 1 / span 2;
-    min-width: 0;
-  }
-  /* 左上角标题：允许换行，不要被 ellipsis 截成「雷区…」 */
-  #mod-manual .sm-screen#scr-sm-mine .mt-topbar,
-  #mod-manual .sm-screen#scr-sm-schulte .mt-topbar {
-    max-width: none;
-    margin: 0;
-    padding: 4px 0 0;
-    display: block;
-  }
-  #mod-manual .sm-screen#scr-sm-mine .mt-topbar .mt-pick-head b,
-  #mod-manual .sm-screen#scr-sm-schulte .mt-topbar .mt-pick-head b {
-    white-space: normal;
-    overflow: visible;
-    text-overflow: clip;
-    line-height: 1.35;
-  }
 #mod-manual .manual-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -5101,10 +5062,9 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .rz-half.hit.ng {
     #mod-manual .sm-screen#scr-sm-schulte .sm-game-layout .stage {
       width: max-content;
       max-width: 100%;
-      /* 标题已挪到左上角，棋盘紧贴标题列左对齐，不再居中留出空档 */
-      justify-self: start;
-      margin-left: 0;
-      margin-right: 0;
+      justify-self: center;
+      margin-left: auto;
+      margin-right: auto;
     }
     #mod-manual .sm-game-layout .lb-host {
     margin-top: 0;

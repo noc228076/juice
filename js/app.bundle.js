@@ -8525,11 +8525,15 @@ if ('serviceWorker' in navigator) {
       }
       return;
     }
+    if (currentState.view !== 'home') {
+      replaceView('home');
+      return;
+    }
     if (typeof fallback === 'function') fallback();
   }
 
   function parseHashState() {
-    const raw = window.location.hash.replace(/^#\/?/, '').toLowerCase();
+    const raw = decodeURIComponent(window.location.hash.replace(/^#\/?/, '')).trim().toLowerCase();
     if (!raw) return { state: { mod: HOME_MOD, view: 'home', layer: null, payload: null }, valid: true, home: true };
     const norm = normalizeMod(raw);
     if (!norm) return { state: { mod: HOME_MOD, view: 'home', layer: null, payload: null }, valid: false, home: true };

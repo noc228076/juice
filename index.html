@@ -17,20 +17,36 @@
 <meta property="og:title" content="饮料人格研究所 · 测测你的精神状态与灵魂特调">
 <meta property="og:description" content="当代年轻人精神状态测试 (SBTI) / 经典 16 型人格 (MBTI) / 16 款灵魂饮料特调，测出你的独家出厂配方与精神病友。">
 <meta property="og:image" content="assets/icons/icon-512.png">
-  <link rel="stylesheet" href="css/app.bundle.css?v=89">
+  <link rel="stylesheet" href="css/app.bundle.css?v=90">
   <script>
     (function(){
+      // 主题必须在首次绘制前定下来。以前只有 <html data-theme="dark"> 的硬编码默认值，
+      // 真实主题要等 1.5MB 的主包执行到 core-drink.js 的 applyTheme() 才生效——
+      // 浅色用户会先看到一屏深色再被刷白，这就是「加载完闪一下」。
+      try {
+        var t = localStorage.getItem('dp_theme');
+        if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+      } catch(e){}
       try {
         if (localStorage.getItem('daily_site_bg_active') === 'true') {
           var u = localStorage.getItem('daily_site_bg_url');
           if (u) {
             document.documentElement.style.setProperty('--daily-bg-url', 'url("' + u + '")');
             document.documentElement.classList.add('has-daily-ambient-bg');
-            document.addEventListener('DOMContentLoaded', function(){
-              if (document.body) document.body.classList.add('has-daily-ambient-bg');
+            // body 此时还不存在，等解析到 <body> 立刻补类，别拖到 DOMContentLoaded
+            var applyBody = function(){
+              if (!document.body) return false;
+              document.body.classList.add('has-daily-ambient-bg');
               var b = document.getElementById('appAmbientBackdrop');
               if (b) b.style.backgroundImage = 'url("' + u + '")';
-            });
+              return true;
+            };
+            if (!applyBody()) {
+              var mo = new MutationObserver(function(){
+                if (applyBody()) mo.disconnect();
+              });
+              mo.observe(document.documentElement, { childList: true, subtree: true });
+            }
           }
         }
       } catch(e){}
@@ -103,6 +119,29 @@
 
   <!-- 5 大模块总视口 -->
   <main id="modules-viewport">
+    <!-- 首屏骨架：主包执行到 show('cover') 之前，内容区本来是纯黑。
+         这里用和真实封面同布局的静态骨架顶上，避免「顶栏孤零零挂在一片空黑上」。
+         core-drink.js 显示封面的同一帧给 <html> 加 cover-ready，由 CSS 淡出骨架。 -->
+    <div id="bootSkeleton" aria-hidden="true">
+      <div class="bs-wrap">
+        <div class="bs-left">
+          <div class="bs-cup"><i></i></div>
+          <div class="bs-eyebrow"></div>
+          <div class="bs-title"></div>
+          <div class="bs-title short"></div>
+          <div class="bs-sub"></div>
+        </div>
+        <div class="bs-right">
+          <div class="bs-label"></div>
+          <div class="bs-card"></div>
+          <div class="bs-card"></div>
+          <div class="bs-card"></div>
+          <div class="bs-card"></div>
+          <div class="bs-cta"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- 模块 1：饮料人格研究所 (主模块) -->
     <section id="mod-drinks" class="app-module active">
   <!-- ======== 封面 ======== -->
@@ -875,7 +914,10 @@
 
             <div class="tr-arcana-showcase">
               <div class="tr-showcase-art">
-                <img id="trShowcaseImg" src="assets/tarot/card_19.jpg" alt="太阳">
+                <!-- 这张 446KB 的图在 #mod-tarot 里，初始 display:none，
+                     但浏览器仍会按图片优先级抢在主包之前下载，把首屏 JS 拖慢 4 倍。
+                     lazy 之后它只在塔罗模块真正可见时才请求。 -->
+                <img id="trShowcaseImg" src="assets/tarot/card_19.jpg" alt="太阳" loading="lazy" decoding="async">
               </div>
               <div class="tr-showcase-info">
                 <span class="tr-showcase-tag" id="trShowcaseTag">🌟 今日值日阿卡那</span>
@@ -2473,6 +2515,6 @@
   <canvas id="shareCanvas" width="1080" height="1620" hidden></canvas>
 </div>
 
-  <script defer src="js/app.bundle.js?v=89"></script>
+  <script defer src="js/app.bundle.js?v=90"></script>
 </body>
 </html>

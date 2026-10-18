@@ -339,6 +339,117 @@ html {
   scrollbar-gutter: stable;
 }
 
+/* ============ 首屏骨架 ============
+   主包 1.5MB，执行到 show('cover') 之前内容区是空的。
+   骨架用纯 CSS 画，和真实封面同布局，所以替换时不会跳位。
+   尺寸对齐 css/base.css 的 .cover-wrap / .cover-center / .cover-action-card，
+   宽屏断点也保持 900px 一致。 */
+#bootSkeleton {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  overflow: hidden;
+  padding: 24px;
+  background: var(--bg);
+  transition: opacity 0.22s ease;
+}
+html.cover-ready #bootSkeleton {
+  opacity: 0;
+  pointer-events: none;
+}
+.bs-wrap {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  max-width: 460px;
+  width: 100%;
+  margin: auto;
+  padding: 8px 0 24px;
+}
+.bs-left { display: flex; flex-direction: column; align-items: center; }
+.bs-cup {
+  width: 112px;
+  height: 154px;
+  margin-bottom: 28px;
+  border: 2.5px solid var(--line-strong);
+  border-top: none;
+  border-radius: 0 0 28px 28px;
+  background: var(--card);
+  position: relative;
+  overflow: hidden;
+}
+.bs-cup i {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  height: 74%;
+  border-radius: 0 0 24px 24px;
+  background: var(--ac-soft);
+}
+.bs-eyebrow {
+  width: 210px; height: 11px;
+  margin-bottom: 14px;
+  border-radius: 6px;
+  background: var(--line);
+}
+.bs-title {
+  width: 260px; height: 62px;
+  border-radius: 14px;
+  background: var(--line);
+}
+.bs-title.short { width: 190px; margin-top: 12px; }
+.bs-sub {
+  width: 240px; height: 14px;
+  margin-top: 26px;
+  border-radius: 7px;
+  background: var(--line);
+}
+.bs-right { display: flex; flex-direction: column; gap: 8px; margin-top: 26px; }
+.bs-label { width: 96px; height: 11px; margin-bottom: 4px; border-radius: 6px; background: var(--line); }
+.bs-card {
+  height: 62px;
+  border-radius: var(--r-md);
+  background: var(--card);
+  border: 1.5px solid var(--line);
+}
+.bs-cta {
+  height: 58px;
+  margin-top: 10px;
+  border-radius: 999px;
+  background: var(--ac-soft);
+  border: 1.5px solid var(--ac-fade);
+}
+@media (min-width: 900px) {
+  .bs-wrap {
+    display: grid;
+    grid-template-columns: 1.05fr 0.95fr;
+    gap: 52px;
+    max-width: 1080px;
+    align-items: center;
+    /* 和真实 .cover-wrap 一致：内容整体垂直居中，不是顶到视口上沿 */
+    margin: auto;
+  }
+  .bs-left { align-items: flex-start; }
+  .bs-cup { width: 130px; height: 180px; }
+  .bs-title { width: 320px; height: 76px; }
+  .bs-title.short { width: 240px; }
+  .bs-right {
+    margin-top: 0;
+    padding: 30px 28px;
+    gap: 16px;
+    border-radius: var(--r-lg);
+    background: var(--card);
+    border: 1.5px solid var(--line-strong);
+    box-shadow: var(--shadow);
+  }
+  .bs-card { height: 66px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  #bootSkeleton { transition: none; }
+}
+
 #mod-drinks,
 #mod-milktea,
 #mod-manual,

@@ -3700,6 +3700,9 @@ const SFX = (function () {
     screens[cur].classList.remove('on');
     screens[name].classList.add('on');
     cur = name;
+    // 真实封面已经上屏，淡出首屏骨架（见 index.html #bootSkeleton）。
+    // 加在 <html> 上而不是删节点：删节点会触发一次重排，淡出更平滑。
+    document.documentElement.classList.add('cover-ready');
   }
 
   /* ---------- 主题 ---------- */

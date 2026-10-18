@@ -3701,6 +3701,9 @@ const SFX = (function () {
     screens[cur].classList.remove('on');
     screens[name].classList.add('on');
     cur = name;
+    // 真实封面已经上屏，淡出首屏骨架（见 index.html #bootSkeleton）。
+    // 加在 <html> 上而不是删节点：删节点会触发一次重排，淡出更平滑。
+    document.documentElement.classList.add('cover-ready');
   }
 
   /* ---------- 主题 ---------- */
@@ -32490,6 +32493,9 @@ if ('serviceWorker' in navigator) {
     if (targetModuleEl) {
       targetModuleEl.classList.add('active');
     }
+    // 首屏骨架只属于饮品封面。用户在主包还没执行完时切到别的模块（深链、
+    // 或极快的手速），骨架必须让位，否则会盖住真正要看的模块。
+    document.documentElement.classList.add('cover-ready');
 
     // 延迟初始化模块（仅在首次切入时初始化，按需加载，节省初始化开销）
     if (!initializedModules.has(modKey)) {

@@ -1734,6 +1734,50 @@
       if (started) elapsed = Math.floor((performance.now() - t0) / 1000);
     }
 
+    /* 开始页：点「开始挑战」才生成数字并起计时。
+       此前一进章节就直接铺好棋盘，玩家可以先盯着慢慢找，
+       而计时又要等第一次点对才开始 —— 相当于开局白送思考时间。
+       现在难度选择和开始按钮都在开始页，棋盘不出现在屏幕上。 */
+    function intro() {
+      clearTimers();
+      if (timerId) { clearInterval(timerId); timerId = 0; }
+      var n = level.n * level.n;
+      el.innerHTML = hud('<b>舒尔特方格</b>', level.name + ' · ' + level.n + '×' + level.n) +
+        '<div class="rz-stage">' +
+        '<div class="rz-big" style="font-size:30px">按顺序找出 1 到 ' + n + '</div>' +
+        '<div class="rz-sub">点「开始挑战」后棋盘才会出现，计时同时开始。<br>' +
+        '点错只记录次数、不中断计时。三档难度各排各的榜。</div>' +
+        '<div class="ms-levels" style="margin-top:22px;justify-content:center">' +
+        ['easy', 'medium', 'hard'].map(function (k) {
+          return '<button type="button" class="ms-lv' + (level.key === k ? ' active' : '') +
+            '" data-lv="' + k + '">' + LEVELS[k].name + '</button>';
+        }).join('') +
+        '</div>' +
+        '<button class="btn accent" id="schgo" style="margin-top:22px;width:auto;padding:12px 38px">开始挑战</button>' +
+        '</div>';
+      el.querySelectorAll('[data-lv]').forEach(function (b) {
+        b.onclick = function () {
+          var k = b.getAttribute('data-lv');
+          if (k === level.key) return;
+          if (window.SFX && window.SFX.tap) window.SFX.tap();
+          level = LEVELS[k];
+          syncLbLevel();     // 换难度 = 换榜单
+          intro();
+        };
+      });
+      var btn = el.querySelector('#schgo');
+      if (btn) {
+        btn.onclick = function (e) {
+          e.stopPropagation();
+          if (window.SFX && window.SFX.tap) window.SFX.tap();
+          reset(level.key);
+          started = true;
+          startTimer();      // 计时与棋盘同时开始
+          paint();
+        };
+      }
+    }
+
     function onPick(idx) {
       if (over || destroyed) return;
       if (order[idx] !== next) {
@@ -1753,10 +1797,6 @@
         return;
       }
 
-      if (!started) {
-        started = true;
-        startTimer();
-      }
       if (window.SFX && window.SFX.tap) window.SFX.tap();
 
       var btn = el.querySelector('#schGrid .ms-cell[data-i="' + idx + '"]');
@@ -1889,30 +1929,20 @@
         btn.addEventListener('click', function () { onPick(i); });
       });
 
+      // 重开 = 回开始页：重新洗牌、重新计时，玩家点「开始挑战」才看到新棋盘
       var resetBtn = el.querySelector('#schReset');
       if (resetBtn) resetBtn.onclick = function () {
         if (window.SFX && window.SFX.tap) window.SFX.tap();
         reset(level.key);
-        paint();
+        intro();
       };
-
-      el.querySelectorAll('[data-lv]').forEach(function (b) {
-        b.onclick = function () {
-          var k = b.getAttribute('data-lv');
-          if (k === level.key && !started) return;
-          if (window.SFX && window.SFX.tap) window.SFX.tap();
-          reset(k);
-          syncLbLevel();
-          paint();
-        };
-      });
     }
 
     /* ---------------- 启动 ---------------- */
 
     reset('easy');
     syncLbLevel();
-    paint();
+    intro();          // 先停在开始页，点「开始挑战」才生成数字并计时
     mountLbHost();
 
     onResize = function () {

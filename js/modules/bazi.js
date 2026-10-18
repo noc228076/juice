@@ -1673,6 +1673,14 @@
     const res = runBazi(options);
     if (res) {
       renderResult(res, shouldScroll);
+      if (shouldScroll && window.AppRouter && typeof window.AppRouter.pushView === 'function') {
+        const st = window.AppRouter.getState();
+        if (st && st.view === 'result') {
+          window.AppRouter.replaceView('result', { options: res.rawOptions });
+        } else {
+          window.AppRouter.pushView('result', { options: res.rawOptions });
+        }
+      }
     }
   }
 
@@ -2014,8 +2022,15 @@
     const btnAgain = document.getElementById('bzBtnAgain');
     if (btnAgain) {
       btnAgain.addEventListener('click', () => {
-        const inpCard = document.querySelector('.bz-input-card');
-        if (inpCard) inpCard.scrollIntoView({ behavior: 'smooth' });
+        if (window.AppRouter && typeof window.AppRouter.back === 'function') {
+          window.AppRouter.back(() => {
+            const inpCard = document.querySelector('.bz-input-card');
+            if (inpCard) inpCard.scrollIntoView({ behavior: 'smooth' });
+          });
+        } else {
+          const inpCard = document.querySelector('.bz-input-card');
+          if (inpCard) inpCard.scrollIntoView({ behavior: 'smooth' });
+        }
       });
     }
 
@@ -2028,6 +2043,17 @@
   window.AppBazi = {
     init,
     restore,
+    restoreView: function (view, payload) {
+      const stage = document.getElementById('bzResultStage');
+      if (view === 'result' && payload && payload.options) {
+        const res = runBazi(payload.options);
+        if (res) renderResult(res, false);
+        return;
+      }
+      if (stage) stage.classList.remove('active');
+      const inpCard = document.querySelector('.bz-input-card');
+      if (inpCard) inpCard.scrollIntoView({ behavior: 'auto' });
+    },
     runBazi,
     exportBaziPoster
   };

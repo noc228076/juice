@@ -3644,6 +3644,9 @@ const SFX = (function () {
     renderResult();
     show('result');
     saveCurrentToHistory();
+    if (window.AppRouter && typeof window.AppRouter.replaceView === 'function') {
+      window.AppRouter.replaceView('result', { test: curTest });
+    }
     SFX.reveal();
   }
 
@@ -3676,6 +3679,9 @@ const SFX = (function () {
     renderResult();
     show('result');
     saveCurrentToHistory();
+    if (window.AppRouter && typeof window.AppRouter.replaceView === 'function') {
+      window.AppRouter.replaceView('result', { test: curTest });
+    }
     SFX.reveal();
   }
 
@@ -3692,6 +3698,9 @@ const SFX = (function () {
     renderResult();
     show('result');
     saveCurrentToHistory();
+    if (window.AppRouter && typeof window.AppRouter.replaceView === 'function') {
+      window.AppRouter.replaceView('result', { test: curTest });
+    }
     SFX.reveal();
   }
 
@@ -4048,6 +4057,9 @@ const SFX = (function () {
     $('quizFill').style.width = '0%';
     renderQuestion();
     show('quiz');
+    if (window.AppRouter && typeof window.AppRouter.pushView === 'function') {
+      window.AppRouter.pushView('quiz', { test: curTest });
+    }
   }
 
   /* ---------- 摇杯过渡 ---------- */
@@ -4071,6 +4083,12 @@ const SFX = (function () {
         persona = computePersona();
         renderResult();
         saveCurrentToHistory();
+        if (window.AppRouter && typeof window.AppRouter.replaceView === 'function') {
+          window.AppRouter.replaceView('result', {
+            test: curTest,
+            code: (curTest === 'sbti') ? (persona.code || 'SBTI') : resolveCode()
+          });
+        }
         SFX.reveal();
         setTimeout(() => show('result'), 260);
       }
@@ -4235,7 +4253,11 @@ const SFX = (function () {
     const list = getHistoryList();
     const item = list.find(x => x.id === id);
     if (!item) return;
+    window.__restoreDrinkRecord(item);
+  }
 
+  window.__restoreDrinkRecord = function (item) {
+    if (!item) return;
     curTest = item.test;
     if (item.test === 'sbti') {
       sbtiAnswers = item.sbtiSnap || {};
@@ -4267,37 +4289,9 @@ const SFX = (function () {
     show('result');
     hideHistoryDrawer();
     SFX.page();
-  }
+  };
 
   window.__restoreHistory = restoreHistoryReport;
-  window.__restoreDrinkRecord = function (rec) {
-    if (!rec) return;
-    if (typeof rec === 'string') {
-      restoreHistoryReport(rec);
-    } else if (rec.data) {
-      const d = rec.data;
-      curTest = d.test || 'drink';
-      if (curTest === 'sbti') {
-        sbtiAnswers = d.sbtiSnap || d.sbtiAnswers || {};
-        persona = d.customPersona ? { ...d.customPersona } : { ...(PERSONAS_SBTI[d.code] || d.persona) };
-        persona.code = d.code;
-        if (d.levelsSnap) persona.levels = d.levelsSnap;
-        if (d.rawScoresSnap) persona.rawScores = d.rawScoresSnap;
-      } else if (curTest === 'drink') {
-        const savedCounts = d.scoresSnap || d.counts || {};
-        for (const k in counts) counts[k] = savedCounts[k] || 0;
-        persona = { ...(PERSONAS_DRINK[d.code] || d.persona), code: d.code };
-      } else {
-        const savedCounts = d.scoresSnap || d.counts || {};
-        for (const k in counts) counts[k] = savedCounts[k] || 0;
-        persona = { ...(PERSONAS_MBTI[d.code] || d.persona), code: d.code };
-      }
-      renderResult();
-      show('result');
-      hideHistoryDrawer();
-      SFX.page();
-    }
-  };
   window.__delHistory = removeHistoryItem;
 
   function renderHistoryDrawer() {
@@ -5058,11 +5052,13 @@ const SFX = (function () {
         renderQuestion();
         SFX.back();
       } else {
-        show('cover');
+        if (window.AppRouter && typeof window.AppRouter.back === 'function') window.AppRouter.back(() => show('cover'));
+        else show('cover');
         SFX.back();
       }
     } else if (cur === 'result') {
-      show('cover');
+      if (window.AppRouter && typeof window.AppRouter.back === 'function') window.AppRouter.back(() => show('cover'));
+      else show('cover');
       SFX.back();
     }
   };
@@ -5128,7 +5124,8 @@ const SFX = (function () {
     document.querySelectorAll('.btn-mode-act').forEach(b => {
       b.addEventListener('click', () => {
         SFX.page();
-        show('cover');
+        if (window.AppRouter && typeof window.AppRouter.back === 'function') window.AppRouter.back(() => show('cover'));
+        else show('cover');
       });
     });
 
@@ -5207,13 +5204,6 @@ const SFX = (function () {
       }
     });
 
-    // 浏览器历史记录前进后退兼容
-    window.addEventListener('popstate', () => {
-      if (window.__dpCanGoBack()) {
-        window.__dpGoBack();
-      }
-    });
-
     document.addEventListener('pointerdown', () => SFX.unlock(), { once: true });
 
     // 本地快速检阅支持：URL 参数 ?drink=ESTP / ?sbti=MALO 或控制台 window.previewDrink('ESTP') / window.previewSbti('MALO')
@@ -5252,6 +5242,36 @@ const SFX = (function () {
   }
 
   init();
+
+  window.AppDrinks = {
+    restoreView: function (view, payload) {
+      if (view === 'quiz') {
+        if (cur === 'quiz') return;
+        if (payload && payload.test && TESTS[payload.test]) curTest = payload.test;
+        if (!qList || !qList.length || answers.length === 0) {
+          startQuiz();
+          return;
+        }
+        show('quiz');
+        return;
+      }
+      if (view === 'result') {
+        if (payload && payload.test && TESTS[payload.test]) curTest = payload.test;
+        if (payload && payload.record && window.__restoreDrinkRecord) {
+          window.__restoreDrinkRecord(payload.record);
+          return;
+        }
+        if (persona) {
+          renderResult();
+          show('result');
+          return;
+        }
+        show('cover');
+        return;
+      }
+      show('cover');
+    }
+  };
 })();
 
 

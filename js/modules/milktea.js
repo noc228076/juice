@@ -162,6 +162,9 @@
     curQi = 0;
     showScreen('sc-mt-quiz');
     renderQuestion();
+    if (window.AppRouter && typeof window.AppRouter.pushView === 'function') {
+      window.AppRouter.pushView('quiz');
+    }
   }
 
   function renderQuestion() {
@@ -214,7 +217,6 @@
 
   function finish() {
     if (window.SFX && window.SFX.cheers) window.SFX.cheers();
-    showScreen('sc-mt-result');
 
     const scores = {};
     for (const t of TRAITS) scores[t.k] = 0;
@@ -303,7 +305,8 @@
 
     document.getElementById('mtBtnHome').onclick = () => {
       if (window.SFX && window.SFX.tap) window.SFX.tap();
-      showScreen('sc-mt-home');
+      if (window.AppRouter && typeof window.AppRouter.back === 'function') window.AppRouter.back(() => showScreen('sc-mt-home'));
+      else showScreen('sc-mt-home');
     };
 
     document.getElementById('mtBtnAgain').onclick = () => {
@@ -314,6 +317,11 @@
     document.getElementById('mtBtnSave').onclick = () => {
       drawMilkteaShareCard(lastResult);
     };
+
+    showScreen('sc-mt-result');
+    if (window.AppRouter && typeof window.AppRouter.replaceView === 'function') {
+      window.AppRouter.replaceView('result', { result: lastResult });
+    }
   }
 
   /* 绘制 Canvas 分享海报（内嵌真实品牌 Logo） */
@@ -534,7 +542,8 @@
           curQi--;
           renderQuestion();
         } else {
-          showScreen('sc-mt-home');
+          if (window.AppRouter && typeof window.AppRouter.back === 'function') window.AppRouter.back(() => showScreen('sc-mt-home'));
+          else showScreen('sc-mt-home');
         }
       };
     }
@@ -549,12 +558,17 @@
     if (btnBackResult) {
       btnBackResult.onclick = () => {
         if (window.SFX && window.SFX.tap) window.SFX.tap();
-        showScreen('sc-mt-home');
+        if (window.AppRouter && typeof window.AppRouter.back === 'function') window.AppRouter.back(() => showScreen('sc-mt-home'));
+        else showScreen('sc-mt-home');
       };
     }
   }
 
   function restore(res) {
+    renderRestoredResult(res);
+  }
+
+  function renderRestoredResult(res) {
     if (!res || !res.b) return;
     lastResult = res;
     const b = res.b;
@@ -598,7 +612,8 @@
 
     document.getElementById('mtBtnHome').onclick = () => {
       if (window.SFX && window.SFX.tap) window.SFX.tap();
-      showScreen('sc-mt-home');
+      if (window.AppRouter && typeof window.AppRouter.back === 'function') window.AppRouter.back(() => showScreen('sc-mt-home'));
+      else showScreen('sc-mt-home');
     };
     document.getElementById('mtBtnAgain').onclick = () => {
       if (window.SFX && window.SFX.tap) window.SFX.tap();
@@ -617,6 +632,19 @@
     showScreen,
     finish,
     restore,
+    restoreView: function (view, payload) {
+      if (view === 'quiz') {
+        if (!curAnswers.length) curAnswers = new Array(QS.length).fill(-1);
+        showScreen('sc-mt-quiz');
+        renderQuestion();
+        return;
+      }
+      if (view === 'result') {
+        renderRestoredResult(payload && payload.result);
+        return;
+      }
+      showScreen('sc-mt-home');
+    },
     drawMilkteaShareCard
   };
 })();

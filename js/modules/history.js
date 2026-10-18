@@ -85,12 +85,12 @@
 
   function restoreRecord(item) {
     if (!item) return;
-    closeDrawer();
+    closeDrawer({ fromRouter: true });
 
     const mod = item.module || 'drinks';
     let ready = Promise.resolve();
-    if (window.AppRouter && typeof window.AppRouter.switchModule === 'function') {
-      ready = Promise.resolve(window.AppRouter.switchModule(mod));
+    if (window.AppRouter && typeof window.AppRouter.navigate === 'function') {
+      ready = Promise.resolve(window.AppRouter.navigate(mod, 'home', null, { replace: true }));
     }
 
     if (window.SFX && window.SFX.page) {
@@ -98,6 +98,15 @@
     }
 
     ready.then(() => {
+      const map = {
+        drinks: { record: item },
+        milktea: { result: item.data },
+        tarot: item.data,
+        lingqian: item.data,
+        fengshui: item.data,
+        bazi: item.data,
+        manual: item.data
+      };
       if (mod === 'drinks') {
         if (typeof window.__restoreDrinkRecord === 'function') {
           window.__restoreDrinkRecord(item);
@@ -120,14 +129,17 @@
         // 说明书存档有两种：答题/游戏报告（test+res），和并入第 05 章的人间清醒（mode）
         const d = item.data || {};
         if (d.mode && !d.test && window.AppLifeguide) {
-          window.AppManual.openTest('lifeguide');
+          window.AppManual.openTest('lifeguide', { silent: true });
           window.AppLifeguide.restore(d);
         } else if (window.AppManual && typeof window.AppManual.restore === 'function' && item.data) {
           window.AppManual.restore(item.data);
         }
       } else if (mod === 'decision') {
-        if (window.AppDecision && typeof window.AppDecision.restore === 'function' && item.data) {
-          window.AppDecision.restore(item.data);
+        if (window.AppDecision && typeof window.AppDecision.openReceiptLayer === 'function' && item.data) {
+          window.AppDecision.openReceiptLayer(item.data);
+          if (window.AppRouter && typeof window.AppRouter.openLayer === 'function') {
+            window.AppRouter.openLayer('decision', item.data);
+          }
         }
       } else if (mod === 'lingqian') {
         if (window.AppLingqian && typeof window.AppLingqian.restore === 'function' && item.data) {
@@ -144,7 +156,7 @@
       } else if (mod === 'lifeguide') {
         // 人间清醒已并入说明书：先切到说明书，再由它翻开第 05 章并恢复现场
         if (window.AppManual) {
-          window.AppManual.openTest('lifeguide');
+          window.AppManual.openTest('lifeguide', { silent: true });
         }
         if (window.AppLifeguide && typeof window.AppLifeguide.restore === 'function' && item.data) {
           window.AppLifeguide.restore(item.data);
@@ -157,6 +169,12 @@
         if (window.AppScratch && typeof window.AppScratch.restore === 'function' && item.data) {
           window.AppScratch.restore(item.data);
         }
+      }
+
+      // Modules render their own restored view. Only sync the router state
+      // afterwards, otherwise the router calls restoreView() and renders twice.
+      if (window.AppRouter && typeof window.AppRouter.replaceView === 'function' && mod !== 'decision') {
+        window.AppRouter.replaceView('result', map[mod] || null, { skipRestore: true });
       }
     }).catch((e) => {
       console.warn('restore record error:', e);
@@ -322,7 +340,12 @@
     });
   }
 
-  function openDrawer() {
+  function openDrawer(options) {
+    options = options || {};
+    if (!options.fromRouter && window.AppRouter && typeof window.AppRouter.openLayer === 'function') {
+      window.AppRouter.openLayer('history');
+      return;
+    }
     renderDrawer('all');
     const btnClear = document.getElementById('btnClearHistory');
     if (btnClear) btnClear.style.display = '';
@@ -334,7 +357,12 @@
     }
   }
 
-  function closeDrawer() {
+  function closeDrawer(options) {
+    options = options || {};
+    if (!options.fromRouter && window.AppRouter && typeof window.AppRouter.dismissLayer === 'function') {
+      window.AppRouter.dismissLayer('history');
+      return;
+    }
     const modal = document.getElementById('modalHistory');
     if (modal) {
       modal.classList.remove('open');

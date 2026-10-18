@@ -1537,7 +1537,7 @@
 
   function restore(data) {
     if (!data) return;
-    open();
+    open({ fromRouter: true });
     if (data.mode === 'audit' && Array.isArray(data.checkedIds)) {
       checkedAuditIds = new Set(data.checkedIds);
       saveAuditStorage();
@@ -1569,7 +1569,14 @@
     if (back) {
       back.onclick = () => {
         if (window.SFX && window.SFX.tap) window.SFX.tap();
-        if (window.AppManual) {
+        if (window.AppRouter && typeof window.AppRouter.back === 'function') {
+          window.AppRouter.back(() => {
+            if (window.AppManual) {
+              window.AppManual.renderHome();
+              window.AppManual.showScreen('scr-sm-home');
+            }
+          });
+        } else if (window.AppManual) {
           window.AppManual.renderHome();
           window.AppManual.showScreen('scr-sm-home');
         }
@@ -1577,7 +1584,8 @@
     }
   }
 
-  function open() {
+  function open(options) {
+    options = options || {};
     if (!inited) {
       inited = true;
       init();
@@ -1585,6 +1593,9 @@
     renderTopbar();
     if (window.AppManual && typeof window.AppManual.showScreen === 'function') {
       window.AppManual.showScreen('scr-sm-lifeguide');
+    }
+    if (!options.fromRouter && window.AppRouter && typeof window.AppRouter.pushView === 'function') {
+      window.AppRouter.pushView('lifeguide');
     }
   }
 

@@ -106,6 +106,7 @@
   let revIdx = 0;
   let maxRevIdx = 0;
   let lastTarotResult = null;
+  let lastPosterData = null;
 
   const DOMAIN_META = {
     general: {
@@ -667,7 +668,6 @@
     if (restoredData && restoredData.spread) {
       curSpread = restoredData.spread;
     }
-    showScreen('sc-tr-result');
 
     const cfg = getSpreadConfig(curSpread);
     const posList = cfg.positions;
@@ -941,7 +941,6 @@
     }
 
     lastTarotResult = { spread: curSpread, domain: curDomain, domainLabel: dLabel, question: qText, archiveId, items };
-
     // 保存至全所综合档案库（回看历史时不重复入库）
     if (!isRestored && window.UniversalHistory) {
       const mainCard = items[0].card;
@@ -975,6 +974,11 @@
         drawTarotShareCard(lastTarotResult);
       };
     }
+
+    showScreen('sc-tr-result');
+    if (!isRestored && window.AppRouter && typeof window.AppRouter.replaceView === 'function') {
+      window.AppRouter.replaceView('result', { result: lastTarotResult });
+    }
   }
 
   function startTest() {
@@ -987,6 +991,7 @@
     updatePickState();
     showScreen('sc-tr-pick');
     startShuffle();
+    if (window.AppRouter && typeof window.AppRouter.pushView === 'function') window.AppRouter.pushView('pick');
   }
 
   function quickDraw() {
@@ -1002,6 +1007,7 @@
       picks.push(i);
     }
     startReveal();
+    if (window.AppRouter && typeof window.AppRouter.pushView === 'function') window.AppRouter.pushView('reading', { quick: true });
   }
 
   function drawTarotShareCard(data) {
@@ -1412,6 +1418,15 @@
   }
 
   function showPosterModal(dataUrl, filename) {
+    lastPosterData = { dataUrl: dataUrl, filename: filename };
+    if (window.AppRouter && typeof window.AppRouter.openLayer === 'function') {
+      window.AppRouter.openLayer('tarot-poster', { filename: filename });
+      return;
+    }
+    renderPosterModal(dataUrl, filename);
+  }
+
+  function renderPosterModal(dataUrl, filename) {
     let modal = document.getElementById('trPosterModal');
     if (!modal) {
       modal = document.createElement('div');
@@ -1434,9 +1449,7 @@
 
       const closeBtn = modal.querySelector('.tr-poster-close');
       const backdrop = modal.querySelector('.tr-poster-backdrop');
-      const close = () => {
-        modal.style.display = 'none';
-      };
+      const close = () => closePoster();
       closeBtn.onclick = close;
       backdrop.onclick = close;
     }
@@ -1459,6 +1472,16 @@
     };
 
     modal.style.display = 'flex';
+  }
+
+  function closePoster(options) {
+    options = options || {};
+    if (!options.fromRouter && window.AppRouter && typeof window.AppRouter.dismissLayer === 'function') {
+      window.AppRouter.dismissLayer('tarot-poster');
+      return;
+    }
+    const modal = document.getElementById('trPosterModal');
+    if (modal) modal.style.display = 'none';
   }
 
   function roundRect(ctx, x, y, w, h, r) {
@@ -1574,6 +1597,14 @@
 
   function init() {
     initDailyAlmanacAndGallery();
+    if (!init._posterEscBound) {
+      init._posterEscBound = true;
+      document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Escape' && e.key !== 'Esc') return;
+        const modal = document.getElementById('trPosterModal');
+        if (modal && modal.style.display === 'flex') closePoster();
+      });
+    }
     // 只优先加载今日值日牌；其余 21 张在首屏渲染后逐张预热，
     // 避免一进塔罗就同时抢 7.3 MB 带宽，把真正可见的牌面拖慢。
     const dailyCard = CARDS[dailyCardIdx] || CARDS[19];
@@ -1692,7 +1723,8 @@
     if (btnHome) {
       btnHome.onclick = () => {
         if (window.SFX && window.SFX.tap) window.SFX.tap();
-        showScreen('sc-tr-home');
+        if (window.AppRouter && typeof window.AppRouter.back === 'function') window.AppRouter.back(() => showScreen('sc-tr-home'));
+        else showScreen('sc-tr-home');
       };
     }
 
@@ -1700,7 +1732,8 @@
     if (btnBackPick) {
       btnBackPick.onclick = () => {
         if (window.SFX && window.SFX.tap) window.SFX.tap();
-        showScreen('sc-tr-home');
+        if (window.AppRouter && typeof window.AppRouter.back === 'function') window.AppRouter.back(() => showScreen('sc-tr-home'));
+        else showScreen('sc-tr-home');
       };
     }
 
@@ -1710,7 +1743,8 @@
         if (window.SFX && window.SFX.tap) window.SFX.tap();
         if (revealFlipTimer1) clearTimeout(revealFlipTimer1);
         if (revealFlipTimer2) clearTimeout(revealFlipTimer2);
-        showScreen('sc-tr-home');
+        if (window.AppRouter && typeof window.AppRouter.back === 'function') window.AppRouter.back(() => showScreen('sc-tr-home'));
+        else showScreen('sc-tr-home');
       };
     }
 
@@ -1718,7 +1752,8 @@
     if (btnBackResult) {
       btnBackResult.onclick = () => {
         if (window.SFX && window.SFX.tap) window.SFX.tap();
-        showScreen('sc-tr-home');
+        if (window.AppRouter && typeof window.AppRouter.back === 'function') window.AppRouter.back(() => showScreen('sc-tr-home'));
+        else showScreen('sc-tr-home');
       };
     }
 
@@ -1747,6 +1782,13 @@
     if (!data || !data.items) return;
     lastTarotResult = data;
     curSpread = data.spread || (data.items.length > 1 ? 'three' : 'one');
+    deck = data.items.map(function (item) {
+      const found = CARDS.find(function (c) { return c.no === item.card.no; });
+      return found ? { ...found, isRev: !!item.card.isRev } : { ...item.card };
+    });
+    picks = deck.map(function (_, i) { return i; });
+    revIdx = 0;
+    maxRevIdx = picks.length - 1;
     finish(data);
     showScreen('sc-tr-result');
   }
@@ -1757,6 +1799,41 @@
     showScreen,
     finish,
     restore,
+    restoreView: function (view, payload) {
+      if (view === 'pick') {
+        showScreen('sc-tr-pick');
+        return;
+      }
+      if (view === 'reading') {
+        if (payload && payload.quick) {
+          if (document.querySelectorAll('#trDeck .pcard').length && picks.length) {
+            showScreen('sc-tr-reveal');
+            showCardInReveal();
+          } else {
+            quickDraw();
+          }
+        } else {
+          showScreen('sc-tr-pick');
+        }
+        return;
+      }
+      if (view === 'result') {
+        if (payload && payload.result) {
+          restore(payload.result);
+        } else if (lastTarotResult) {
+          showScreen('sc-tr-result');
+        } else {
+          showScreen('sc-tr-home');
+        }
+        return;
+      }
+      showScreen('sc-tr-home');
+    },
+    openPosterLayer: function (payload) {
+      if (!lastPosterData) return;
+      renderPosterModal(lastPosterData.dataUrl, (payload && payload.filename) || lastPosterData.filename);
+    },
+    closePoster: closePoster,
     drawTarotShareCard
   };
 })();

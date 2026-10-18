@@ -462,7 +462,13 @@
     }
   }
 
-  function openZenScreensaver() {
+  function openZenScreensaver(options) {
+    options = options || {};
+    if (!options.fromRouter && window.AppRouter && typeof window.AppRouter.openLayer === 'function') {
+      window.AppRouter.openLayer('clock');
+      return;
+    }
+    if (isZenOpen) return;
     isZenOpen = true;
     const overlay = document.getElementById('ckZenOverlay');
     const btnZen = document.getElementById('ckBtnZen');
@@ -497,7 +503,12 @@
     updateTick();
   }
 
-  function closeZenScreensaver() {
+  function closeZenScreensaver(options) {
+    options = options || {};
+    if (!options.fromRouter && !options.domOnly && window.AppRouter && typeof window.AppRouter.dismissLayer === 'function') {
+      window.AppRouter.dismissLayer('clock');
+      return;
+    }
     isZenOpen = false;
     const overlay = document.getElementById('ckZenOverlay');
     const btnZen = document.getElementById('ckBtnZen');
@@ -1144,7 +1155,11 @@
     function onFullscreenChange() {
       const isFs = !!(document.fullscreenElement || document.webkitFullscreenElement);
       if (!isFs && isZenOpen) {
-        closeZenScreensaver();
+      if (window.AppRouter && typeof window.AppRouter.dismissLayer === 'function') {
+        window.AppRouter.dismissLayer('clock');
+      } else {
+        closeZenScreensaver({ fromRouter: true, domOnly: true });
+      }
       }
     }
     document.addEventListener('fullscreenchange', onFullscreenChange);

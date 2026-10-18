@@ -635,9 +635,31 @@
   }
 
   // ================= 终局裁决单小票弹窗与历史存入 =================
-  function showReceipt(data, isRestored = false) {
+  function showReceipt(data, isRestored = false, options = {}) {
     const modal = document.getElementById('decReceiptModal');
     if (!modal) return;
+    if (!options.fromRouter && window.AppRouter && typeof window.AppRouter.openLayer === 'function') {
+      window.AppRouter.openLayer('decision', data);
+      if (!isRestored) options.history = data;
+      if (options.history) {
+        const historyRecord = options.history;
+        setTimeout(() => {
+          if (window.UniversalHistory && typeof window.UniversalHistory.add === 'function') {
+            window.UniversalHistory.add({
+              module: 'decision',
+              title: `裁决: ${historyRecord.verdict}`,
+              subtitle: `${historyRecord.modeName} · ${historyRecord.proposition || '自由抉择'}`,
+              color: '#10B981',
+              badge: '🪙 决策',
+              avatar: '🪙',
+              data: historyRecord
+            });
+          }
+        }, 0);
+      }
+      return;
+    }
+    if (!isRestored) options.history = options.history || data;
 
     lastVerdictRecord = isRestored
       ? {
@@ -671,20 +693,26 @@
     modal.setAttribute('aria-hidden', 'false');
 
     // 自动沉淀至全所历史档案（回看旧记录时不重复入库）
-    if (!isRestored && window.UniversalHistory && typeof window.UniversalHistory.add === 'function') {
+    const historyData = options.history;
+    if (historyData && window.UniversalHistory && typeof window.UniversalHistory.add === 'function') {
       window.UniversalHistory.add({
         module: 'decision',
-        title: `裁决: ${lastVerdictRecord.verdict}`,
-        subtitle: `${lastVerdictRecord.modeName} · ${lastVerdictRecord.proposition || '自由抉择'}`,
+        title: `裁决: ${historyData.verdict}`,
+        subtitle: `${historyData.modeName} · ${historyData.proposition || '自由抉择'}`,
         color: '#10B981',
         badge: '🪙 决策',
         avatar: '🪙',
-        data: lastVerdictRecord
+        data: historyData
       });
     }
   }
 
-  function closeReceipt() {
+  function closeReceipt(options) {
+    options = options || {};
+    if (!options.fromRouter && window.AppRouter && typeof window.AppRouter.dismissLayer === 'function') {
+      window.AppRouter.dismissLayer('decision');
+      return;
+    }
     const modal = document.getElementById('decReceiptModal');
     if (modal) {
       modal.classList.remove('open');
@@ -1312,7 +1340,7 @@
 
     // 7. 模态框与保存图片
     const btnClose = document.getElementById('btnCloseReceipt');
-    if (btnClose) btnClose.onclick = closeReceipt;
+    if (btnClose) btnClose.onclick = () => closeReceipt();
 
     const btnAgain = document.getElementById('btnReceiptAgain');
     if (btnAgain) {
@@ -1330,6 +1358,13 @@
       };
     }
 
+    document.addEventListener('keydown', (e) => {
+      if ((e.key === 'Escape' || e.key === 'Esc') && lastVerdictRecord) {
+        const modal = document.getElementById('decReceiptModal');
+        if (modal && modal.classList.contains('open')) closeReceipt();
+      }
+    });
+
     // 监听窗口大小变化以重新渲染轮盘
     window.addEventListener('resize', () => {
       if (curSubMode === 'wheel') drawWheel();
@@ -1343,13 +1378,20 @@
     if (recordData.modeKey) {
       switchSubMode(recordData.modeKey);
     }
-    showReceipt(recordData, true);
+    showReceipt(recordData, true, { fromRouter: true });
+  }
+
+  function openReceiptLayer(payload) {
+    const record = payload || lastVerdictRecord;
+    if (!record) return;
+    showReceipt(record, true, { fromRouter: true, history: null });
   }
 
   // 全局暴露 API
   window.AppDecision = {
     init,
     restore,
+    openReceiptLayer,
     closeReceipt,
     spinWheel,
     flipCoin,

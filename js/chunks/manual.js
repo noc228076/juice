@@ -3215,23 +3215,31 @@
     }
   }
 
-  function openTest(id) {
+  function openTest(id, options) {
+    options = options || {};
     var dataMap = window.SM_DATA || {};
     var t = dataMap[id];
     if (!t) return;
+    if (!options.silent && window.AppRouter && typeof window.AppRouter.pushView === 'function') {
+      if (t.mode === 'external') {
+        window.AppRouter.pushView('lifeguide');
+        return;
+      }
+      window.AppRouter.pushView(t.mode === 'interactive' ? 'game' : 'chapter', { testId: id });
+    }
     state.test = t;
     if (t.mode === 'interactive') {
-      openGame(t);
+      openGame(t, options);
       return;
     }
     // 外部章节：正文由自己的模块渲染（目前只有第 05 章人间清醒）
     if (t.mode === 'external') {
       if (window.AppLifeguide && typeof window.AppLifeguide.open === 'function') {
-        window.AppLifeguide.open();
+        window.AppLifeguide.open({ fromRouter: !!options.silent });
       }
       return;
     }
-    openCover(t);
+    openCover(t, options);
   }
 
   function topbarHTML(t) {
@@ -3239,7 +3247,8 @@
       + '<div class="mt-pick-head" style="flex:1;margin-bottom:0"><b>第 ' + t.num + ' 章 · ' + t.title + '</b><p>' + t.en + '</p></div></div>';
   }
 
-  function openCover(t) {
+  function openCover(t, options) {
+    options = options || {};
     state.mode = 'cover';
     var topEl = document.getElementById('sm-quiztop');
     if (topEl) {
@@ -3265,8 +3274,14 @@
     if (backBtn) {
       backBtn.onclick = function () {
         if (window.SFX && window.SFX.tap) window.SFX.tap();
-        renderHome();
-        showScreen('scr-sm-home');
+        if (window.AppRouter && typeof window.AppRouter.back === 'function') window.AppRouter.back(function () {
+          renderHome();
+          showScreen('scr-sm-home');
+        });
+        else {
+          renderHome();
+          showScreen('scr-sm-home');
+        }
       };
     }
     var startBtn = document.getElementById('sm-startbtn');
@@ -3371,10 +3386,20 @@
     }
     showScreen('scr-sm-result');
 
+    if (window.AppRouter && typeof window.AppRouter.replaceView === 'function') {
+      window.AppRouter.replaceView('result', { testId: t.id, test: t, result: res, extra: extra });
+    }
+
     var rback = document.getElementById('rback');
-    if (rback) rback.onclick = function () { renderHome(); showScreen('scr-sm-home'); };
+    if (rback) rback.onclick = function () {
+      if (window.AppRouter && typeof window.AppRouter.back === 'function') window.AppRouter.back(function () { renderHome(); showScreen('scr-sm-home'); });
+      else { renderHome(); showScreen('scr-sm-home'); }
+    };
     var rhome = document.getElementById('rhome');
-    if (rhome) rhome.onclick = function () { renderHome(); showScreen('scr-sm-home'); };
+    if (rhome) rhome.onclick = function () {
+      if (window.AppRouter && typeof window.AppRouter.back === 'function') window.AppRouter.back(function () { renderHome(); showScreen('scr-sm-home'); });
+      else { renderHome(); showScreen('scr-sm-home'); }
+    };
     var rretry = document.getElementById('rretry');
     if (rretry) rretry.onclick = function () { openTest(t.id); };
     var rsave = document.getElementById('rsave');
@@ -3390,7 +3415,8 @@
     };
   }
 
-  function openGame(t) {
+  function openGame(t, options) {
+    options = options || {};
     if (state.gameCtl && state.gameCtl.destroy) {
       state.gameCtl.destroy();
       state.gameCtl = null;
@@ -3423,8 +3449,11 @@
           state.gameCtl.destroy();
           state.gameCtl = null;
         }
-        renderHome();
-        showScreen('scr-sm-home');
+        if (window.AppRouter && typeof window.AppRouter.back === 'function') window.AppRouter.back(function () { renderHome(); showScreen('scr-sm-home'); });
+        else {
+          renderHome();
+          showScreen('scr-sm-home');
+        }
       };
     }
 
@@ -3449,9 +3478,15 @@
     showScreen('scr-sm-result');
 
     var rback = document.getElementById('rback');
-    if (rback) rback.onclick = function () { renderHome(); showScreen('scr-sm-home'); };
+    if (rback) rback.onclick = function () {
+      if (window.AppRouter && typeof window.AppRouter.back === 'function') window.AppRouter.back(function () { renderHome(); showScreen('scr-sm-home'); });
+      else { renderHome(); showScreen('scr-sm-home'); }
+    };
     var rhome = document.getElementById('rhome');
-    if (rhome) rhome.onclick = function () { renderHome(); showScreen('scr-sm-home'); };
+    if (rhome) rhome.onclick = function () {
+      if (window.AppRouter && typeof window.AppRouter.back === 'function') window.AppRouter.back(function () { renderHome(); showScreen('scr-sm-home'); });
+      else { renderHome(); showScreen('scr-sm-home'); }
+    };
     var rretry = document.getElementById('rretry');
     if (rretry) rretry.onclick = function () { openCover(data.test); };
     var rsave = document.getElementById('rsave');
@@ -3502,8 +3537,11 @@
     if (homeBtn) {
       homeBtn.addEventListener('click', function () {
         if (window.SFX && window.SFX.tap) window.SFX.tap();
-        renderHome();
-        showScreen('scr-sm-home');
+        if (window.AppRouter && typeof window.AppRouter.back === 'function') window.AppRouter.back(function () { renderHome(); showScreen('scr-sm-home'); });
+        else {
+          renderHome();
+          showScreen('scr-sm-home');
+        }
       });
     }
     railBuilt = true;
@@ -3564,6 +3602,25 @@
     openTest,
     showScreen,
     restore,
+    restoreView: function (view, payload) {
+      payload = payload || {};
+      if (view === 'lifeguide') {
+        openTest('lifeguide', { silent: true });
+        return;
+      }
+      if (view === 'chapter' || view === 'game') {
+        var id = payload.testId || (payload.test && payload.test.id);
+        if (id) openTest(id, { silent: true });
+        else { renderHome(); showScreen('scr-sm-home'); }
+        return;
+      }
+      if (view === 'result' && payload.test && payload.result) {
+        restore({ test: payload.test, res: payload.result, extra: payload.extra });
+        return;
+      }
+      renderHome();
+      showScreen('scr-sm-home');
+    },
     stopActiveGame
   };
 })();
@@ -5109,7 +5166,7 @@
 
   function restore(data) {
     if (!data) return;
-    open();
+    open({ fromRouter: true });
     if (data.mode === 'audit' && Array.isArray(data.checkedIds)) {
       checkedAuditIds = new Set(data.checkedIds);
       saveAuditStorage();
@@ -5141,7 +5198,14 @@
     if (back) {
       back.onclick = () => {
         if (window.SFX && window.SFX.tap) window.SFX.tap();
-        if (window.AppManual) {
+        if (window.AppRouter && typeof window.AppRouter.back === 'function') {
+          window.AppRouter.back(() => {
+            if (window.AppManual) {
+              window.AppManual.renderHome();
+              window.AppManual.showScreen('scr-sm-home');
+            }
+          });
+        } else if (window.AppManual) {
           window.AppManual.renderHome();
           window.AppManual.showScreen('scr-sm-home');
         }
@@ -5149,7 +5213,8 @@
     }
   }
 
-  function open() {
+  function open(options) {
+    options = options || {};
     if (!inited) {
       inited = true;
       init();
@@ -5157,6 +5222,9 @@
     renderTopbar();
     if (window.AppManual && typeof window.AppManual.showScreen === 'function') {
       window.AppManual.showScreen('scr-sm-lifeguide');
+    }
+    if (!options.fromRouter && window.AppRouter && typeof window.AppRouter.pushView === 'function') {
+      window.AppRouter.pushView('lifeguide');
     }
   }
 

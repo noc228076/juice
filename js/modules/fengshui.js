@@ -170,6 +170,15 @@
     lastFengshuiReport = rep;
     renderReport(rep);
 
+    if (window.AppRouter && typeof window.AppRouter.getState === 'function') {
+      const st = window.AppRouter.getState();
+      if (st && st.view === 'result') {
+        window.AppRouter.replaceView('result', { report: rep });
+      } else {
+        window.AppRouter.pushView('result', { report: rep });
+      }
+    }
+
     // 存入全所综合档案库
     if (window.UniversalHistory) {
       window.UniversalHistory.add({
@@ -465,7 +474,8 @@
     if (btnBack) {
       btnBack.onclick = () => {
         if (window.SFX && window.SFX.tap) window.SFX.tap();
-        showScreen('sc-fs-input');
+        if (window.AppRouter && typeof window.AppRouter.back === 'function') window.AppRouter.back(() => showScreen('sc-fs-input'));
+        else showScreen('sc-fs-input');
       };
     }
 
@@ -489,6 +499,13 @@
     genReport,
     randomize,
     restore,
+    restoreView: function (view, payload) {
+      if (view === 'result' && payload && payload.report) {
+        renderReport(payload.report);
+        return;
+      }
+      showScreen('sc-fs-input');
+    },
     drawFengshuiShareCard
   };
 })();

@@ -151,7 +151,12 @@
     });
   }
 
-  function open() {
+  function open(options) {
+    options = options || {};
+    if (!options.fromRouter && window.AppRouter && typeof window.AppRouter.openLayer === 'function') {
+      window.AppRouter.openLayer('profile');
+      return;
+    }
     const m = ensureModal();
     const p = get();
     draft = { avatar: p.avatar };
@@ -165,7 +170,12 @@
     setTimeout(function () { try { input.focus(); } catch (e) {} }, 60);
   }
 
-  function close() {
+  function close(options) {
+    options = options || {};
+    if (!options.fromRouter && window.AppRouter && typeof window.AppRouter.dismissLayer === 'function') {
+      window.AppRouter.dismissLayer('profile');
+      return;
+    }
     if (!modalEl) return;
     modalEl.classList.remove('open');
     modalEl.setAttribute('aria-hidden', 'true');

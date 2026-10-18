@@ -310,6 +310,9 @@
     }
 
     showScreen('sc-lq-result');
+    if (!isRestored && window.AppRouter && typeof window.AppRouter.replaceView === 'function') {
+      window.AppRouter.replaceView('result', { record: lastStickRecord });
+    }
     if (window.SFX && window.SFX.reveal) window.SFX.reveal();
 
     if (!isRestored && window.UniversalHistory && typeof window.UniversalHistory.add === 'function') {
@@ -495,7 +498,8 @@
     if (btnBack) {
       btnBack.onclick = () => {
         if (window.SFX && window.SFX.tap) window.SFX.tap();
-        showScreen('sc-lq-home');
+        if (window.AppRouter && typeof window.AppRouter.back === 'function') window.AppRouter.back(() => showScreen('sc-lq-home'));
+        else showScreen('sc-lq-home');
       };
     }
 
@@ -503,7 +507,8 @@
     if (btnAgain) {
       btnAgain.onclick = () => {
         if (window.SFX && window.SFX.tap) window.SFX.tap();
-        showScreen('sc-lq-home');
+        if (window.AppRouter && typeof window.AppRouter.back === 'function') window.AppRouter.back(() => showScreen('sc-lq-home'));
+        else showScreen('sc-lq-home');
       };
     }
 
@@ -521,7 +526,7 @@
         const targetMod = btn.dataset.ewJump;
         if (window.SFX && window.SFX.tap) window.SFX.tap();
         if (window.AppRouter && typeof window.AppRouter.switchModule === 'function') {
-          window.AppRouter.switchModule(targetMod, true);
+          window.AppRouter.switchModule(targetMod);
         }
       };
     });
@@ -537,6 +542,13 @@
     init,
     restore,
     startShake,
+    restoreView: function (view, payload) {
+      if (view === 'result' && payload && payload.record) {
+        renderResult(payload.record, true);
+        return;
+      }
+      showScreen('sc-lq-home');
+    },
     drawLingqianPoster
   };
 })();

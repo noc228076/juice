@@ -1,22 +1,14 @@
 /* =========================================================
    全局顶栏调度器与单页路由系统 (App Master Router)
-   管理 7 个顶栏模块 / 13 条路由的视图切换、URL Hash 监听与移动端视口同步
+   统一管理模块、模块内视图与浮层的历史状态
    ========================================================= */
 
 (function () {
   'use strict';
 
-  let currentModule = 'drinks';
-  let lastDrinkMod = 'drinks';
-  let lastMysticMod = 'tarot';
-  let lastRelaxMod = 'clock';
-  // lifeguide 已并入说明书成为第 05 章，不再是独立顶层模块；
-  // 保留在 ALLOWED_MODS 里只为兼容老链接，进入后立刻转成说明书 + 该章。
+  const STATE_VERSION = 1;
+  const HOME_MOD = 'drinks';
   const ALLOWED_MODS = ['drinks', 'milktea', 'manual', 'fengshui', 'tarot', 'lingqian', 'decision', 'clock', 'merit', 'lifeguide', 'bazi', 'daily', 'scratch'];
-  const initializedModules = new Set(['drinks']);
-  const initializingModules = new Map();
-
-  // 按需 chunk。顺序在 build-bundles.js 中定义，这里只负责 URL 与初始化。
   const MODULE_CHUNKS = {
     milktea: 'milktea',
     manual: 'manual',
@@ -30,8 +22,8 @@
     decision: 'decision',
     scratch: 'scratch'
   };
-
   const MODULE_API = {
+    drinks: 'AppDrinks',
     daily: 'AppDaily',
     milktea: 'AppMilktea',
     manual: 'AppManual',
@@ -45,11 +37,36 @@
     decision: 'AppDecision',
     scratch: 'AppScratch'
   };
+  const MOD_PARENT_MAP = {
+    milktea: 'drinks',
+    drinks: 'drinks',
+    tarot: 'tarot',
+    lingqian: 'tarot',
+    bazi: 'tarot',
+    fengshui: 'tarot',
+    clock: 'clock',
+    merit: 'clock',
+    lifeguide: 'manual'
+  };
 
+  const initializedModules = new Set(['drinks']);
+  const initializingModules = new Map();
   const chunkLoads = Object.create(null);
   const MODULE_CSS_HREF = 'css/modules.bundle.css';
+
+  let currentState = null;
+  let currentModule = HOME_MOD;
+  let lastDrinkMod = 'drinks';
+  let lastMysticMod = 'tarot';
+  let lastRelaxMod = 'clock';
   let moduleCssLoad = null;
   let lunarScheduled = false;
+  let navSeq = 0;
+  let suppressHashChange = false;
+  let layerClosing = null;
+  let layerFallbackTimer = null;
+  let layerPushed = false;
+  let initialized = false;
 
   function appVersion() {
     if (window.__APP_VERSION__) return String(window.__APP_VERSION__);
@@ -76,8 +93,6 @@
     return chunkLoads[name];
   }
 
-  // 非饮品模块的样式独立成包。首次进入时与 JS chunk 并行加载，
-  // CSS 就绪后再激活 section，避免深链先显示一帧无样式内容。
   function loadModuleCss() {
     if (moduleCssLoad) return moduleCssLoad;
     moduleCssLoad = new Promise((resolve, reject) => {
@@ -114,15 +129,10 @@
     });
     const ownEl = document.getElementById('mod-' + modKey);
     const targetModuleEl = ownEl || document.getElementById('mod-' + parentModKey);
-    if (targetModuleEl) {
-      targetModuleEl.classList.add('active');
-    }
-    // 首屏骨架只属于饮品封面。用户在主包还没执行完时切到别的模块（深链、
-    // 或极快的手速），骨架必须让位，否则会盖住真正要看的模块。
+    if (targetModuleEl) targetModuleEl.classList.add('active');
     document.documentElement.classList.add('cover-ready');
   }
 
-  // lunar 也被 bazi chunk 包含；若 bazi 已加载过，这里直接跳过重复请求。
   function ensureLunarReady() {
     return new Promise((resolve) => {
       const done = () => resolve(!!window.Solar);
@@ -131,8 +141,6 @@
     });
   }
 
-  // 农历库只补日期文本：Daily / Clock 先渲染主内容，等它到达再刷新。
-  // 不要在这里重新 init，否则 Daily 会重复请求四组接口。
   function refreshLunarConsumers() {
     if (window.AppDaily && typeof window.AppDaily.refreshLunar === 'function') {
       window.AppDaily.refreshLunar();
@@ -142,9 +150,6 @@
     }
   }
 
-  // lunar 体积大，不能进首屏；Daily / Clock 的农历显示依赖它。
-  // 只有真正进入这两个模块后才调度，首页不下载这份 89 KB Brotli 的库。
-  // 内容先渲染，农历到达后只刷新日期文本，不重复 init。
   function scheduleIdleChunk(name) {
     if (name !== 'lunar' || lunarScheduled) return;
     lunarScheduled = true;
@@ -158,17 +163,10 @@
     }
   }
 
-  // 所有入口（首次加载、chunk 已就绪、共享 chunk 等待完成）都走同一套初始化，
-  // 避免 manual / lifeguide 共用 manual chunk 时，后发入口漏掉 init 或 openTest。
-  // Daily / Clock 首屏即渲染，农历库只补日期文本，绝不阻塞内容加载。
   function runModuleInit(modKey) {
     if (modKey === 'manual' && window.AppManual) {
       const body = document.getElementById('sm-homebody');
       if (!body || !body.children.length) window.AppManual.init();
-    }
-    if (modKey === 'lifeguide' && window.AppManual) {
-      if (!initializedModules.has('manual')) window.AppManual.init();
-      window.AppManual.openTest('lifeguide');
     }
     if (modKey === 'daily' && window.AppDaily) {
       window.AppDaily.init();
@@ -178,23 +176,18 @@
       window.AppClock.init();
       scheduleIdleChunk('lunar');
     }
-    if (modKey !== 'manual' && modKey !== 'lifeguide' && modKey !== 'daily' && modKey !== 'clock') {
+    if (modKey !== 'manual' && modKey !== 'daily' && modKey !== 'clock' && modKey !== 'drinks') {
       const apiName = MODULE_API[modKey];
       const api = apiName && window[apiName];
       if (api && typeof api.init === 'function') api.init();
     }
   }
 
-  // 核心模块（已在主包）没有 chunk，但仍需要 init。
-  // 共享入口 manual / lifeguide 每次都要补跑，处理空目录与章节恢复；
-  // 其余模块只初始化一次，避免 Daily 重复拉取四组接口。
   function shouldReinit(modKey) {
-    return modKey === 'manual' || modKey === 'lifeguide';
+    return modKey === 'manual';
   }
 
   function initModuleOnce(modKey) {
-    // 同一次访问里既点 #/manual 又点 #/lifeguide 时，两者共用 manual chunk。
-    // 等共享 chunk 加载完后再按当前入口补初始化，而不是复用旧 task 的初始化结果。
     const sharedChunk = MODULE_CHUNKS[modKey];
     const pending = Array.from(initializingModules.entries()).find(([key, task]) => (
       task && MODULE_CHUNKS[key] === sharedChunk
@@ -215,17 +208,12 @@
     const chunk = MODULE_CHUNKS[modKey];
     const apiName = MODULE_API[modKey];
     if (!chunk) {
-      if (apiName) {
-        initializedModules.add(modKey);
-        runModuleInit(modKey);
-        return Promise.resolve();
-      }
       initializedModules.add(modKey);
+      runModuleInit(modKey);
       return Promise.resolve();
     }
 
     const task = loadChunk(chunk).then(() => {
-      if (chunk === 'lunar') refreshLunarConsumers();
       if (currentModule !== modKey) return;
       const api = window[apiName];
       if (!api) {
@@ -233,11 +221,7 @@
         return;
       }
       initializedModules.add(modKey);
-      if (modKey === 'daily' || modKey === 'clock' || modKey === 'manual' || modKey === 'lifeguide') {
-        runModuleInit(modKey);
-      } else if (typeof api.init === 'function') {
-        api.init();
-      }
+      runModuleInit(modKey);
     }).catch((err) => {
       console.error('[Router]', err);
     }).finally(() => {
@@ -247,33 +231,15 @@
     return task;
   }
 
-  const MOD_PARENT_MAP = {
-    milktea: 'drinks',
-    drinks: 'drinks',
-    tarot: 'tarot',
-    lingqian: 'tarot',
-    bazi: 'tarot',
-    fengshui: 'tarot',
-    clock: 'clock',
-    merit: 'clock',
-    lifeguide: 'manual'
-  };
-
   function updateGlider(activeTab) {
     const glider = document.getElementById('navTabGlider');
     if (!glider) return;
     if (!activeTab) activeTab = document.querySelector('.nav-tab.active');
     if (!activeTab) return;
-    const left = activeTab.offsetLeft;
-    const width = activeTab.offsetWidth;
-    glider.style.width = width + 'px';
-    glider.style.transform = `translateX(${left}px)`;
+    glider.style.width = activeTab.offsetWidth + 'px';
+    glider.style.transform = `translateX(${activeTab.offsetLeft}px)`;
   }
 
-  // 把激活 tab 滚动到可见区域。
-  // 顶栏在窄屏是横向滚动容器，7 个 tab 放不下，深链/子屏跳转时必须显式定位，
-  // 否则激活项可能落在可视区之外，用户看不到当前处于哪个模块。
-  // 用 getBoundingClientRect 做纯视口坐标比较，避免 offsetLeft 混用不同定位祖先坐标系。
   let navScrollReady = false;
   function scrollTabIntoView(activeTab) {
     const wrapper = activeTab.closest('.nav-tabs-wrapper');
@@ -290,93 +256,423 @@
       delta = ar.right - wr.right + pad;
     }
     if (Math.abs(delta) <= 1) return;
-    // 首次执行用瞬时定位（页面初始化时平滑滚动会被忽略），之后用平滑动画
     const behavior = navScrollReady ? 'smooth' : 'auto';
     navScrollReady = true;
     wrapper.scrollBy({ left: delta, behavior });
   }
 
-  function switchModule(modKey, updateHash = true) {
-    if (!ALLOWED_MODS.includes(modKey)) {
-      modKey = 'drinks';
-    }
-    if (modKey === 'drinks' || modKey === 'milktea') {
-      lastDrinkMod = modKey;
-    }
-    if (modKey === 'tarot' || modKey === 'lingqian' || modKey === 'bazi' || modKey === 'fengshui') {
-      lastMysticMod = modKey;
-    }
-    if (modKey === 'clock' || modKey === 'merit') {
-      lastRelaxMod = modKey;
-    }
-
-    if (modKey !== 'manual' && window.AppManual && typeof window.AppManual.stopActiveGame === 'function') {
-      window.AppManual.stopActiveGame();
-    }
-    if (modKey !== 'decision' && window.AppDecision && typeof window.AppDecision.closeReceipt === 'function') {
-      window.AppDecision.closeReceipt();
-    }
-
-    currentModule = modKey;
-    document.documentElement.dataset.activeModule = modKey;
-
+  function updateChrome(modKey) {
     const parentModKey = MOD_PARENT_MAP[modKey] || modKey;
     let matchedTab = null;
-    // 切换顶栏 Tab 选中状态
     document.querySelectorAll('.nav-tab').forEach(tab => {
       const isMatch = tab.dataset.mod === parentModKey;
       tab.classList.toggle('active', isMatch);
-      if (isMatch) {
-        matchedTab = tab;
-      }
+      if (isMatch) matchedTab = tab;
     });
-
     if (matchedTab) {
       updateGlider(matchedTab);
       scrollTabIntoView(matchedTab);
     }
-
-    // 同步子导航条 (subnav-pill-btn) 激活态
     document.querySelectorAll('[data-sub-jump]').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.subJump === modKey);
     });
-    // 同步东西玄学 (ew-switch-btn) 激活态
     document.querySelectorAll('[data-ew-jump]').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.ewJump === modKey);
     });
+  }
 
-    if (updateHash) {
-      window.location.hash = '#/' + modKey;
+  function normalizeMod(modKey) {
+    const raw = String(modKey || '').toLowerCase();
+    if (!ALLOWED_MODS.includes(raw)) return null;
+    if (raw === 'lifeguide') return { mod: 'manual', view: 'lifeguide' };
+    if (raw === 'drinks') return { mod: 'drinks', view: 'home' };
+    return { mod: raw, view: 'home' };
+  }
+
+  function normalizeState(raw) {
+    if (!raw || typeof raw !== 'object') return null;
+    const norm = normalizeMod(raw.mod);
+    if (!norm) return null;
+    let view = typeof raw.view === 'string' && raw.view ? raw.view : norm.view;
+    if (norm.mod === 'drinks' && view !== 'quiz' && view !== 'result') view = 'home';
+    if (norm.mod === 'manual' && raw.mod === 'lifeguide') view = 'lifeguide';
+    const layer = typeof raw.layer === 'string' && raw.layer ? raw.layer : null;
+    const payload = raw.payload && typeof raw.payload === 'object' ? raw.payload : null;
+    return {
+      juice: STATE_VERSION,
+      mod: norm.mod,
+      view,
+      layer,
+      payload,
+      depth: Number.isInteger(raw.depth) && raw.depth >= 0 ? raw.depth : 0
+    };
+  }
+
+  function stateUrl(state) {
+    if (!state || state.mod === HOME_MOD) {
+      return window.location.pathname + window.location.search;
+    }
+    return window.location.pathname + window.location.search + '#/' + state.mod;
+  }
+
+  function urlWithoutHash() {
+    return window.location.pathname + window.location.search;
+  }
+
+  function rememberModule(modKey) {
+    if (modKey === 'drinks' || modKey === 'milktea') lastDrinkMod = modKey;
+    if (modKey === 'tarot' || modKey === 'lingqian' || modKey === 'bazi' || modKey === 'fengshui') lastMysticMod = modKey;
+    if (modKey === 'clock' || modKey === 'merit') lastRelaxMod = modKey;
+  }
+
+  function layerApi(name) {
+    if (name === 'history') {
+      return {
+        open: () => window.UniversalHistory && window.UniversalHistory.openDrawer({ fromRouter: true }),
+        close: () => window.UniversalHistory && window.UniversalHistory.closeDrawer({ fromRouter: true })
+      };
+    }
+    if (name === 'decision') {
+      return {
+        open: (payload) => window.AppDecision && window.AppDecision.openReceiptLayer && window.AppDecision.openReceiptLayer(payload),
+        close: () => window.AppDecision && window.AppDecision.closeReceipt({ fromRouter: true })
+      };
+    }
+    if (name === 'clock') {
+      return {
+        open: () => window.AppClock && window.AppClock.openZenScreensaver({ fromRouter: true }),
+        close: () => window.AppClock && window.AppClock.closeZenScreensaver({ fromRouter: true })
+      };
+    }
+    if (name === 'profile') {
+      return {
+        open: () => window.AppProfile && window.AppProfile.open({ fromRouter: true }),
+        close: () => window.AppProfile && window.AppProfile.close({ fromRouter: true })
+      };
+    }
+    if (name === 'tarot-poster') {
+      return {
+        open: (payload) => window.AppTarot && window.AppTarot.openPosterLayer && window.AppTarot.openPosterLayer(payload),
+        close: () => window.AppTarot && window.AppTarot.closePoster && window.AppTarot.closePoster({ fromRouter: true })
+      };
+    }
+    return null;
+  }
+
+  function closeLayerDom(name) {
+    if (!name) return;
+    const api = layerApi(name);
+    if (api && typeof api.close === 'function') {
+      try { api.close(); } catch (e) {}
+    }
+  }
+
+  function openLayerDom(name, payload) {
+    const api = layerApi(name);
+    if (api && typeof api.open === 'function') {
+      try { api.open(payload); } catch (e) { console.error('[Router] layer open failed:', name, e); }
+    }
+  }
+
+  function restoreModuleView(state) {
+    const apiName = MODULE_API[state.mod];
+    const api = apiName && window[apiName];
+    if (api && typeof api.restoreView === 'function') {
+      try {
+        api.restoreView(state.view, state.payload);
+      } catch (e) {
+        console.error('[Router] restoreView failed:', state.mod, state.view, e);
+      }
+    }
+  }
+
+  function applyState(rawState, source) {
+    const state = normalizeState(rawState);
+    if (!state) return Promise.resolve();
+    const seq = ++navSeq;
+    const prev = currentState;
+    if (prev && prev.layer && prev.layer !== state.layer) {
+      closeLayerDom(prev.layer);
+    }
+    if (source === 'popstate') {
+      if (state.layer) layerPushed = true;
+      else layerPushed = false;
+    }
+    if (layerClosing && state.layer !== layerClosing) {
+      layerClosing = null;
+      clearTimeout(layerFallbackTimer);
+      layerFallbackTimer = null;
+    }
+    currentState = state;
+    currentModule = state.mod;
+    rememberModule(state.mod);
+    document.documentElement.dataset.activeModule = state.mod;
+    updateChrome(state.mod);
+
+    if (!prev || prev.mod !== state.mod) {
+      if (window.AppManual && typeof window.AppManual.stopActiveGame === 'function') {
+        window.AppManual.stopActiveGame();
+      }
     }
 
-    // 饮品相关视图的样式都在核心包里，立即切换。
-    // 其余模块先并行取 CSS / JS，CSS 就绪后再激活 section。
-    if (modKey === 'drinks') {
-      activateModule(modKey);
-      return initModuleOnce(modKey);
+    if (state.mod === 'drinks') {
+      activateModule(state.mod);
+      initModuleOnce(state.mod).then(() => {
+        if (seq !== navSeq) return;
+        restoreModuleView(state);
+        if (state.layer) openLayerDom(state.layer, state.payload);
+      });
+      return Promise.resolve();
     }
 
-    const moduleTask = initModuleOnce(modKey);
+    const moduleTask = initModuleOnce(state.mod);
     const cssTask = loadModuleCss().catch((err) => {
       console.error('[Router]', err);
     });
     return Promise.all([cssTask, moduleTask]).then(() => {
-      if (currentModule === modKey) activateModule(modKey);
+      if (seq !== navSeq) return;
+      activateModule(state.mod);
+      restoreModuleView(state);
+      if (state.layer) openLayerDom(state.layer, state.payload);
     });
   }
 
-  function handleHash() {
-    const hash = window.location.hash.replace(/^#\/?/, '').toLowerCase();
-    if (ALLOWED_MODS.includes(hash)) {
-      switchModule(hash, false);
-    }
+  function replaceHistory(state) {
+    const normalized = normalizeState(state);
+    if (!normalized) return;
+    window.history.replaceState(normalized, '', stateUrl(normalized));
   }
 
-  function init() {
-    // 玩家身份（右上角头像 / 昵称），与路由无关，先初始化
-    if (window.AppProfile) window.AppProfile.init();
+  function pushHistory(state) {
+    const normalized = normalizeState(state);
+    if (!normalized) return;
+    window.history.pushState(normalized, '', stateUrl(normalized));
+  }
 
-    // 绑定左上角模块胶囊标签点击事件
+  function navigate(modKey, view, payload, options) {
+    options = options || {};
+    const norm = normalizeMod(modKey);
+    if (!norm) return Promise.resolve();
+    const target = normalizeState({
+      mod: modKey,
+      view: view || norm.view,
+      layer: null,
+      payload: payload || null
+    });
+    if (!target) return Promise.resolve();
+    const prev = currentState;
+    if (prev && prev.layer) {
+      closeLayerDom(prev.layer);
+      layerPushed = false;
+      target.depth = prev.depth;
+      replaceHistory(target);
+      return applyState(target, 'program');
+    }
+    if (prev && prev.mod === target.mod && prev.view === target.view && !prev.layer && !options.force) {
+      return Promise.resolve();
+    }
+    if (options.replace) {
+      target.depth = prev ? prev.depth : 0;
+      replaceHistory(target);
+    } else {
+      target.depth = prev ? prev.depth + 1 : 0;
+      pushHistory(target);
+    }
+    return applyState(target, 'program');
+  }
+
+  function pushView(view, payload) {
+    if (!currentState) return Promise.resolve();
+    const target = normalizeState({
+      mod: currentState.mod,
+      view: view,
+      layer: null,
+      payload: payload || null
+    });
+    if (!target) return Promise.resolve();
+    if (currentState.layer) {
+      closeLayerDom(currentState.layer);
+      layerPushed = false;
+      target.depth = currentState.depth;
+      replaceHistory(target);
+    } else {
+      target.depth = currentState.depth + 1;
+      pushHistory(target);
+    }
+    return applyState(target, 'program');
+  }
+
+  function replaceView(view, payload, options) {
+    options = options || {};
+    if (!currentState) return Promise.resolve();
+    const target = normalizeState({
+      mod: currentState.mod,
+      view: view,
+      layer: null,
+      payload: payload || null
+    });
+    if (!target) return Promise.resolve();
+    if (currentState.layer) closeLayerDom(currentState.layer);
+    layerPushed = false;
+    target.depth = currentState.depth;
+    replaceHistory(target);
+    if (options.skipRestore) {
+      currentState = target;
+      currentModule = target.mod;
+      rememberModule(target.mod);
+      document.documentElement.dataset.activeModule = target.mod;
+      updateChrome(target.mod);
+      return Promise.resolve();
+    }
+    return applyState(target, 'program');
+  }
+
+  function openLayer(name, payload, options) {
+    options = options || {};
+    if (!currentState || !name) return Promise.resolve();
+    const target = normalizeState({
+      mod: currentState.mod,
+      view: currentState.view,
+      layer: name,
+      payload: payload || null
+    });
+    if (!target) return Promise.resolve();
+    if (currentState.layer && currentState.layer !== name) {
+      closeLayerDom(currentState.layer);
+      target.depth = currentState.depth;
+      replaceHistory(target);
+      layerPushed = true;
+    } else if (currentState.layer === name) {
+      target.depth = currentState.depth;
+      replaceHistory(target);
+    } else {
+      target.depth = currentState.depth + 1;
+      pushHistory(target);
+      layerPushed = true;
+    }
+    return applyState(target, 'program');
+  }
+
+  function dismissLayer(name, options) {
+    options = options || {};
+    if (!name) return;
+    if (!currentState || currentState.layer !== name) {
+      closeLayerDom(name);
+      return;
+    }
+    if (layerClosing === name) return;
+    if (options.replace || !layerPushed) {
+      closeLayerDom(name);
+      layerPushed = false;
+      const target = normalizeState({
+        mod: currentState.mod,
+        view: currentState.view,
+        layer: null,
+        payload: currentState.payload
+      });
+      target.depth = currentState.depth;
+      replaceHistory(target);
+      applyState(target, 'program');
+      return;
+    }
+    layerClosing = name;
+    closeLayerDom(name);
+    window.history.back();
+    clearTimeout(layerFallbackTimer);
+    layerFallbackTimer = setTimeout(() => {
+      if (!currentState || currentState.layer !== name) {
+        layerClosing = null;
+        return;
+      }
+      layerClosing = null;
+      layerPushed = false;
+      const target = normalizeState({
+        mod: currentState.mod,
+        view: currentState.view,
+        layer: null,
+        payload: currentState.payload
+      });
+      target.depth = currentState.depth;
+      closeLayerDom(name);
+      replaceHistory(target);
+      applyState(target, 'program');
+    }, 650);
+  }
+
+  function back(fallback) {
+    if (!currentState) return;
+    if (currentState.layer) {
+      dismissLayer(currentState.layer);
+      return;
+    }
+    if (currentState.depth > 0) {
+      // A replaced entry (e.g. a result page) has depth but no in-site entry
+      // behind it. Only call history.back() when the URL proves one exists.
+      if (window.location.hash) {
+        window.history.back();
+      } else {
+        const home = normalizeState({ mod: HOME_MOD, view: 'home', layer: null, payload: null });
+        home.depth = 0;
+        window.history.replaceState(
+          home,
+          '',
+          urlWithoutHash()
+        );
+        applyState(home, 'program');
+      }
+      return;
+    }
+    if (typeof fallback === 'function') fallback();
+  }
+
+  function parseHashState() {
+    const raw = window.location.hash.replace(/^#\/?/, '').toLowerCase();
+    if (!raw) return { state: { mod: HOME_MOD, view: 'home', layer: null, payload: null }, valid: true, home: true };
+    const norm = normalizeMod(raw);
+    if (!norm) return { state: { mod: HOME_MOD, view: 'home', layer: null, payload: null }, valid: false, home: true };
+    if (norm.mod === HOME_MOD) return { state: { mod: HOME_MOD, view: 'home', layer: null, payload: null }, valid: true, home: true };
+    return { state: { mod: norm.mod, view: norm.view, layer: null, payload: null }, valid: true, home: false };
+  }
+
+  function scheduleHashUnlock() {
+    suppressHashChange = true;
+    setTimeout(() => { suppressHashChange = false; }, 60);
+  }
+
+  function handlePopState(event) {
+    scheduleHashUnlock();
+    let state = normalizeState(event.state);
+    if (state) {
+      applyState(state, 'popstate');
+      return;
+    }
+    const parsed = parseHashState();
+    state = normalizeState(parsed.state);
+    replaceHistory(state);
+    applyState(state, 'popstate');
+  }
+
+  function handleHashChange() {
+    if (suppressHashChange) {
+      suppressHashChange = false;
+      return;
+    }
+    const parsed = parseHashState();
+    if (!parsed.valid) {
+      const home = normalizeState({ mod: HOME_MOD, view: 'home', layer: null, payload: null });
+      replaceHistory(home);
+      applyState(home, 'hash');
+      return;
+    }
+    if (currentState && currentState.mod === parsed.state.mod && currentState.view === parsed.state.view && !currentState.layer) {
+      return;
+    }
+    const target = normalizeState(parsed.state);
+    replaceHistory(target);
+    applyState(target, 'hash');
+  }
+
+  function bindNavigation() {
     document.querySelectorAll('.nav-tab').forEach((tab) => {
       tab.addEventListener('click', () => {
         if (window.SFX && window.SFX.tap) window.SFX.tap();
@@ -388,27 +684,24 @@
         } else if (targetMod === 'clock') {
           targetMod = lastRelaxMod || 'clock';
         }
-        switchModule(targetMod, true);
+        navigate(targetMod, 'home');
       });
     });
-
-    // 绑定子模块胶囊互跳按钮
     document.querySelectorAll('[data-sub-jump]').forEach(btn => {
       btn.addEventListener('click', () => {
         if (window.SFX && window.SFX.tap) window.SFX.tap();
-        switchModule(btn.dataset.subJump, true);
+        navigate(btn.dataset.subJump, 'home');
       });
     });
-
-    // 绑定东西方玄学合辑互跳按钮
     document.querySelectorAll('[data-ew-jump]').forEach(btn => {
       btn.addEventListener('click', () => {
         if (window.SFX && window.SFX.tap) window.SFX.tap();
-        switchModule(btn.dataset.ewJump, true);
+        navigate(btn.dataset.ewJump, 'home');
       });
     });
+  }
 
-    // 绑定全局右上角控制中枢事件
+  function bindGlobalControls() {
     const btnTheme = document.getElementById('globalBtnTheme');
     if (btnTheme) {
       const initTheme = document.documentElement.dataset.theme || 'dark';
@@ -426,7 +719,6 @@
         if (ti2) ti2.textContent = nextTheme === 'dark' ? '☾' : '☀';
       });
     }
-
     const btnSfx = document.getElementById('globalBtnSfx');
     if (btnSfx) {
       if (window.SFX && typeof window.SFX.isMuted === 'function') {
@@ -439,30 +731,68 @@
           const enabled = window.SFX.toggle();
           btnSfx.textContent = enabled ? '🔊' : '🔇';
           if (btnSfx.title) btnSfx.title = enabled ? '音效已开启' : '音效已静音';
-          if (typeof window.__syncDrinkSfx === 'function') {
-            window.__syncDrinkSfx(enabled);
-          }
+          if (typeof window.__syncDrinkSfx === 'function') window.__syncDrinkSfx(enabled);
         }
       });
     }
+  }
 
-    // 监听 Hash 变化
-    window.addEventListener('hashchange', handleHash);
-    if (window.location.hash) {
-      handleHash();
-    } else {
-      switchModule(currentModule, false);
+  function initializeHistory() {
+    const existing = normalizeState(window.history.state);
+    if (existing) {
+      layerPushed = false;
+      existing.depth = 0;
+      replaceHistory(existing);
+      applyState(existing, 'init');
+      return;
     }
+    const parsed = parseHashState();
+    if (!parsed.valid) {
+      const home = normalizeState({ mod: HOME_MOD, view: 'home', layer: null, payload: null });
+      replaceHistory(home);
+      applyState(home, 'init');
+      return;
+    }
+    if (parsed.home) {
+      const home = normalizeState(parsed.state);
+      home.depth = 0;
+      replaceHistory(home);
+      applyState(home, 'init');
+      return;
+    }
+    const home = normalizeState({ mod: HOME_MOD, view: 'home', layer: null, payload: null });
+    home.depth = 0;
+    replaceHistory(home);
+    const target = normalizeState(parsed.state);
+    target.depth = 1;
+    pushHistory(target);
+    applyState(target, 'init');
+  }
 
+  function init() {
+    if (initialized) return;
+    initialized = true;
+    if (window.AppProfile) window.AppProfile.init();
+    bindNavigation();
+    bindGlobalControls();
+    window.addEventListener('popstate', handlePopState);
+    window.addEventListener('hashchange', handleHashChange);
     window.addEventListener('resize', () => updateGlider());
-    // 稍后微任务再次校准 glider 尺寸（字体加载后）
+    initializeHistory();
     setTimeout(() => updateGlider(), 100);
   }
 
   window.AppRouter = {
     init,
-    switchModule,
-    getCurrentModule: () => currentModule
+    navigate,
+    pushView,
+    replaceView,
+    openLayer,
+    dismissLayer,
+    back,
+    getState: () => (currentState ? { ...currentState, payload: currentState.payload } : null),
+    getCurrentModule: () => currentModule,
+    switchModule: (modKey) => navigate(modKey, 'home')
   };
 
   if (document.readyState === 'loading') {

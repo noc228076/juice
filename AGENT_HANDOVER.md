@@ -244,6 +244,50 @@ loadChunk('mystic').then(() => {
 - 深链 `#/tarot`、模块子页后退、历史抽屉后退、时钟屏保后退、个人资料后退、
   裁决小票 Esc/后退、无效 hash 纠正均通过。
 
+### C4. 返回逻辑风险清单（2026-10-18 审查原单，逐条状态）
+
+这份清单是 v99/v100 期间对「返回、深链、历史恢复」做的静态审查结果。
+**状态只代表当时代码，不代表已经全部修完。** 标「未修」的项仍按原样存在，
+接手者应按优先级继续处理。
+
+#### 高风险
+
+| # | 位置 | 问题 | 状态 |
+|---|---|---|---|
+| H1 | `router.js:616` `back()` | 旧实现非首页视图直接 `replaceView('home')`，绕过真实历史栈，后退可能出站或重复回已关闭页 | **已修**：增加 `depth`，优先 `history.back()`，无站内历史才回首页 |
+| H2 | `history.js:86` `restoreRecord()` | 先 `navigate()` 再 `replaceView()`，各模块 `restoreView()` 又渲染一次；说明书小游戏可能双计时器/双棋盘 | **部分修**：非 `decision` 模块改为 `skipRestore`，但 `manual/milktea/tarot` 自身仍是「先 push 再渲染」，重复渲染未完全消除 |
+| H3 | `history.js:137` `decision` 分支 | 先 `openReceiptLayer()` 再 `openLayer('decision')`，同一层打开两次，后退关闭可能失效 | **未修**：仍是双重打开 |
+| H4 | `lingqian.js:314` | 抽签结果用 `pushView('result')`，结果页多一条历史，后退要按两次 | **已修**：改为 `replaceView` |
+| H5 | `fengshui.js:174` / `bazi.js:1677` | 用「当前 view 是否 result」决定 push/replace，历史恢复和深链场景下可能覆盖旧结果而不是新增步骤 | **未修**：仍依赖 `getState().view === 'result'` |
+
+#### 中风险
+
+| # | 位置 | 问题 | 状态 |
+|---|---|---|---|
+| M1 | `manual.js:148` / `milktea.js:160` / `tarot.js:984` | 先 `pushView()` 再立即渲染，router 随后 `restoreView()` 再渲染一次；普通页只是重复开销，说明书交互游戏会重复 `openGame()` | **未修**：仍是先 push 后渲染 |
+| M2 | `manual.js:155` | `lifeguide` 先 `pushView('lifeguide')` 后直接 return，真正的 `open()` 交给 router；`restoreView('lifeguide')` 又调 `openTest(..., { silent: true })`，可能二次进入和重复绑定 | **未修**：仍可能二次 `open()` |
+| M3 | `tarot.js` 海报层 | `tarot-poster` 没有 Esc 监听，键盘用户只能鼠标关或浏览器后退 | **已修**：`init()` 里补了 document keydown，检测 `trPosterModal` 显示中时 `closePoster()` |
+| M4 | `clock.js:1155` | 用户按 Esc 退出全屏时，旧回调只关 DOM 不关路由层，历史状态可能残留 `layer:'clock'` | **已修**：改为调用 `AppRouter.dismissLayer('clock')`，无 router 才回退 DOM |
+| M5 | `decision.js:642` | `showReceipt()` 在 router 分支里延迟写历史，`openLayer()` 与 `UniversalHistory.add()` 有时序差；快速连点或恢复历史可能重复入库 | **未修**：延迟写入仍在 |
+| M6 | `history.js:137` | `decision` 恢复先 `openReceiptLayer()` 再 `openLayer('decision')`，第二次 `replaceHistory` 容易让「后退关闭小票」失效 | **未修**：与 H3 同源 |
+
+#### 低风险 / 一致性问题
+
+| # | 位置 | 问题 | 状态 |
+|---|---|---|---|
+| L1 | `lingqian.js:529` | 调用 `AppRouter.switchModule(targetMod, true)`，新 router 只接受一个参数，第二参数被忽略 | **已修**：改为 `switchModule(targetMod)` |
+| L2 | `router.js:758` `initializeHistory()` | 如果已有 `history.state`，直接 `replaceHistory(existing)` 并恢复，刷新在结果页时不会补「首页」这一层，后退可能直接出站 | **未修**：`existing.depth = 0` 仍会丢掉站内层级 |
+| L3 | `router.js` `parseHashState()` | hash 只编码模块，不编码视图；`#/tarot` 刷新只能回模块首页，不能恢复抽牌/结果子页 | **未修**：设计取舍，但与历史恢复混用时会显得不一致 |
+| L4 | `history.js:86` | 先关抽屉再异步切模块，chunk 加载慢时用户会短暂看到上一个模块 | **未修**：仍是先关后加载 |
+| L5 | `router.js:640` | `back()` 在无 depth 且非首页时仍 `replaceView('home')`，是兜底而非严格 `history.back()` | **保留**：有意兜底，避免直接出站 |
+
+#### 结论
+
+- 高风险 5 项：已修 2 项（H1、H4），部分修 1 项（H2），未修 2 项（H3、H5）。
+- 中风险 6 项：已修 2 项（M3、M4），未修 4 项（M1、M2、M5、M6）。
+- 低风险 5 项：已修 1 项（L1），保留 1 项（L5），未修 3 项（L2、L3、L4）。
+- **不能把 v100 上线理解为这份清单已清零。** v100 主要解决的是共用 chunk 初始化导致「导航变了内容不变」的线上事故。
+
 ### D. 其它模块
 
 - `clock`：摸鱼时钟改双栏，宽屏免滚动（`5e5a0b4`）。

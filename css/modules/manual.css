@@ -828,20 +828,24 @@ html[data-theme="light"] #mod-manual {
 }
 #mod-manual .rz-halves {
   display: flex;
-  gap: 12px;
+  /* 间距拉到 20px：左右半区是要被快速区分的两个点击目标，
+     贴太近时两圈边框会糊成一片 */
+  gap: 20px;
   width: 100%;
   flex: 1;
   min-height: 280px;
 }
 /* 左右半区是「可点击区域」的提示，不是内容卡片。
-   原来给了实心 #262230 背景，比舞台底色 #1E1B24 还亮，看起来就是两块黑砖；
-   虚线又是 #3B3648，压在同样暗的底上几乎看不见。
-   改成透明底 + 高对比虚线，让区域边界自己说话。 */
+   踩过两次坑：
+   1) 实心 #262230 背景比舞台底色 #1E1B24 还亮，看起来就是两块黑砖；
+   2) 改成透明底后虚线太淡（0.28 的 2px dashed 在暗底上几乎融进去），
+      左右区域的边界反而消失了。
+   现在用「极淡底 + 实线边框」：底只比舞台亮一点点，靠边框划清区域。 */
 #mod-manual .rz-half {
   flex: 1;
   border-radius: 16px;
-  background: transparent;
-  border: 2px dashed rgba(242, 238, 227, 0.28);
+  background: rgba(255, 255, 255, 0.035);
+  border: 2px solid rgba(242, 238, 227, 0.32);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -854,8 +858,8 @@ html[data-theme="light"] #mod-manual {
   transition: border-color 0.12s, background 0.12s;
 }
 #mod-manual .rz-half:hover {
-  border-color: rgba(242, 238, 227, 0.5);
-  background: rgba(255, 255, 255, 0.03);
+  border-color: rgba(242, 238, 227, 0.6);
+  background: rgba(255, 255, 255, 0.06);
 }
 /* 点击后的反馈：原来 JS 只加了 .hit/.ok/.ng 类并改 borderColor，
    但 CSS 里没有任何对应规则，虚线又太淡，点完几乎看不出变化。 */

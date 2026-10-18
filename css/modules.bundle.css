@@ -4686,6 +4686,13 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .rz-half.hit.ng {
     max-width: 720px;
     margin: 0 auto;
   }
+  /* 交互游戏页：标题要和下面的游戏区左对齐。
+     .wrap 在这些页面已经放宽（扫雷 max-width:none），
+     标题再锁 720px 居中就会和棋盘错开半个屏。 */
+  #mod-manual .sm-screen .mt-topbar {
+    max-width: none;
+    margin: 0;
+  }
   /* 第 05 章（人间清醒）正文是 1080px 宽的，顶栏再锁 720px
      会和下方内容对不齐。这里连同左右内边距一起对齐 .lg-wrap：
      1080px 内容 + 两侧 20px，外层留 20px 让返回键与内容左缘齐平。 */
@@ -5056,15 +5063,15 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .rz-half.hit.ng {
     }
     /* 扫雷 / 舒尔特：棋盘尺寸由 JS 按格子数算死，外框应贴合棋盘，
        不要铺满整列后在左右留出大片空白。
-       justify-self:center + width:fit-content 让 .stage 收缩到内容宽，
-       多出来的空间留给两侧，视觉上外框和棋盘是一体的。 */
+       width:max-content 让 .stage 收缩到内容宽；
+       左对齐（而不是居中）才能和上方章节标题左边缘对齐。 */
     #mod-manual .sm-screen#scr-sm-mine .sm-game-layout .stage,
     #mod-manual .sm-screen#scr-sm-schulte .sm-game-layout .stage {
       width: max-content;
       max-width: 100%;
-      justify-self: center;
-      margin-left: auto;
-      margin-right: auto;
+      justify-self: start;
+      margin-left: 0;
+      margin-right: 0;
     }
     #mod-manual .sm-game-layout .lb-host {
     margin-top: 0;

@@ -3154,7 +3154,8 @@
     answers: [],
     result: null,
     reportExtra: null,
-    gameCtl: null
+    gameCtl: null,
+    gameId: null
   };
 
   function store() {
@@ -3215,6 +3216,7 @@
       if (state.gameCtl && state.gameCtl.destroy) {
         state.gameCtl.destroy();
         state.gameCtl = null;
+        state.gameId = null;
       }
     }
     var DATA = window.SM_DATA || {};
@@ -3422,6 +3424,7 @@
     if (state.gameCtl && state.gameCtl.destroy) {
       state.gameCtl.destroy();
       state.gameCtl = null;
+      state.gameId = null;
     }
     state.mode = 'result';
     state.result = res;
@@ -3487,8 +3490,11 @@
 
   function openGame(t, options) {
     options = options || {};
-    // 扫雷 / 2048：同一章节已有被暂停的实例时，直接恢复进度而不是重开一局
-    if (!options.forceNew && state.gameCtl && state.test && state.test.id === t.id
+    // 扫雷 / 2048：同一章节已有被暂停的实例时，直接恢复进度而不是重开一局。
+    // 必须同时确认「实例就是这一章的」——state.gameCtl 可能是另一个
+    // 支持进度的游戏留下的（比如 2048 的实例还没销毁就去点扫雷），
+    // 只看 state.test 会拿 2048 的 el 渲染扫雷的屏幕，整块变空。
+    if (!options.forceNew && state.gameCtl && state.gameId === t.id
         && typeof state.gameCtl.repaint === 'function') {
       state.mode = 'game';
       state.test = t;
@@ -3502,6 +3508,7 @@
     if (state.gameCtl && state.gameCtl.destroy) {
       state.gameCtl.destroy();
       state.gameCtl = null;
+      state.gameId = null;
     }
     state.mode = 'game';
     var gs = GAME_SCREENS[t.id] || GAME_SCREENS['game-2048'];
@@ -3538,6 +3545,9 @@
         var res = (t.compute ? t.compute.call(t, rawRes) : rawRes) || rawRes;
         showResult(t, res);
       });
+      // 记住这个实例是哪一章的，恢复进度时用来比对，
+      // 避免拿 2048 的实例去渲染扫雷的屏幕
+      state.gameId = t.id;
     }
   }
 

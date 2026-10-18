@@ -1,12 +1,13 @@
 # juice 项目交接文档
 
-> 更新：2026-10-18 · 覆盖至 `8a3e34d` 之后的工作区（v97，未提交）
+> 更新：2026-10-18 · 覆盖至 v98（`49ba66b` 之后）
 > 适用对象：接手本项目后续开发 / 维护的 agent 或人
 >
 > 本版所有数字均为**实测核对**。v65 以来新增了完整的全服排行榜后端、
 > 说明书从 8 章扩到 10 章、首屏性能重做；v95 完成了文档对齐与 Daily 数据源迁移；
 > v96 把非首屏模块拆成按需 chunk，并把农历库移出首屏；
-> v97 把首屏 CSS 收窄为核心包，并把主脚本提前到 `<head>` 发现。
+> v97 把首屏 CSS 收窄为核心包，并把主脚本提前到 `<head>` 发现；
+> v98 修复模块 CSS 未加载时 Clock 屏保层遮挡首页首屏的问题。
 > 你接手后仍应自行复核 —— 过期文档比没有文档更危险。
 
 ---
@@ -156,7 +157,7 @@ v97 相对 v96 三件套 Brotli 190,739 B 再减少约 **27.6%**，主要是 CSS
 3. **首屏空白。** 主包执行前页面全空。加纯 CSS 骨架（与真实封面同构），
    `show('cover')` / 切模块时给 `<html>` 加 `cover-ready` 淡出。
 
-### C2. v96 / v97 首屏拆包（工作区，未提交）
+### C2. v96 / v97 / v98 首屏拆包
 
 - `js/app.bundle.js` 只保留首屏核心，其余模块拆为 `js/chunks/*.js`，
   由 `router.js` 首次进入时动态注入 `<script>`。
@@ -180,6 +181,11 @@ v97 相对 v96 三件套 Brotli 190,739 B 再减少约 **27.6%**，主要是 CSS
   `fetchpriority="high"`，让 129 KB 的 HTML 解析早期就发现主包。
 - favicon 从 192px / 15,415 B 换成 32px / 1,608 B；
   `apple-touch-icon` 与 PWA 192/512 图标未动。
+- v98 发现并修复首屏回归：`.ck-zen-overlay` 原本只定义在懒加载的
+  `clock.css` 中，首页未加载模块 CSS 时 `#ckZenOverlay` 仍是
+  `display:block; visibility:visible; opacity:1`，且 z-index 最高，
+  实际覆盖首页上半屏并成为 LCP 元素。现在 `nav.css`（核心包）里
+  默认 `display:none`，仅 `.is-active` 时 `display:flex`。
 
 ### D. 其它模块
 
@@ -509,7 +515,7 @@ HTML 标签栈检查、`document.body.children` 和 `#modules-viewport.children`
 - 缓存头：`sw.js` no-store；`index.html` must-revalidate；
   css/js `public, max-age=31536000, immutable`；assets 7 天 + 30 天 SWR。
 - 改了 `css/` 或 `js/` **必须 `npm run build`**，否则线上拿到的还是旧 bundle。
-- **改了任何 css/js 都要先手改 `sw.js` 的 `CACHE_NAME` 版本号**（当前 v97），
+- **改了任何 css/js 都要先手改 `sw.js` 的 `CACHE_NAME` 版本号**（当前 v98），
   否则回访用户命中旧缓存看不到改动。这个坑踩过两次。
 - SW 的 `install` 阶段**严禁并发预拉取**资源，会触发 Vercel 边缘防火墙 705。
   当前实现零预取，只在 `fetch` 时懒缓存 `/assets/` 与 `.png`/`.jpg`。
@@ -538,13 +544,13 @@ node "C:\Users\NOC\AppData\Local\Temp\opencode\ref-check.cjs"
 node "C:\Users\NOC\AppData\Local\Temp\opencode\online-smoke.cjs"
 ```
 
-线上版本核对（部署后必做；当前代码为 v97）：
+线上版本核对（部署后必做；当前代码为 v98）：
 
 ```bash
 # 1. 等 SW 版本号变成新版本
 curl -s https://juice.noooc.dpdns.org/sw.js | grep CACHE_NAME
 # 2. 带 cache-buster 拉线上 bundle，确认新规则真的在里面
-curl -s "https://juice.noooc.dpdns.org/js/app.bundle.js?v=97" | grep -c "你的新代码特征"
+curl -s "https://juice.noooc.dpdns.org/js/app.bundle.js?v=98" | grep -c "你的新代码特征"
 ```
 
 > 注意：这些脚本在 `C:\Users\NOC\AppData\Local\Temp\opencode\`，

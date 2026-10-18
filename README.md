@@ -105,9 +105,9 @@ npm run build
 
 | 文件 | 字段 | 当前值 | 谁改 |
 |---|---|---|---|
-| `sw.js` | `CACHE_NAME` | `juice-persona-v97` | **手动**（唯一真值来源） |
-| `index.html` | `?v=` 查询参数（核心 CSS / 主 JS） | `97` | `npm run build` 自动同步 |
-| `router.js` | 按需 CSS / JS chunk URL | `97` | 从主包注入的版本号读取 |
+| `sw.js` | `CACHE_NAME` | `juice-persona-v98` | **手动**（唯一真值来源） |
+| `index.html` | `?v=` 查询参数（核心 CSS / 主 JS） | `98` | `npm run build` 自动同步 |
+| `router.js` | 按需 CSS / JS chunk URL | `98` | 从主包注入的版本号读取 |
 
 首屏只引用 `css/core.bundle.css`（`base + nav + history`）；
 其余 12 个模块样式打包为 `css/modules.bundle.css`，首次进入非饮品模块时加载。

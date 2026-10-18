@@ -1584,6 +1584,15 @@ body.has-daily-ambient-bg .daily-wp-stage {
   box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4) !important;
 }
 
+/* Clock 屏保层在模块 CSS 未加载前也必须隐藏，避免参与首页首屏绘制 */
+.ck-zen-overlay {
+  display: none;
+}
+
+.ck-zen-overlay.is-active {
+  display: flex;
+}
+
 
 /* === css/modules/history.css === */
 /* =========================================================
@@ -10609,7 +10618,7 @@ body.zen-screensaver-active::-webkit-scrollbar {
   margin: 0;
   z-index: 2147483647;
   background: #090a0f;
-  display: flex;
+  display: none;
   flex-direction: column;
   justify-content: space-between;
   align-items: center;
@@ -10647,6 +10656,7 @@ body.zen-screensaver-active::-webkit-scrollbar {
 }
 
 .ck-zen-overlay.is-active {
+  display: flex;
   opacity: 1;
   pointer-events: auto;
   visibility: visible;

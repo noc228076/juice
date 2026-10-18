@@ -652,7 +652,7 @@ body.zen-screensaver-active::-webkit-scrollbar {
   margin: 0;
   z-index: 2147483647;
   background: #090a0f;
-  display: flex;
+  display: none;
   flex-direction: column;
   justify-content: space-between;
   align-items: center;
@@ -690,6 +690,7 @@ body.zen-screensaver-active::-webkit-scrollbar {
 }
 
 .ck-zen-overlay.is-active {
+  display: flex;
   opacity: 1;
   pointer-events: auto;
   visibility: visible;

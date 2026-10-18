@@ -1,13 +1,15 @@
 # juice 项目交接文档
 
-> 更新：2026-10-18 · 覆盖至 v98（`49ba66b` 之后）
+> 更新：2026-10-18 · 覆盖至 v100（`1e1d5a4`）
 > 适用对象：接手本项目后续开发 / 维护的 agent 或人
 >
 > 本版所有数字均为**实测核对**。v65 以来新增了完整的全服排行榜后端、
 > 说明书从 8 章扩到 10 章、首屏性能重做；v95 完成了文档对齐与 Daily 数据源迁移；
 > v96 把非首屏模块拆成按需 chunk，并把农历库移出首屏；
 > v97 把首屏 CSS 收窄为核心包，并把主脚本提前到 `<head>` 发现；
-> v98 修复模块 CSS 未加载时 Clock 屏保层遮挡首页首屏的问题。
+> v98 修复模块 CSS 未加载时 Clock 屏保层遮挡首页首屏的问题；
+> v99 重写模块/视图/浮层的浏览器历史与返回逻辑；
+> v100 修复共用 chunk 只初始化首个模块，导致「导航高亮变了、内容不变」的回归。
 > 你接手后仍应自行复核 —— 过期文档比没有文档更危险。
 
 ---
@@ -53,8 +55,8 @@ api/leaderboard.js     20,503 B              ← 零依赖 Serverless 排行榜
 | 资源 | 原始 | Brotli q11 | 说明 |
 |---|---:|---:|---|
 | `index.html` | 129,276 B | 27,190 B | |
-| `css/core.bundle.css` | 78,237 B | 15,360 B | base + nav + history |
-| `js/app.bundle.js` | 423,079 B | 95,582 B | 仅首屏核心 |
+| `css/core.bundle.css` | 79,417 B | 15,360 B | base + nav + history |
+| `js/app.bundle.js` | 434,897 B | 98,000 B | 仅首屏核心 |
 | **首屏三件套合计** | **630,592 B** | **138,132 B** | |
 
 对照线上旧基线（v94，实测）三件套 Brotli 约 592,237 B，首屏静态传输约减少 **76.7%**。
@@ -186,6 +188,61 @@ v97 相对 v96 三件套 Brotli 190,739 B 再减少约 **27.6%**，主要是 CSS
   `display:block; visibility:visible; opacity:1`，且 z-index 最高，
   实际覆盖首页上半屏并成为 LCP 元素。现在 `nav.css`（核心包）里
   默认 `display:none`，仅 `.is-active` 时 `display:flex`。
+
+### C3. v99 / v100 路由与共用 chunk 修复（本轮）
+
+**v99 的目标**：让浏览器后退、深链、浮层关闭都走同一套历史状态，
+不再出现「点返回直接退出站点」或「后退后页面空白」。
+
+- `router.js` 统一 `history.state` 结构：`{ juice, mod, view, layer, payload, depth }`；
+  `depth` 表示站内历史层数，用于判断 `back()` 是否还能安全 `history.back()`。
+- 首页/模块/子视图分别用 `replaceState`、`pushState`、`replaceView` 管理；
+  结果页用 `replaceView`，避免「结果页自己再压一条历史」。
+- 浮层（档案抽屉、裁决小票、时钟屏保、个人资料、塔罗海报）进入 `layer`，
+  后退先关浮层，不切模块。
+- 首次带 hash 深链：先写首页，再压目标模块，保证后退能回站内首页；
+  无效 hash 自动纠正回首页。
+- 快速连续后退/前进用 `navSeq` 防竞态；`popstate` 后短暂抑制
+  `hashchange`，避免同一次后退执行两遍。
+
+**v100 的回归与根因**：用户实测「点顶栏只变高亮，内容不换」。
+不是网络慢，而是 `initModuleOnce()` 把「chunk 加载」和「模块初始化」
+绑在了第一个请求者身上：
+
+```js
+// 旧逻辑（错误）
+loadChunk('mystic').then(() => {
+  if (currentModule !== modKey) return;  // 切走后直接丢弃
+  runModuleInit(modKey);
+});
+```
+
+`tarot / lingqian / fengshui` 共用 `mystic` chunk，`clock / merit` 共用
+`relax` chunk。第一次进入 tarot 后，再进 lingqian/fengshui 时
+`chunkLoads['mystic']` 已经是 resolved Promise，回调立刻执行，
+但 `currentModule` 已经是新模块，`runModuleInit()` 被跳过；
+`initializedModules` 又只记录了 tarot，于是新模块永远不初始化。
+
+修复分两步：
+
+1. **每个模块独立初始化一次**：`loadChunk()` 的 Promise 只负责「文件到了」，
+   `runModuleInit(modKey)` 由每个模块自己的入口调用；共用 chunk 不再互相顶掉。
+2. **切走后不再初始化旧模块**：回调里加
+   `if (currentModule !== modKey || initializedModules.has(modKey)) return;`
+   避免用户已经切走，旧模块还在后台起计时器、预载图片或绑定事件。
+
+同时新增 `#navLoadOverlay`：首次进入模块时盖住旧页面，显示
+「正在打开… / 首次进入需要加载该模块」，加载完成或失败后统一移除。
+这样即使弱网，也不会出现「导航已高亮、内容还是上一页」的假死观感。
+
+**验证结果（线上 v100，真实点击 7 个顶栏 tab）**：
+
+- `manual / tarot / clock / decision / daily / scratch / drinks`
+  全部切到对应 `#mod-*`，`AppRouter.getState().mod` 与 `.app-module.active` 一致；
+- 加载完成后 `#navLoadOverlay` 均不存在；
+- 0 个请求失败、0 个 console/page error；
+- 深链 `#/tarot`、模块子页后退、历史抽屉后退、时钟屏保后退、个人资料后退、
+  裁决小票 Esc/后退、无效 hash 纠正均通过。
 
 ### D. 其它模块
 
@@ -475,6 +532,30 @@ HTML 标签栈检查、`document.body.children` 和 `#modules-viewport.children`
 移动端 tab 在横向滚动区外时，真实用户会先滑动，测试也应
 `scrollIntoView({inline:'center'})` 后再点，不能把「不可见」误判成「被遮挡」。
 
+### 教训 23：共用 chunk 不等于共用初始化
+
+v100 的线上事故：`tarot / lingqian / fengshui` 共用 `mystic` chunk，
+`clock / merit` 共用 `relax` chunk。第一版把「加载 chunk」和「初始化模块」
+写在同一个 Promise 里，并用 `currentModule !== modKey` 提前返回。
+结果第二个共用模块进入时，chunk Promise 已 resolved，回调立刻执行，
+但因为用户已经切到新模块，初始化被跳过；导航高亮变了，内容仍是旧模块。
+
+**规则**：chunk 缓存只负责「文件已到」；每个模块的 `init()` 必须由
+该模块自己的入口驱动，且只执行一次。不要用「当前模块是否还是它」
+去决定要不要初始化——那会把快速切换变成永久空页。
+
+### 教训 24：加载状态必须覆盖旧内容
+
+只改导航高亮、不盖住旧页面，用户会以为点击失效。模块首次加载时
+用 `#navLoadOverlay` 盖住视口，加载完成/失败后移除；它必须放在
+`#modules-viewport` 内，且 z-index 高于所有模块，低于全局顶栏。
+
+### 教训 25：`?v=` 不换，线上永远看不到修复
+
+v99 修好后线上仍是旧 JS，因为 `?v=99` 被 Vercel 设为 immutable。
+只改代码、不升版本，浏览器会继续用缓存里的旧 bundle。
+**每次 css/js 变更都要先改 `sw.js` 的 `CACHE_NAME`，再 `node build-bundles.js`。**
+
 ---
 
 ## 六、已知遗留问题
@@ -483,7 +564,7 @@ HTML 标签栈检查、`document.body.children` 和 `#modules-viewport.children`
    历史遗留，删不删你定。
 2. **`lunar.js` 还有 426 KB**（436,144 字节），是真实农历库不是图片。
    被 bazi 强依赖，动态加载风险高于收益，暂未动。若要继续瘦身，这是最大目标。
-3. **`css/modules.bundle.css` 350 KB**：v97 已把首屏 CSS 降到 78 KB，
+3. **`css/modules.bundle.css` 350 KB**：v97 已把首屏 CSS 降到 79 KB，
    但首次进入任一非饮品模块仍要一次拉取全部模块样式。后续可按入口继续细分，
    代价是更多请求与更复杂的加载状态。
 4. **塔罗 768→900px 断点**：768–899px 平板会退化成单栏。
@@ -503,6 +584,13 @@ HTML 标签栈检查、`document.body.children` 和 `#modules-viewport.children`
    目录由 `manual.js` 的 `renderHome()` 按 `SM_ORDER` 渲染（见教训 14）。
 10. **`assets/tarot/` 7.3 MB** 仍是最大的静态资源块。首屏只懒加载，
     但塔罗模块首次进入仍需拉取立绘，弱网下体验一般。
+11. **`switchModule(modKey)` 的第二参数已废弃**：v99 起只接受一个参数，
+    旧调用 `switchModule(targetMod, true)` 不会报错，但第二个参数被忽略。
+    新增入口请直接用 `navigate(mod, view, payload)`。
+12. **`?v=` 仍是 cache-buster，不是内容协商**：即使代码已更新，
+    旧 `?v=99` URL 在 immutable 缓存下仍可能返回旧 bundle。
+    任何 css/js 变更都必须同步升 `sw.js` 的 `CACHE_NAME` 并重新构建，
+    否则线上会出现「HTML 已更新、JS 还是旧版」的假修复。
 
 ---
 
@@ -515,7 +603,7 @@ HTML 标签栈检查、`document.body.children` 和 `#modules-viewport.children`
 - 缓存头：`sw.js` no-store；`index.html` must-revalidate；
   css/js `public, max-age=31536000, immutable`；assets 7 天 + 30 天 SWR。
 - 改了 `css/` 或 `js/` **必须 `npm run build`**，否则线上拿到的还是旧 bundle。
-- **改了任何 css/js 都要先手改 `sw.js` 的 `CACHE_NAME` 版本号**（当前 v98），
+- **改了任何 css/js 都要先手改 `sw.js` 的 `CACHE_NAME` 版本号**（当前 v100），
   否则回访用户命中旧缓存看不到改动。这个坑踩过两次。
 - SW 的 `install` 阶段**严禁并发预拉取**资源，会触发 Vercel 边缘防火墙 705。
   当前实现零预取，只在 `fetch` 时懒缓存 `/assets/` 与 `.png`/`.jpg`。
@@ -544,13 +632,13 @@ node "C:\Users\NOC\AppData\Local\Temp\opencode\ref-check.cjs"
 node "C:\Users\NOC\AppData\Local\Temp\opencode\online-smoke.cjs"
 ```
 
-线上版本核对（部署后必做；当前代码为 v98）：
+线上版本核对（部署后必做；当前代码为 v100）：
 
 ```bash
 # 1. 等 SW 版本号变成新版本
 curl -s https://juice.noooc.dpdns.org/sw.js | grep CACHE_NAME
 # 2. 带 cache-buster 拉线上 bundle，确认新规则真的在里面
-curl -s "https://juice.noooc.dpdns.org/js/app.bundle.js?v=98" | grep -c "你的新代码特征"
+curl -s "https://juice.noooc.dpdns.org/js/app.bundle.js?v=100" | grep -c "你的新代码特征"
 ```
 
 > 注意：这些脚本在 `C:\Users\NOC\AppData\Local\Temp\opencode\`，

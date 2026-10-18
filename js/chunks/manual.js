@@ -2553,7 +2553,18 @@
       // clientWidth 含 padding，.stage 左右各 16px 要扣掉
       var style = window.getComputedStyle(el);
       var padX = (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.paddingRight) || 0);
-      var availW = (el.clientWidth || 0) - padX;
+      // .stage 在扫雷页是 width:fit-content（外框贴合棋盘），
+      // 直接读 el.clientWidth 会读到「已经被缩小的自身」，越缩越小。
+      // 改为量 .sm-game-layout 的左列（grid 第一列）宽度。
+      var availW = 0;
+      var layoutEl = el.closest('.sm-game-layout');
+      if (layoutEl) {
+        var cs = window.getComputedStyle(layoutEl);
+        var cols = cs.gridTemplateColumns.split(' ').map(parseFloat).filter(function (v) { return !isNaN(v); });
+        if (cols.length) availW = cols[0];
+      }
+      if (!availW) availW = (el.parentNode && el.parentNode.clientWidth) || el.clientWidth || 0;
+      availW -= padX;
       if (availW <= 0) return 24;        // 还没进 DOM，用默认值，下一帧会重算
 
       var gap = 2, pad = 6 * 2;          // .ms-grid 自身内边距
@@ -2567,23 +2578,16 @@
       var layout = el.closest('.sm-game-layout');
       var twoCol = layout && window.getComputedStyle(layout).gridTemplateColumns.indexOf(' ') > 0;
       if (twoCol) {
-        // 实测 1908×903：棋盘上沿距模块顶 186px（章节标题 + HUD + 难度条），
-        // 棋盘下沿到底部 76px（提示行 + 留白），合计 262。
-        // 拿模块自身高度而不是 innerHeight：模块顶部本来就在顶栏之下。
-        var mod = el.closest('.app-module');
-        var modH = (mod && mod.clientHeight) || (window.innerHeight || 0) - 52;
-        var byH = Math.floor((modH - 262 - pad - gap * (level.rows - 1)) / level.rows);
-        if (byH > 0) size = Math.min(byW, byH);
+        // 不能用 .app-module 的 clientHeight：棋盘变高会把它撑高，
+        // 高度约束永远不触发（反馈循环）。改用视口高度。
+        // 预留 250px：顶栏 + 章节标题 + HUD + 难度条 + 棋盘下提示行 + 底部留白。
+        // 之前按 190 算，中级 16 行会超出视口底部被截断。
+        var viewH = window.innerHeight || 900;
+        var byH = Math.floor((viewH - 250 - pad - gap * (level.rows - 1)) / level.rows);
+        if (byH > 0) size = Math.min(size, byH);
       }
 
       // 上限 56px：再大就像儿童玩具了。
-      // 下限不只是 16：格子太大时总高度会撑开 .stage，
-      // 外框底部留出一大片空白（用户反馈「不贴合」）。
-      // 按行数给一个目标高度上限，宽度有余量就让棋盘居中、由 .ms-board-wrap 兜住。
-      var maxBoardH = 460;                       // 棋盘目标高度上限（像素）
-      var byRows = Math.floor((maxBoardH - pad - gap * (level.rows - 1)) / level.rows);
-      if (byRows > 0) size = Math.min(size, byRows);
-
       return Math.max(16, Math.min(56, size));
     }
 

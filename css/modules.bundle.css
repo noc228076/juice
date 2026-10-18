@@ -5054,6 +5054,18 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .rz-half.hit.ng {
        这里让它吃满左列 */
     width: 100%;
     }
+    /* 扫雷 / 舒尔特：棋盘尺寸由 JS 按格子数算死，外框应贴合棋盘，
+       不要铺满整列后在左右留出大片空白。
+       justify-self:center + width:fit-content 让 .stage 收缩到内容宽，
+       多出来的空间留给两侧，视觉上外框和棋盘是一体的。 */
+    #mod-manual .sm-screen#scr-sm-mine .sm-game-layout .stage,
+    #mod-manual .sm-screen#scr-sm-schulte .sm-game-layout .stage {
+      width: max-content;
+      max-width: 100%;
+      justify-self: center;
+      margin-left: auto;
+      margin-right: auto;
+    }
     #mod-manual .sm-game-layout .lb-host {
     margin-top: 0;
     position: sticky;

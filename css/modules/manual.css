@@ -972,10 +972,11 @@ html[data-theme="light"] #mod-manual {
     max-width: 960px;
     padding: var(--screen-pad-block) 32px var(--screen-pad-block);
   }
-  /* 扫雷高级 30 列，960px 减去 300px 榜单列后每格只剩 19px。
-     这一屏单独放宽，让棋盘能铺开；其它章节不受影响。 */
+  /* 扫雷高级 30 列。以前写死 1180px，1920 屏上左右各浪费 260px，
+     棋盘只分到 800px、每格 23px。改成吃满 .sm-main 的可用宽度：
+     宽屏多出来的空间全部给棋盘，窄屏仍由下面的单栏断点兜底。 */
   #mod-manual .sm-screen#scr-sm-mine .wrap {
-    max-width: 1180px;
+    max-width: none;
   }
 #mod-manual .manual-grid {
     display: grid;
@@ -1374,6 +1375,11 @@ html[data-theme="light"] #mod-manual {
     grid-template-columns: minmax(0, 1fr) 300px;
     gap: 16px;
     align-items: start;
+    }
+    /* 扫雷页放宽后，宽屏多出来的宽度应该全给棋盘，而不是把榜单列一起拉宽。
+       榜单保持 300–340px，棋盘列吃掉剩余空间。 */
+    #mod-manual .sm-screen#scr-sm-mine .sm-game-layout {
+      grid-template-columns: minmax(0, 1fr) clamp(300px, 18vw, 340px);
     }
     /* 扫雷高级 30 列，窄窗口下双栏会把棋盘压到每格 16px。
        宽度不够时改成榜单在下的单栏，把整行让给棋盘。 */

@@ -1402,21 +1402,42 @@
       return 'n' + Math.min(n, 8);
     }
 
-    /* 格子尺寸跟着可用宽度走：初级 9 列本来就该铺满，
+    /* 格子尺寸跟着可用空间走：初级 9 列本来就该铺满，
        以前写死 24px，桌面上只剩巴掌大一块。
-       上下限保证高级 30 列不会挤成一团、初级也不会大到离谱。 */
+
+       宽和高都要算：只按宽度算，2560 屏上高级 30×16 会撑到 940px 高，
+       直接溢出视口还得滚动。取两者较小值，棋盘才能整块落在可视区内。
+       上下限保证高级不会挤成一团、初级也不会大到离谱。 */
     function cellSize() {
       // 用 el 的宽度而不是 .ms-board-wrap：paint() 每次重建 DOM，
       // 旧 wrap 可能已经不在文档里，clientWidth 会读到 0。
       // clientWidth 含 padding，.stage 左右各 16px 要扣掉
       var style = window.getComputedStyle(el);
       var padX = (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.paddingRight) || 0);
-      var avail = (el.clientWidth || 0) - padX;
-      if (avail <= 0) return 24;         // 还没进 DOM，用默认值，下一帧会重算
+      var availW = (el.clientWidth || 0) - padX;
+      if (availW <= 0) return 24;        // 还没进 DOM，用默认值，下一帧会重算
+
       var gap = 2, pad = 6 * 2;          // .ms-grid 自身内边距
-      var size = Math.floor((avail - pad - gap * (level.cols - 1)) / level.cols);
-      // 上限 56px：初级 9 列在 668px 的舞台里能到 ~68px，
-      // 再大就像儿童玩具了，56 是「铺满且不蠢」的折中。
+      var byW = Math.floor((availW - pad - gap * (level.cols - 1)) / level.cols);
+      var size = byW;
+
+      // 只有「榜单在右侧」的双栏布局才需要限制棋盘高度：
+      // 那种布局下棋盘必须和榜单挤在同一屏里，太高就得整页滚动。
+      // 单栏（窄屏 / 手机）时榜单本来就在棋盘下方，页面注定要滚动，
+      // 再按高度压格子只会把棋盘缩得更小，反而更糟。
+      var layout = el.closest('.sm-game-layout');
+      var twoCol = layout && window.getComputedStyle(layout).gridTemplateColumns.indexOf(' ') > 0;
+      if (twoCol) {
+        // 实测 1908×903：棋盘上沿距模块顶 186px（章节标题 + HUD + 难度条），
+        // 棋盘下沿到底部 76px（提示行 + 留白），合计 262。
+        // 拿模块自身高度而不是 innerHeight：模块顶部本来就在顶栏之下。
+        var mod = el.closest('.app-module');
+        var modH = (mod && mod.clientHeight) || (window.innerHeight || 0) - 52;
+        var byH = Math.floor((modH - 262 - pad - gap * (level.rows - 1)) / level.rows);
+        if (byH > 0) size = Math.min(byW, byH);
+      }
+
+      // 上限 56px：再大就像儿童玩具了。
       return Math.max(16, Math.min(56, size));
     }
 

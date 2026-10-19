@@ -5119,8 +5119,8 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .rz-half.hit.ng {
       column-gap: 12px;
       width: fit-content;
       max-width: 100%;
-      margin-left: 0;
-      margin-right: 0;
+      margin-left: auto;
+      margin-right: auto;
     }
     /* 扫雷初级/中级：整组居中（棋盘窄，左对齐会偏在一边）；
        高级 30 列棋盘铺得满，保持左对齐。类由 JS 在 paint() 里打。 */
@@ -5153,9 +5153,8 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .rz-half.hit.ng {
       min-height: 0;
       align-items: stretch;
     }
-    /* 扫雷 / 舒尔特：.stage 左对齐、纵向撑满（v118 舒尔特居中已撤销） */
-    #mod-manual .sm-screen#scr-sm-mine .sm-game-layout .stage,
-    #mod-manual .sm-screen#scr-sm-schulte .sm-game-layout .stage {
+    /* 扫雷：.stage 纵向撑满（棋盘会按剩余高度铺满） */
+    #mod-manual .sm-screen#scr-sm-mine .sm-game-layout .stage {
       width: max-content;
       max-width: 100%;
       justify-self: start;
@@ -5166,6 +5165,23 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .rz-half.hit.ng {
       height: 100%;
       min-height: 0;
       align-self: stretch;
+    }
+    /* 舒尔特：外框高度贴合棋盘，不跟着纵向撑满 ——
+       方格棋盘下面挂一大块空外框就是过度拉伸 */
+    #mod-manual .sm-screen#scr-sm-schulte .sm-game-layout .stage {
+      width: max-content;
+      max-width: 100%;
+      justify-self: center;
+      margin-left: auto;
+      margin-right: auto;
+      display: flex;
+      flex-direction: column;
+      height: auto;
+      align-self: start;
+    }
+    /* 舒尔特棋盘区也不吃剩余高度，避免外框被撑高 */
+    #mod-manual .sm-screen#scr-sm-schulte .ms-board-wrap {
+      flex: 0 0 auto;
     }
     /* 棋盘包裹区吃掉 .stage 内剩余高度，棋盘在其中垂直居中 */
     #mod-manual .sm-screen#scr-sm-mine .ms-board-wrap,

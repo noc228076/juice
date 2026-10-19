@@ -4745,12 +4745,6 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .rz-half.hit.ng {
     max-width: none;
     width: auto;
   }
-  /* 舒尔特整组居中，标题也居中到同一宽度 */
-  #mod-manual .sm-screen#scr-sm-schulte .mt-topbar {
-    width: fit-content;
-    margin-left: auto;
-    margin-right: auto;
-  }
   /* 标题允许换行，不再被 ellipsis 截断 */
   #mod-manual .sm-screen#scr-sm-mine .mt-topbar .mt-pick-head b,
   #mod-manual .sm-screen#scr-sm-schulte .mt-topbar .mt-pick-head b {
@@ -5119,12 +5113,18 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .rz-half.hit.ng {
       margin-left: 0;
       margin-right: 0;
     }
-    /* 舒尔特：整组（棋盘 + 榜单）居中 */
+    /* 舒尔特：与扫雷同一套左对齐布局（v118 的标题居中已撤销） */
     #mod-manual .sm-screen#scr-sm-schulte .sm-game-layout {
       grid-template-columns: min-content clamp(300px, 18vw, 340px);
       column-gap: 12px;
       width: fit-content;
       max-width: 100%;
+      margin-left: 0;
+      margin-right: 0;
+    }
+    /* 扫雷初级/中级：整组居中（棋盘窄，左对齐会偏在一边）；
+       高级 30 列棋盘铺得满，保持左对齐。类由 JS 在 paint() 里打。 */
+    #mod-manual .sm-screen#scr-sm-mine .sm-game-layout.ms-centered {
       margin-left: auto;
       margin-right: auto;
     }
@@ -5153,26 +5153,14 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .rz-half.hit.ng {
       min-height: 0;
       align-items: stretch;
     }
-    /* 扫雷：左对齐（棋盘铺满左列，右缘紧贴榜单） */
-    #mod-manual .sm-screen#scr-sm-mine .sm-game-layout .stage {
+    /* 扫雷 / 舒尔特：.stage 左对齐、纵向撑满（v118 舒尔特居中已撤销） */
+    #mod-manual .sm-screen#scr-sm-mine .sm-game-layout .stage,
+    #mod-manual .sm-screen#scr-sm-schulte .sm-game-layout .stage {
       width: max-content;
       max-width: 100%;
       justify-self: start;
       margin-left: 0;
       margin-right: 0;
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-      min-height: 0;
-      align-self: stretch;
-    }
-    /* 舒尔特：整块居中（格子少、棋盘窄，左对齐会偏在一边） */
-    #mod-manual .sm-screen#scr-sm-schulte .sm-game-layout .stage {
-      width: max-content;
-      max-width: 100%;
-      justify-self: center;
-      margin-left: auto;
-      margin-right: auto;
       display: flex;
       flex-direction: column;
       height: 100%;

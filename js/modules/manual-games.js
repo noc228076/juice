@@ -1516,6 +1516,12 @@
         '<div class="ms-board-wrap" id="msBoardWrap"></div>' +
         '<div class="rz-sub" style="margin-top:10px">左键翻开 · 右键或长按插旗</div>';
 
+      // 初级/中级棋盘窄，整组（棋盘+榜单）居中；高级 30 列铺得满，保持左对齐
+      var layout = el.closest('.sm-game-layout');
+      if (layout) {
+        layout.classList.toggle('ms-centered', level.key !== 'hard');
+      }
+
       // 下一帧再填棋盘：此时外壳已完成布局，
       // cellSize() 能读到 .ms-board-wrap 的真实宽高。
       requestAnimationFrame(function () {

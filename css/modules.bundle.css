@@ -6100,6 +6100,56 @@ html[data-theme="light"] #mod-manual .cl-grid {
 }
 
 
+/* ============ 11 定位射击靶场 (AIM TRAINER) ============ */
+/* 靶场画布：十字光标 + 足够大的点击区域。
+   双主题都用深色画布——红球在浅色页面上对比度不够干脆。 */
+#mod-manual .aim-arena {
+  position: relative;
+  width: 100%;
+  height: 460px;
+  border-radius: 20px;
+  background: radial-gradient(circle at 50% 40%, #2B2739 0%, #1E1B26 70%, #17141C 100%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  cursor: crosshair;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+/* 浅色主题 + 壁纸模式下画布依旧保持深底：红球需要深色背景才有对比度 */
+html[data-theme="light"] #mod-manual .aim-arena {
+  border-color: rgba(0, 0, 0, 0.25);
+}
+
+#mod-manual .aim-ball {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #FF8A7A 0%, #EF4444 55%, #B91C1C 100%);
+  box-shadow: 0 0 18px rgba(239, 68, 68, 0.55), inset 0 -4px 8px rgba(0, 0, 0, 0.25);
+  cursor: crosshair;
+  will-change: width, height, left, top;
+}
+
+#mod-manual .aim-pop {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font-weight: 900;
+  font-size: 15px;
+  pointer-events: none;
+  animation: aimPop 0.65s ease-out forwards;
+  white-space: nowrap;
+  z-index: 5;
+}
+@keyframes aimPop {
+  from { opacity: 1; transform: translate(-50%, -50%) scale(0.8); }
+  to   { opacity: 0; transform: translate(-50%, -120%) scale(1.15); }
+}
+
+@media (max-width: 700px) {
+  #mod-manual .aim-arena { height: 360px; }
+}
+
+
 /* === css/modules/decision.css === */
 /* =========================================================
    模块 6：纠结拯救机 (Cyber Decision Oracle)

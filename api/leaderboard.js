@@ -29,6 +29,8 @@ const GAMES = {
   schulte_easy: { z: 'jsch_e:z', p: 'jsch_e:p', higher: false },
   schulte_medium: { z: 'jsch_m:z', p: 'jsch_m:p', higher: false },
   schulte_hard: { z: 'jsch_h:z', p: 'jsch_h:p', higher: false },
+  // 定位射击靶场：30 秒总分，越高越好
+  aim: { z: 'jaim:z', p: 'jaim:p', higher: true },
   // 旧版三档共用一个榜。保留只为兼容尚未刷新的客户端和后台删除接口，
   // 前端已经不再写这里。
   minesweeper: { z: 'jmine:z', p: 'jmine:p', higher: false, legacy: true }
@@ -244,6 +246,22 @@ function parseRun(game, body) {
     if (SCHULTE_LEVELS[game] !== lv) return { error: '成绩与难度不匹配' };
     if (err == null) return { error: '错误次数不合法' };
     return { score: sec, extra: { sec, lv, err } };
+  }
+
+  if (game === 'aim') {
+    // 定位射击靶场：30 秒限时总分，每球 100–300 分，
+    // 一局命中 20–30 球，正常区间几千分；0–99999 足够宽容。
+    const score = intIn(body.score, 0, 99999);
+    const hits = intIn(body.hits, 0, 500);
+    const acc = intIn(body.acc, 0, 100);
+    const streak = intIn(body.streak, 0, 500);
+    if (score == null) return { error: '分数不合法' };
+    if (hits == null) return { error: '命中数不合法' };
+    if (acc == null) return { error: '命中率不合法' };
+    if (streak == null) return { error: '连击数不合法' };
+    // 分数粗校验：得分不可能超过命中数 × 单球上限(300)
+    if (score > hits * 300) return { error: '分数与命中数不匹配' };
+    return { score, extra: { hits, acc, streak } };
   }
 
   return { error: '未知游戏' };

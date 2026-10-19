@@ -2030,5 +2030,319 @@
       }
     };
   };
+
+  /* ==================================================================
+   * 10 定位射击靶场 (AIM TRAINER)
+   * 30 秒限时：小球随机出现并持续收缩，出手越快、球越小分越高；
+   * 连击有加成，点空或让球缩没都断连击。按总分进全服排行榜。
+   * ================================================================== */
+  window.startAimTrainer = function (root, onFinish) {
+    var el = makeRoot(root);
+    var timers = [];
+    var destroyed = false;
+    function later(fn, ms) { var id = setTimeout(function () { if (!destroyed) fn(); }, ms); timers.push(id); return id; }
+    function clearTimers() { timers.forEach(clearTimeout); timers = []; }
+
+    var DURATION = 30000;        // 一局 30 秒
+    var R0 = 42, R_MIN = 12;     // 小球起始 / 最小半径
+    var LIFE0 = 1600;            // 小球寿命（ms），随命中数递减加难度
+
+    var score = 0, hits = 0, clicks = 0, expired = 0;
+    var streak = 0, bestStreak = 0, life = LIFE0;
+    var ball = null;             // { el, cx, cy, born, timer }
+    var rafId = 0, shrinkRaf = 0, endAt = 0, running = false;
+
+    /* ---------------- 排行榜 ----------------
+       30 秒总分排名，越高越好。全服榜展示命中率，
+       本机战绩展示分数 / 命中数 / 命中率 / 日期。 */
+    var lbPanel = window.AppLbPanel ? window.AppLbPanel.create({
+      game: 'aim',
+      storeKey: 'sm_aim_runs',
+      higher: true,
+      idPrefix: 'lbaim',
+      formatScore: function (v) { return v + ' 分'; },
+      describe: function (run) {
+        return { score: run.score, extra: { hits: run.hits, acc: run.acc, streak: run.bestStreak } };
+      },
+      localCols: function (r) {
+        return [
+          '<span class="lb-score">' + (r.score || 0) + '</span>',
+          '<span class="lb-tile">' + (r.hits || 0) + ' 中</span>',
+          '<span class="lb-meta">' + (r.acc || 0) + '%</span>',
+          '<span class="lb-date">' + window.AppLbPanel.fmtDay(r.at) + '</span>'
+        ];
+      },
+      globalCols: function (r) {
+        return [
+          '<span class="lb-ava">' + window.AppLbPanel.esc(r.avatar || '🙂') + '</span>',
+          '<span class="lb-name">' + window.AppLbPanel.esc(r.name || '匿名玩家') +
+            (r.isMe ? '<i class="lb-me">我</i>' : '') + '</span>',
+          '<span class="lb-score">' + (r.score || 0) + '</span>',
+          '<span class="lb-tile">' + ((r.extra && r.extra.acc) || 0) + '%</span>'
+        ];
+      }
+    }) : null;
+
+    function mountLbHost() {
+      if (!lbPanel) return;
+      var layout = root.querySelector('.sm-game-layout');
+      if (!layout) {
+        layout = document.createElement('div');
+        layout.className = 'sm-game-layout';
+        root.appendChild(layout);
+      }
+      if (el.parentNode !== layout) layout.appendChild(el);
+      var host = layout.querySelector('.lb-host');
+      if (!host) {
+        host = document.createElement('div');
+        host.className = 'lb-host';
+        layout.appendChild(host);
+      }
+      lbPanel.mount(host);
+    }
+
+    function hud() {
+      var acc = clicks ? Math.round(hits / clicks * 100) : 100;
+      var secs = endAt > 0 ? Math.max(0, Math.ceil((endAt - performance.now()) / 1000)) : DURATION / 1000;
+      return '<div class="hud"><div><b>定位射击靶场</b></div><div>'
+        + '<span class="ms-stat">⏱ <span id="aimTime">' + secs + '</span>s</span>'
+        + '<span class="ms-stat">🎯 <span id="aimScore">' + score + '</span></span>'
+        + '<span class="ms-stat">🔥 <span id="aimStreak">' + streak + '</span></span>'
+        + '<span class="ms-stat" id="aimAcc">' + acc + '%</span>'
+        + '</div></div>';
+    }
+
+    /* ---------- 开始页：不点不开计时（与舒尔特同一约定） ---------- */
+    function intro() {
+      clearTimers();
+      el.innerHTML = hud() +
+        '<div class="rz-stage">' +
+        '<div class="rz-big" style="font-size:30px">30 秒 · 打小球</div>' +
+        '<div class="rz-sub">小球出现后立刻开始收缩，缩没就消失。<br>' +
+        '出手越快、球越小得分越高；连击有加成，点空会断连击。<br>' +
+        '准星会变成十字——用鼠标或手指都可以。</div>' +
+        '<button class="btn accent" id="Aimgo" style="margin-top:22px;width:auto;padding:12px 38px">开始挑战</button>' +
+        '</div>';
+      var btn = el.querySelector('#Aimgo');
+      if (btn) {
+        btn.onclick = function (e) {
+          e.stopPropagation();
+          if (window.SFX && window.SFX.tap) window.SFX.tap();
+          startRound();
+        };
+      }
+    }
+
+    function startRound() {
+      score = 0; hits = 0; clicks = 0; expired = 0;
+      streak = 0; bestStreak = 0; life = LIFE0;
+      running = true;
+      endAt = performance.now() + DURATION;
+      paintFrame();
+      spawnBall();
+      shrinkLoop();
+      tickLoop();
+    }
+
+    /* 一次性渲染 HUD + 靶场外框；局内数字只改文本节点 */
+    function paintFrame() {
+      el.innerHTML = hud() +
+        '<div class="timerbar"><i id="aimTt"></i></div>' +
+        '<div class="aim-arena" id="aimArena"></div>';
+      var arena = el.querySelector('#aimArena');
+      arena.addEventListener('pointerdown', onArenaTap);
+    }
+
+    function tickLoop() {
+      cancelAnimationFrame(rafId);
+      var bar = el.querySelector('#aimTt');
+      var timeEl = el.querySelector('#aimTime');
+      (function frame() {
+        if (destroyed || !running) return;
+        var left = endAt - performance.now();
+        if (bar) bar.style.width = Math.max(0, left / DURATION * 100) + '%';
+        if (timeEl) timeEl.textContent = Math.max(0, Math.ceil(left / 1000));
+        if (left <= 0) { endRound(); return; }
+        rafId = requestAnimationFrame(frame);
+      })();
+    }
+
+    function spawnBall() {
+      if (destroyed || !running) return;
+      var arena = el.querySelector('#aimArena');
+      if (!arena) return;
+      var W = arena.clientWidth || 600, H = arena.clientHeight || 360;
+      var m = 30;
+      var cx = m + Math.random() * (W - m * 2);
+      var cy = m + Math.random() * (H - m * 2);
+      var b = document.createElement('div');
+      b.className = 'aim-ball';
+      arena.appendChild(b);
+      ball = { el: b, cx: cx, cy: cy, born: performance.now() };
+      place(b, cx, cy, R0);
+      // 缩没 → 算失误，断连击，立刻出下一球
+      ball.timer = later(function () {
+        if (!ball) return;
+        expired++;
+        streak = 0;
+        updateStreak();
+        removeBall();
+        spawnBall();
+      }, life);
+    }
+
+    function place(b, cx, cy, r) {
+      b.style.left = (cx - r) + 'px';
+      b.style.top = (cy - r) + 'px';
+      b.style.width = b.style.height = (r * 2) + 'px';
+    }
+
+    function removeBall() {
+      if (!ball) return;
+      if (ball.timer) clearTimeout(ball.timer);
+      if (ball.el && ball.el.parentNode) ball.el.remove();
+      ball = null;
+    }
+
+    /* rAF 驱动小球收缩动画。
+       用独立的 shrinkRaf 句柄：和倒计时 tickLoop 共用一个变量的话，
+       一方 cancelAnimationFrame 会把对方的帧请求取消掉——
+       第一次命中后倒计时就会冻结，一局永远打不完。 */
+    function shrinkLoop() {
+      if (shrinkRaf) return;     // 已在跑，不重复启动
+      (function frame() {
+        if (destroyed || !running) { shrinkRaf = 0; return; }
+        if (ball) {
+          var age = performance.now() - ball.born;
+          var k = Math.max(0, 1 - age / life);
+          var r = R_MIN + (R0 - R_MIN) * k;
+          place(ball.el, ball.cx, ball.cy, r);
+        }
+        shrinkRaf = requestAnimationFrame(frame);
+      })();
+    }
+
+    function onArenaTap(e) {
+      if (!running || destroyed) return;
+      clicks++;
+      var arena = el.querySelector('#aimArena');
+      var rect = arena.getBoundingClientRect();
+      var x = e.clientX - rect.left, y = e.clientY - rect.top;
+      if (ball) {
+        var dx = x - ball.cx, dy = y - ball.cy;
+        var age = performance.now() - ball.born;
+        var k = Math.max(0, 1 - age / life);
+        var r = R_MIN + (R0 - R_MIN) * k;
+        if (dx * dx + dy * dy <= r * r) { hit(x, y, k); return; }
+      }
+      miss(x, y);
+    }
+
+    function hit(x, y, k) {
+      hits++;
+      streak++;
+      bestStreak = Math.max(bestStreak, streak);
+      var speedBonus = Math.round(100 * (1 - k));       // 越早打中越高
+      var streakBonus = Math.min(100, streak * 10);     // 连击加成封顶 +100
+      var pts = 100 + speedBonus + streakBonus;
+      score += pts;
+      life = Math.max(900, LIFE0 - hits * 12);          // 命中越多球缩得越快
+      if (window.SFX && window.SFX.select) window.SFX.select();
+      popText(x, y, '+' + pts, '#2FBF6B');
+      updateScore();
+      removeBall();
+      spawnBall();
+    }
+
+    function miss(x, y) {
+      streak = 0;
+      if (window.SFX && window.SFX.wrong) window.SFX.wrong();
+      popText(x, y, 'MISS', '#E23B2E');
+      updateStreak();
+    }
+
+    function popText(x, y, txt, color) {
+      var arena = el.querySelector('#aimArena');
+      if (!arena) return;
+      var t = document.createElement('div');
+      t.className = 'aim-pop';
+      t.textContent = txt;
+      t.style.left = x + 'px';
+      t.style.top = y + 'px';
+      t.style.color = color;
+      arena.appendChild(t);
+      setTimeout(function () { if (t.parentNode) t.remove(); }, 650);
+    }
+
+    function updateScore() {
+      var s = el.querySelector('#aimScore');
+      if (s) s.textContent = score;
+      updateStreak();
+      var acc = clicks ? Math.round(hits / clicks * 100) : 100;
+      var a = el.querySelector('#aimAcc');
+      if (a) a.textContent = acc + '%';
+    }
+
+    function updateStreak() {
+      var s = el.querySelector('#aimStreak');
+      if (s) s.textContent = streak;
+    }
+
+    function endRound() {
+      running = false;
+      removeBall();
+      cancelAnimationFrame(rafId);
+      cancelAnimationFrame(shrinkRaf);
+      var acc = clicks ? Math.round(hits / clicks * 100) : 0;
+      if (lbPanel && hits > 0) {
+        lbPanel.submit({ score: score, hits: hits, acc: acc, streak: bestStreak });
+      }
+      finish();
+    }
+
+    function finish() {
+      var acc = clicks ? Math.round(hits / clicks * 100) : 0;
+      var certs = window.SM_DATA.aim.certs;
+      var cert = certs[certs.length - 1];
+      for (var i = 0; i < certs.length; i++) {
+        if (score >= certs[i].min) { cert = certs[i]; break; }
+      }
+      var avg = hits ? Math.round(DURATION / hits) : 0;
+
+      onFinish({
+        icon: cert.icon, name: cert.name,
+        tag: '总分 ' + score + ' · 命中 ' + hits + ' 球',
+        text: cert.text + ' 30 秒里命中 ' + hits + ' 球、命中率 ' + acc + '%、最高连击 ' + bestStreak +
+          '，平均每球 ' + avg + 'ms 出现到被你点掉。',
+        big: { label: '总分', value: score + ' <small>分</small>' },
+        bars: [
+          { label: '命中率', pct: acc, hi: true },
+          { label: '手速', pct: Math.min(100, Math.round(hits / 30 * 100)) }
+        ],
+        blocks: [
+          { h: '本局战报', text: '命中 ' + hits + ' 球，放空 ' + (clicks - hits) + ' 次，' +
+            '让 ' + expired + ' 颗球缩没了，最高连击 ' + bestStreak + '。' },
+          { h: '怎么练', text: '别追着准星看，用余光预判球的落点、甩枪过去——缩小的时候打中加分最多，但也别为了等缩小放跑整颗球。' }
+        ],
+        quip: window.SM_DATA.aim.disclaimer,
+        cert: cert.name + ' · 认证',
+        detail: { type: cert.name, score: score, hits: hits, acc: acc, bestStreak: bestStreak }
+      });
+    }
+
+    intro();
+    mountLbHost();
+    return {
+      destroy: function () {
+        destroyed = true;
+        running = false;
+        clearTimers();
+        cancelAnimationFrame(rafId);
+        cancelAnimationFrame(shrinkRaf);
+        removeBall();
+        if (lbPanel) lbPanel.destroy();
+      }
+    };
+  };
 })();
 

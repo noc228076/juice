@@ -656,9 +656,33 @@
       tagline: '低投入高回报的 16 项防线、36 条循证避坑与每日锦囊',
       icon: 'book', color: '#10B981',
       meta: '3 个子模块 · 随时可查'
+    },
+
+    /* ============ 11 定位射击靶场 ============
+       FPS 式定位训练：小球随机出现并不断收缩，点中越快分越高，
+       连击有加成，打空会断连击。30 秒限时，按总分排名。 */
+    aim: {
+      id: 'aim', num: '11', mode: 'interactive', engine: 'aim',
+      title: '定位射击靶场', en: 'AIM TRAINER',
+      tagline: '小球出现的一瞬间就要开枪——30 秒看看你的手感有多稳',
+      icon: 'target', color: '#EF4444',
+      meta: '30 秒限时 · 练定位',
+      intro: [
+        '靶场里会不断出现小球，出现后立刻开始收缩，缩没就消失。',
+        '在小球上点击（或触摸）即命中：出手越快、球越小，得分越高。',
+        '连续命中攒连击加成；点空或让球缩没都会断掉连击。',
+        '30 秒倒计时结束即结算，按总分进入全服排行榜。'
+      ],
+      disclaimer: '定位成绩和鼠标 DPI、屏幕刷新率强相关，跨设备比较图一乐。练的是肌肉记忆，不是天赋。仅供参考。',
+      certs: [
+        { min: 6000, icon: 'crown', name: '神经反射炉', text: '30 秒里你几乎没给小球活路——这份手速建议直接应用于任何甩枪场景。' },
+        { min: 4000, icon: 'gem', name: '枪法老练', text: '节奏稳、失误少，准星就是你的肢体延伸。' },
+        { min: 2200, icon: 'bolt', name: '渐入佳境', text: '连击一旦起来就停不下来，差的只是那么一点点稳定性。' },
+        { min: 0, icon: 'smile', name: '手感冰凉', text: '今天的手感先放一放，靶场不会跑，明天再来 warm up。' }
+      ]
     }
   };
 
   /* 首页章节顺序 */
-  window.SM_ORDER = ['social-battery', 'procrastination', 'slacking', 'night-owl', 'lifeguide', 'reaction', 'color', 'game-2048', 'minesweeper', 'schulte'];
+  window.SM_ORDER = ['social-battery', 'procrastination', 'slacking', 'night-owl', 'lifeguide', 'reaction', 'color', 'game-2048', 'minesweeper', 'schulte', 'aim'];
 })();

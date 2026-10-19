@@ -371,7 +371,8 @@
     'color': { scr: 'scr-sm-color', top: 'sm-colortop', body: 'sm-colorbody', start: 'startColor' },
     'game-2048': { scr: 'scr-sm-2048', top: 'sm-2048top', body: 'sm-2048body', start: 'startGame2048' },
     'minesweeper': { scr: 'scr-sm-mine', top: 'sm-minetop', body: 'sm-minebody', start: 'startMinesweeper' },
-    'schulte': { scr: 'scr-sm-schulte', top: 'sm-schultetop', body: 'sm-schultebody', start: 'startSchulte' }
+    'schulte': { scr: 'scr-sm-schulte', top: 'sm-schultetop', body: 'sm-schultebody', start: 'startSchulte' },
+    'aim': { scr: 'scr-sm-aim', top: 'sm-aimtop', body: 'sm-aimbody', start: 'startAimTrainer' }
   };
 
   function openGame(t, options) {

@@ -648,6 +648,53 @@
       ]
     },
 
+    /* ============ 12 数独 ============
+       无时限推理题：自动存档，随时退出随时继续。
+       生成器保证唯一解；按错误数进全服排行榜（越少越好）。 */
+    sudoku: {
+      id: 'sudoku', num: '12', mode: 'interactive', engine: 'sudoku',
+      title: '数独', en: 'SUDOKU',
+      tagline: '没有时限的推理题，自动存档，想玩就玩、想停就停',
+      icon: 'gear', color: '#0EA5E9',
+      meta: '三档难度 · 自动存档',
+      intro: [
+        '9×9 棋盘分成九个 3×3 宫：每行、每列、每宫都要恰好有 1 到 9。',
+        '蓝色数字是题目给的，点击空白格再用数字键盘填写。',
+        '填错会计入错误数（红色标记），随时可以改。',
+        '进度自动存档——退出随时继续，按错误数进全服排行榜。'
+      ],
+      disclaimer: '数独没有时间压力，卡住就放一放，明天往往一眼就看穿。仅供参考。',
+      certs: [
+        { min: 0, icon: 'crown', name: '天衣无缝', text: '全程零失误——行、列、宫在你眼里就是三条平行线。' },
+        { min: 2, icon: 'gem', name: '推理机器', text: '只错了寥寥几格，逻辑链非常扎实。' },
+        { min: 5, icon: 'bolt', name: '稳步推进', text: '有犹豫但思路是对的，量变很快引起质变。' },
+        { min: 99, icon: 'smile', name: '磕磕绊绊', text: '完成比完美重要——数独本来就是拿来放松的。' }
+      ]
+    },
+
+    /* ============ 13 数字华容道 ============
+       经典滑块复原：打掉一颗补一颗不存在——这里是一次滑动一步，
+       无时限、自动存档，按步数进全服排行榜（越少越好）。 */
+    slide: {
+      id: 'slide', num: '13', mode: 'interactive', engine: 'slide',
+      title: '数字华容道', en: 'SLIDING PUZZLE',
+      tagline: '滑块复原 1 到 N，步数越少越漂亮',
+      icon: 'swap', color: '#F97316',
+      meta: '三档难度 · 自动存档',
+      intro: [
+        '棋盘上有一个空位，点击空位旁边（上下左右）的滑块即可滑动。',
+        '目标是把数字复原成 1 到 N 的顺序，空位留在右下角。',
+        '步数越少越漂亮；进度自动存档，随时退出随时继续。',
+        '初级 3×3，中级 4×4，高级 5×5。'
+      ],
+      disclaimer: '滑块拼图没有运气成分——每一步都可逆，卡住了退几步往往就通了。仅供参考。',
+      certs: [
+        { min: 0, icon: 'crown', name: '行云流水', text: '几乎没有废步，滑块在你手里像有惯性一样听话。' },
+        { min: 1, icon: 'gem', name: '思路清晰', text: '先角落后中间的复原顺序，已经是标准解法了。' },
+        { min: 1, icon: 'bolt', name: '稳步复原', text: '慢是慢了点，但每一块都回到了它该在的地方。' }
+      ]
+    },
+
     /* ============ 05 人间清醒指南 ============
        这一章不是答题引擎产物：正文由 lifeguide.js 自己渲染（体检 / 智库 / 抽卡），
        所以 mode 为 'external'，由 manual.js 转交 AppLifeguide.open()。 */
@@ -685,7 +732,7 @@
   };
 
   /* 首页章节顺序 */
-  window.SM_ORDER = ['social-battery', 'procrastination', 'slacking', 'night-owl', 'lifeguide', 'reaction', 'color', 'game-2048', 'minesweeper', 'schulte', 'aim'];
+  window.SM_ORDER = ['social-battery', 'procrastination', 'slacking', 'night-owl', 'lifeguide', 'reaction', 'color', 'game-2048', 'minesweeper', 'schulte', 'aim', 'sudoku', 'slide'];
 })();
 
 ;
@@ -3477,6 +3524,616 @@
       }
     };
   };
+
+  /* ==================================================================
+   * 11 数独 (SUDOKU)
+   * 无时限：自动存档，想玩就玩、想停就停。生成器保证唯一解，
+   * 难度 = 提示数（初级 42 / 中级 34 / 高级 28）。
+   * 排名值 = 错误数（越少越好），按难度分榜。
+   * ================================================================== */
+  window.startSudoku = function (root, onFinish) {
+    var el = makeRoot(root);
+    var destroyed = false, finished = false;
+
+    var LEVELS = {
+      easy:   { key: 'easy',   name: '初级', givens: 42 },
+      medium: { key: 'medium', name: '中级', givens: 34 },
+      hard:   { key: 'hard',   name: '高级', givens: 28 }
+    };
+    var SAVE_KEY = 'sm_sudoku_state';
+
+    var lv = LEVELS.easy;
+    var puzzle = [], solution = [], given = [], user = [];
+    var mistakes = 0, sel = -1;
+
+    var lbPanel = window.AppLbPanel ? window.AppLbPanel.create({
+      game: 'sudoku_easy',
+      storeKey: 'sm_sudoku_runs_easy',
+      higher: false,
+      idPrefix: 'lbsudo',
+      formatScore: function (v) { return v + ' 错'; },
+      // 键名与 submit({...}) 完全一致——aim 的 streak 教训
+      describe: function (run) {
+        return { score: run.score, extra: { mistakes: run.score, lv: run.lv } };
+      },
+      localCols: function (r) {
+        return [
+          '<span class="lb-score">' + (r.score || 0) + '<small> 错</small></span>',
+          '<span class="lb-meta">' + (r.lv === 'hard' ? '高级' : r.lv === 'medium' ? '中级' : '初级') + '</span>',
+          '<span class="lb-date">' + window.AppLbPanel.fmtDay(r.at) + '</span>'
+        ];
+      },
+      globalCols: function (r) {
+        return [
+          '<span class="lb-ava">' + window.AppLbPanel.esc(r.avatar || '🙂') + '</span>',
+          '<span class="lb-name">' + window.AppLbPanel.esc(r.name || '匿名玩家') +
+            (r.isMe ? '<i class="lb-me">我</i>' : '') + '</span>',
+          '<span class="lb-score">' + (r.score || 0) + '<small> 错</small></span>',
+          '<span class="lb-tile">' + ((r.extra && r.extra.lv) === 'hard' ? '高级' : (r.extra && r.extra.lv) === 'medium' ? '中级' : '初级') + '</span>'
+        ];
+      }
+    }) : null;
+
+    function syncLbLevel() {
+      if (lbPanel) lbPanel.setGame('sudoku_' + lv.key, 'sm_sudoku_runs_' + lv.key);
+    }
+
+    function mountLbHost() {
+      if (!lbPanel) return;
+      var layout = root.querySelector('.sm-game-layout');
+      if (!layout) {
+        layout = document.createElement('div');
+        layout.className = 'sm-game-layout';
+        root.appendChild(layout);
+      }
+      if (el.parentNode !== layout) layout.appendChild(el);
+      var host = layout.querySelector('.lb-host');
+      if (!host) {
+        host = document.createElement('div');
+        host.className = 'lb-host';
+        layout.appendChild(host);
+      }
+      lbPanel.mount(host);
+    }
+
+    /* ---------- 生成器：先造完整解，再逐格挖空并保持唯一解 ---------- */
+    function idx(r, c) { return r * 9 + c; }
+
+    function valid(g, r, c, n) {
+      for (var i = 0; i < 9; i++) {
+        if (g[idx(r, i)] === n) return false;
+        if (g[idx(i, c)] === n) return false;
+      }
+      var br = Math.floor(r / 3) * 3, bc = Math.floor(c / 3) * 3;
+      for (var rr = br; rr < br + 3; rr++)
+        for (var cc = bc; cc < bc + 3; cc++)
+          if (g[idx(rr, cc)] === n) return false;
+      return true;
+    }
+
+    function shuffled9() {
+      var a = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+      for (var i = 8; i > 0; i--) {
+        var j = Math.floor(Math.random() * (i + 1));
+        var t = a[i]; a[i] = a[j]; a[j] = t;
+      }
+      return a;
+    }
+
+    function generateSolved() {
+      var g = new Array(81).fill(0);
+      function fill(p) {
+        if (p === 81) return true;
+        var r = Math.floor(p / 9), c = p % 9;
+        var nums = shuffled9();
+        for (var i = 0; i < 9; i++) {
+          if (valid(g, r, c, nums[i])) {
+            g[p] = nums[i];
+            if (fill(p + 1)) return true;
+            g[p] = 0;
+          }
+        }
+        return false;
+      }
+      fill(0);
+      return g;
+    }
+
+    /* 解数计数（>1 即非唯一），选候选最少格优先，剪枝快 */
+    function countSolutions(g) {
+      var count = 0;
+      function findBest() {
+        var best = -1, bestMask = 0, bestCnt = 10;
+        for (var p = 0; p < 81; p++) {
+          if (g[p]) continue;
+          var r = Math.floor(p / 9), c = p % 9, cnt = 0, mask = 0;
+          for (var n = 1; n <= 9; n++) if (valid(g, r, c, n)) { cnt++; mask |= (1 << n); }
+          if (cnt === 0) return { p: p, cnt: 0, mask: 0 };
+          if (cnt < bestCnt) { bestCnt = cnt; best = p; bestMask = mask; if (cnt === 1) break; }
+        }
+        return { p: best, cnt: bestCnt, mask: bestMask };
+      }
+      (function solve() {
+        if (count >= 2) return;
+        var f = findBest();
+        if (f.p === -1) { count++; return; }
+        if (f.cnt === 0) return;
+        for (var n = 1; n <= 9; n++) {
+          if (f.mask & (1 << n)) {
+            g[f.p] = n; solve(); g[f.p] = 0;
+            if (count >= 2) return;
+          }
+        }
+      })();
+      return count;
+    }
+
+    function makePuzzle(targetGivens) {
+      var g = generateSolved();
+      var p = g.slice();
+      var order = [];
+      for (var i = 0; i < 81; i++) order.push(i);
+      for (var j = 80; j > 0; j--) {
+        var k = Math.floor(Math.random() * (j + 1));
+        var t = order[j]; order[j] = order[k]; order[k] = t;
+      }
+      var removed = 0;
+      for (var m = 0; m < 81; m++) {
+        if (81 - removed <= targetGivens) break;
+        var cell = order[m];
+        var v = p[cell];
+        p[cell] = 0;
+        if (countSolutions(p.slice()) !== 1) p[cell] = v;
+        else removed++;
+      }
+      return { puzzle: p, solution: g };
+    }
+
+    /* ---------- 存档 ---------- */
+    function saveState() {
+      try {
+        localStorage.setItem(SAVE_KEY, JSON.stringify({
+          lv: lv.key, puzzle: puzzle, solution: solution, given: given,
+          user: user, mistakes: mistakes
+        }));
+      } catch (e) {}
+    }
+    function loadState() {
+      try {
+        var s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
+        if (s && s.puzzle && s.solution && LEVELS[s.lv]) return s;
+      } catch (e) {}
+      return null;
+    }
+    function clearState() {
+      try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
+    }
+
+    /* ---------- 界面 ---------- */
+    function intro() {
+      var saved = loadState();
+      var savedLv = saved ? LEVELS[saved.lv] : null;
+      el.innerHTML = hud() +
+        '<div class="rz-stage">' +
+        '<div class="rz-big" style="font-size:30px">数独</div>' +
+        '<div class="rz-sub">每行、每列、每个 3×3 宫都要恰好有 1 到 9。<br>' +
+        '进度自动存档，退出随时继续。按错误数进全服排行榜。</div>' +
+        '<div class="ms-levels" style="margin-top:20px;justify-content:center">' +
+        ['easy', 'medium', 'hard'].map(function (k) {
+          return '<button type="button" class="ms-lv' + (lv.key === k ? ' active' : '') +
+            '" data-lv="' + k + '">' + LEVELS[k].name + '（' + LEVELS[k].givens + ' 提示）</button>';
+        }).join('') +
+        '</div>' +
+        (saved ? '<button class="btn accent" id="sdResume" style="margin-top:18px;width:auto;padding:12px 34px">继续上局（' +
+          savedLv.name + '，已错 ' + saved.mistakes + ' 次）</button>' : '') +
+        '<button class="btn' + (saved ? '' : ' accent') + '" id="sdNew" style="margin-top:12px;width:auto;padding:12px 34px">新开一局</button>' +
+        '</div>';
+
+      el.querySelectorAll('[data-lv]').forEach(function (b) {
+        b.onclick = function () {
+          var k = b.getAttribute('data-lv');
+          if (k === lv.key) return;
+          if (window.SFX && window.SFX.tap) window.SFX.tap();
+          lv = LEVELS[k];
+          syncLbLevel();
+          intro();
+        };
+      });
+      var resumeBtn = el.querySelector('#sdResume');
+      if (resumeBtn) resumeBtn.onclick = function (e) {
+        e.stopPropagation();
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        var s = loadState();
+        if (!s) { intro(); return; }
+        lv = LEVELS[s.lv];
+        puzzle = s.puzzle; solution = s.solution; given = s.given;
+        user = s.user; mistakes = s.mistakes || 0; sel = -1;
+        syncLbLevel();
+        renderBoard();
+      };
+      var newBtn = el.querySelector('#sdNew');
+      if (newBtn) newBtn.onclick = function (e) {
+        e.stopPropagation();
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        startNew();
+      };
+    }
+
+    function startNew() {
+      var gen = makePuzzle(lv.givens);
+      puzzle = gen.puzzle;
+      solution = gen.solution;
+      given = puzzle.map(function (x) { return x > 0 ? 1 : 0; });
+      user = new Array(81).fill(0);
+      mistakes = 0; sel = -1;
+      syncLbLevel();
+      saveState();
+      renderBoard();
+    }
+
+    function boardHTML() {
+      var html = '<div class="sd-grid" id="sdGrid">';
+      for (var p = 0; p < 81; p++) {
+        var cls = 'sd-cell' + (given[p] ? ' given' : '') +
+          (user[p] && user[p] !== solution[p] ? ' err' : '') +
+          (sel === p ? ' sel' : '') +
+          (p % 9 === 2 || p % 9 === 5 ? ' bR' : '') +
+          ((p >= 18 && p < 27) || (p >= 45 && p < 54) ? ' bB' : '');
+        html += '<button type="button" class="' + cls + '" data-p="' + p + '">' +
+          (given[p] ? solution[p] : (user[p] || '')) + '</button>';
+      }
+      html += '</div><div class="sd-pad">';
+      for (var n = 1; n <= 9; n++) html += '<button type="button" class="sd-num" data-n="' + n + '">' + n + '</button>';
+      html += '<button type="button" class="sd-num sd-del" data-n="0">清除</button></div>' +
+        '<div class="rz-sub" style="margin-top:10px">先点空格，再点数字。✗ 右上角是错误数</div>';
+      return html;
+    }
+
+    function renderBoard() {
+      el.innerHTML = hud('<b>数独 · ' + lv.name + '</b>', '<span class="ms-stat">✗ <span id="sdErr">' + mistakes + '</span></span>') +
+        boardHTML();
+      var grid = el.querySelector('#sdGrid');
+      grid.addEventListener('click', function (e) {
+        var cell = e.target.closest('.sd-cell');
+                if (!cell) return;
+        var p = Number(cell.getAttribute('data-p'));
+        if (given[p]) return;
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        sel = (sel === p ? -1 : p);
+        renderBoard();
+      });
+      var pad = el.querySelector('.sd-pad');
+      pad.addEventListener('click', function (e) {
+        var btn = e.target.closest('.sd-num');
+                if (!btn || sel < 0 || given[sel] || finished) return;
+        var n = Number(btn.getAttribute('data-n'));
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        if (n === user[sel]) return;
+        user[sel] = n;
+        if (n !== 0 && n !== solution[sel]) {
+          mistakes++;
+          if (window.SFX && window.SFX.wrong) window.SFX.wrong();
+        }
+        saveState();
+        renderBoard();
+        checkWin();
+      });
+    }
+
+    function checkWin() {
+      var bad = 0;
+      for (var p = 0; p < 81; p++) {
+        if ((given[p] ? solution[p] : user[p]) !== solution[p]) bad++;
+      }
+      if (bad > 0 || finished) return;
+      finished = true;
+      clearState();
+      if (window.SFX && window.SFX.win) window.SFX.win();
+      if (lbPanel) lbPanel.submit({ score: mistakes, lv: lv.key });
+      finish();
+    }
+
+    function finish() {
+      var certs = window.SM_DATA.sudoku.certs;
+      var cert = certs[certs.length - 1];
+      for (var i = 0; i < certs.length; i++) {
+        if (mistakes >= certs[i].min) { cert = certs[i]; break; }
+      }
+      onFinish({
+        icon: cert.icon, name: cert.name,
+        tag: lv.name + ' · 错误 ' + mistakes + ' 次',
+        text: cert.text + ' 全部 81 格完成，错误 ' + mistakes + ' 次。',
+        big: { label: '错误数', value: mistakes + ' <small>次</small>' },
+        bars: [
+          { label: '准确率', pct: Math.max(0, 100 - mistakes * 4), hi: true }
+        ],
+        blocks: [
+          { h: '怎么练', text: '卡住时找「唯一候选」：某格只允许一个数字、某行只缺一个数字——数独的全部技巧都从这一条长出来。' }
+        ],
+        quip: window.SM_DATA.sudoku.disclaimer,
+        cert: cert.name + ' · 认证',
+        detail: { type: cert.name, mistakes: mistakes, lv: lv.key }
+      });
+    }
+
+    intro();
+    syncLbLevel();
+    mountLbHost();
+    return {
+      destroy: function () {
+        destroyed = true;
+        if (lbPanel) lbPanel.destroy();
+      }
+    };
+  };
+
+  /* ==================================================================
+   * 13 数字华容道 (SLIDING PUZZLE)
+   * 无时限：自动存档，随时退出随时继续。打乱方式 = 从还原态
+   * 随机走合法步（必然可解）。排名值 = 步数（越少越好），按难度分榜。
+   * ================================================================== */
+  window.startSlidePuzzle = function (root, onFinish) {
+    var el = makeRoot(root);
+    var destroyed = false, finished = false;
+
+    var LEVELS = {
+      easy:   { key: 'easy',   name: '初级', n: 3, par: 90,  good: 160 },
+      medium: { key: 'medium', name: '中级', n: 4, par: 200, good: 320 },
+      hard:   { key: 'hard',   name: '高级', n: 5, par: 380, good: 560 }
+    };
+    var SAVE_KEY = 'sm_slide_state';
+
+    var lv = LEVELS.easy;
+    var n = 3, tiles = [], moves = 0;
+
+    var lbPanel = window.AppLbPanel ? window.AppLbPanel.create({
+      game: 'slide_easy',
+      storeKey: 'sm_slide_runs_easy',
+      higher: false,
+      idPrefix: 'lbslide',
+      formatScore: function (v) { return v + ' 步'; },
+      // 键名与 submit({...}) 完全一致——aim 的 streak 教训
+      describe: function (run) {
+        return { score: run.score, extra: { moves: run.score, lv: run.lv } };
+      },
+      localCols: function (r) {
+        return [
+          '<span class="lb-score">' + (r.score || 0) + '<small> 步</small></span>',
+          '<span class="lb-meta">' + (r.lv === 'hard' ? '高级' : r.lv === 'medium' ? '中级' : '初级') + '</span>',
+          '<span class="lb-date">' + window.AppLbPanel.fmtDay(r.at) + '</span>'
+        ];
+      },
+      globalCols: function (r) {
+        return [
+          '<span class="lb-ava">' + window.AppLbPanel.esc(r.avatar || '🙂') + '</span>',
+          '<span class="lb-name">' + window.AppLbPanel.esc(r.name || '匿名玩家') +
+            (r.isMe ? '<i class="lb-me">我</i>' : '') + '</span>',
+          '<span class="lb-score">' + (r.score || 0) + '<small> 步</small></span>',
+          '<span class="lb-tile">' + ((r.extra && r.extra.lv) === 'hard' ? '高级' : (r.extra && r.extra.lv) === 'medium' ? '中级' : '初级') + '</span>'
+        ];
+      }
+    }) : null;
+
+    function syncLbLevel() {
+      if (lbPanel) lbPanel.setGame('slide_' + lv.key, 'sm_slide_runs_' + lv.key);
+    }
+
+    function mountLbHost() {
+      if (!lbPanel) return;
+      var layout = root.querySelector('.sm-game-layout');
+      if (!layout) {
+        layout = document.createElement('div');
+        layout.className = 'sm-game-layout';
+        root.appendChild(layout);
+      }
+      if (el.parentNode !== layout) layout.appendChild(el);
+      var host = layout.querySelector('.lb-host');
+      if (!host) {
+        host = document.createElement('div');
+        host.className = 'lb-host';
+        layout.appendChild(host);
+      }
+      lbPanel.mount(host);
+    }
+
+    function solvedState() {
+      var a = [];
+      for (var i = 1; i < n * n; i++) a.push(i);
+      a.push(0);
+      return a;
+    }
+
+    function isSolved() {
+      var total = n * n;
+      for (var i = 0; i < total - 1; i++) if (tiles[i] !== i + 1) return false;
+      return tiles[total - 1] === 0;
+    }
+
+    /* 从还原态随机走合法步打乱——必然可解 */
+    function shuffle() {
+      tiles = solvedState();
+      var last = -1, steps = n * n * 60;
+      for (var i = 0; i < steps; i++) {
+        var blank = tiles.indexOf(0);
+        var bx = blank % n, by = Math.floor(blank / n);
+        var opts = [];
+        if (bx > 0) opts.push(blank - 1);
+        if (bx < n - 1) opts.push(blank + 1);
+        if (by > 0) opts.push(blank - n);
+        if (by < n - 1) opts.push(blank + n);
+        opts = opts.filter(function (p) { return p !== last; });
+        var pick = opts[Math.floor(Math.random() * opts.length)];
+        tiles[blank] = tiles[pick];
+        tiles[pick] = 0;
+        last = pick;
+      }
+      moves = 0;
+    }
+
+    /* ---------- 存档 ---------- */
+    function saveState() {
+      try {
+        localStorage.setItem(SAVE_KEY, JSON.stringify({ lv: lv.key, tiles: tiles, moves: moves }));
+      } catch (e) {}
+    }
+    function loadState() {
+      try {
+        var s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
+        if (s && Array.isArray(s.tiles) && s.tiles.length === n * n && LEVELS[s.lv]) return s;
+      } catch (e) {}
+      return null;
+    }
+    function clearState() {
+      try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
+    }
+
+    /* ---------- 界面 ---------- */
+    function intro() {
+      var saved = loadState();
+      var savedLv = saved ? LEVELS[saved.lv] : null;
+      el.innerHTML = hud() +
+        '<div class="rz-stage">' +
+        '<div class="rz-big" style="font-size:30px">数字华容道</div>' +
+        '<div class="rz-sub">点击空位旁边的滑块即可滑动，复原成 1 到 N。<br>' +
+        '进度自动存档，退出随时继续。按步数进全服排行榜。</div>' +
+        '<div class="ms-levels" style="margin-top:20px;justify-content:center">' +
+        ['easy', 'medium', 'hard'].map(function (k) {
+          return '<button type="button" class="ms-lv' + (lv.key === k ? ' active' : '') +
+            '" data-lv="' + k + '">' + LEVELS[k].name + '（' + LEVELS[k].n + '×' + LEVELS[k].n + '）</button>';
+        }).join('') +
+        '</div>' +
+        (saved ? '<button class="btn accent" id="slResume" style="margin-top:18px;width:auto;padding:12px 34px">继续上局（' +
+          savedLv.name + '，已走 ' + saved.moves + ' 步）</button>' : '') +
+        '<button class="btn' + (saved ? '' : ' accent') + '" id="slNew" style="margin-top:12px;width:auto;padding:12px 34px">新开一局</button>' +
+        '</div>';
+
+      el.querySelectorAll('[data-lv]').forEach(function (b) {
+        b.onclick = function () {
+          var k = b.getAttribute('data-lv');
+          if (k === lv.key) return;
+          if (window.SFX && window.SFX.tap) window.SFX.tap();
+          lv = LEVELS[k];
+          syncLbLevel();
+          intro();
+        };
+      });
+      var resumeBtn = el.querySelector('#slResume');
+      if (resumeBtn) resumeBtn.onclick = function (e) {
+        e.stopPropagation();
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        var s = loadState();
+        if (!s) { intro(); return; }
+        lv = LEVELS[s.lv]; n = lv.n;
+        tiles = s.tiles; moves = s.moves || 0;
+        syncLbLevel();
+        renderBoard();
+      };
+      var newBtn = el.querySelector('#slNew');
+      if (newBtn) newBtn.onclick = function (e) {
+        e.stopPropagation();
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        startNew();
+      };
+    }
+
+    function startNew() {
+      n = lv.n;
+      shuffle();
+      syncLbLevel();
+      saveState();
+      renderBoard();
+    }
+
+    function renderBoard() {
+      var total = n * n, k = 100 / n;
+      var html = hud('<b>数字华容道 · ' + lv.name + '</b>', '<span class="ms-stat">⚡ <span id="slMoves">' + moves + '</span> 步</span>') +
+        '<div class="sl-wrap"><div class="sl-board" id="slBoard">';
+      for (var i = 0; i < total; i++) {
+        if (!tiles[i]) continue;
+        html += '<button type="button" class="sl-tile" data-p="' + i + '">' + tiles[i] + '</button>';
+      }
+      html += '</div></div>' +
+        '<div class="rz-sub" style="margin-top:12px">点空位旁的滑块移动 · 自动存档</div>';
+      el.innerHTML = html;
+      var board = el.querySelector('#slBoard');
+      board.style.setProperty('--n', n);
+      placeAll(board, k);
+      board.addEventListener('click', function (e) {
+        var t = e.target.closest('.sl-tile');
+        if (!t || finished) return;
+        tryMove(Number(t.getAttribute('data-p')));
+      });
+    }
+
+    function placeAll(board, k) {
+      board.querySelectorAll('.sl-tile').forEach(function (t) {
+        var pos = Number(t.getAttribute('data-p'));
+        t.style.width = 'calc(' + k + '% - 8px)';
+        t.style.height = 'calc(' + k + '% - 8px)';
+        t.style.left = 'calc(' + (pos % n) * k + '% + 4px)';
+        t.style.top = 'calc(' + Math.floor(pos / n) * k + '% + 4px)';
+      });
+    }
+
+    function tryMove(p) {
+      var blank = tiles.indexOf(0);
+      var bx = blank % n, by = Math.floor(blank / n);
+      var px = p % n, py = Math.floor(p / n);
+      if (Math.abs(bx - px) + Math.abs(by - py) !== 1) return;
+      tiles[blank] = tiles[p];
+      tiles[p] = 0;
+      moves++;
+      if (window.SFX && window.SFX.tap) window.SFX.tap();
+      var board = el.querySelector('#slBoard');
+      var t = board.querySelector('.sl-tile[data-p="' + p + '"]');
+      if (t) t.setAttribute('data-p', blank);
+      placeAll(board, 100 / n);
+      var mv = el.querySelector('#slMoves');
+      if (mv) mv.textContent = moves;
+      saveState();
+      if (isSolved()) {
+        finished = true;
+        clearState();
+        if (window.SFX && window.SFX.win) window.SFX.win();
+        if (lbPanel) lbPanel.submit({ score: moves, lv: lv.key });
+        finish();
+      }
+    }
+
+    function finish() {
+      var cfg = lv;
+      var cert;
+      if (moves <= cfg.par) cert = { icon: 'crown', name: '行云流水', text: '几乎没有废步，滑块在你手里像有惯性一样听话。' };
+      else if (moves <= cfg.good) cert = { icon: 'gem', name: '思路清晰', text: '步数控制得很好，复原顺序已经是标准解法了。' };
+      else cert = { icon: 'bolt', name: '稳步复原', text: '慢是慢了点，但每一块都回到了它该在的地方。' };
+
+      onFinish({
+        icon: cert.icon, name: cert.name,
+        tag: lv.name + ' ' + n + '×' + n + ' · ' + moves + ' 步复原',
+        text: cert.text + ' ' + (n * n - 1) + ' 块滑块用了 ' + moves + ' 步复原。',
+        big: { label: '总步数', value: moves + ' <small>步</small>' },
+        bars: [
+          { label: '步数效率', pct: Math.max(10, Math.min(100, Math.round(cfg.good / Math.max(1, moves) * 100))), hi: true }
+        ],
+        blocks: [
+          { h: '怎么练', text: '先把第一行（左到右）和第一列（上到下）固定住，剩下的空间就小一圈——逐圈向内收是华容道的通用思路。' }
+        ],
+        quip: window.SM_DATA.slide.disclaimer,
+        cert: cert.name + ' · 认证',
+        detail: { type: cert.name, moves: moves, lv: lv.key }
+      });
+    }
+
+    intro();
+    syncLbLevel();
+    mountLbHost();
+    return {
+      destroy: function () {
+        destroyed = true;
+        if (lbPanel) lbPanel.destroy();
+      }
+    };
+  };
 })();
 
 
@@ -3856,7 +4513,9 @@
     'game-2048': { scr: 'scr-sm-2048', top: 'sm-2048top', body: 'sm-2048body', start: 'startGame2048' },
     'minesweeper': { scr: 'scr-sm-mine', top: 'sm-minetop', body: 'sm-minebody', start: 'startMinesweeper' },
     'schulte': { scr: 'scr-sm-schulte', top: 'sm-schultetop', body: 'sm-schultebody', start: 'startSchulte' },
-    'aim': { scr: 'scr-sm-aim', top: 'sm-aimtop', body: 'sm-aimbody', start: 'startAimTrainer' }
+    'aim': { scr: 'scr-sm-aim', top: 'sm-aimtop', body: 'sm-aimbody', start: 'startAimTrainer' },
+    'sudoku': { scr: 'scr-sm-sudoku', top: 'sm-sudokutop', body: 'sm-sudokubody', start: 'startSudoku' },
+    'slide': { scr: 'scr-sm-slide', top: 'sm-slidetop', body: 'sm-slidebody', start: 'startSlidePuzzle' }
   };
 
   function openGame(t, options) {

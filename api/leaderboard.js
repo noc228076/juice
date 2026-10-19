@@ -32,6 +32,14 @@ const GAMES = {
   // 定位射击靶场：30 秒总分，越高越好
   // （v125 换键名：旧 jaim:* 里有调试期写入的探测数据，弃用）
   aim: { z: 'jaim_v2:z', p: 'jaim_v2:p', higher: true },
+  // 数独按难度分榜：排名值是错误数（越少越好）
+  sudoku_easy: { z: 'jsudo_e:z', p: 'jsudo_e:p', higher: false },
+  sudoku_medium: { z: 'jsudo_m:z', p: 'jsudo_m:p', higher: false },
+  sudoku_hard: { z: 'jsudo_h:z', p: 'jsudo_h:p', higher: false },
+  // 数字华容道按难度分榜：排名值是步数（越少越好）
+  slide_easy: { z: 'jslide_e:z', p: 'jslide_e:p', higher: false },
+  slide_medium: { z: 'jslide_m:z', p: 'jslide_m:p', higher: false },
+  slide_hard: { z: 'jslide_h:z', p: 'jslide_h:p', higher: false },
   // 旧版三档共用一个榜。保留只为兼容尚未刷新的客户端和后台删除接口，
   // 前端已经不再写这里。
   minesweeper: { z: 'jmine:z', p: 'jmine:p', higher: false, legacy: true }
@@ -48,6 +56,18 @@ const SCHULTE_LEVELS = {
   schulte_easy: 'easy',
   schulte_medium: 'medium',
   schulte_hard: 'hard'
+};
+
+const SUDOKU_LEVELS = {
+  sudoku_easy: 'easy',
+  sudoku_medium: 'medium',
+  sudoku_hard: 'hard'
+};
+
+const SLIDE_LEVELS = {
+  slide_easy: 'easy',
+  slide_medium: 'medium',
+  slide_hard: 'hard'
 };
 
 const BOARD_CAP = 1000;          // 每个榜单只保留前 1000 名
@@ -263,6 +283,24 @@ function parseRun(game, body) {
     // 分数粗校验：得分不可能超过命中数 × 单球上限(300)
     if (score > hits * 300) return { error: '分数与命中数不匹配' };
     return { score, extra: { hits, acc, streak } };
+  }
+
+  if (SUDOKU_LEVELS[game]) {
+    // 排名值是错误数（越少越好）。完成一局错误数 0–81。
+    const mistakes = intIn(body.score, 0, 81);
+    const lv = String(body.lv || '');
+    if (mistakes == null) return { error: '错误数不合法' };
+    if (SUDOKU_LEVELS[game] !== lv) return { error: '成绩与难度不匹配' };
+    return { score: mistakes, extra: { mistakes, lv } };
+  }
+
+  if (SLIDE_LEVELS[game]) {
+    // 排名值是步数（越少越好）。洗牌后的最优解远小于 10 万步，上限防溢出。
+    const moves = intIn(body.score, 1, 99999);
+    const lv = String(body.lv || '');
+    if (moves == null) return { error: '步数不合法' };
+    if (SLIDE_LEVELS[game] !== lv) return { error: '成绩与难度不匹配' };
+    return { score: moves, extra: { moves, lv } };
   }
 
   return { error: '未知游戏' };

@@ -6150,6 +6150,120 @@ html[data-theme="light"] #mod-manual .aim-arena {
 
 
 
+/* ============ 12 数独 (SUDOKU) ============ */
+#mod-manual .sd-grid {
+  display: grid;
+  grid-template-columns: repeat(9, 1fr);
+  gap: 2px;
+  width: 100%;
+  max-width: 470px;
+  margin: 0 auto;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  border-radius: 14px;
+  user-select: none;
+  -webkit-user-select: none;
+}
+#mod-manual .sd-cell {
+  aspect-ratio: 1;
+  border: none;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #F2EEE3;
+  font-weight: 800;
+  font-size: clamp(13px, 2.4vw, 19px);
+  font-family: "DIN Alternate", -apple-system, "Segoe UI", sans-serif;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.12s;
+}
+#mod-manual .sd-cell.given {
+  color: #7DD3FC;
+  background: rgba(125, 211, 252, 0.09);
+  cursor: default;
+}
+#mod-manual .sd-cell.sel {
+  outline: 2px solid #38BDF8;
+  background: rgba(56, 189, 248, 0.16);
+}
+#mod-manual .sd-cell.err { color: #FCA5A5; background: rgba(226, 59, 46, 0.2); }
+/* 3×3 宫分界线 */
+#mod-manual .sd-cell.bR { margin-right: 4px; }
+#mod-manual .sd-cell.bB { margin-bottom: 4px; }
+
+#mod-manual .sd-pad {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: 470px;
+  margin: 14px auto 0;
+}
+#mod-manual .sd-num {
+  flex: 1;
+  min-width: 54px;
+  padding: 11px 0;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #F2EEE3;
+  font-weight: 800;
+  font-size: 16px;
+  cursor: pointer;
+}
+#mod-manual .sd-num:hover { background: rgba(255, 255, 255, 0.12); }
+
+/* 浅色主题 */
+html[data-theme="light"] #mod-manual .sd-grid { background: rgba(0, 0, 0, 0.05); border-color: #D8CFB9; }
+html[data-theme="light"] #mod-manual .sd-cell { background: #FFFDF7; color: #2D2721; }
+html[data-theme="light"] #mod-manual .sd-cell.given { color: #0369A1; background: #E0F2FE; }
+html[data-theme="light"] #mod-manual .sd-cell.sel { outline-color: #0284C7; background: #E0F2FE; }
+html[data-theme="light"] #mod-manual .sd-cell.err { color: #B91C1C; background: #FEE2E2; }
+html[data-theme="light"] #mod-manual .sd-num { background: #FFFDF7; color: #2D2721; border-color: #D8CFB9; }
+
+/* ============ 13 数字华容道 (SLIDING PUZZLE) ============ */
+#mod-manual .sl-wrap { display: flex; justify-content: center; }
+#mod-manual .sl-board {
+  position: relative;
+  width: 100%;
+  max-width: 440px;
+  aspect-ratio: 1;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 14px;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+#mod-manual .sl-tile {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  background: linear-gradient(165deg, rgba(245, 158, 11, 0.28) 0%, rgba(245, 158, 11, 0.1) 100%);
+  color: #F2EEE3;
+  font-weight: 900;
+  font-size: clamp(18px, 4.5vw, 30px);
+  font-family: "DIN Alternate", -apple-system, "Segoe UI", sans-serif;
+  cursor: pointer;
+  padding: 0;
+  transition: left 0.13s ease, top 0.13s ease;
+}
+#mod-manual .sl-tile:hover { border-color: rgba(245, 158, 11, 0.5); }
+
+/* 浅色主题 */
+html[data-theme="light"] #mod-manual .sl-board { background: rgba(0, 0, 0, 0.04); border-color: #D8CFB9; }
+html[data-theme="light"] #mod-manual .sl-tile {
+  background: #FFFDF7;
+  color: #2D2721;
+  border-color: #E4DCC9;
+  box-shadow: 0 2px 6px rgba(90, 72, 42, 0.12);
+}
+
+
 /* === css/modules/decision.css === */
 /* =========================================================
    模块 6：纠结拯救机 (Cyber Decision Oracle)

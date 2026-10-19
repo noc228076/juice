@@ -647,6 +647,53 @@
       ]
     },
 
+    /* ============ 12 数独 ============
+       无时限推理题：自动存档，随时退出随时继续。
+       生成器保证唯一解；按错误数进全服排行榜（越少越好）。 */
+    sudoku: {
+      id: 'sudoku', num: '12', mode: 'interactive', engine: 'sudoku',
+      title: '数独', en: 'SUDOKU',
+      tagline: '没有时限的推理题，自动存档，想玩就玩、想停就停',
+      icon: 'gear', color: '#0EA5E9',
+      meta: '三档难度 · 自动存档',
+      intro: [
+        '9×9 棋盘分成九个 3×3 宫：每行、每列、每宫都要恰好有 1 到 9。',
+        '蓝色数字是题目给的，点击空白格再用数字键盘填写。',
+        '填错会计入错误数（红色标记），随时可以改。',
+        '进度自动存档——退出随时继续，按错误数进全服排行榜。'
+      ],
+      disclaimer: '数独没有时间压力，卡住就放一放，明天往往一眼就看穿。仅供参考。',
+      certs: [
+        { min: 0, icon: 'crown', name: '天衣无缝', text: '全程零失误——行、列、宫在你眼里就是三条平行线。' },
+        { min: 2, icon: 'gem', name: '推理机器', text: '只错了寥寥几格，逻辑链非常扎实。' },
+        { min: 5, icon: 'bolt', name: '稳步推进', text: '有犹豫但思路是对的，量变很快引起质变。' },
+        { min: 99, icon: 'smile', name: '磕磕绊绊', text: '完成比完美重要——数独本来就是拿来放松的。' }
+      ]
+    },
+
+    /* ============ 13 数字华容道 ============
+       经典滑块复原：打掉一颗补一颗不存在——这里是一次滑动一步，
+       无时限、自动存档，按步数进全服排行榜（越少越好）。 */
+    slide: {
+      id: 'slide', num: '13', mode: 'interactive', engine: 'slide',
+      title: '数字华容道', en: 'SLIDING PUZZLE',
+      tagline: '滑块复原 1 到 N，步数越少越漂亮',
+      icon: 'swap', color: '#F97316',
+      meta: '三档难度 · 自动存档',
+      intro: [
+        '棋盘上有一个空位，点击空位旁边（上下左右）的滑块即可滑动。',
+        '目标是把数字复原成 1 到 N 的顺序，空位留在右下角。',
+        '步数越少越漂亮；进度自动存档，随时退出随时继续。',
+        '初级 3×3，中级 4×4，高级 5×5。'
+      ],
+      disclaimer: '滑块拼图没有运气成分——每一步都可逆，卡住了退几步往往就通了。仅供参考。',
+      certs: [
+        { min: 0, icon: 'crown', name: '行云流水', text: '几乎没有废步，滑块在你手里像有惯性一样听话。' },
+        { min: 1, icon: 'gem', name: '思路清晰', text: '先角落后中间的复原顺序，已经是标准解法了。' },
+        { min: 1, icon: 'bolt', name: '稳步复原', text: '慢是慢了点，但每一块都回到了它该在的地方。' }
+      ]
+    },
+
     /* ============ 05 人间清醒指南 ============
        这一章不是答题引擎产物：正文由 lifeguide.js 自己渲染（体检 / 智库 / 抽卡），
        所以 mode 为 'external'，由 manual.js 转交 AppLifeguide.open()。 */
@@ -684,5 +731,5 @@
   };
 
   /* 首页章节顺序 */
-  window.SM_ORDER = ['social-battery', 'procrastination', 'slacking', 'night-owl', 'lifeguide', 'reaction', 'color', 'game-2048', 'minesweeper', 'schulte', 'aim'];
+  window.SM_ORDER = ['social-battery', 'procrastination', 'slacking', 'night-owl', 'lifeguide', 'reaction', 'color', 'game-2048', 'minesweeper', 'schulte', 'aim', 'sudoku', 'slide'];
 })();

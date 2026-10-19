@@ -1422,14 +1422,17 @@
       // clientWidth 含 padding，.stage 左右各 16px 要扣掉
       var style = window.getComputedStyle(el);
       var padX = (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.paddingRight) || 0);
-      // 左列是 minmax(0,1fr)，宽度由容器决定、不依赖棋盘；
-      // .stage 是 max-content，读它会形成收缩循环。所以读左列。
+      // 左列由棋盘内容决定（auto），读它会形成「越小→越小」的循环。
+      // 改为从 .wrap 反推：可用宽 = wrap 宽 − 榜单列 − 列间距 − 外框内边距。
       var availW = 0;
+      var wrapEl = el.closest('.wrap');
       var layoutEl = el.closest('.sm-game-layout');
-      if (layoutEl) {
-        var cols = window.getComputedStyle(layoutEl).gridTemplateColumns.split(' ')
-          .map(parseFloat).filter(function (v) { return !isNaN(v); });
-        if (cols.length) availW = cols[0] - padX;
+      if (wrapEl && layoutEl) {
+        var ws = window.getComputedStyle(wrapEl);
+        var wpad = (parseFloat(ws.paddingLeft) || 0) + (parseFloat(ws.paddingRight) || 0);
+        var vw = window.innerWidth || 1440;
+        var lbW = Math.max(300, Math.min(340, Math.round(vw * 0.18)));
+        availW = wrapEl.clientWidth - wpad - lbW - 12 - 2 * padX;
       }
       if (availW <= 0) availW = (el.parentNode && el.parentNode.clientWidth) || 0;
       if (availW <= 0) return 24;        // 还没进 DOM，用默认值，下一帧会重算

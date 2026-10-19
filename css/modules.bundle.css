@@ -5103,12 +5103,16 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .rz-half.hit.ng {
        榜单保持 300–340px，棋盘列吃掉剩余空间。 */
     /* 棋盘 + 榜单整体居中：左列吃剩余宽度（高级 30 列需要），
        棋盘在列内左对齐，整组由 .wrap 居中。 */
-    /* 棋盘吃满左列、榜单固定宽，整组铺满 .wrap。
-       棋盘铺满后格子随列宽变大，大屏空间不再浪费。 */
+    /* 左列收缩到棋盘实际宽度，榜单紧跟其后 —— 消除初/中级
+       棋盘与排行榜之间的空白。整组在 .wrap 内左对齐。 */
     #mod-manual .sm-screen#scr-sm-mine .sm-game-layout,
     #mod-manual .sm-screen#scr-sm-schulte .sm-game-layout {
-      grid-template-columns: minmax(0, 1fr) clamp(300px, 18vw, 340px);
+      grid-template-columns: min-content clamp(300px, 18vw, 340px);
       column-gap: 12px;
+      width: fit-content;
+      max-width: 100%;
+      margin-left: 0;
+      margin-right: 0;
     }
     /* 扫雷高级 30 列，窄窗口下双栏会把棋盘压到每格 16px。
        宽度不够时改成榜单在下的单栏，把整行让给棋盘。 */

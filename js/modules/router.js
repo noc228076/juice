@@ -424,6 +424,12 @@
       if (window.AppManual && typeof window.AppManual.stopActiveGame === 'function') {
         window.AppManual.stopActiveGame();
       }
+    } else if (prev.mod === 'manual' && prev.view === 'game' && state.view !== 'game') {
+      // 同模块内离开 game 视图（典型：游戏页按浏览器后退到目录）——
+      // 也必须暂停游戏，否则扫雷计时器/2048 键盘监听在目录页仍然活着
+      if (window.AppManual && typeof window.AppManual.stopActiveGame === 'function') {
+        window.AppManual.stopActiveGame();
+      }
     }
 
     if (state.mod === 'drinks') {

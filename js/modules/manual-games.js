@@ -1099,11 +1099,15 @@
     renderUI();
 
     return {
-      // 2048 没有计时器，切走不需要做什么；实例保留，切回来重绘即可
-      pause: function () {},
+      // 2048 没有计时器，但方向键监听是全局的——
+      // 切走必须摘掉，否则在目录页按方向键还会移动隐藏的棋盘
+      pause: function () {
+        window.removeEventListener('keydown', onKeyDown);
+      },
       // 切走再回来只重绘，棋盘/得分/撤销次数全部保留
       repaint: function () {
         if (destroyed) return;
+        window.addEventListener('keydown', onKeyDown);
         renderUI();
       },
       destroy: function () {
@@ -1643,10 +1647,13 @@
     window.addEventListener('resize', onResize);
 
     return {
-      // 离开模块：停表但保留棋盘与已翻开状态
+      // 离开视图：清掉挂起的结算延时并停表。
+      // 踩雷后立刻切走时，挂起的 finish() 若在别的模块里触发，
+      // showResult 的 replaceView 会篡改当前模块的历史条目。
       pause: function () {
-        if (destroyed || over) return;
-        stopTimer();
+        if (destroyed) return;
+        clearTimers();
+        if (!over) stopTimer();
       },
       // 回到模块：恢复计时并重绘
       repaint: function () {

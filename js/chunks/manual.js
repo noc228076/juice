@@ -2230,11 +2230,15 @@
     renderUI();
 
     return {
-      // 2048 没有计时器，切走不需要做什么；实例保留，切回来重绘即可
-      pause: function () {},
+      // 2048 没有计时器，但方向键监听是全局的——
+      // 切走必须摘掉，否则在目录页按方向键还会移动隐藏的棋盘
+      pause: function () {
+        window.removeEventListener('keydown', onKeyDown);
+      },
       // 切走再回来只重绘，棋盘/得分/撤销次数全部保留
       repaint: function () {
         if (destroyed) return;
+        window.addEventListener('keydown', onKeyDown);
         renderUI();
       },
       destroy: function () {
@@ -2774,10 +2778,13 @@
     window.addEventListener('resize', onResize);
 
     return {
-      // 离开模块：停表但保留棋盘与已翻开状态
+      // 离开视图：清掉挂起的结算延时并停表。
+      // 踩雷后立刻切走时，挂起的 finish() 若在别的模块里触发，
+      // showResult 的 replaceView 会篡改当前模块的历史条目。
       pause: function () {
-        if (destroyed || over) return;
-        stopTimer();
+        if (destroyed) return;
+        clearTimers();
+        if (!over) stopTimer();
       },
       // 回到模块：恢复计时并重绘
       repaint: function () {
@@ -3322,7 +3329,19 @@
         window.AppRouter.pushView('lifeguide');
         return;
       }
-      window.AppRouter.pushView(t.mode === 'interactive' ? 'game' : 'chapter', { testId: id });
+      // 说明书内部章节互斥：从一章切到另一章用 replaceView 而不是 push，
+      // 否则历史栈会堆成「home → 扫雷 → 2048 → …」，
+      // 返回键永远回不到目录，只会逐个倒回旧游戏。
+      // 只有从目录（home）进入时才 push，保证后退能回目录。
+      var viewName = t.mode === 'interactive' ? 'game' : 'chapter';
+      var rstate = window.AppRouter.getState ? window.AppRouter.getState() : null;
+      var isSibling = rstate && rstate.mod === 'manual'
+        && (rstate.view === 'game' || rstate.view === 'chapter' || rstate.view === 'result');
+      if (isSibling && typeof window.AppRouter.replaceView === 'function') {
+        window.AppRouter.replaceView(viewName, { testId: id });
+      } else {
+        window.AppRouter.pushView(viewName, { testId: id });
+      }
     }
     state.test = t;
     if (t.mode === 'interactive') {
@@ -3561,9 +3580,14 @@
     if (backBtn) {
       backBtn.onclick = function () {
         if (window.SFX && window.SFX.tap) window.SFX.tap();
-        if (state.gameCtl && state.gameCtl.destroy) {
+        // 走统一的暂停/销毁通道：2048/扫雷只暂停（切回来进度还在），
+        // 其余游戏销毁。不要在这里直接 destroy——那会把保留进度打穿。
+        if (window.AppManual && typeof window.AppManual.stopActiveGame === 'function') {
+          window.AppManual.stopActiveGame();
+        } else if (state.gameCtl && state.gameCtl.destroy) {
           state.gameCtl.destroy();
           state.gameCtl = null;
+          state.gameId = null;
         }
         if (window.AppRouter && typeof window.AppRouter.back === 'function') window.AppRouter.back(function () { renderHome(); showScreen('scr-sm-home'); });
         else {
@@ -3607,7 +3631,11 @@
       else { renderHome(); showScreen('scr-sm-home'); }
     };
     var rretry = document.getElementById('rretry');
-    if (rretry) rretry.onclick = function () { openCover(data.test); };
+    if (rretry) rretry.onclick = function () {
+      // openTest 会按章节类型路由：互动游戏直接重开一局，
+      // 问答章节走封面 —— 不能对游戏也弹封面模板
+      openTest(data.test.id);
+    };
     var rsave = document.getElementById('rsave');
     if (rsave) rsave.onclick = function () {
       if (window.buildShareCard) {

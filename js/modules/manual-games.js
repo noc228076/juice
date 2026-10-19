@@ -2880,5 +2880,483 @@
       }
     };
   };
+
+  /* ==================================================================
+   * 14 俄罗斯方块 (TETRIS)
+   * 经典落块消行。P 键/按钮随时暂停（盖罩遮板，防偷看），
+   * 进度自动存档，退出随时继续。等级 = 消行数 / 10，速度随级升。
+   * 计分：1/2/3/4 行 = 100/300/500/800 × 等级，软降 +1/格，硬降 +2/格。
+   * 排名值 = 总分（越高越好）。
+   * ================================================================== */
+  window.startTetris = function (root, onFinish) {
+    var el = makeRoot(root);
+    var destroyed = false, finished = false;
+
+    var COLS = 10, ROWS = 20;
+    var SAVE_KEY = 'sm_tetris_state';
+
+    /* 7 种方块，各 4 个旋转态（0 = 空）。SRS 简化版：直接枚举矩阵。 */
+    var SHAPES = {
+      I: [[0,0,0,0],[1,1,1,1],[0,0,0,0],[0,0,0,0]],
+      J: [[1,0,0],[1,1,1],[0,0,0]],
+      L: [[0,0,1],[1,1,1],[0,0,0]],
+      O: [[1,1],[1,1]],
+      S: [[0,1,1],[1,1,0],[0,0,0]],
+      T: [[0,1,0],[1,1,1],[0,0,0]],
+      Z: [[1,1,0],[0,1,1],[0,0,0]]
+    };
+    var COLORS = { I: '#38BDF8', J: '#6366F1', L: '#F59E0B', O: '#EAB308', S: '#22C55E', T: '#A855F7', Z: '#EF4444' };
+
+    var board = [];              // ROWS × COLS，0 或颜色字符串
+    var cur = null;              // { type, mat, x, y }
+    var nextType = null;
+    var score = 0, lines = 0, level = 1;
+    var paused = false, running = false, gameOver = false;
+    var dropTimer = null, rafId = 0;
+    var holdUntil = 0;           // 软降连发节流
+
+    var lbPanel = window.AppLbPanel ? window.AppLbPanel.create({
+      game: 'tetris',
+      storeKey: 'sm_tetris_runs',
+      higher: true,
+      idPrefix: 'lbtet',
+      formatScore: function (v) { return v + ' 分'; },
+      // 键名与 submit({...}) 完全一致——aim 的 streak 教训
+      describe: function (run) {
+        return { score: run.score, extra: { lines: run.lines, level: run.level } };
+      },
+      localCols: function (r) {
+        return [
+          '<span class="lb-score">' + (r.score || 0) + '</span>',
+          '<span class="lb-tile">' + (r.lines || 0) + ' 行</span>',
+          '<span class="lb-meta">Lv.' + (r.level || 1) + '</span>',
+          '<span class="lb-date">' + window.AppLbPanel.fmtDay(r.at) + '</span>'
+        ];
+      },
+      globalCols: function (r) {
+        return [
+          '<span class="lb-ava">' + window.AppLbPanel.esc(r.avatar || '🙂') + '</span>',
+          '<span class="lb-name">' + window.AppLbPanel.esc(r.name || '匿名玩家') +
+            (r.isMe ? '<i class="lb-me">我</i>' : '') + '</span>',
+          '<span class="lb-score">' + (r.score || 0) + '</span>',
+          '<span class="lb-tile">' + ((r.extra && r.extra.lines) || 0) + ' 行</span>'
+        ];
+      }
+    }) : null;
+
+    function mountLbHost() {
+      mountLbHostFor(lbPanel, root, el);
+    }
+
+    /* ---------- 存档 ---------- */
+    function saveState() {
+      if (gameOver || finished) return;
+      try {
+        localStorage.setItem(SAVE_KEY, JSON.stringify({
+          board: board, cur: cur, nextType: nextType,
+          score: score, lines: lines, level: level
+        }));
+      } catch (e) {}
+    }
+    function loadState() {
+      try {
+        var s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
+        var ok = s && Array.isArray(s.board) && s.board.length === ROWS &&
+          s.board.every(function (r) { return Array.isArray(r) && r.length === COLS; }) &&
+          s.cur && SHAPES[s.cur.type] && typeof s.score === 'number';
+        if (s && ok) return s;
+      } catch (e) {}
+      return null;
+    }
+    function clearState() {
+      try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
+    }
+
+    function emptyBoard() {
+      var b = [];
+      for (var r = 0; r < ROWS; r++) b.push(new Array(COLS).fill(0));
+      return b;
+    }
+
+    function bagNext() {
+      // 7-bag：保证每个方块周期性出现，手感公平
+      if (!bag.length) {
+        bag = ['I', 'J', 'L', 'O', 'S', 'T', 'Z'];
+        for (var i = bag.length - 1; i > 0; i--) {
+          var j = Math.floor(Math.random() * (i + 1));
+          var t = bag[i]; bag[i] = bag[j]; bag[j] = t;
+        }
+      }
+      return bag.pop();
+    }
+    var bag = [];
+
+    function newPiece(type) {
+      var mat = SHAPES[type].map(function (row) { return row.slice(); });
+      return { type: type, mat: mat, x: Math.floor((COLS - mat[0].length) / 2), y: -1 };
+    }
+
+    function collides(mat, px, py) {
+      for (var r = 0; r < mat.length; r++) {
+        for (var c = 0; c < mat[r].length; c++) {
+          if (!mat[r][c]) continue;
+          var x = px + c, y = py + r;
+          if (x < 0 || x >= COLS || y >= ROWS) return true;
+          if (y >= 0 && board[y][x]) return true;
+        }
+      }
+      return false;
+    }
+
+    function rotate(mat) {
+      var nRows = mat.length, nCols = mat[0].length;
+      var out = [];
+      for (var c = 0; c < nCols; c++) {
+        var row = [];
+        for (var r = nRows - 1; r >= 0; r--) row.push(mat[r][c]);
+        out.push(row);
+      }
+      return out;
+    }
+
+    function tryRotate() {
+      if (!cur || paused) return;
+      var m = rotate(cur.mat);
+      // 简易踢墙：原位不行就左右各试一格
+      var offsets = [0, -1, 1, -2, 2];
+      for (var i = 0; i < offsets.length; i++) {
+        if (!collides(m, cur.x + offsets[i], cur.y)) {
+          cur.mat = m;
+          cur.x += offsets[i];
+          if (window.SFX && window.SFX.tap) window.SFX.tap();
+          draw();
+          return;
+        }
+      }
+    }
+
+    function move(dx) {
+      if (!cur || paused) return;
+      if (!collides(cur.mat, cur.x + dx, cur.y)) {
+        cur.x += dx;
+        if (window.SFX && window.SFX.tick) window.SFX.tick();
+        draw();
+      }
+    }
+
+    function softDrop() {
+      if (!cur || paused) return;
+      if (!collides(cur.mat, cur.x, cur.y + 1)) {
+        cur.y++;
+        score += 1;
+        updateHud();
+        draw();
+      } else {
+        lockPiece();
+      }
+    }
+
+    function hardDrop() {
+      if (!cur || paused) return;
+      var dist = 0;
+      while (!collides(cur.mat, cur.x, cur.y + 1)) { cur.y++; dist++; }
+      score += dist * 2;
+      updateHud();       // 硬降得分即时上屏（lockPiece 的 clearLines 只在消行时刷 HUD）
+      lockPiece();
+    }
+
+    function lockPiece() {
+      for (var r = 0; r < cur.mat.length; r++) {
+        for (var c = 0; c < cur.mat[r].length; c++) {
+          if (!cur.mat[r][c]) continue;
+          var y = cur.y + r, x = cur.x + c;
+          if (y < 0) { endGame(); return; }
+          board[y][x] = COLORS[cur.type];
+        }
+      }
+      clearLines();
+      spawn();
+    }
+
+    function clearLines() {
+      var full = [];
+      for (var r = 0; r < ROWS; r++) {
+        var isFull = true;
+        for (var c = 0; c < COLS; c++) if (!board[r][c]) { isFull = false; break; }
+        if (isFull) full.push(r);
+      }
+      if (!full.length) { saveState(); draw(); return; }
+      full.forEach(function (r) {
+        board.splice(r, 1);
+        board.unshift(new Array(COLS).fill(0));
+      });
+      var pts = [0, 100, 300, 500, 800][full.length] * level;
+      score += pts;
+      lines += full.length;
+      level = Math.floor(lines / 10) + 1;
+      if (window.SFX && window.SFX.stage) window.SFX.stage();
+      saveState();
+      updateHud();
+      draw();
+    }
+
+    function spawn() {
+      cur = newPiece(nextType || bagNext());
+      nextType = bagNext();
+      if (collides(cur.mat, cur.x, cur.y)) {
+        // 出生点被占 → 顶死
+        draw();
+        endGame();
+        return;
+      }
+      draw();
+    }
+
+    function dropInterval() {
+      // 每级加快，1000ms 起步，下限 120ms
+      return Math.max(120, 1000 - (level - 1) * 85);
+    }
+
+    function scheduleDrop() {
+      if (dropTimer) clearTimeout(dropTimer);
+      if (!running || paused || gameOver || destroyed) return;
+      dropTimer = setTimeout(function () {
+        if (destroyed || paused || gameOver) return;
+        if (cur && !collides(cur.mat, cur.x, cur.y + 1)) {
+          cur.y++;
+          draw();
+          scheduleDrop();
+        } else {
+          lockPiece();
+          if (!gameOver) scheduleDrop();
+        }
+      }, dropInterval());
+    }
+
+    /* ---------- 渲染 ---------- */
+    function draw() {
+      var canvas = el.querySelector('#ttGrid');
+      if (!canvas) return;
+      var ctx = canvas.getContext('2d');
+      var cell = canvas.width / COLS;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      // 网格底
+      ctx.fillStyle = 'rgba(255,255,255,0.03)';
+      for (var r = 0; r < ROWS; r++)
+        for (var c = 0; c < COLS; c++)
+          if ((r + c) % 2 === 0) ctx.fillRect(c * cell, r * cell, cell, cell);
+      // 已固定的块
+      for (var r2 = 0; r2 < ROWS; r2++) {
+        for (var c2 = 0; c2 < COLS; c2++) {
+          if (board[r2][c2]) drawCell(ctx, c2 * cell, r2 * cell, cell, board[r2][c2]);
+        }
+      }
+      // 当前方块
+      if (cur) {
+        for (var r3 = 0; r3 < cur.mat.length; r3++) {
+          for (var c3 = 0; c3 < cur.mat[r3].length; c3++) {
+            if (!cur.mat[r3][c3]) continue;
+            var y = cur.y + r3;
+            if (y >= 0) drawCell(ctx, (cur.x + c3) * cell, y * cell, cell, COLORS[cur.type]);
+          }
+        }
+      }
+      // 下一块预览
+      var nextCanvas = el.querySelector('#ttNext');
+      if (nextCanvas && nextType) {
+        var nctx = nextCanvas.getContext('2d');
+        nctx.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
+        var m = SHAPES[nextType];
+        var ncell = nextCanvas.width / 4.4;
+        var ox = (nextCanvas.width - m[0].length * ncell) / 2;
+        var oy = (nextCanvas.height - m.length * ncell) / 2;
+        for (var r4 = 0; r4 < m.length; r4++)
+          for (var c4 = 0; c4 < m[r4].length; c4++)
+            if (m[r4][c4]) drawCell(nctx, ox + c4 * ncell, oy + r4 * ncell, ncell, COLORS[nextType]);
+      }
+    }
+
+    function drawCell(ctx, x, y, size, color) {
+      var pad = Math.max(1, size * 0.06);
+      ctx.fillStyle = color;
+      ctx.fillRect(x + pad, y + pad, size - pad * 2, size - pad * 2);
+      ctx.fillStyle = 'rgba(255,255,255,0.25)';
+      ctx.fillRect(x + pad, y + pad, size - pad * 2, (size - pad * 2) * 0.22);
+      ctx.strokeStyle = 'rgba(0,0,0,0.35)';
+      ctx.strokeRect(x + pad + 0.5, y + pad + 0.5, size - pad * 2 - 1, size - pad * 2 - 1);
+    }
+
+    function updateHud() {
+      var s = el.querySelector('#ttScore'); if (s) s.textContent = score;
+      var l = el.querySelector('#ttLines'); if (l) l.textContent = lines;
+      var lv = el.querySelector('#ttLevel'); if (lv) lv.textContent = level;
+    }
+
+    function setPaused(p) {
+      paused = p;
+      var btn = el.querySelector('#ttPause');
+      if (btn) btn.textContent = p ? '▶ 继续' : '⏸ 暂停';
+      var overlay = el.querySelector('#ttPauseOverlay');
+      if (overlay) overlay.classList.toggle('is-active', p);
+      if (p) { saveState(); if (dropTimer) { clearTimeout(dropTimer); dropTimer = null; } }
+      else scheduleDrop();
+    }
+
+    function togglePause() {
+      if (!running || gameOver || finished) return;
+      if (window.SFX && window.SFX.tap) window.SFX.tap();
+      setPaused(!paused);
+    }
+
+    function onKeyDown(e) {
+      if (destroyed || !running) return;
+      var scr = document.querySelector('.sm-screen.active');
+      if (!scr || scr.id !== 'scr-sm-tetris') return;
+      if (e.key === 'p' || e.key === 'P') { e.preventDefault(); togglePause(); return; }
+      if (paused || gameOver || finished) return;
+      switch (e.key) {
+        case 'ArrowLeft': e.preventDefault(); move(-1); break;
+        case 'ArrowRight': e.preventDefault(); move(1); break;
+        case 'ArrowUp': e.preventDefault(); tryRotate(); break;
+        case 'ArrowDown': {
+          e.preventDefault();
+          var now = performance.now();
+          if (now < holdUntil) return;
+          holdUntil = now + 45;       // 软降连发节流
+          softDrop();
+          break;
+        }
+        case ' ': e.preventDefault(); hardDrop(); break;
+      }
+    }
+
+    /* ---------- 开始页 ---------- */
+    function intro() {
+      var saved = loadState();
+      el.innerHTML = hud() +
+        '<div class="rz-stage">' +
+        '<div class="rz-big" style="font-size:30px">俄罗斯方块</div>' +
+        '<div class="rz-sub">← → 移动 · ↑ 旋转 · ↓ 软降 · 空格硬降 · P 暂停<br>' +
+        '进度自动存档，退出随时继续。按总分进全服排行榜。</div>' +
+        (saved ? '<button class="btn accent" id="ttResume" style="margin-top:18px;width:auto;padding:12px 34px">继续上局（' +
+          saved.score + ' 分，' + saved.lines + ' 行）</button>' : '') +
+        '<button class="btn' + (saved ? '' : ' accent') + '" id="ttNew" style="margin-top:12px;width:auto;padding:12px 34px">新开一局</button>' +
+        '</div>';
+      var resumeBtn = el.querySelector('#ttResume');
+      if (resumeBtn) resumeBtn.onclick = function (e) {
+        e.stopPropagation();
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        var s = loadState();
+        if (!s) { intro(); return; }
+        board = s.board; cur = s.cur; nextType = s.nextType;
+        score = s.score; lines = s.lines; level = s.level || 1;
+        bag = [];
+        startPlay();
+      };
+      var newBtn = el.querySelector('#ttNew');
+      if (newBtn) newBtn.onclick = function (e) {
+        e.stopPropagation();
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        startNew();
+      };
+    }
+
+    function startNew() {
+      board = emptyBoard();
+      score = 0; lines = 0; level = 1;
+      bag = []; nextType = null; gameOver = false; finished = false;
+      startPlay();
+    }
+
+    function startPlay() {
+      paused = false; running = true;
+      el.innerHTML = hud('<b>俄罗斯方块</b>',
+        '<span class="ms-stat">⭐ <span id="ttScore">' + score + '</span></span>' +
+        '<span class="ms-stat">⬜ <span id="ttLines">' + lines + '</span> 行</span>' +
+        '<span class="ms-stat">Lv.<span id="ttLevel">' + level + '</span></span>') +
+        '<div class="tt-layout">' +
+        '<div class="tt-stage-wrap">' +
+        '<canvas id="ttGrid" width="300" height="600" class="tt-grid"></canvas>' +
+        '<div class="tt-pause-overlay" id="ttPauseOverlay"><div>⏸ 已暂停<br><small>按 P 或点「继续」</small></div></div>' +
+        '</div>' +
+        '<div class="tt-side">' +
+        '<div class="tt-next-label">下一个</div>' +
+        '<canvas id="ttNext" width="88" height="88" class="tt-next"></canvas>' +
+        '<button type="button" class="tt-btn" id="ttPause">⏸ 暂停</button>' +
+        '<button type="button" class="tt-btn" id="ttRestart">↻ 重开</button>' +
+        '<div class="tt-keys">← → 移动<br>↑ 旋转<br>↓ 软降<br>空格 硬降<br>P 暂停</div>' +
+        '</div></div>';
+      updateHud();
+      var pauseBtn = el.querySelector('#ttPause');
+      if (pauseBtn) pauseBtn.onclick = function (e) { e.stopPropagation(); togglePause(); };
+      var restartBtn = el.querySelector('#ttRestart');
+      if (restartBtn) restartBtn.onclick = function (e) {
+        e.stopPropagation();
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        stopLoop();
+        startNew();
+      };
+      if (!cur) spawn();
+      saveState();
+      draw();
+      scheduleDrop();
+    }
+
+    function stopLoop() {
+      if (dropTimer) { clearTimeout(dropTimer); dropTimer = null; }
+      cancelAnimationFrame(rafId);
+    }
+
+    function endGame() {
+      gameOver = true;
+      running = false;
+      stopLoop();
+      clearState();
+      if (window.SFX && window.SFX.wrong) window.SFX.wrong();
+      if (lbPanel) lbPanel.submit({ score: score, lines: lines, level: level });
+      finish();
+    }
+
+    function finish() {
+      var certs = window.SM_DATA.tetris.certs;
+      var cert = certs[certs.length - 1];
+      for (var i = 0; i < certs.length; i++) {
+        if (score >= certs[i].min) { cert = certs[i]; break; }
+      }
+      onFinish({
+        icon: cert.icon, name: cert.name,
+        tag: '总分 ' + score + ' · 消除 ' + lines + ' 行 · Lv.' + level,
+        text: cert.text + ' 单局消除 ' + lines + ' 行，最终等级 Lv.' + level + '。',
+        big: { label: '总分', value: score + ' <small>分</small>' },
+        bars: [
+          { label: '消行效率', pct: Math.min(100, Math.round(lines / 40 * 100)), hi: true },
+          { label: '等级', pct: Math.min(100, level * 8) }
+        ],
+        blocks: [
+          { h: '怎么练', text: '别把棋盘两边堆满——留一条「井」给 I 形长条，一次四行（Tetris）的分数是单行的 8 倍。' }
+        ],
+        quip: window.SM_DATA.tetris.disclaimer,
+        cert: cert.name + ' · 认证',
+        detail: { type: cert.name, score: score, lines: lines, level: level }
+      });
+    }
+
+    function bindKeyboard() {
+      window.addEventListener('keydown', onKeyDown);
+    }
+
+    intro();
+    mountLbHost();
+    bindKeyboard();
+    return {
+      destroy: function () {
+        destroyed = true;
+        running = false;
+        stopLoop();
+        window.removeEventListener('keydown', onKeyDown);
+        if (lbPanel) lbPanel.destroy();
+      }
+    };
+  };
 })();
 

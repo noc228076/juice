@@ -374,7 +374,8 @@
     'schulte': { scr: 'scr-sm-schulte', top: 'sm-schultetop', body: 'sm-schultebody', start: 'startSchulte' },
     'aim': { scr: 'scr-sm-aim', top: 'sm-aimtop', body: 'sm-aimbody', start: 'startAimTrainer' },
     'sudoku': { scr: 'scr-sm-sudoku', top: 'sm-sudokutop', body: 'sm-sudokubody', start: 'startSudoku' },
-    'slide': { scr: 'scr-sm-slide', top: 'sm-slidetop', body: 'sm-slidebody', start: 'startSlidePuzzle' }
+    'slide': { scr: 'scr-sm-slide', top: 'sm-slidetop', body: 'sm-slidebody', start: 'startSlidePuzzle' },
+    'tetris': { scr: 'scr-sm-tetris', top: 'sm-tetristop', body: 'sm-tetrisbody', start: 'startTetris' }
   };
 
   function openGame(t, options) {

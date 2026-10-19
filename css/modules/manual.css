@@ -2675,3 +2675,89 @@ html[data-theme="light"] #mod-manual .sl-tile {
   border-color: #E4DCC9;
   box-shadow: 0 2px 6px rgba(90, 72, 42, 0.12);
 }
+
+
+/* ============ 14 俄罗斯方块 (TETRIS) ============ */
+#mod-manual .tt-layout {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  align-items: flex-start;
+}
+#mod-manual .tt-stage-wrap {
+  position: relative;
+  flex: 0 0 auto;
+}
+#mod-manual .tt-grid {
+  display: block;
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  max-width: 100%;
+  height: auto;
+}
+/* 暂停遮罩：盖住棋盘防偷看 */
+#mod-manual .tt-pause-overlay {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border-radius: 10px;
+  background: rgba(10, 8, 14, 0.86);
+  color: #F2EEE3;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.9;
+  z-index: 5;
+}
+#mod-manual .tt-pause-overlay.is-active { display: flex; }
+#mod-manual .tt-pause-overlay small {
+  font-size: 13px;
+  font-weight: 400;
+  color: #9A948A;
+}
+#mod-manual .tt-side {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 120px;
+}
+#mod-manual .tt-next-label {
+  font-size: 12px;
+  color: #9A948A;
+  font-weight: 700;
+}
+#mod-manual .tt-next {
+  background: rgba(0, 0, 0, 0.22);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+}
+#mod-manual .tt-btn {
+  padding: 9px 0;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #F2EEE3;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+}
+#mod-manual .tt-btn:hover { border-color: #8B5CF6; }
+#mod-manual .tt-keys {
+  font-size: 11.5px;
+  color: #9A948A;
+  line-height: 1.9;
+  margin-top: 4px;
+}
+@media (max-width: 640px) {
+  #mod-manual .tt-grid { width: 240px; height: 480px; }
+  #mod-manual .tt-side { width: 96px; }
+}
+
+/* 浅色主题 */
+html[data-theme="light"] #mod-manual .tt-grid { background: rgba(0, 0, 0, 0.06); border-color: #D8CFB9; }
+html[data-theme="light"] #mod-manual .tt-btn { background: #FFFDF7; color: #2D2721; border-color: #D8CFB9; }
+html[data-theme="light"] #mod-manual .tt-next { background: rgba(0, 0, 0, 0.04); border-color: #E4DCC9; }
+html[data-theme="light"] #mod-manual .tt-pause-overlay { background: rgba(250, 247, 238, 0.92); color: #2D2721; }

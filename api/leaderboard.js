@@ -40,6 +40,8 @@ const GAMES = {
   slide_easy: { z: 'jslide_e:z', p: 'jslide_e:p', higher: false },
   slide_medium: { z: 'jslide_m:z', p: 'jslide_m:p', higher: false },
   slide_hard: { z: 'jslide_h:z', p: 'jslide_h:p', higher: false },
+  // 俄罗斯方块：单局总分，越高越好
+  tetris: { z: 'jtetris:z', p: 'jtetris:p', higher: true },
   // 旧版三档共用一个榜。保留只为兼容尚未刷新的客户端和后台删除接口，
   // 前端已经不再写这里。
   minesweeper: { z: 'jmine:z', p: 'jmine:p', higher: false, legacy: true }
@@ -301,6 +303,18 @@ function parseRun(game, body) {
     if (moves == null) return { error: '步数不合法' };
     if (SLIDE_LEVELS[game] !== lv) return { error: '成绩与难度不匹配' };
     return { score: moves, extra: { moves, lv } };
+  }
+
+  if (game === 'tetris') {
+    // 单局总分：经典计分 100/300/500/800 × 等级，
+    // 0–500 万覆盖休闲到硬核长局；行数 0–10000。
+    const score = intIn(body.score, 0, 5000000);
+    const lines = intIn(body.lines, 0, 10000);
+    const level = intIn(body.level, 1, 100);
+    if (score == null) return { error: '分数不合法' };
+    if (lines == null) return { error: '行数不合法' };
+    if (level == null) return { error: '等级不合法' };
+    return { score, extra: { lines, level } };
   }
 
   return { error: '未知游戏' };

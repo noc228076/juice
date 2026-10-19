@@ -21,7 +21,7 @@
 - **`milktea` 奶茶人格配方** — 26 个品牌 logo + 人格解析
 
 ### 2. 📖 自我说明书
-`manual` — 13 章出厂说明书，区分问答型、外链章节与小游戏型：
+`manual` — 14 章出厂说明书，区分问答型、外链章节与小游戏型：
 
 | # | 测试 | 英文名 | 类型 |
 |---|---|---|---|
@@ -38,6 +38,7 @@
 | 11 | 定位射击靶场 | AIM TRAINER | 交互小游戏 |
 | 12 | 数独 | SUDOKU | 交互小游戏 |
 | 13 | 数字华容道 | SLIDING PUZZLE | 交互小游戏 |
+| 14 | 俄罗斯方块 | TETRIS | 交互小游戏 |
 
 ### 3. ☯️ 东西玄学
 四个子屏通过「西方塔罗 / 东方灵签 / 生辰八字 / 工位风水」切换条互跳：
@@ -128,7 +129,7 @@ juice/
 ├── server.js               # 零依赖本地服务器（含 api/ 模拟）
 ├── build-bundles.js        # 打包脚本
 ├── api/
-│   └── leaderboard.js      # 17 个 game key 的全服排行榜 Serverless 函数
+│   └── leaderboard.js      # 18 个 game key 的全服排行榜 Serverless 函数
 ├── favicon.png             # 旧版 192px 图标（已不再被 index.html 引用）
 │
 ├── js/

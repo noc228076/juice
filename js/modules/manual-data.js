@@ -694,6 +694,30 @@
       ]
     },
 
+    /* ============ 14 俄罗斯方块 ============
+       落块消行：支持暂停（P 键或按钮），进度自动存档，
+       退出随时继续。按分数进全服排行榜（越高越好）。 */
+    tetris: {
+      id: 'tetris', num: '14', mode: 'interactive', engine: 'tetris',
+      title: '俄罗斯方块', en: 'TETRIS',
+      tagline: '落块消行的鼻祖，P 键随时暂停，进度自动存档',
+      icon: 'grid', color: '#8B5CF6',
+      meta: '速度渐增 · 自动存档',
+      intro: [
+        '方块从顶部落下，← → 移动、↑ 旋转、↓ 加速、空格硬降。',
+        '填满一整行即消行得分，一次消多行分数翻倍（最高 4 行 1200）。',
+        '每消 10 行升一级，下落速度随之加快。',
+        'P 键或暂停按钮随时暂停，进度自动存档，退出随时继续。'
+      ],
+      disclaimer: '消行数和手感有关，也和设备键盘延迟有关。仅供参考。',
+      certs: [
+        { min: 30000, icon: 'crown', name: '方块宗师', text: '你已经进入了「手比脑快」的领域——看见了 I 形长条出现前的那个世界。' },
+        { min: 12000, icon: 'gem', name: '消行熟手', text: '节奏稳、坑少、留了长条位——标准的好习惯都在你身上。' },
+        { min: 4000, icon: 'bolt', name: '渐入佳境', text: '消行效率上来了，差的是关键时刻的那一次冷静。' },
+        { min: 0, icon: 'smile', name: '初出茅庐', text: '方块的世界欢迎你，坑是每个人自己挖的，也是自己填的。' }
+      ]
+    },
+
     /* ============ 05 人间清醒指南 ============
        这一章不是答题引擎产物：正文由 lifeguide.js 自己渲染（体检 / 智库 / 抽卡），
        所以 mode 为 'external'，由 manual.js 转交 AppLifeguide.open()。 */
@@ -731,5 +755,5 @@
   };
 
   /* 首页章节顺序 */
-  window.SM_ORDER = ['social-battery', 'procrastination', 'slacking', 'night-owl', 'lifeguide', 'reaction', 'color', 'game-2048', 'minesweeper', 'schulte', 'aim', 'sudoku', 'slide'];
+  window.SM_ORDER = ['social-battery', 'procrastination', 'slacking', 'night-owl', 'lifeguide', 'reaction', 'color', 'game-2048', 'minesweeper', 'schulte', 'aim', 'sudoku', 'slide', 'tetris'];
 })();

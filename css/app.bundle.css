@@ -6706,8 +6706,7 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .rz-half.hit.ng {
     margin: 0 auto;
     box-sizing: border-box;
   }
-  /* 扫雷 / 舒尔特：标题的左右边界由 JS 同步为游戏区的宽度
-     （见 manual-games.js 的 syncTopbarWidth），这里只保证不额外加边距。 */
+  /* 扫雷 / 舒尔特：标题栏常规布局。 */
   /* 扫雷 / 舒尔特 / 靶场：标题独占顶部一行，下面全部高度归游戏区。
      .wrap 本身就是 flex 列（.sm-screen 也是），这里只把
      body 设成 flex:1 并去掉外边距，让棋盘可用高度最大化。 */

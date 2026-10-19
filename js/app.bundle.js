@@ -1,4 +1,4 @@
-window.__APP_VERSION__ = '128';
+window.__APP_VERSION__ = '129';
 /* === js/core-drink.js === */
 /* 人格研究所 — 题库与档案数据 */
 'use strict';
@@ -8327,9 +8327,11 @@ if ('serviceWorker' in navigator) {
       if (window.AppManual && typeof window.AppManual.stopActiveGame === 'function') {
         window.AppManual.stopActiveGame();
       }
-    } else if (prev.mod === 'manual' && prev.view === 'game' && state.view !== 'game') {
+    } else if (prev.mod === state.mod && prev.view === 'game' && state.view !== 'game') {
       // 同模块内离开 game 视图（典型：游戏页按浏览器后退到目录）——
-      // 也必须暂停游戏，否则扫雷计时器/2048 键盘监听在目录页仍然活着
+      // 也必须暂停游戏，否则计时器/键盘监听在目录页仍然活着。
+      // stopActiveGame 是模块无关的统一出口，任何模块引入带
+      // 计时器/监听的实例都自动被这里覆盖。
       if (window.AppManual && typeof window.AppManual.stopActiveGame === 'function') {
         window.AppManual.stopActiveGame();
       }

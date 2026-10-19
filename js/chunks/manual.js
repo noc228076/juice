@@ -1227,12 +1227,39 @@
     return a;
   }
 
+  /* 难度 key → 中文文案，扫雷/舒尔特/数独/华容道榜单共用 */
+  function lvLabel(key) {
+    return key === 'hard' ? '高级' : key === 'medium' ? '中级' : '初级';
+  }
+
   function makeRoot(root) {
     root.innerHTML = '';
     var el = document.createElement('div');
     el.className = 'stage';
     root.appendChild(el);
     return el;
+  }
+
+  /* 各游戏共用的榜单挂载：在 root 里建/复用 .sm-game-layout，
+     把游戏舞台 el 挪进去，并挂载 .lb-host 榜单容器。
+     之前这份 15 行逻辑在每个游戏闭包里逐字节复制了 7 份。
+     lbPanel 是 create() 返回的实例——mount 在实例上，不在静态导出上。 */
+  function mountLbHostFor(lbPanel, root, el) {
+    if (!lbPanel) return;
+    var layout = root.querySelector('.sm-game-layout');
+    if (!layout) {
+      layout = document.createElement('div');
+      layout.className = 'sm-game-layout';
+      root.appendChild(layout);
+    }
+    if (el.parentNode !== layout) layout.appendChild(el);
+    var host = layout.querySelector('.lb-host');
+    if (!host) {
+      host = document.createElement('div');
+      host.className = 'lb-host';
+      layout.appendChild(host);
+    }
+    lbPanel.mount(host);
   }
 
   function hud(extraLeft, extraRight) {
@@ -1291,21 +1318,7 @@
     }) : null;
 
     function mountLbHost() {
-      if (!lbPanel) return;
-      var layout = root.querySelector('.sm-game-layout');
-      if (!layout) {
-        layout = document.createElement('div');
-        layout.className = 'sm-game-layout';
-        root.appendChild(layout);
-      }
-      if (el.parentNode !== layout) layout.appendChild(el);
-      var host = layout.querySelector('.lb-host');
-      if (!host) {
-        host = document.createElement('div');
-        host.className = 'lb-host';
-        layout.appendChild(host);
-      }
-      lbPanel.mount(host);
+      mountLbHostFor(lbPanel, root, el);
     }
 
     /* ---------- 关卡说明 ---------- */
@@ -1637,21 +1650,7 @@
     }) : null;
 
     function mountLbHost() {
-      if (!lbPanel) return;
-      var layout = root.querySelector('.sm-game-layout');
-      if (!layout) {
-        layout = document.createElement('div');
-        layout.className = 'sm-game-layout';
-        root.appendChild(layout);
-      }
-      if (el.parentNode !== layout) layout.appendChild(el);
-      var host = layout.querySelector('.lb-host');
-      if (!host) {
-        host = document.createElement('div');
-        host.className = 'lb-host';
-        layout.appendChild(host);
-      }
-      lbPanel.mount(host);
+      mountLbHostFor(lbPanel, root, el);
     }
 
     function gridN(l) { return Math.min(7, 2 + Math.floor((l - 1) / 4)); }
@@ -2393,29 +2392,8 @@
       lbPanel.setGame('mine_' + level.key, storeKeyFor(level.key));
     }
 
-    function levelName(key) {
-      for (var k in LEVELS) {
-        if (LEVELS.hasOwnProperty(k) && LEVELS[k].key === key) return LEVELS[k].name;
-      }
-      return '初级';
-    }
-
     function mountLbHost() {
-      if (!lbPanel) return;
-      var layout = root.querySelector('.sm-game-layout');
-      if (!layout) {
-        layout = document.createElement('div');
-        layout.className = 'sm-game-layout';
-        root.appendChild(layout);
-      }
-      if (el.parentNode !== layout) layout.appendChild(el);
-      var host = layout.querySelector('.lb-host');
-      if (!host) {
-        host = document.createElement('div');
-        host.className = 'lb-host';
-        layout.appendChild(host);
-      }
-      lbPanel.mount(host);
+      mountLbHostFor(lbPanel, root, el);
     }
 
     /* ---------------- 棋盘 ---------------- */
@@ -2921,7 +2899,7 @@
       localCols: function (r) {
         return [
           '<span class="lb-score">' + (r.sec || 0) + '<small> 秒</small></span>',
-          '<span class="lb-tile">' + levelName(r.lv) + '</span>',
+          '<span class="lb-tile">' + lvLabel(r.lv) + '</span>',
           '<span class="lb-meta">' + (r.err || 0) + ' 次错</span>',
           '<span class="lb-date">' + window.AppLbPanel.fmtDay(r.at) + '</span>'
         ];
@@ -2937,34 +2915,13 @@
       }
     }) : null;
 
-    function levelName(key) {
-      for (var k in LEVELS) {
-        if (LEVELS.hasOwnProperty(k) && LEVELS[k].key === key) return LEVELS[k].name;
-      }
-      return '初级';
-    }
-
     function syncLbLevel() {
       if (!lbPanel) return;
       lbPanel.setGame('schulte_' + level.key, storeKeyFor(level.key));
     }
 
     function mountLbHost() {
-      if (!lbPanel) return;
-      var layout = root.querySelector('.sm-game-layout');
-      if (!layout) {
-        layout = document.createElement('div');
-        layout.className = 'sm-game-layout';
-        root.appendChild(layout);
-      }
-      if (el.parentNode !== layout) layout.appendChild(el);
-      var host = layout.querySelector('.lb-host');
-      if (!host) {
-        host = document.createElement('div');
-        host.className = 'lb-host';
-        layout.appendChild(host);
-      }
-      lbPanel.mount(host);
+      mountLbHostFor(lbPanel, root, el);
     }
 
     /* ---------------- 棋盘 ---------------- */
@@ -3290,21 +3247,7 @@
     }) : null;
 
     function mountLbHost() {
-      if (!lbPanel) return;
-      var layout = root.querySelector('.sm-game-layout');
-      if (!layout) {
-        layout = document.createElement('div');
-        layout.className = 'sm-game-layout';
-        root.appendChild(layout);
-      }
-      if (el.parentNode !== layout) layout.appendChild(el);
-      var host = layout.querySelector('.lb-host');
-      if (!host) {
-        host = document.createElement('div');
-        host.className = 'lb-host';
-        layout.appendChild(host);
-      }
-      lbPanel.mount(host);
+      mountLbHostFor(lbPanel, root, el);
     }
 
     function hud() {
@@ -3559,7 +3502,7 @@
       localCols: function (r) {
         return [
           '<span class="lb-score">' + (r.score || 0) + '<small> 错</small></span>',
-          '<span class="lb-meta">' + (r.lv === 'hard' ? '高级' : r.lv === 'medium' ? '中级' : '初级') + '</span>',
+          '<span class="lb-meta">' + lvLabel(r.lv) + '</span>',
           '<span class="lb-date">' + window.AppLbPanel.fmtDay(r.at) + '</span>'
         ];
       },
@@ -3569,7 +3512,7 @@
           '<span class="lb-name">' + window.AppLbPanel.esc(r.name || '匿名玩家') +
             (r.isMe ? '<i class="lb-me">我</i>' : '') + '</span>',
           '<span class="lb-score">' + (r.score || 0) + '<small> 错</small></span>',
-          '<span class="lb-tile">' + ((r.extra && r.extra.lv) === 'hard' ? '高级' : (r.extra && r.extra.lv) === 'medium' ? '中级' : '初级') + '</span>'
+          '<span class="lb-tile">' + lvLabel(r.extra && r.extra.lv) + '</span>'
         ];
       }
     }) : null;
@@ -3579,21 +3522,7 @@
     }
 
     function mountLbHost() {
-      if (!lbPanel) return;
-      var layout = root.querySelector('.sm-game-layout');
-      if (!layout) {
-        layout = document.createElement('div');
-        layout.className = 'sm-game-layout';
-        root.appendChild(layout);
-      }
-      if (el.parentNode !== layout) layout.appendChild(el);
-      var host = layout.querySelector('.lb-host');
-      if (!host) {
-        host = document.createElement('div');
-        host.className = 'lb-host';
-        layout.appendChild(host);
-      }
-      lbPanel.mount(host);
+      mountLbHostFor(lbPanel, root, el);
     }
 
     /* ---------- 生成器：先造完整解，再逐格挖空并保持唯一解 ---------- */
@@ -3701,7 +3630,11 @@
     function loadState() {
       try {
         var s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
-        if (s && s.puzzle && s.solution && LEVELS[s.lv]) return s;
+        var arraysOk = s && Array.isArray(s.puzzle) && Array.isArray(s.solution) &&
+          Array.isArray(s.given) && Array.isArray(s.user) &&
+          s.puzzle.length === 81 && s.solution.length === 81 &&
+          s.given.length === 81 && s.user.length === 81;
+        if (s && arraysOk && LEVELS[s.lv]) return s;
       } catch (e) {}
       return null;
     }
@@ -3808,8 +3741,12 @@
         if (!btn || finished) return;
         placeNumber(Number(btn.getAttribute('data-n')));
       });
-      // 键盘输入：数字键 1–9 填入选中格，0 / Backspace / Delete 清除。
-      // 只在数独屏幕激活时响应，避免劫持其他页面的按键。
+    }
+
+    // 键盘输入：数字键 1–9 填入选中格，0 / Backspace / Delete 清除。
+    // 只在数独屏幕激活时响应，避免劫持其他页面的按键。
+    // 只在游戏初始化时绑定一次（不放 renderBoard——那里每次填数都会执行）。
+    function bindKeyboard() {
       window.addEventListener('keydown', onKeyDown);
     }
 
@@ -3879,6 +3816,7 @@
     intro();
     syncLbLevel();
     mountLbHost();
+    bindKeyboard();
     return {
       destroy: function () {
         destroyed = true;
@@ -3920,7 +3858,7 @@
       localCols: function (r) {
         return [
           '<span class="lb-score">' + (r.score || 0) + '<small> 步</small></span>',
-          '<span class="lb-meta">' + (r.lv === 'hard' ? '高级' : r.lv === 'medium' ? '中级' : '初级') + '</span>',
+          '<span class="lb-meta">' + lvLabel(r.lv) + '</span>',
           '<span class="lb-date">' + window.AppLbPanel.fmtDay(r.at) + '</span>'
         ];
       },
@@ -3930,7 +3868,7 @@
           '<span class="lb-name">' + window.AppLbPanel.esc(r.name || '匿名玩家') +
             (r.isMe ? '<i class="lb-me">我</i>' : '') + '</span>',
           '<span class="lb-score">' + (r.score || 0) + '<small> 步</small></span>',
-          '<span class="lb-tile">' + ((r.extra && r.extra.lv) === 'hard' ? '高级' : (r.extra && r.extra.lv) === 'medium' ? '中级' : '初级') + '</span>'
+          '<span class="lb-tile">' + lvLabel(r.extra && r.extra.lv) + '</span>'
         ];
       }
     }) : null;
@@ -3940,21 +3878,7 @@
     }
 
     function mountLbHost() {
-      if (!lbPanel) return;
-      var layout = root.querySelector('.sm-game-layout');
-      if (!layout) {
-        layout = document.createElement('div');
-        layout.className = 'sm-game-layout';
-        root.appendChild(layout);
-      }
-      if (el.parentNode !== layout) layout.appendChild(el);
-      var host = layout.querySelector('.lb-host');
-      if (!host) {
-        host = document.createElement('div');
-        host.className = 'lb-host';
-        layout.appendChild(host);
-      }
-      lbPanel.mount(host);
+      mountLbHostFor(lbPanel, root, el);
     }
 
     function solvedState() {
@@ -4000,7 +3924,10 @@
     function loadState() {
       try {
         var s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
-        if (s && Array.isArray(s.tiles) && s.tiles.length === n * n && LEVELS[s.lv]) return s;
+        // 从存档自带的 lv 推导棋盘尺寸，不用实例当前的 n——
+        // 新实例 n 默认 3，会让 4×4/5×5 的存档校验失败、恢复按钮消失
+        var expectN = s && LEVELS[s.lv] ? LEVELS[s.lv].n : 0;
+        if (s && Array.isArray(s.tiles) && s.tiles.length === expectN * expectN && LEVELS[s.lv]) return s;
       } catch (e) {}
       return null;
     }

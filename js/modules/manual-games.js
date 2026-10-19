@@ -1445,12 +1445,19 @@
       var layout = el.closest('.sm-game-layout');
       var twoCol = layout && window.getComputedStyle(layout).gridTemplateColumns.indexOf(' ') > 0;
       if (twoCol) {
-        // 不能用 .app-module 的 clientHeight：棋盘变高会把它撑高，
-        // 高度约束永远不触发（反馈循环）。改用视口高度。
-        // 预留 250px：顶栏 + 章节标题 + HUD + 难度条 + 棋盘下提示行 + 底部留白。
-        // 之前按 190 算，中级 16 行会超出视口底部被截断。
-        var viewH = window.innerHeight || 900;
-        var byH = Math.floor((viewH - 240 - pad - gap * (level.rows - 1)) / level.rows);
+        // 优先用棋盘区实际可用的高度：.ms-board-wrap 是 flex:1，
+        // 它拿到的是 .stage 扣掉 HUD / 工具栏 / 提示行之后真正剩下的高度。
+        // 拿它算格子，棋盘才能把纵向空间占满。
+        var wrapEl2 = el.querySelector('.ms-board-wrap');
+        var byH = 0;
+        if (wrapEl2 && wrapEl2.clientHeight > 40) {
+          byH = Math.floor((wrapEl2.clientHeight - pad - gap * (level.rows - 1)) / level.rows);
+        }
+        if (!(byH > 0)) {
+          // 首帧还没布局出来时的兜底估算（视口高度减顶栏/标题/HUD）
+          var viewH = window.innerHeight || 900;
+          byH = Math.floor((viewH - 240 - pad - gap * (level.rows - 1)) / level.rows);
+        }
         if (byH > 0) size = Math.min(size, byH);
       }
 
@@ -1487,6 +1494,9 @@
 
     function paint() {
       var left = level.mines - flags;
+      // 先只渲染外壳（HUD / 工具栏 / 空棋盘区 / 提示行）。
+      // 棋盘要按 .ms-board-wrap 的「真实剩余高度」来定格子大小，
+      // 所以必须等外壳布局完成、量到高度之后，再填棋盘。
       el.innerHTML = hud(
         '<b>雷区排险 · ' + level.name + '</b>',
         '<span class="ms-stat">💣 ' + left + '</span> <span class="ms-stat">⏱ <span id="msTime">' + elapsed + '</span>s</span>'
@@ -1500,20 +1510,31 @@
         '</div>' +
         '<button type="button" class="ms-reset" id="msReset">↻ 重开</button>' +
         '</div>' +
-        '<div class="ms-board-wrap">' + boardHTML() + '</div>' +
+        '<div class="ms-board-wrap" id="msBoardWrap"></div>' +
         '<div class="rz-sub" style="margin-top:10px">左键翻开 · 右键或长按插旗</div>';
 
-      bindBoard();
+      // 下一帧再填棋盘：此时外壳已完成布局，
+      // cellSize() 能读到 .ms-board-wrap 的真实宽高。
+      requestAnimationFrame(function () {
+        if (destroyed) return;
+        fillBoard();
+        bindBoard();
+      });
 
-      // 首次 paint 时 .ms-board-wrap 刚进 DOM，clientWidth 可能还是 0，
-      // 上面算出来的是默认值。等一帧后宽度确定了再排一次。
+      // 首帧宽度/高度可能还没定下来，下一帧再按真实尺寸重排一次
       if (!sized) {
         sized = true;
         requestAnimationFrame(function () {
           if (!destroyed && el.querySelector('.ms-board-wrap')) paint();
         });
       }
+    }
 
+    // 把棋盘填进已布局好的 .ms-board-wrap，格子尺寸按该区域实际尺寸算
+    function fillBoard() {
+      var host = el.querySelector('#msBoardWrap');
+      if (!host) return;
+      host.innerHTML = boardHTML();
     }
 
     function bindBoard() {

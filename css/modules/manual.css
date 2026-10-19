@@ -1126,28 +1126,26 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .rz-half.hit.ng {
   }
   /* 扫雷 / 舒尔特：标题的左右边界由 JS 同步为游戏区的宽度
      （见 manual-games.js 的 syncTopbarWidth），这里只保证不额外加边距。 */
-  /* 扫雷 / 舒尔特：标题移到左上角，与游戏区并排，
-     把原本被标题独占的一整行高度让给棋盘。 */
+  /* 扫雷 / 舒尔特：标题独占顶部一行，下面全部高度归游戏区。
+     .wrap 本身就是 flex 列（.sm-screen 也是），这里只把
+     body 设成 flex:1 并去掉外边距，让棋盘可用高度最大化。 */
   #mod-manual .sm-screen#scr-sm-mine .wrap,
   #mod-manual .sm-screen#scr-sm-schulte .wrap {
-    display: grid;
-    grid-template-columns: 260px minmax(0, 1fr);
-    grid-template-rows: auto 1fr;
-    column-gap: 16px;
-    align-items: start;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
   }
   #mod-manual .sm-screen#scr-sm-mine #sm-minetop,
   #mod-manual .sm-screen#scr-sm-schulte #sm-schultetop {
-    grid-column: 1;
-    grid-row: 1 / span 2;
-    position: sticky;
-    top: 12px;
+    flex: 0 0 auto;
   }
   #mod-manual .sm-screen#scr-sm-mine #sm-minebody,
   #mod-manual .sm-screen#scr-sm-schulte #sm-schultebody {
-    grid-column: 2;
-    grid-row: 1 / span 2;
-    min-width: 0;
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
   }
   /* 保持 flex 行布局：返回键与文字必须同一行。
      只把宽度限制去掉、换行策略交给下面 b 的 white-space。 */
@@ -1543,9 +1541,14 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .rz-half.hit.ng {
        这里让它吃满左列 */
     width: 100%;
     }
-    /* 扫雷 / 舒尔特：外框贴合棋盘内容宽。
-       格子有 72px 上限，棋盘不一定能填满左列；
-       用 width:max-content 让外框跟着棋盘走，不留内部空白。 */
+    /* 扫雷 / 舒尔特：游戏区纵向撑满标题以下的全部高度。
+       棋盘尺寸由 JS 按可用高度/宽度算，外框贴合棋盘。 */
+    #mod-manual .sm-screen#scr-sm-mine .sm-game-layout,
+    #mod-manual .sm-screen#scr-sm-schulte .sm-game-layout {
+      flex: 1 1 auto;
+      min-height: 0;
+      align-items: stretch;
+    }
     #mod-manual .sm-screen#scr-sm-mine .sm-game-layout .stage,
     #mod-manual .sm-screen#scr-sm-schulte .sm-game-layout .stage {
       width: max-content;
@@ -1553,6 +1556,21 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .rz-half.hit.ng {
       justify-self: start;
       margin-left: 0;
       margin-right: 0;
+      display: flex;
+      flex-direction: column;
+      /* 纵向撑满标题以下的高度，棋盘区才能拿到剩余空间 */
+      height: 100%;
+      min-height: 0;
+      align-self: stretch;
+    }
+    /* 棋盘包裹区吃掉 .stage 内剩余高度，棋盘在其中垂直居中 */
+    #mod-manual .sm-screen#scr-sm-mine .ms-board-wrap,
+    #mod-manual .sm-screen#scr-sm-schulte .ms-board-wrap {
+      flex: 1 1 auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 0;
     }
     #mod-manual .sm-game-layout .lb-host {
     margin-top: 0;

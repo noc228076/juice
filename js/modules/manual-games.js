@@ -2044,13 +2044,14 @@
     function clearTimers() { timers.forEach(clearTimeout); timers = []; }
 
     var DURATION = 30000;        // 一局 30 秒
-    var R0 = 42, R_MIN = 12;     // 小球起始 / 最小半径
-    var LIFE0 = 1600;            // 小球寿命（ms），随命中数递减加难度
+    var R = 34;                  // 小球固定半径（不收缩）
+    var MISS_PENALTY = 50;       // 点空扣分
+    var BALL_COUNT = 3;          // 场上恒定三颗球，打掉一颗补一颗
 
-    var score = 0, hits = 0, clicks = 0, expired = 0;
-    var streak = 0, bestStreak = 0, life = LIFE0;
-    var ball = null;             // { el, cx, cy, born, timer }
-    var rafId = 0, shrinkRaf = 0, endAt = 0, running = false;
+    var score = 0, hits = 0, clicks = 0;
+    var streak = 0, bestStreak = 0;
+    var balls = [];              // 场上所有球 [{ el, cx, cy }]
+    var rafId = 0, endAt = 0, running = false;
 
     /* ---------------- 排行榜 ----------------
        30 秒总分排名，越高越好。全服榜展示命中率，
@@ -2118,8 +2119,8 @@
       el.innerHTML = hud() +
         '<div class="rz-stage">' +
         '<div class="rz-big" style="font-size:30px">30 秒 · 打小球</div>' +
-        '<div class="rz-sub">小球出现后立刻开始收缩，缩没就消失。<br>' +
-        '出手越快、球越小得分越高；连击有加成，点空会断连击。<br>' +
+        '<div class="rz-sub">场上同时有三颗球，点掉一颗立刻补上一颗。<br>' +
+        '每颗 +100，连击每层 +10（封顶 +100）；点空 −50 并断连击。<br>' +
         '准星会变成十字——用鼠标或手指都可以。</div>' +
         '<button class="btn accent" id="Aimgo" style="margin-top:22px;width:auto;padding:12px 38px">开始挑战</button>' +
         '</div>';
@@ -2134,13 +2135,12 @@
     }
 
     function startRound() {
-      score = 0; hits = 0; clicks = 0; expired = 0;
-      streak = 0; bestStreak = 0; life = LIFE0;
+      score = 0; hits = 0; clicks = 0;
+      streak = 0; bestStreak = 0;
       running = true;
       endAt = performance.now() + DURATION;
       paintFrame();
-      spawnBall();
-      shrinkLoop();
+      for (var i = 0; i < BALL_COUNT; i++) spawnBall();
       tickLoop();
     }
 
@@ -2172,23 +2172,24 @@
       var arena = el.querySelector('#aimArena');
       if (!arena) return;
       var W = arena.clientWidth || 600, H = arena.clientHeight || 360;
-      var m = 30;
-      var cx = m + Math.random() * (W - m * 2);
-      var cy = m + Math.random() * (H - m * 2);
+      var m = R + 12;
+      var cx = m, cy = m, ok = false;
+      // 随机落点，尽量不和场上现有的球叠在一起（试 12 次）
+      for (var t = 0; t < 12 && !ok; t++) {
+        cx = m + Math.random() * Math.max(1, W - m * 2);
+        cy = m + Math.random() * Math.max(1, H - m * 2);
+        ok = true;
+        for (var i = 0; i < balls.length; i++) {
+          var dx = balls[i].cx - cx, dy = balls[i].cy - cy;
+          if (dx * dx + dy * dy < (R * 2.4) * (R * 2.4)) { ok = false; break; }
+        }
+      }
       var b = document.createElement('div');
       b.className = 'aim-ball';
       arena.appendChild(b);
-      ball = { el: b, cx: cx, cy: cy, born: performance.now() };
-      place(b, cx, cy, R0);
-      // 缩没 → 算失误，断连击，立刻出下一球
-      ball.timer = later(function () {
-        if (!ball) return;
-        expired++;
-        streak = 0;
-        updateStreak();
-        removeBall();
-        spawnBall();
-      }, life);
+      var obj = { el: b, cx: cx, cy: cy };
+      balls.push(obj);
+      place(b, cx, cy, R);
     }
 
     function place(b, cx, cy, r) {
@@ -2197,29 +2198,10 @@
       b.style.width = b.style.height = (r * 2) + 'px';
     }
 
-    function removeBall() {
-      if (!ball) return;
-      if (ball.timer) clearTimeout(ball.timer);
-      if (ball.el && ball.el.parentNode) ball.el.remove();
-      ball = null;
-    }
-
-    /* rAF 驱动小球收缩动画。
-       用独立的 shrinkRaf 句柄：和倒计时 tickLoop 共用一个变量的话，
-       一方 cancelAnimationFrame 会把对方的帧请求取消掉——
-       第一次命中后倒计时就会冻结，一局永远打不完。 */
-    function shrinkLoop() {
-      if (shrinkRaf) return;     // 已在跑，不重复启动
-      (function frame() {
-        if (destroyed || !running) { shrinkRaf = 0; return; }
-        if (ball) {
-          var age = performance.now() - ball.born;
-          var k = Math.max(0, 1 - age / life);
-          var r = R_MIN + (R0 - R_MIN) * k;
-          place(ball.el, ball.cx, ball.cy, r);
-        }
-        shrinkRaf = requestAnimationFrame(frame);
-      })();
+    function removeBall(b) {
+      var i = balls.indexOf(b);
+      if (i > -1) balls.splice(i, 1);
+      if (b.el && b.el.parentNode) b.el.remove();
     }
 
     function onArenaTap(e) {
@@ -2228,37 +2210,33 @@
       var arena = el.querySelector('#aimArena');
       var rect = arena.getBoundingClientRect();
       var x = e.clientX - rect.left, y = e.clientY - rect.top;
-      if (ball) {
-        var dx = x - ball.cx, dy = y - ball.cy;
-        var age = performance.now() - ball.born;
-        var k = Math.max(0, 1 - age / life);
-        var r = R_MIN + (R0 - R_MIN) * k;
-        if (dx * dx + dy * dy <= r * r) { hit(x, y, k); return; }
+      for (var i = 0; i < balls.length; i++) {
+        var b = balls[i];
+        var dx = x - b.cx, dy = y - b.cy;
+        if (dx * dx + dy * dy <= R * R) { hit(b, x, y); return; }
       }
       miss(x, y);
     }
 
-    function hit(x, y, k) {
+    function hit(b, x, y) {
       hits++;
       streak++;
       bestStreak = Math.max(bestStreak, streak);
-      var speedBonus = Math.round(100 * (1 - k));       // 越早打中越高
-      var streakBonus = Math.min(100, streak * 10);     // 连击加成封顶 +100
-      var pts = 100 + speedBonus + streakBonus;
+      var pts = 100 + Math.min(100, streak * 10);       // 连击加成封顶 +100
       score += pts;
-      life = Math.max(900, LIFE0 - hits * 12);          // 命中越多球缩得越快
       if (window.SFX && window.SFX.select) window.SFX.select();
       popText(x, y, '+' + pts, '#2FBF6B');
       updateScore();
-      removeBall();
-      spawnBall();
+      removeBall(b);
+      spawnBall();                                       // 打掉一颗立刻补一颗
     }
 
     function miss(x, y) {
+      score = Math.max(0, score - MISS_PENALTY);         // 点空扣分
       streak = 0;
       if (window.SFX && window.SFX.wrong) window.SFX.wrong();
-      popText(x, y, 'MISS', '#E23B2E');
-      updateStreak();
+      popText(x, y, '−' + MISS_PENALTY, '#E23B2E');
+      updateScore();
     }
 
     function popText(x, y, txt, color) {
@@ -2290,9 +2268,8 @@
 
     function endRound() {
       running = false;
-      removeBall();
+      while (balls.length) removeBall(balls[0]);
       cancelAnimationFrame(rafId);
-      cancelAnimationFrame(shrinkRaf);
       var acc = clicks ? Math.round(hits / clicks * 100) : 0;
       if (lbPanel && hits > 0) {
         lbPanel.submit({ score: score, hits: hits, acc: acc, streak: bestStreak });
@@ -2320,9 +2297,8 @@
           { label: '手速', pct: Math.min(100, Math.round(hits / 30 * 100)) }
         ],
         blocks: [
-          { h: '本局战报', text: '命中 ' + hits + ' 球，放空 ' + (clicks - hits) + ' 次，' +
-            '让 ' + expired + ' 颗球缩没了，最高连击 ' + bestStreak + '。' },
-          { h: '怎么练', text: '别追着准星看，用余光预判球的落点、甩枪过去——缩小的时候打中加分最多，但也别为了等缩小放跑整颗球。' }
+          { h: '本局战报', text: '命中 ' + hits + ' 球，放空 ' + (clicks - hits) + ' 次（每次 −' + MISS_PENALTY + ' 分），最高连击 ' + bestStreak + '。' },
+          { h: '怎么练', text: '别追着准星看，用余光同时盯住三颗球、挑最近的那颗先打——连击不断的局，分数是自己涨上去的。' }
         ],
         quip: window.SM_DATA.aim.disclaimer,
         cert: cert.name + ' · 认证',
@@ -2338,8 +2314,7 @@
         running = false;
         clearTimers();
         cancelAnimationFrame(rafId);
-        cancelAnimationFrame(shrinkRaf);
-        removeBall();
+        while (balls.length) removeBall(balls[0]);
         if (lbPanel) lbPanel.destroy();
       }
     };

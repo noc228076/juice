@@ -30,7 +30,8 @@ const GAMES = {
   schulte_medium: { z: 'jsch_m:z', p: 'jsch_m:p', higher: false },
   schulte_hard: { z: 'jsch_h:z', p: 'jsch_h:p', higher: false },
   // 定位射击靶场：30 秒总分，越高越好
-  aim: { z: 'jaim:z', p: 'jaim:p', higher: true },
+  // （v125 换键名：旧 jaim:* 里有调试期写入的探测数据，弃用）
+  aim: { z: 'jaim_v2:z', p: 'jaim_v2:p', higher: true },
   // 旧版三档共用一个榜。保留只为兼容尚未刷新的客户端和后台删除接口，
   // 前端已经不再写这里。
   minesweeper: { z: 'jmine:z', p: 'jmine:p', higher: false, legacy: true }

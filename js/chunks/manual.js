@@ -3218,7 +3218,10 @@
       idPrefix: 'lbaim',
       formatScore: function (v) { return v + ' 分'; },
       describe: function (run) {
-        return { score: run.score, extra: { hits: run.hits, acc: run.acc, streak: run.bestStreak } };
+        // 键名必须与 submit({...}) 传进来的字段一致：
+        // 之前写成 run.bestStreak 而提交用的是 streak，
+        // 服务端收到 undefined 直接 400，全服榜永远收不到成绩。
+        return { score: run.score, extra: { hits: run.hits, acc: run.acc, streak: run.streak } };
       },
       localCols: function (r) {
         return [

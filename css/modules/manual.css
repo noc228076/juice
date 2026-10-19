@@ -1067,14 +1067,13 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .rz-half.hit.ng {
   #mod-manual .sm-screen#scr-sm-mine .stage {
     max-width: none;
   }
-  /* 游戏区（棋盘 + 榜单）整体居中，标题跟随同一边界左对齐。
-     .wrap 在扫雷页原本 max-width:none 会从最左铺到最右，
-     导致棋盘居中、标题贴左，两者错位。收窄到 1400px 并居中。 */
+  /* 扫雷 / 舒尔特：游戏区吃满 .sm-main 的全部可用宽度。
+     棋盘自己按列宽算格子，铺满后高级也能用上大屏空间。 */
   #mod-manual .sm-screen#scr-sm-mine .wrap,
   #mod-manual .sm-screen#scr-sm-schulte .wrap {
-    max-width: 1400px;
-    margin-left: auto;
-    margin-right: auto;
+    max-width: none;
+    margin-left: 0;
+    margin-right: 0;
   }
   /* 扫雷 / 舒尔特：棋盘在左列内左对齐，左缘与同宽容器内的标题一致。 */
   #mod-manual .sm-screen#scr-sm-mine .sm-game-layout .stage,
@@ -1127,10 +1126,44 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .rz-half.hit.ng {
   }
   /* 扫雷 / 舒尔特：标题的左右边界由 JS 同步为游戏区的宽度
      （见 manual-games.js 的 syncTopbarWidth），这里只保证不额外加边距。 */
+  /* 扫雷 / 舒尔特：标题移到左上角，与游戏区并排，
+     把原本被标题独占的一整行高度让给棋盘。 */
+  #mod-manual .sm-screen#scr-sm-mine .wrap,
+  #mod-manual .sm-screen#scr-sm-schulte .wrap {
+    display: grid;
+    grid-template-columns: 200px minmax(0, 1fr);
+    grid-template-rows: auto 1fr;
+    column-gap: 16px;
+    align-items: start;
+  }
+  #mod-manual .sm-screen#scr-sm-mine #sm-minetop,
+  #mod-manual .sm-screen#scr-sm-schulte #sm-schultetop {
+    grid-column: 1;
+    grid-row: 1 / span 2;
+    position: sticky;
+    top: 12px;
+  }
+  #mod-manual .sm-screen#scr-sm-mine #sm-minebody,
+  #mod-manual .sm-screen#scr-sm-schulte #sm-schultebody {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    min-width: 0;
+  }
   #mod-manual .sm-screen#scr-sm-mine .mt-topbar,
   #mod-manual .sm-screen#scr-sm-schulte .mt-topbar {
-    margin: 0 auto;
-    box-sizing: border-box;
+    margin: 0;
+    padding: 4px 0 0;
+    display: block;
+    max-width: none;
+    width: auto;
+  }
+  /* 标题允许换行，不再被 ellipsis 截断 */
+  #mod-manual .sm-screen#scr-sm-mine .mt-topbar .mt-pick-head b,
+  #mod-manual .sm-screen#scr-sm-schulte .mt-topbar .mt-pick-head b {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    line-height: 1.35;
   }
   /* 第 05 章（人间清醒）正文是 1080px 宽的，顶栏再锁 720px
      会和下方内容对不齐。这里连同左右内边距一起对齐 .lg-wrap：
@@ -1482,18 +1515,12 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .rz-half.hit.ng {
        榜单保持 300–340px，棋盘列吃掉剩余空间。 */
     /* 棋盘 + 榜单整体居中：左列吃剩余宽度（高级 30 列需要），
        棋盘在列内左对齐，整组由 .wrap 居中。 */
-    /* 棋盘 + 榜单紧挨着、整组居中。
-       左列用 min-content = 棋盘宽度（.stage 是 width:max-content），
-       不写 1fr，否则列比棋盘宽、右侧空出一截。
-       整组宽度由内容决定，再由 margin:auto 居中。 */
+    /* 棋盘吃满左列、榜单固定宽，整组铺满 .wrap。
+       棋盘铺满后格子随列宽变大，大屏空间不再浪费。 */
     #mod-manual .sm-screen#scr-sm-mine .sm-game-layout,
     #mod-manual .sm-screen#scr-sm-schulte .sm-game-layout {
-      grid-template-columns: min-content clamp(300px, 18vw, 340px);
+      grid-template-columns: minmax(0, 1fr) clamp(300px, 18vw, 340px);
       column-gap: 12px;
-      width: fit-content;
-      max-width: 100%;
-      margin-left: auto;
-      margin-right: auto;
     }
     /* 扫雷高级 30 列，窄窗口下双栏会把棋盘压到每格 16px。
        宽度不够时改成榜单在下的单栏，把整行让给棋盘。 */
@@ -1513,8 +1540,8 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .rz-half.hit.ng {
     width: 100%;
     }
     /* 扫雷 / 舒尔特：外框贴合棋盘内容宽。
-       格子有 56px 上限，棋盘可能比左列窄；用 width:max-content
-       让外框跟着棋盘走，再由下面的 grid 居中把它摆到中间。 */
+       格子有 72px 上限，棋盘不一定能填满左列；
+       用 width:max-content 让外框跟着棋盘走，不留内部空白。 */
     #mod-manual .sm-screen#scr-sm-mine .sm-game-layout .stage,
     #mod-manual .sm-screen#scr-sm-schulte .sm-game-layout .stage {
       width: max-content;

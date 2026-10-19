@@ -17,8 +17,8 @@
 <meta property="og:title" content="饮料人格研究所 · 测测你的精神状态与灵魂特调">
 <meta property="og:description" content="当代年轻人精神状态测试 (SBTI) / 经典 16 型人格 (MBTI) / 16 款灵魂饮料特调，测出你的独家出厂配方与精神病友。">
 <meta property="og:image" content="assets/icons/icon-512.png">
-  <link rel="stylesheet" href="css/core.bundle.css?v=130">
-  <script defer src="js/app.bundle.js?v=130" fetchpriority="high"></script>
+  <link rel="stylesheet" href="css/core.bundle.css?v=131">
+  <script defer src="js/app.bundle.js?v=131" fetchpriority="high"></script>
   <script>
     (function(){
       // 主题必须在首次绘制前定下来。以前只有 <html data-theme="dark"> 的硬编码默认值，
@@ -441,7 +441,7 @@
       </div>
     </section>
 
-    <!-- 模块 3：自我说明书 (14 章) -->
+    <!-- 模块 3：自我说明书 (13 章) -->
     <section id="mod-manual" class="app-module">
       <aside class="sm-rail" id="sm-rail">
         <div class="sm-rail-head">
@@ -451,7 +451,7 @@
             <p>SELF MANUAL</p>
           </div>
         </div>
-        <div class="sm-rail-sum" id="sm-rail-sum">已测 0/14 章 · 存档 0 份</div>
+        <div class="sm-rail-sum" id="sm-rail-sum">已测 0/13 章 · 存档 0 份</div>
         <nav class="sm-rail-nav" id="sm-rail-nav"></nav>
         <button class="sm-rail-home" id="sm-rail-home">← 返回目录</button>
       </aside>
@@ -537,189 +537,7 @@
         <div class="wrap" id="sm-resultbody"></div>
       </div>
 
-      <div class="sm-screen" id="scr-sm-lifeguide">
-        <div class="lg-wrap">
-        <div class="mt-topbar" id="sm-lifeguide-top"></div>
-        <header class="lg-header">
-          <span class="lg-eyebrow">🛡️ EVIDENCE-BASED LIFE HANDBOOK · 循证生存与防坑智库</span>
-          <h1 class="lg-title">人间清醒指南</h1>
-          <p class="lg-sub">只收录“低投入、高回报”的事 · 每条结论均附医学顶刊 RCT 铁证或现行法律条文，守护你的寿命、精力、钱包与人身自由</p>
-        </header>
-
-        <!-- 四大核心指标仪表盘 -->
-        <div class="lg-stats-banner">
-          <div class="lg-stat-card">
-            <div class="lg-stat-top"><span>🧠 当前人间清醒指数</span><span>满分100</span></div>
-            <div class="lg-stat-val accent" id="lgStatScore">38 分</div>
-            <div class="lg-stat-sub">基于 16 项高性价比核心防线</div>
-          </div>
-          <div class="lg-stat-card">
-            <div class="lg-stat-top"><span>🩺 漏项体检已筑牢</span><span>4大维度</span></div>
-            <div class="lg-stat-val" id="lgStatAuditDone">6 / 16</div>
-            <div class="lg-stat-sub">惜命 · 守财 · 职场 · 法务</div>
-          </div>
-          <div class="lg-stat-card">
-            <div class="lg-stat-top"><span>📚 循证智库已掌握</span><span>顶刊/法条</span></div>
-            <div class="lg-stat-val" id="lgStatLibDone">0 / 36</div>
-            <div class="lg-stat-sub">支持分类检索与打卡沉淀</div>
-          </div>
-          <div class="lg-stat-card">
-            <div class="lg-stat-top"><span>🚫 反面清单防割护体</span><span>Cochrane实证</span></div>
-            <div class="lg-stat-val" id="lgStatMythCount">6 项已排雷</div>
-            <div class="lg-stat-sub">宿便/碱性水/防蓝光/解酒药等</div>
-          </div>
-        </div>
-
-        <!-- 三大子模式切换 Tabs -->
-        <nav class="lg-subnav">
-          <button type="button" class="lg-tab active" data-lgsub="audit">🩺 高性价比漏项体检</button>
-          <button type="button" class="lg-tab" data-lgsub="library">📚 循证避坑智库 (36条)</button>
-          <button type="button" class="lg-tab" data-lgsub="draw">💊 每日清醒锦囊抽卡</button>
-        </nav>
-
-        <!-- 子模式 1：高性价比生活漏项体检 -->
-        <div class="lg-substage active" id="lg-sub-audit">
-          <div class="lg-audit-intro">
-            <div class="lg-audit-intro-txt">
-              <b>👇 勾选你目前已经做到的习惯（实时生成下方补漏处方单）</b>
-              <span>涵盖《高性价比人生指南》里最能救命、最能省钱、最能防坐牢背锅的 16 件小事</span>
-            </div>
-            <div class="lg-audit-quick-btns">
-              <button type="button" class="lg-btn-chip" id="lgBtnPresetTypical">📋 典型打工人初始画像</button>
-              <button type="button" class="lg-btn-chip" id="lgBtnPresetAll">✅ 全选已做到</button>
-              <button type="button" class="lg-btn-chip" id="lgBtnPresetClear">🔄 清空重测</button>
-            </div>
-          </div>
-
-          <!-- 4大维度 16项自查卡片网格 -->
-          <div class="lg-audit-dims" id="lgAuditDimsGrid"></div>
-
-          <!-- 实时体检报告与优先补漏处方单 -->
-          <div class="lg-report-card" id="lgReportCard">
-            <div class="lg-report-top">
-              <div class="lg-score-ring-box" id="lgRepRingBox">
-                <span class="lg-score-num" id="lgRepScoreNum">38</span>
-                <span class="lg-score-lbl">清醒指数</span>
-              </div>
-              <div class="lg-report-summary">
-                <span class="lg-tier-badge" id="lgRepTierBadge">⚠️ 脆皮防线预警</span>
-                <h2 class="lg-tier-title" id="lgRepTierTitle">半清醒打工人</h2>
-                <p class="lg-tier-desc" id="lgRepTierDesc">正在计算你的四维防御短板与最高优先级补漏处方...</p>
-              </div>
-            </div>
-
-            <div class="lg-bars-grid" id="lgRepBarsGrid"></div>
-
-            <div class="lg-rx-section">
-              <div class="lg-rx-head">
-                <h3>⚡ 零成本高回报 · 优先补漏处方签 (按投资回报率排序)</h3>
-                <span style="font-size:12px;color:var(--tx-dim);font-weight:700;" id="lgRepRxCount"></span>
-              </div>
-              <div class="lg-rx-list" id="lgRepRxList"></div>
-            </div>
-
-            <div class="lg-report-actions">
-              <button type="button" class="lg-btn-poster" id="lgBtnAuditPoster">📸 生成《高性价比人生体检处方单》海报并归档</button>
-              <button type="button" class="btn-ghost" id="lgBtnJumpLibrary" style="flex:0 0 auto;width:auto;padding:14px 24px;">📚 查阅全部 36 条完整证据与法条 →</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- 子模式 2：循证避坑智库 (36条精选) -->
-        <div class="lg-substage" id="lg-sub-library">
-          <div class="lg-Controls-panel">
-            <div class="lg-search-row">
-              <div class="lg-search-box">
-                <span class="lg-search-ico">🔍</span>
-                <input type="text" class="lg-search-input" id="lgSearchInput" placeholder="搜索关键词：如 安全带、肠镜、智商税、自动续费、退税、裁员、帮信罪、爬虫、头孢..." autocomplete="off">
-              </div>
-              <div class="lg-quick-filters" id="lgQuickFilters">
-                <button type="button" class="lg-btn-chip active" data-lgquick="all">全部词条</button>
-                <button type="button" class="lg-btn-chip" data-lgquick="zero">🔥 零成本极高性价比</button>
-                <button type="button" class="lg-btn-chip" data-lgquick="gradeA">🅰️ 仅看A级铁证/法条</button>
-                <button type="button" class="lg-btn-chip" data-lgquick="todo">⭕ 仅看未打卡待办</button>
-              </div>
-            </div>
-
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
-              <div class="lg-cat-bar" id="lgCatBar">
-                <button type="button" class="lg-cat-pill active" data-lgcat="all">📚 全部 (36)</button>
-                <button type="button" class="lg-cat-pill" data-lgcat="health">❤️ 保命与慢病 (8)</button>
-                <button type="button" class="lg-cat-pill" data-lgcat="myth">🚫 智商税粉碎机 (6)</button>
-                <button type="button" class="lg-cat-pill" data-lgcat="wealth">💰 守财与省钱 (6)</button>
-                <button type="button" class="lg-cat-pill" data-lgcat="career">💼 职场与裁员 (4)</button>
-                <button type="button" class="lg-cat-pill" data-lgcat="legal">⚖️ 法律与程序员红线 (6)</button>
-                <button type="button" class="lg-cat-pill" data-lgcat="emergency">🚑 急救与看病用药 (6)</button>
-              </div>
-              <span style="font-size:12px;color:var(--tx-dim);font-weight:700;" id="lgLibResultCount">当前筛选共 36 条硬核指南</span>
-            </div>
-          </div>
-
-          <div class="lg-cards-grid" id="lgLibraryGrid"></div>
-        </div>
-
-        <!-- 子模式 3：每日清醒锦囊 (Daily Life Guide Card) -->
-        <div class="lg-substage" id="lg-sub-draw">
-          <div class="lg-draw-stage">
-            <!-- 锦囊分类切换 -->
-            <div class="lg-draw-pools" id="lgDrawPools">
-              <button type="button" class="lg-btn-chip active" data-lgpool="all">🎲 全库锦囊 (36条)</button>
-              <button type="button" class="lg-btn-chip" data-lgpool="health">❤️ 保命与急救 (14条)</button>
-              <button type="button" class="lg-btn-chip" data-lgpool="myth">🚫 智商税避雷 (6条)</button>
-              <button type="button" class="lg-btn-chip" data-lgpool="legal">⚖️ 职场法务与省钱 (16条)</button>
-            </div>
-
-            <!-- 3D 翻转卡牌容器 -->
-            <div class="lg-card-3d-scene" id="lgCardScene">
-              <div class="lg-card-3d-flipper" id="lgCardFlipper">
-                <!-- 卡背 (点击即可翻转开卡) -->
-                <div class="lg-card-face lg-card-back" id="lgCardBack">
-                  <div class="lg-cb-glow"></div>
-                  <div class="lg-cb-border-decor"></div>
-                  <div class="lg-cb-header">
-                    <span class="lg-cb-pill">👝 锦囊密令</span>
-                    <span class="lg-cb-code">NO.LIFELOGIC · 循证妙策</span>
-                  </div>
-                  <div class="lg-cb-center">
-                    <div class="lg-cb-emblem">👝</div>
-                    <div class="lg-cb-title">每日清醒锦囊</div>
-                    <div class="lg-cb-sub">撕碎虚妄 · 循证护体 · 拒缴智商税</div>
-                  </div>
-                  <div class="lg-cb-foot">
-                    <div class="lg-cb-tip">✨ 轻触卡牌正反翻转 · 查阅锦囊 ✨</div>
-                    <div class="lg-cb-stamp">【清醒印鉴】</div>
-                  </div>
-                </div>
-
-                <!-- 卡面 (翻开后呈现核心指南) -->
-                <div class="lg-card-face lg-card-front" id="lgFlashcard"></div>
-              </div>
-            </div>
-
-            <!-- 操作按键区 -->
-            <div class="lg-draw-actions">
-              <button type="button" class="btn-primary lg-draw-btn-main" id="lgBtnDrawNext">
-                <span class="draw-icon">🎲</span>
-                <span class="draw-txt">翻开今日锦囊</span>
-              </button>
-              <button type="button" class="lg-btn-poster" id="lgBtnDrawPoster">
-                <span>📸 保存海报并归档</span>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- 底部开源致敬与免责声明 -->
-        <footer class="lg-credit-footer">
-          <div>
-            📖 <b>循证数据源致敬：</b>本模块核心词条改编自开源项目 <a href="https://github.com/eternity4719/HowToLiveBetter" target="_blank" rel="noopener noreferrer">eternity4719/HowToLiveBetter《高性价比人生指南》</a>（遵循 CC BY 4.0 协议署名共享）。
-          </div>
-          <div>
-            ⚠️ 免责声明：健康词条仅供科普参考，不构成诊疗建议；法律与劳动维权词条不构成正式法律意见。
-          </div>
-        </footer>
-        </div>
-      </div>
+      
     </section>
 
     <!-- 模块 4：工位风水大师 -->

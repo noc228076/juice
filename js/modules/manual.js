@@ -39,15 +39,7 @@
   function saveStore(s) {
     try { localStorage.setItem('sm_history_v1', JSON.stringify(s)); } catch (e) {}
   }
-  // 人间清醒（第 05 章）不出分数报告，存档在它自己的 key 里，
-  // 所以「是否已测」要单独判定，否则目录永远少点亮一个点。
   function chapterDone(id, s) {
-    if (id === 'lifeguide') {
-      try {
-        var audit = JSON.parse(localStorage.getItem('juice_lifeguide_audit_v1') || '[]');
-        return !!(audit && audit.length);
-      } catch (e) { return false; }
-    }
     return !!(s[id] && s[id].length);
   }
 
@@ -94,7 +86,7 @@
       }
     }
     var DATA = window.SM_DATA || {};
-    var ORDER = window.SM_ORDER || ['social-battery', 'procrastination', 'slacking', 'night-owl', 'lifeguide', 'reaction', 'color', 'game-2048', 'minesweeper', 'schulte'];
+    var ORDER = window.SM_ORDER || ['social-battery', 'procrastination', 'slacking', 'night-owl', 'reaction', 'color', 'game-2048', 'minesweeper', 'schulte'];
     var s = store();
     var done = ORDER.filter(function (id) { return chapterDone(id, s); }).length;
     // 存档份数只统计答题/游戏章：人间清醒没有分数报告，计入会虚高
@@ -104,7 +96,7 @@
 
     var html = '';
     html += '<div class="home-head"><div class="brandmark">我</div><div>'
-      + '<div class="home-title">自我说明书</div><div class="home-sub">SELF MANUAL · 十份关于你的出厂说明书</div></div></div>';
+      + '<div class="home-title">自我说明书</div><div class="home-sub">SELF MANUAL · 十三份关于你的出厂说明书</div></div></div>';
     html += '<div class="home-desc">你是哪种拖延病患者？社交电量还剩多少？反应能力几岁？2048能合出多大？还有一份人间清醒防坑指南。挑一章，把自己拆开看看。</div>';
 
     html += '<div class="stat-strip"><div style="display:flex;gap:5px">'
@@ -157,10 +149,6 @@
     var t = dataMap[id];
     if (!t) return;
     if (!options.silent && window.AppRouter && typeof window.AppRouter.pushView === 'function') {
-      if (t.mode === 'external') {
-        window.AppRouter.pushView('lifeguide');
-        return;
-      }
       // 说明书内部章节互斥：从一章切到另一章用 replaceView 而不是 push，
       // 否则历史栈会堆成「home → 扫雷 → 2048 → …」，
       // 返回键永远回不到目录，只会逐个倒回旧游戏。
@@ -178,13 +166,6 @@
     state.test = t;
     if (t.mode === 'interactive') {
       openGame(t, options);
-      return;
-    }
-    // 外部章节：正文由自己的模块渲染（目前只有第 05 章人间清醒）
-    if (t.mode === 'external') {
-      if (window.AppLifeguide && typeof window.AppLifeguide.open === 'function') {
-        window.AppLifeguide.open({ fromRouter: !!options.silent });
-      }
       return;
     }
     openCover(t, options);
@@ -602,10 +583,6 @@
     restore,
     restoreView: function (view, payload) {
       payload = payload || {};
-      if (view === 'lifeguide') {
-        openTest('lifeguide', { silent: true });
-        return;
-      }
       if (view === 'chapter' || view === 'game') {
         var id = payload.testId || (payload.test && payload.test.id);
         // 有被暂停的实例（扫雷 / 2048）且正是同一章节时，直接恢复进度

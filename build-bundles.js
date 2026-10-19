@@ -19,7 +19,6 @@ const moduleCssFiles = [
   'css/modules/lingqian.css',
   'css/modules/clock.css',
   'css/modules/merit.css',
-  'css/modules/lifeguide.css',
   'css/modules/bazi.css',
   'css/modules/daily.css',
   'css/modules/scratch.css'
@@ -44,8 +43,7 @@ const chunks = {
     'js/modules/manual-data.js',
     'js/modules/manual-report.js',
     'js/modules/manual-games.js',
-    'js/modules/manual.js',
-    'js/modules/lifeguide.js'
+    'js/modules/manual.js'
   ],
   mystic: [
     'js/modules/tarot.js',

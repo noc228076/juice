@@ -1,4 +1,4 @@
-window.__APP_VERSION__ = '130';
+window.__APP_VERSION__ = '131';
 /* === js/core-drink.js === */
 /* 人格研究所 — 题库与档案数据 */
 'use strict';
@@ -8198,7 +8198,8 @@ if ('serviceWorker' in navigator) {
   function normalizeMod(modKey) {
     const raw = String(modKey || '').toLowerCase();
     if (!ALLOWED_MODS.includes(raw)) return null;
-    if (raw === 'lifeguide') return { mod: 'manual', view: 'lifeguide' };
+    // 旧链接 #/lifeguide：人间清醒章节已移除，落到说明书目录
+    if (raw === 'lifeguide') return { mod: 'manual', view: 'home' };
     if (raw === 'drinks') return { mod: 'drinks', view: 'home' };
     return { mod: raw, view: 'home' };
   }
@@ -8209,7 +8210,7 @@ if ('serviceWorker' in navigator) {
     if (!norm) return null;
     let view = typeof raw.view === 'string' && raw.view ? raw.view : norm.view;
     if (norm.mod === 'drinks' && view !== 'quiz' && view !== 'result') view = 'home';
-    if (norm.mod === 'manual' && raw.mod === 'lifeguide') view = 'lifeguide';
+    if (norm.mod === 'manual' && raw.mod === 'lifeguide') view = 'home';
     const layer = typeof raw.layer === 'string' && raw.layer ? raw.layer : null;
     const payload = raw.payload && typeof raw.payload === 'object' ? raw.payload : null;
     return {

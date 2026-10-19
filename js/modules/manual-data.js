@@ -538,9 +538,9 @@
       }
     },
 
-    /* ============ 06 反应速度擂台 ============ */
+    /* ============ 05 反应速度擂台 ============ */
     'reaction': {
-      id: 'reaction', num: '06', mode: 'interactive', engine: 'reaction',
+      id: 'reaction', num: '05', mode: 'interactive', engine: 'reaction',
       title: '反应速度擂台', en: 'REACTION ARENA',
       tagline: '三关打完,宣判你的反应年龄',
       icon: 'bolt', color: '#E05B4E',
@@ -558,7 +558,7 @@
 
     /* ============ 07 色彩敏锐度挑战 ============ */
     'color': {
-      id: 'color', num: '07', mode: 'interactive', engine: 'color',
+      id: 'color', num: '06', mode: 'interactive', engine: 'color',
       title: '色彩敏锐度挑战', en: 'COLOR ACUITY',
       tagline: '色块里藏着一个叛徒,色差一级级缩小',
       icon: 'eye', color: '#D6478F',
@@ -579,7 +579,7 @@
 
     /* ============ 08 数字合体 2048 ============ */
     'game-2048': {
-      id: 'game-2048', num: '08', mode: 'interactive', engine: 'game2048',
+      id: 'game-2048', num: '07', mode: 'interactive', engine: 'game2048',
       title: '数字合体 2048', en: '2048 PUZZLE',
       tagline: '滑动合体,测测你的逻辑规划与抗压上限',
       icon: 'crown', color: '#F59E0B',
@@ -603,7 +603,7 @@
 
     /* ============ 09 雷区排险 · 扫雷 ============ */
     minesweeper: {
-      id: 'minesweeper', num: '09', mode: 'interactive', engine: 'minesweeper',
+      id: 'minesweeper', num: '08', mode: 'interactive', engine: 'minesweeper',
       title: '雷区排险', en: 'MINESWEEPER',
       tagline: '在信息不全的棋盘上,判断哪一步值得冒险',
       icon: 'target', color: '#38BDF8',
@@ -627,7 +627,7 @@
        注意力测试：5×5 网格里按 1–25 顺序点击，计时。
        复用扫雷的网格样式与排行榜，游戏逻辑见 manual-games.js。 */
     schulte: {
-      id: 'schulte', num: '10', mode: 'interactive', engine: 'schulte',
+      id: 'schulte', num: '09', mode: 'interactive', engine: 'schulte',
       title: '舒尔特方格', en: 'SCHULTE TABLE',
       tagline: '在乱序里按 1 到 25 依次点完，看看你的注意力有多稳',
       icon: 'grid', color: '#8B5CF6',
@@ -651,7 +651,7 @@
        无时限推理题：自动存档，随时退出随时继续。
        生成器保证唯一解；按错误数进全服排行榜（越少越好）。 */
     sudoku: {
-      id: 'sudoku', num: '12', mode: 'interactive', engine: 'sudoku',
+      id: 'sudoku', num: '11', mode: 'interactive', engine: 'sudoku',
       title: '数独', en: 'SUDOKU',
       tagline: '没有时限的推理题，自动存档，想玩就玩、想停就停',
       icon: 'gear', color: '#0EA5E9',
@@ -675,7 +675,7 @@
        经典滑块复原：打掉一颗补一颗不存在——这里是一次滑动一步，
        无时限、自动存档，按步数进全服排行榜（越少越好）。 */
     slide: {
-      id: 'slide', num: '13', mode: 'interactive', engine: 'slide',
+      id: 'slide', num: '12', mode: 'interactive', engine: 'slide',
       title: '数字华容道', en: 'SLIDING PUZZLE',
       tagline: '滑块复原 1 到 N，步数越少越漂亮',
       icon: 'swap', color: '#F97316',
@@ -698,7 +698,7 @@
        落块消行：支持暂停（P 键或按钮），进度自动存档，
        退出随时继续。按分数进全服排行榜（越高越好）。 */
     tetris: {
-      id: 'tetris', num: '14', mode: 'interactive', engine: 'tetris',
+      id: 'tetris', num: '13', mode: 'interactive', engine: 'tetris',
       title: '俄罗斯方块', en: 'TETRIS',
       tagline: '落块消行的鼻祖，P 键随时暂停，进度自动存档',
       icon: 'grid', color: '#8B5CF6',
@@ -718,22 +718,11 @@
       ]
     },
 
-    /* ============ 05 人间清醒指南 ============
-       这一章不是答题引擎产物：正文由 lifeguide.js 自己渲染（体检 / 智库 / 抽卡），
-       所以 mode 为 'external'，由 manual.js 转交 AppLifeguide.open()。 */
-    lifeguide: {
-      id: 'lifeguide', num: '05', mode: 'external',
-      title: '人间清醒指南', en: 'EVIDENCE-BASED LIFE HANDBOOK',
-      tagline: '低投入高回报的 16 项防线、36 条循证避坑与每日锦囊',
-      icon: 'book', color: '#10B981',
-      meta: '3 个子模块 · 随时可查'
-    },
-
-    /* ============ 11 定位射击靶场 ============
-       FPS 式定位训练：小球随机出现并不断收缩，点中越快分越高，
-       连击有加成，打空会断连击。30 秒限时，按总分排名。 */
+    /* ============ 10 定位射击靶场 ============
+       FPS 式定位训练：场上恒定三颗球，打掉补新，点空扣分。
+       30 秒限时，按总分进全服排行榜。 */
     aim: {
-      id: 'aim', num: '11', mode: 'interactive', engine: 'aim',
+      id: 'aim', num: '10', mode: 'interactive', engine: 'aim',
       title: '定位射击靶场', en: 'AIM TRAINER',
       tagline: '小球出现的一瞬间就要开枪——30 秒看看你的手感有多稳',
       icon: 'target', color: '#EF4444',
@@ -753,7 +742,6 @@
       ]
     }
   };
-
   /* 首页章节顺序 */
-  window.SM_ORDER = ['social-battery', 'procrastination', 'slacking', 'night-owl', 'lifeguide', 'reaction', 'color', 'game-2048', 'minesweeper', 'schulte', 'aim', 'sudoku', 'slide', 'tetris'];
+  window.SM_ORDER = ['social-battery', 'procrastination', 'slacking', 'night-owl', 'reaction', 'color', 'game-2048', 'minesweeper', 'schulte', 'aim', 'sudoku', 'slide', 'tetris'];
 })();

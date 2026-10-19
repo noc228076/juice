@@ -3805,19 +3805,39 @@
       var pad = el.querySelector('.sd-pad');
       pad.addEventListener('click', function (e) {
         var btn = e.target.closest('.sd-num');
-                if (!btn || sel < 0 || given[sel] || finished) return;
-        var n = Number(btn.getAttribute('data-n'));
-        if (window.SFX && window.SFX.tap) window.SFX.tap();
-        if (n === user[sel]) return;
-        user[sel] = n;
-        if (n !== 0 && n !== solution[sel]) {
-          mistakes++;
-          if (window.SFX && window.SFX.wrong) window.SFX.wrong();
-        }
-        saveState();
-        renderBoard();
-        checkWin();
+        if (!btn || finished) return;
+        placeNumber(Number(btn.getAttribute('data-n')));
       });
+      // 键盘输入：数字键 1–9 填入选中格，0 / Backspace / Delete 清除。
+      // 只在数独屏幕激活时响应，避免劫持其他页面的按键。
+      window.addEventListener('keydown', onKeyDown);
+    }
+
+    function onKeyDown(e) {
+      if (destroyed || finished || e.metaKey || e.ctrlKey || e.altKey) return;
+      var scr = document.querySelector('.sm-screen.active');
+      if (!scr || scr.id !== 'scr-sm-sudoku') return;
+      if (e.key >= '1' && e.key <= '9') {
+        e.preventDefault();
+        placeNumber(Number(e.key));
+      } else if (e.key === 'Backspace' || e.key === 'Delete' || e.key === '0') {
+        e.preventDefault();
+        placeNumber(0);
+      }
+    }
+
+    function placeNumber(n) {
+      if (sel < 0 || given[sel]) return;
+      if (window.SFX && window.SFX.tap) window.SFX.tap();
+      if (n === user[sel]) return;
+      user[sel] = n;
+      if (n !== 0 && n !== solution[sel]) {
+        mistakes++;
+        if (window.SFX && window.SFX.wrong) window.SFX.wrong();
+      }
+      saveState();
+      renderBoard();
+      checkWin();
     }
 
     function checkWin() {
@@ -3862,6 +3882,7 @@
     return {
       destroy: function () {
         destroyed = true;
+        window.removeEventListener('keydown', onKeyDown);
         if (lbPanel) lbPanel.destroy();
       }
     };

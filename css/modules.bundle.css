@@ -4717,7 +4717,7 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .rz-half.hit.ng {
   #mod-manual .sm-screen#scr-sm-mine .wrap,
   #mod-manual .sm-screen#scr-sm-schulte .wrap {
     display: grid;
-    grid-template-columns: 200px minmax(0, 1fr);
+    grid-template-columns: 260px minmax(0, 1fr);
     grid-template-rows: auto 1fr;
     column-gap: 16px;
     align-items: start;
@@ -4735,11 +4735,15 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .rz-half.hit.ng {
     grid-row: 1 / span 2;
     min-width: 0;
   }
+  /* 保持 flex 行布局：返回键与文字必须同一行。
+     只把宽度限制去掉、换行策略交给下面 b 的 white-space。 */
   #mod-manual .sm-screen#scr-sm-mine .mt-topbar,
   #mod-manual .sm-screen#scr-sm-schulte .mt-topbar {
     margin: 0;
     padding: 4px 0 0;
-    display: block;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
     max-width: none;
     width: auto;
   }

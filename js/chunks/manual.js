@@ -1164,6 +1164,24 @@
     return el;
   }
 
+  /* 标题与游戏区对齐。扫雷 / 舒尔特的 .sm-game-layout 是
+     width:fit-content 居中，而章节标题独立在 #sm-xxxxtop 里，
+     两者宽度不同就会左右错位。这里量出游戏区的左右边界，
+     同步成标题栏的左右外边距，让两者左缘落在同一条线上。 */
+  function syncTopbarWidth(el) {
+    var layout = el.closest('.sm-game-layout');
+    var screen = el.closest('.sm-screen');
+    if (!layout || !screen) return;
+    var top = screen.querySelector('.mt-topbar');
+    if (!top || !top.parentNode) return;
+    var lr = layout.getBoundingClientRect();
+    var pr = top.parentNode.getBoundingClientRect();
+    top.style.maxWidth = 'none';
+    top.style.width = 'auto';
+    top.style.marginLeft = Math.max(0, lr.left - pr.left) + 'px';
+    top.style.marginRight = Math.max(0, pr.right - lr.right) + 'px';
+  }
+
   function hud(extraLeft, extraRight) {
     return '<div class="hud"><div>' + (extraLeft || '') + '</div><div>' + (extraRight || '') + '</div></div>';
   }
@@ -2553,18 +2571,23 @@
       // clientWidth 含 padding，.stage 左右各 16px 要扣掉
       var style = window.getComputedStyle(el);
       var padX = (parseFloat(style.paddingLeft) || 0) + (parseFloat(style.paddingRight) || 0);
-      // .stage 在扫雷页是 width:fit-content（外框贴合棋盘），
-      // 直接读 el.clientWidth 会读到「已经被缩小的自身」，越缩越小。
-      // 改为量 .sm-game-layout 的左列（grid 第一列）宽度。
+      // 可用宽度必须来自「不依赖棋盘尺寸」的容器，否则会形成
+      // 「棋盘小 → 列小 → 格子更小」的收缩循环。
+      // .stage 是 max-content、左列由棋盘决定，都不能用；
+      // .wrap 是外层固定容器（1400px 或 100%），用它做基准。
       var availW = 0;
+      var wrapEl = el.closest('.wrap');
       var layoutEl = el.closest('.sm-game-layout');
-      if (layoutEl) {
-        var cs = window.getComputedStyle(layoutEl);
-        var cols = cs.gridTemplateColumns.split(' ').map(parseFloat).filter(function (v) { return !isNaN(v); });
-        if (cols.length) availW = cols[0];
+      if (wrapEl && layoutEl) {
+        var ws = window.getComputedStyle(wrapEl);
+        var wpad = (parseFloat(ws.paddingLeft) || 0) + (parseFloat(ws.paddingRight) || 0);
+        var vw = window.innerWidth || 1440;
+        var lbW = Math.max(300, Math.min(340, Math.round(vw * 0.18)));  // 榜单列
+        var colGap = 12;                                                // 与 CSS column-gap 一致
+        availW = wrapEl.clientWidth - wpad - lbW - colGap - 2 * padX;
       }
-      if (!availW) availW = (el.parentNode && el.parentNode.clientWidth) || el.clientWidth || 0;
-      availW -= padX;
+      if (availW <= 0) availW = (el.parentNode && el.parentNode.clientWidth) || el.clientWidth || 0;
+      availW -= 0;
       if (availW <= 0) return 24;        // 还没进 DOM，用默认值，下一帧会重算
 
       var gap = 2, pad = 6 * 2;          // .ms-grid 自身内边距
@@ -2646,6 +2669,11 @@
           if (!destroyed && el.querySelector('.ms-board-wrap')) paint();
         });
       }
+
+      // 布局稳定后同步标题左右边界（下一帧，等 .sm-game-layout 完成收缩）
+      requestAnimationFrame(function () {
+        if (!destroyed) syncTopbarWidth(el);
+      });
     }
 
     function bindBoard() {
@@ -2936,6 +2964,10 @@
           paint();
         };
       }
+
+      requestAnimationFrame(function () {
+        if (!destroyed) syncTopbarWidth(el);
+      });
     }
 
     function onPick(idx) {
@@ -3078,6 +3110,11 @@
           if (!destroyed && el.querySelector('.ms-board-wrap')) paint();
         });
       }
+
+      // 布局稳定后同步标题左右边界（下一帧，等 .sm-game-layout 完成收缩）
+      requestAnimationFrame(function () {
+        if (!destroyed) syncTopbarWidth(el);
+      });
     }
 
     function bindBoard() {

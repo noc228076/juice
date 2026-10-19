@@ -6707,6 +6707,13 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .rz-half.hit.ng {
     margin: 0 auto;
     box-sizing: border-box;
   }
+  /* 扫雷 / 舒尔特：标题的左右边界由 JS 同步为游戏区的宽度
+     （见 manual-games.js 的 syncTopbarWidth），这里只保证不额外加边距。 */
+  #mod-manual .sm-screen#scr-sm-mine .mt-topbar,
+  #mod-manual .sm-screen#scr-sm-schulte .mt-topbar {
+    margin: 0 auto;
+    box-sizing: border-box;
+  }
   /* 第 05 章（人间清醒）正文是 1080px 宽的，顶栏再锁 720px
      会和下方内容对不齐。这里连同左右内边距一起对齐 .lg-wrap：
      1080px 内容 + 两侧 20px，外层留 20px 让返回键与内容左缘齐平。 */
@@ -7057,9 +7064,18 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .rz-half.hit.ng {
        榜单保持 300–340px，棋盘列吃掉剩余空间。 */
     /* 棋盘 + 榜单整体居中：左列吃剩余宽度（高级 30 列需要），
        棋盘在列内左对齐，整组由 .wrap 居中。 */
-    #mod-manual .sm-screen#scr-sm-mine .sm-game-layout {
-      grid-template-columns: minmax(0, 1fr) clamp(300px, 18vw, 340px);
+    /* 棋盘 + 榜单紧挨着、整组居中。
+       左列用 min-content = 棋盘宽度（.stage 是 width:max-content），
+       不写 1fr，否则列比棋盘宽、右侧空出一截。
+       整组宽度由内容决定，再由 margin:auto 居中。 */
+    #mod-manual .sm-screen#scr-sm-mine .sm-game-layout,
+    #mod-manual .sm-screen#scr-sm-schulte .sm-game-layout {
+      grid-template-columns: min-content clamp(300px, 18vw, 340px);
       column-gap: 12px;
+      width: fit-content;
+      max-width: 100%;
+      margin-left: auto;
+      margin-right: auto;
     }
     /* 扫雷高级 30 列，窄窗口下双栏会把棋盘压到每格 16px。
        宽度不够时改成榜单在下的单栏，把整行让给棋盘。 */
@@ -7078,14 +7094,11 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .rz-half.hit.ng {
        这里让它吃满左列 */
     width: 100%;
     }
-    /* 扫雷 / 舒尔特：棋盘尺寸由 JS 按格子数算死，外框应贴合棋盘，
-       不要铺满整列后在左右留出大片空白。
-       width:max-content 让 .stage 收缩到内容宽；
-       左对齐（而不是居中）才能和上方章节标题左边缘对齐。 */
+    /* 扫雷 / 舒尔特：外框贴合棋盘内容宽。
+       格子有 56px 上限，棋盘可能比左列窄；用 width:max-content
+       让外框跟着棋盘走，再由下面的 grid 居中把它摆到中间。 */
     #mod-manual .sm-screen#scr-sm-mine .sm-game-layout .stage,
     #mod-manual .sm-screen#scr-sm-schulte .sm-game-layout .stage {
-      /* 棋盘在左列内左对齐：这样它的左缘与上方标题（同宽容器）
-         的左缘一致。列内居中会让标题和棋盘错开一截。 */
       width: max-content;
       max-width: 100%;
       justify-self: start;

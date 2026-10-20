@@ -1318,32 +1318,18 @@
           }
         };
       },
+      // 榜单只展示头像 / 昵称 / 反应时间，不掺正确率、年龄或日期。
       localCols: function (r) {
-        var base = '<span class="lb-score">' + (r.score || 0) + '<small> ms</small></span>';
-        var date = '<span class="lb-date">' + window.AppLbPanel.fmtDay(r.at) + '</span>';
-        if (lbStage === 2) {
-          return [base, '<span class="lb-tile">' + (r.acc || 0) + '/20</span>',
-            '<span class="lb-meta">反转 ' + (r.traps || 0) + '</span>', date];
-        }
-        if (lbStage === 3) {
-          return [base, '<span class="lb-tile">误按 ' + (r.falseHit || 0) + '</span>',
-            '<span class="lb-meta">Go ' + (r.goCount || 0) + '</span>', date];
-        }
-        return [base, '<span class="lb-tile">' + (r.acc || 0) + '/20</span>',
-          '<span class="lb-meta">' + (r.age || '-') + ' 岁</span>', date];
+        return [
+          '<span class="lb-score">' + (r.score || 0) + '<small> ms</small></span>'
+        ];
       },
       globalCols: function (r) {
-        var score = '<span class="lb-score">' + (r.score || 0) + '<small> ms</small></span>';
-        var extra = r.extra || {};
-        var tail;
-        if (lbStage === 2) tail = '<span class="lb-tile">' + (extra.acc || 0) + '/20</span>';
-        else if (lbStage === 3) tail = '<span class="lb-tile">误按 ' + (extra.falseHit || 0) + '</span>';
-        else tail = '<span class="lb-tile">' + (extra.acc || 0) + '/20</span>';
         return [
           '<span class="lb-ava">' + window.AppLbPanel.esc(r.avatar || '🙂') + '</span>',
           '<span class="lb-name">' + window.AppLbPanel.esc(r.name || '匿名玩家') +
             (r.isMe ? '<i class="lb-me">我</i>' : '') + '</span>',
-          score, tail
+          '<span class="lb-score">' + (r.score || 0) + '<small> ms</small></span>'
         ];
       }
     }) : null;

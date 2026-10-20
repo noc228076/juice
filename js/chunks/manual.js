@@ -4911,17 +4911,30 @@
       if (willGrow) {
         score += FOOD_SCORE;
         eaten++;
-        // 每吃 5 个提速一档，下限 90ms
-        if (eaten % 5 === 0) tickMs = Math.max(90, tickMs - 20);
+        // 每吃 5 个提速一档，下限 90ms；立即重建定时器让新速度生效
+        if (eaten % 5 === 0) {
+          tickMs = Math.max(90, tickMs - 20);
+          scheduleTick();
+        }
         if (window.SFX && window.SFX.select) window.SFX.select();
         placeFood();
         if (!food) { endGame(); return; }   // 满屏也算通关
       } else {
         snake.pop();
       }
-      saveState();
+      saveStateThrottled();
       draw();
       updateHud();
+    }
+
+    /* 每走一步都同步写 localStorage 会卡（序列化 + 磁盘 I/O）。
+       改为最多 500ms 存一次；暂停 / 结束 / 切走时再强制存一次。 */
+    var lastSaveAt = 0;
+    function saveStateThrottled() {
+      var now = performance.now();
+      if (now - lastSaveAt < 500) return;
+      lastSaveAt = now;
+      saveState();
     }
 
     function scheduleTick() {
@@ -4936,24 +4949,46 @@
     }
 
     /* ---------- 渲染 ---------- */
-    function draw() {
-      var canvas = el.querySelector('#snakeCanvas');
-      if (!canvas) return;
-      var ctx = canvas.getContext('2d');
-      var cell = canvas.width / COLS;
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      // 棋盘格底纹。浅色主题下白底白格看不见，改用深色叠加。
+    /* 棋盘格底纹只在进入游戏时画一次，存成离屏 canvas；
+       每帧 draw 直接贴图，不再循环 400 次 fillRect。 */
+    function buildBoardBg(cell) {
+      var bg = document.createElement('canvas');
+      bg.width = COLS * cell;
+      bg.height = ROWS * cell;
+      var bctx = bg.getContext('2d');
       var light = document.documentElement.getAttribute('data-theme') === 'light';
-      var gridColor = light ? 'rgba(90,72,42,0.055)' : 'rgba(255,255,255,0.025)';
+      bctx.fillStyle = light ? '#FFFDF7' : '#1A1722';
+      bctx.fillRect(0, 0, bg.width, bg.height);
+      bctx.fillStyle = light ? 'rgba(90,72,42,0.055)' : 'rgba(255,255,255,0.025)';
       for (var y = 0; y < ROWS; y++) {
         for (var x = 0; x < COLS; x++) {
-          if ((x + y) % 2 === 0) {
-            ctx.fillStyle = gridColor;
-            ctx.fillRect(x * cell, y * cell, cell, cell);
-          }
+          if ((x + y) % 2 === 0) bctx.fillRect(x * cell, y * cell, cell, cell);
         }
       }
+      return bg;
+    }
+
+    var canvasEl = null, ctx = null, boardBg = null, cellPx = 0;
+
+    function ensureCanvas() {
+      var c = el.querySelector('#snakeCanvas');
+      if (!c) return false;
+      if (c !== canvasEl) {
+        canvasEl = c;
+        ctx = c.getContext('2d');
+        cellPx = c.width / COLS;
+        boardBg = buildBoardBg(cellPx);
+      }
+      return true;
+    }
+
+    function draw() {
+      if (!ensureCanvas()) return;
+      var cell = cellPx;
+      // 贴棋盘底图（一次 drawImage 替代 400 次 fillRect）
+      if (boardBg) ctx.drawImage(boardBg, 0, 0);
+      else ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
+      var light = document.documentElement.getAttribute('data-theme') === 'light';
 
       // 食物：圆形 + 外发光
       if (food) {
@@ -5061,7 +5096,11 @@
       if (btn) btn.textContent = p ? '▶ 继续' : '⏸ 暂停';
       var ov = el.querySelector('#snakePauseOverlay');
       if (ov) ov.classList.toggle('is-active', p);
-      if (p) { if (timerId) { clearInterval(timerId); timerId = 0; } saveState(); }
+      if (p) {
+        if (timerId) { clearInterval(timerId); timerId = 0; }
+        lastSaveAt = 0;
+        saveState();
+      }
       else scheduleTick();
     }
     function togglePause() {
@@ -5165,20 +5204,10 @@
         startPlay();
       };
       scheduleTick();
-      // 提速后重建 interval
-      var speedWatch = setInterval(function () {
-        if (destroyed || !running || paused || gameOver) return;
-        if (timerId && tickMs !== lastTick) {
-          lastTick = tickMs;
-          restartTimer();
-        }
-      }, 400);
-      el._snakeWatch = speedWatch;
     }
 
     function stopTimer() {
       if (timerId) { clearInterval(timerId); timerId = 0; }
-      if (el._snakeWatch) { clearInterval(el._snakeWatch); el._snakeWatch = null; }
     }
 
     function endGame() {
@@ -5227,6 +5256,8 @@
     bindKeyboard();
     return {
       destroy: function () {
+        // 切走前把最新进度落盘（节流可能还没写）
+        if (running && !gameOver && !finished) saveState();
         destroyed = true;
         running = false;
         stopTimer();

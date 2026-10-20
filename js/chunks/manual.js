@@ -1412,43 +1412,27 @@
 
     /* 总开始页：先选关卡，再开始——和其他游戏（数独/华容道）的
        「选难度再开始」一致。也可以选「三关连测」跑完整流程。 */
-    function lobby() {
-      clearTimers();
-      // 「再测一次」从报告页回来时，直接恢复上一次测的那一关
-      var remembered = 0;
-      try { remembered = Number(localStorage.getItem(LAST_STAGE_KEY) || 0); } catch (e) {}
-      if (remembered >= 1 && remembered <= 3) {
-        var n = remembered;
-        if (n === 1) S1 = [];
-        else if (n === 2) S2 = { correct: 0, rts: [], traps: 0 };
-        else S3 = { goRts: [], falseHit: 0, trials: [] };
-        stageIntro(n);
-        return;
-      }
-      el.innerHTML = hud('<b>反应速度擂台</b>', '三关各排各的榜') +
-        '<div class="rz-stage">' +
-        '<div class="rz-big" style="font-size:30px">选一关开始</div>' +
-        '<div class="rz-sub">三关考的东西不同，各有一张独立榜单：<br>' +
-        '① 简单反应中位数 · ② 选择反应平均时 · ③ Go 反应中位数<br>' +
-        '也可以一次跑完三关，拿到完整判词。</div>' +
-        '<div class="ms-levels" style="margin-top:20px;justify-content:center;flex-wrap:wrap">' +
-        [1, 2, 3].map(function (n) {
-          return '<button type="button" class="ms-lv" data-stage="' + n + '">' + n + ' · ' + LB_STAGES[n].name + '</button>';
+    /* 关卡切换条：和扫雷/数独的难度条同款（.ms-levels + .ms-lv），
+       玩家一眼就知道能点。三关各排各的榜，切换时同步换榜。 */
+    function stagePickerHTML(n) {
+      return '<div class="ms-levels" style="margin-bottom:14px">' +
+        [1, 2, 3].map(function (k) {
+          return '<button type="button" class="ms-lv' + (n === k ? ' active' : '') +
+            '" data-stage="' + k + '">' + LB_STAGES[k].name + '</button>';
         }).join('') +
-        '</div>' +
-        '<div class="rz-sub" style="margin-top:16px">三关完全独立，每关测完即出该关判词。</div>' +
         '</div>';
+    }
 
+    function bindStagePicker(n) {
       el.querySelectorAll('[data-stage]').forEach(function (b) {
         b.onclick = function (e) {
           e.stopPropagation();
+          var k = Number(b.getAttribute('data-stage'));
+          if (k === n) return;
           if (window.SFX && window.SFX.tap) window.SFX.tap();
-          // 每次选关都清空三关数据，保证只统计这一关
-          S1 = []; S2 = { correct: 0, rts: [], traps: 0 }; S3 = { goRts: [], falseHit: 0, trials: [] };
-          stageIntro(Number(b.getAttribute('data-stage')));
+          stageIntro(k);
         };
       });
-      switchLbStage(1);
     }
 
     function stageIntro(n) {
@@ -1456,10 +1440,12 @@
       try { localStorage.setItem(LAST_STAGE_KEY, String(n)); } catch (e) {}
       var info = STAGE_INFO[n];
       el.innerHTML = hud('<b>反应速度擂台</b>', '第 ' + n + '/3 关') +
+        stagePickerHTML(n) +
         '<div class="rz-stage"><div class="rz-big" style="font-size:30px">' + info.t + '</div>' +
         '<div class="rz-sub">' + info.d + '</div>' +
-        '<button class="btn accent" id="rzgo" style="margin-top:26px;width:auto;padding:12px 38px">' + info.b + '</button>' +
-        '<button class="btn" id="rzBack" style="margin-top:12px;width:auto;padding:10px 28px">← 换一关</button></div>';
+        '<button class="btn accent" id="rzgo" style="margin-top:26px;width:auto;padding:12px 38px">' + info.b + '</button></div>';
+      bindStagePicker(n);
+      switchLbStage(n);
       var btnGo = el.querySelector('#rzgo');
       if (btnGo) {
         btnGo.onclick = function (e) {
@@ -1468,12 +1454,6 @@
           if (n === 1) run1(); else if (n === 2) run2(); else run3();
         };
       }
-      var btnBack = el.querySelector('#rzBack');
-      if (btnBack) btnBack.onclick = function (e) {
-        e.stopPropagation();
-        if (window.SFX && window.SFX.tap) window.SFX.tap();
-        lobby();
-      };
     }
 
     /* ---------- 第一关:简单反应 ---------- */
@@ -1690,14 +1670,16 @@
       // 切到本关对应的榜单（三关各排各的）
       switchLbStage(n);
       el.innerHTML = hud('<b>反应速度擂台</b>', '第 ' + n + '/3 关') +
+        stagePickerHTML(n) +
         '<div class="rz-stage">' + body +
         '<div class="rz-sub" style="margin-top:16px">第 ' + n + ' 关成绩已记入「' + LB_STAGES[n].name +
         '」榜（' + LB_STAGES[n].metric + ' ms）</div>' +
         '<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:20px">' +
         '<button class="btn accent" id="rzview" style="width:auto;padding:12px 30px">查看判词</button>' +
         '<button class="btn" id="rzagain" style="width:auto;padding:12px 26px">↻ 再测一次</button>' +
-        '<button class="btn" id="rzlobby" style="width:auto;padding:12px 26px">← 返回</button></div></div>' +
+        '<button class="btn" id="rzback2" style="width:auto;padding:12px 26px">← 返回</button></div></div>' +
         stageBarHTML();
+      bindStagePicker(n);
       bindStageBar();
       var btnView = el.querySelector('#rzview');
       if (btnView) btnView.addEventListener('click', function () {
@@ -1713,10 +1695,10 @@
         else S3 = { goRts: [], falseHit: 0, trials: [] };
         stageIntro(n);
       });
-      var btnLobby = el.querySelector('#rzlobby');
-      if (btnLobby) btnLobby.addEventListener('click', function () {
+      var btnBack2 = el.querySelector('#rzback2');
+      if (btnBack2) btnBack2.addEventListener('click', function () {
         if (window.SFX && window.SFX.tap) window.SFX.tap();
-        lobby();
+        stageIntro(n);       // 回本关开始页（带切换条，可换关）
       });
     }
 
@@ -1803,7 +1785,12 @@
       onFinish(res);
     }
 
-    lobby();
+    var startStage = 1;
+    try {
+      var remembered = Number(localStorage.getItem(LAST_STAGE_KEY) || 0);
+      if (remembered >= 1 && remembered <= 3) startStage = remembered;
+    } catch (e) {}
+    stageIntro(startStage);
     mountLbHost();
     return {
       destroy: function () {

@@ -1401,17 +1401,55 @@
     }
 
     /* ---------- 关卡说明 ---------- */
+    var STAGE_INFO = {
+      1: { t: '第一关 · 简单反应', d: '屏幕变红的一瞬间，立即点击！<br>共 5 次，取中位数。抢跑会重新测试。', b: '开始第一关' },
+      2: { t: '第二关 · 选择反应', d: '红点出现 → 按左半区；绿点出现 → 按右半区。<br>共 20 次，途中可能有规则交换。', b: '开始第二关' },
+      3: { t: '第三关 · 冲动控制', d: '绿点出现 → 越快点越好；<br>红点出现 → 忍住，什么都别碰。共 20 次。', b: '开始第三关' }
+    };
+
+    /* 总开始页：先选关卡，再开始——和其他游戏（数独/华容道）的
+       「选难度再开始」一致。也可以选「三关连测」跑完整流程。 */
+    function lobby() {
+      clearTimers();
+      el.innerHTML = hud('<b>反应速度擂台</b>', '三关各排各的榜') +
+        '<div class="rz-stage">' +
+        '<div class="rz-big" style="font-size:30px">选一关开始</div>' +
+        '<div class="rz-sub">三关考的东西不同，各有一张独立榜单：<br>' +
+        '① 简单反应中位数 · ② 选择反应平均时 · ③ Go 反应中位数<br>' +
+        '也可以一次跑完三关，拿到完整判词。</div>' +
+        '<div class="ms-levels" style="margin-top:20px;justify-content:center;flex-wrap:wrap">' +
+        [1, 2, 3].map(function (n) {
+          return '<button type="button" class="ms-lv" data-stage="' + n + '">' + n + ' · ' + LB_STAGES[n].name + '</button>';
+        }).join('') +
+        '</div>' +
+        '<button class="btn accent" id="rzFull" style="margin-top:18px;width:auto;padding:12px 34px">三关连测（完整判词）</button>' +
+        '</div>';
+
+      el.querySelectorAll('[data-stage]').forEach(function (b) {
+        b.onclick = function (e) {
+          e.stopPropagation();
+          if (window.SFX && window.SFX.tap) window.SFX.tap();
+          stageIntro(Number(b.getAttribute('data-stage')));
+        };
+      });
+      var full = el.querySelector('#rzFull');
+      if (full) full.onclick = function (e) {
+        e.stopPropagation();
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        S1 = []; S2 = { correct: 0, rts: [], traps: 0 }; S3 = { goRts: [], falseHit: 0, trials: [] };
+        stageIntro(1);
+      };
+      switchLbStage(1);
+    }
+
     function stageIntro(n) {
       clearTimers();
-      var info = {
-        1: { t: '第一关 · 简单反应', d: '屏幕变红的一瞬间，立即点击！<br>共 5 次，取中位数。抢跑会重新测试。', b: '开始第一关' },
-        2: { t: '第二关 · 选择反应', d: '红点出现 → 按左半区；绿点出现 → 按右半区。<br>共 20 次，途中可能有规则交换。', b: '开始第二关' },
-        3: { t: '第三关 · 冲动控制', d: '绿点出现 → 越快点越好；<br>红点出现 → 忍住，什么都别碰。共 20 次。', b: '开始第三关' }
-      }[n];
+      var info = STAGE_INFO[n];
       el.innerHTML = hud('<b>反应速度擂台</b>', '第 ' + n + '/3 关') +
         '<div class="rz-stage"><div class="rz-big" style="font-size:30px">' + info.t + '</div>' +
         '<div class="rz-sub">' + info.d + '</div>' +
-        '<button class="btn accent" id="rzgo" style="margin-top:26px;width:auto;padding:12px 38px">' + info.b + '</button></div>';
+        '<button class="btn accent" id="rzgo" style="margin-top:26px;width:auto;padding:12px 38px">' + info.b + '</button>' +
+        '<button class="btn" id="rzBack" style="margin-top:12px;width:auto;padding:10px 28px">← 换一关</button></div>';
       var btnGo = el.querySelector('#rzgo');
       if (btnGo) {
         btnGo.onclick = function (e) {
@@ -1420,6 +1458,12 @@
           if (n === 1) run1(); else if (n === 2) run2(); else run3();
         };
       }
+      var btnBack = el.querySelector('#rzBack');
+      if (btnBack) btnBack.onclick = function (e) {
+        e.stopPropagation();
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        lobby();
+      };
     }
 
     /* ---------- 第一关:简单反应 ---------- */
@@ -1639,8 +1683,10 @@
         '<div class="rz-stage">' + body +
         '<div class="rz-sub" style="margin-top:16px">第 ' + n + ' 关成绩已记入「' + LB_STAGES[n].name +
         '」榜（' + LB_STAGES[n].metric + ' ms）</div>' +
-        '<button class="btn accent" id="rznext" style="margin-top:20px;width:auto;padding:12px 38px">' +
-        (n < 3 ? '进入下一关' : '查看判词') + '</button></div>' +
+        '<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:20px">' +
+        '<button class="btn accent" id="rznext" style="width:auto;padding:12px 30px">' +
+        (n < 3 ? '进入下一关' : '查看判词') + '</button>' +
+        '<button class="btn" id="rzlobby" style="width:auto;padding:12px 26px">← 换一关</button></div></div>' +
         stageBarHTML();
       bindStageBar();
       var btnNext = el.querySelector('#rznext');
@@ -1650,6 +1696,11 @@
           if (n < 3) stageIntro(n + 1); else finish();
         });
       }
+      var btnLobby = el.querySelector('#rzlobby');
+      if (btnLobby) btnLobby.addEventListener('click', function () {
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        lobby();
+      });
     }
 
     /* 反应中位数 → 反应年龄（第一关提交时也要用） */
@@ -1699,7 +1750,7 @@
       });
     }
 
-    stageIntro(1);
+    lobby();
     mountLbHost();
     return {
       destroy: function () {

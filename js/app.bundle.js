@@ -1,4 +1,4 @@
-window.__APP_VERSION__ = '138';
+window.__APP_VERSION__ = '139';
 /* === js/core-drink.js === */
 /* 人格研究所 — 题库与档案数据 */
 'use strict';
@@ -7103,15 +7103,15 @@ if ('serviceWorker' in navigator) {
 
   /* ---------------- 本机战绩 ---------------- */
 
-  /* 本机战绩排序。默认同分时新的在前；游戏可通过 cfg.tieBreak 覆盖，
-     例如舒尔特要求「同秒数时错得少的在前，再相同则先达到的在前」。 */
+  /* 本机战绩排序。主指标相同时先达到的在前（与服务端一致）；
+     游戏可通过 cfg.tieBreak 插入额外的同分规则（如舒尔特的错误数）。 */
   function compareRuns(a, b, higher, tieBreak) {
     if (a.score !== b.score) return higher ? b.score - a.score : a.score - b.score;
     if (typeof tieBreak === 'function') {
       var t = tieBreak(a, b);
       if (t) return t;
     }
-    return (b.at || 0) - (a.at || 0);
+    return (a.at || 0) - (b.at || 0);
   }
 
   function loadLocal(storeKey) {

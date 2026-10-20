@@ -1816,8 +1816,7 @@
         return [
           '<span class="lb-score">' + (r.score || 0) + '<small> 关</small></span>',
           '<span class="lb-tile">' + (r.gridN || 2) + '×' + (r.gridN || 2) + '</span>',
-          '<span class="lb-meta">' + (r.left || 0) + ' 命</span>',
-          '<span class="lb-date">' + window.AppLbPanel.fmtDay(r.at) + '</span>'
+          '<span class="lb-meta">' + (r.left || 0) + ' 命</span>'
         ];
       },
       globalCols: function (r) {
@@ -1825,8 +1824,7 @@
           '<span class="lb-ava">' + window.AppLbPanel.esc(r.avatar || '🙂') + '</span>',
           '<span class="lb-name">' + window.AppLbPanel.esc(r.name || '匿名玩家') +
             (r.isMe ? '<i class="lb-me">我</i>' : '') + '</span>',
-          '<span class="lb-score">' + (r.score || 0) + '<small> 关</small></span>',
-          '<span class="lb-tile">' + (r.at ? window.AppLbPanel.fmtDay(r.at) : '--') + '</span>'
+          '<span class="lb-score">' + (r.score || 0) + '<small> 关</small></span>'
         ];
       }
     }) : null;
@@ -2074,8 +2072,7 @@
         return [
           '<span class="lb-score">' + (r.score || 0) + '</span>',
           '<span class="lb-tile">' + (r.maxTile || 0) + '</span>',
-          '<span class="lb-meta">' + (r.moves || 0) + ' 步</span>',
-          '<span class="lb-date">' + window.AppLbPanel.fmtDay(r.at) + '</span>'
+          '<span class="lb-meta">' + (r.moves || 0) + ' 步</span>'
         ];
       },
       // 全服榜：头像 / 昵称 / 分数 / 最高方块
@@ -2554,8 +2551,7 @@
         var mines = r.mines || (LEVELS[r.lv] ? LEVELS[r.lv].mines : 0);
         return [
           '<span class="lb-score">' + (r.sec || 0) + '<small> 秒</small></span>',
-          '<span class="lb-meta">' + mines + ' 雷</span>',
-          '<span class="lb-date">' + window.AppLbPanel.fmtDay(r.at) + '</span>'
+          '<span class="lb-meta">' + mines + ' 雷</span>'
         ];
       },
       globalCols: function (r) {
@@ -3088,8 +3084,7 @@
         return [
           '<span class="lb-score">' + (r.sec || 0) + '<small> 秒</small></span>',
           '<span class="lb-tile">' + lvLabel(r.lv) + '</span>',
-          '<span class="lb-meta">' + (r.err || 0) + ' 次错</span>',
-          '<span class="lb-date">' + window.AppLbPanel.fmtDay(r.at) + '</span>'
+          '<span class="lb-meta">' + (r.err || 0) + ' 次错</span>'
         ];
       },
       globalCols: function (r) {
@@ -3419,8 +3414,7 @@
         return [
           '<span class="lb-score">' + (r.score || 0) + '</span>',
           '<span class="lb-tile">' + (r.hits || 0) + ' 中</span>',
-          '<span class="lb-meta">' + (r.acc || 0) + '%</span>',
-          '<span class="lb-date">' + window.AppLbPanel.fmtDay(r.at) + '</span>'
+          '<span class="lb-meta">' + (r.acc || 0) + '%</span>'
         ];
       },
       globalCols: function (r) {
@@ -3690,8 +3684,7 @@
       localCols: function (r) {
         return [
           '<span class="lb-score">' + (r.score || 0) + '<small> 错</small></span>',
-          '<span class="lb-meta">' + lvLabel(r.lv) + '</span>',
-          '<span class="lb-date">' + window.AppLbPanel.fmtDay(r.at) + '</span>'
+          '<span class="lb-meta">' + lvLabel(r.lv) + '</span>'
         ];
       },
       globalCols: function (r) {
@@ -4046,8 +4039,7 @@
       localCols: function (r) {
         return [
           '<span class="lb-score">' + (r.score || 0) + '<small> 步</small></span>',
-          '<span class="lb-meta">' + lvLabel(r.lv) + '</span>',
-          '<span class="lb-date">' + window.AppLbPanel.fmtDay(r.at) + '</span>'
+          '<span class="lb-meta">' + lvLabel(r.lv) + '</span>'
         ];
       },
       globalCols: function (r) {
@@ -4319,8 +4311,7 @@
         return [
           '<span class="lb-score">' + (r.score || 0) + '</span>',
           '<span class="lb-tile">' + (r.lines || 0) + ' 行</span>',
-          '<span class="lb-meta">Lv.' + (r.level || 1) + '</span>',
-          '<span class="lb-date">' + window.AppLbPanel.fmtDay(r.at) + '</span>'
+          '<span class="lb-meta">Lv.' + (r.level || 1) + '</span>'
         ];
       },
       globalCols: function (r) {

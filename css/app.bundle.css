@@ -7001,18 +7001,22 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .rz-half.hit.ng {
        分给各列，分数/方块/步数挤在一起、日期被推到最右，看起来像没对齐。
        这里给每列固定轨道，左对齐，右端留出呼吸位。 */
     #mod-manual .lb-row {
-    display: grid;
-    /* 名次 / 主指标 / 次指标 / 说明 / 日期。
-       三个游戏共用这套轨道：2048 是「分数·方块·步数」，
-       反应是「毫秒·准度·反应年龄」，色彩是「关数·格子·剩余命」。 */
-    grid-template-columns: 24px 58px 46px 1fr auto;
+    display: flex;
     align-items: center;
-    column-gap: 8px;
+    gap: 8px;
     padding: 8px 12px;
     font-size: 12px;
     color: #C9C3B8;
     border-bottom: 1px solid rgba(255, 255, 255, 0.06);
     }
+    /* 各榜的列数不一样（有的 2 列、有的 4 列），
+       不能写死 grid 轨道。名次固定宽，指标左对齐，说明列吃掉剩余空间。 */
+    #mod-manual .lb-row > .lb-rank { flex: 0 0 24px; }
+    #mod-manual .lb-row > .lb-score { flex: 0 0 auto; min-width: 56px; }
+    #mod-manual .lb-row > .lb-tile { flex: 0 0 auto; min-width: 44px; }
+    #mod-manual .lb-row > .lb-meta { flex: 1 1 auto; }
+    #mod-manual .lb-row > .lb-ava { flex: 0 0 22px; }
+    #mod-manual .lb-row > .lb-name { flex: 1 1 auto; min-width: 0; }
     #mod-manual .lb-row:last-child {
     border-bottom: none;
     }
@@ -7749,11 +7753,9 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .stage .ms-reset 
 }
 #mod-manual .lb-edit:hover { border-color: var(--mod-ac); }
 
-/* 全服榜行：名次 / 头像 / 昵称 / 分数 / 最大方块。
-   列数和「我的战绩」不同，单独覆盖轨道。 */
-#mod-manual .lb-row.is-global {
-  grid-template-columns: 24px 24px minmax(0, 1fr) 58px 46px;
-}
+/* 全服榜行：名次 / 头像 / 昵称 / 分数 /（可选的次指标）。
+   列数不固定（有的榜 4 列、有的 5 列），走上面的 flex 规则即可。 */
+#mod-manual .lb-row.is-global > .lb-rank { flex: 0 0 24px; }
 #mod-manual .lb-ava {
   flex: none;
   width: 22px;
@@ -7803,13 +7805,11 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .stage .ms-reset 
 /* 全服榜在窄屏也要放得下：昵称让位，数字不换行 */
 @media (max-width: 520px) {
   #mod-manual .lb-row {
-    column-gap: 6px;
-    grid-template-columns: 20px 50px 40px 1fr auto;
+    gap: 6px;
     padding: 8px 10px;
   }
-  #mod-manual .lb-row.is-global {
-    grid-template-columns: 20px 22px minmax(0, 1fr) 50px 40px;
-  }
+  #mod-manual .lb-row > .lb-rank { flex: 0 0 20px; }
+  #mod-manual .lb-row > .lb-score { min-width: 46px; }
   #mod-manual .lb-name { font-size: 11.5px; }
   #mod-manual .lb-score { font-size: 12px; }
   #mod-manual .lb-tile { font-size: 10px; }

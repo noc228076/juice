@@ -4943,11 +4943,13 @@
       var cell = canvas.width / COLS;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      // 棋盘格底纹
+      // 棋盘格底纹。浅色主题下白底白格看不见，改用深色叠加。
+      var light = document.documentElement.getAttribute('data-theme') === 'light';
+      var gridColor = light ? 'rgba(90,72,42,0.055)' : 'rgba(255,255,255,0.025)';
       for (var y = 0; y < ROWS; y++) {
         for (var x = 0; x < COLS; x++) {
           if ((x + y) % 2 === 0) {
-            ctx.fillStyle = 'rgba(255,255,255,0.025)';
+            ctx.fillStyle = gridColor;
             ctx.fillRect(x * cell, y * cell, cell, cell);
           }
         }
@@ -4968,36 +4970,82 @@
         ctx.restore();
       }
 
-      // 蛇身：圆角方块，头亮尾暗
-      for (var i = snake.length - 1; i >= 0; i--) {
-        var seg = snake[i];
-        var t = i / Math.max(1, snake.length - 1);   // 0 = 头
-        var pad = Math.max(1, cell * 0.08);
-        var size = cell - pad * 2;
-        var radius = Math.max(2, cell * 0.22);
-        var color = i === 0
-          ? '#A78BFA'
-          : 'rgba(139,92,246,' + (0.95 - t * 0.5).toFixed(3) + ')';
-        roundRect(ctx, seg.x * cell + pad, seg.y * cell + pad, size, size, radius, color);
-        // 头部加一点高光
-        if (i === 0) {
-          ctx.fillStyle = 'rgba(255,255,255,0.28)';
-          roundRect(ctx, seg.x * cell + pad + size * 0.18, seg.y * cell + pad + size * 0.16,
-            size * 0.3, size * 0.22, radius * 0.5, 'rgba(255,255,255,0.28)');
+      /* 蛇身：用连续路径画一条粗细渐变的「管子」，
+         比逐格圆角方块更能看出走向；头部单独画成带眼睛的圆。
+         这样玩家一眼能分清头在哪、身体朝哪边拐。 */
+      if (snake.length) {
+        // 1) 身体：从头到尾逐段画圆，半径递减，用同色叠加形成连续感
+        var bodyRGB = light ? '124,58,237' : '139,92,246';   // 浅色主题用更深的紫
+        for (var i = snake.length - 1; i >= 1; i--) {
+          var seg = snake[i];
+          var t = i / Math.max(1, snake.length - 1);
+          var cx = seg.x * cell + cell / 2;
+          var cy = seg.y * cell + cell / 2;
+          var r = cell * (0.46 - t * 0.16);          // 头粗尾细
+          ctx.beginPath();
+          ctx.arc(cx, cy, r, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(' + bodyRGB + ',' + (0.95 - t * 0.42).toFixed(3) + ')';
+          ctx.fill();
         }
-      }
-    }
+        // 2) 连接段：在相邻两节之间补一个矩形，填掉圆之间的缝
+        for (var j = 0; j < snake.length - 1; j++) {
+          var a1 = snake[j], a2 = snake[j + 1];
+          var x1 = a1.x * cell + cell / 2, y1 = a1.y * cell + cell / 2;
+          var x2 = a2.x * cell + cell / 2, y2 = a2.y * cell + cell / 2;
+          var t2 = j / Math.max(1, snake.length - 1);
+          var w = cell * (0.92 - t2 * 0.32);
+          ctx.strokeStyle = 'rgba(' + bodyRGB + ',' + (0.95 - t2 * 0.42).toFixed(3) + ')';
+          ctx.lineWidth = w;
+          ctx.lineCap = 'round';
+          ctx.beginPath();
+          ctx.moveTo(x1, y1);
+          ctx.lineTo(x2, y2);
+          ctx.stroke();
+        }
 
-    function roundRect(ctx, x, y, w, h, r, fill) {
-      ctx.beginPath();
-      ctx.moveTo(x + r, y);
-      ctx.arcTo(x + w, y, x + w, y + h, r);
-      ctx.arcTo(x + w, y + h, x, y + h, r);
-      ctx.arcTo(x, y + h, x, y, r);
-      ctx.arcTo(x, y, x + w, y, r);
-      ctx.closePath();
-      ctx.fillStyle = fill;
-      ctx.fill();
+        // 3) 头：更大的圆 + 两只眼睛（朝行进方向），明显区别于身体
+        var head = snake[0];
+        var hx = head.x * cell + cell / 2;
+        var hy = head.y * cell + cell / 2;
+        var hr = cell * 0.5;
+
+        ctx.save();
+        ctx.shadowColor = 'rgba(167,139,250,0.7)';
+        ctx.shadowBlur = cell * 0.6;
+        ctx.beginPath();
+        ctx.arc(hx, hy, hr, 0, Math.PI * 2);
+        ctx.fillStyle = light ? '#8B5CF6' : '#A78BFA';
+        ctx.fill();
+        ctx.restore();
+
+        // 眼睛：垂直于行进方向各一只，眼白 + 深色瞳孔
+        var ex = -dir.y, ey = dir.x;               // 垂直方向
+        var eyeOff = cell * 0.19;
+        var forward = cell * 0.14;
+        var eyeR = cell * 0.11;
+        var pupR = cell * 0.055;
+        for (var e = -1; e <= 1; e += 2) {
+          var ox = hx + ex * eyeOff * e + dir.x * forward;
+          var oy = hy + ey * eyeOff * e + dir.y * forward;
+          ctx.beginPath();
+          ctx.arc(ox, oy, eyeR, 0, Math.PI * 2);
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(ox + dir.x * eyeR * 0.35, oy + dir.y * eyeR * 0.35, pupR, 0, Math.PI * 2);
+          ctx.fillStyle = '#1E1B26';
+          ctx.fill();
+        }
+
+        // 4) 头部朝向的小触角（一条短粗线，强化方向感）
+        ctx.strokeStyle = 'rgba(196,181,253,0.9)';
+        ctx.lineWidth = cell * 0.10;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(hx + dir.x * hr * 0.55, hy + dir.y * hr * 0.55);
+        ctx.lineTo(hx + dir.x * hr * 1.15, hy + dir.y * hr * 1.15);
+        ctx.stroke();
+      }
     }
 
     function updateHud() {

@@ -2797,3 +2797,68 @@ html[data-theme="light"] #mod-manual .rz-lb-stage.active {
   border-color: #C43C33;
   color: #FFF6E8;
 }
+
+
+/* ============ 14 贪吃蛇 (SNAKE) ============ */
+/* 画风与扫雷 / 2048 同族：深色渐变棋盘 + 圆角分节蛇身 + 发光食物 */
+#mod-manual .snake-layout {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  align-items: flex-start;
+}
+#mod-manual .snake-stage-wrap {
+  position: relative;
+  flex: 0 0 auto;
+}
+#mod-manual .snake-canvas {
+  display: block;
+  background: linear-gradient(170deg, #24202F 0%, #1A1722 100%);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+  border-radius: 14px;
+  max-width: 100%;
+  height: auto;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.32);
+}
+#mod-manual .snake-pause-overlay {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border-radius: 14px;
+  background: rgba(10, 8, 14, 0.86);
+  color: #F2EEE3;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.9;
+  z-index: 5;
+}
+#mod-manual .snake-pause-overlay.is-active { display: flex; }
+#mod-manual .snake-pause-overlay small {
+  font-size: 13px;
+  font-weight: 400;
+  color: #9A948A;
+}
+#mod-manual .snake-side {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 120px;
+}
+@media (max-width: 640px) {
+  #mod-manual .snake-canvas { width: 320px; height: 320px; }
+  #mod-manual .snake-side { width: 96px; }
+}
+
+/* 浅色主题：米白棋盘 + 深紫蛇身 + 琥珀食物 */
+html[data-theme="light"] #mod-manual .snake-canvas {
+  background: linear-gradient(170deg, #FFFDF7 0%, #F7F2E7 100%);
+  border-color: #D8CFB9;
+  box-shadow: 0 12px 32px rgba(90, 72, 42, 0.10);
+}
+html[data-theme="light"] #mod-manual .snake-pause-overlay {
+  background: rgba(250, 247, 238, 0.92);
+  color: #2D2721;
+}

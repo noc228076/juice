@@ -46,6 +46,10 @@ const GAMES = {
   slide_hard: { z: 'jslide_h:z', p: 'jslide_h:p', higher: false },
   // 俄罗斯方块：单局总分，越高越好
   tetris: { z: 'jtetris:z', p: 'jtetris:p', higher: true },
+  // 贪吃蛇按速度分榜：慢速/标准/快速的分数不可比
+  snake_slow: { z: 'jsnake_s:z', p: 'jsnake_s:p', higher: true },
+  snake_normal: { z: 'jsnake_n:z', p: 'jsnake_n:p', higher: true },
+  snake_fast: { z: 'jsnake_f:z', p: 'jsnake_f:p', higher: true },
   // 旧版三档共用一个榜。保留只为兼容尚未刷新的客户端和后台删除接口，
   // 前端已经不再写这里。
   minesweeper: { z: 'jmine:z', p: 'jmine:p', higher: false, legacy: true }
@@ -74,6 +78,12 @@ const SLIDE_LEVELS = {
   slide_easy: 'easy',
   slide_medium: 'medium',
   slide_hard: 'hard'
+};
+
+const SNAKE_LEVELS = {
+  snake_slow: 'slow',
+  snake_normal: 'normal',
+  snake_fast: 'fast'
 };
 
 const BOARD_CAP = 1000;          // 每个榜单只保留前 1000 名
@@ -341,6 +351,20 @@ function parseRun(game, body) {
     if (lines == null) return { error: '行数不合法' };
     if (level == null) return { error: '等级不合法' };
     return { score, extra: { lines, level } };
+  }
+
+  if (SNAKE_LEVELS[game]) {
+    // 分数 = 吃到食物数 × 10；长度 = 蛇身节数（初始 3）。
+    const score = intIn(body.score, 0, 99999);
+    const length = intIn(body.length, 3, 400);
+    const lv = String(body.lv || '');
+    if (score == null) return { error: '分数不合法' };
+    if (length == null) return { error: '蛇身长度不合法' };
+    if (SNAKE_LEVELS[game] !== lv) return { error: '成绩与难度不匹配' };
+    // 分数必须是 10 的倍数（每个食物 +10），且与长度自洽
+    if (score % 10 !== 0) return { error: '分数与食物数不匹配' };
+    if (score / 10 !== length - 3) return { error: '分数与蛇身长度不匹配' };
+    return { score, extra: { length, lv } };
   }
 
   return { error: '未知游戏' };

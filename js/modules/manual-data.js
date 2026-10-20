@@ -718,6 +718,30 @@
       ]
     },
 
+    /* ============ 14 贪吃蛇 ============
+       经典吃食物长大，撞墙或撞自己结束。空格随时暂停，
+       进度自动存档。三档速度各排各的榜（分数越高越好）。 */
+    snake: {
+      id: 'snake', num: '14', mode: 'interactive', engine: 'snake',
+      title: '贪吃蛇', en: 'SNAKE',
+      tagline: '吃食物、变长、别撞墙——空格随时暂停，进度自动存档',
+      icon: 'spiral', color: '#22C55E',
+      meta: '三档速度 · 自动存档',
+      intro: [
+        '方向键或 WASD 控制蛇的走向，吃到食物身体变长、分数增加。',
+        '撞墙或撞到自己就结束；空格或按钮随时暂停。',
+        '每吃 5 个食物速度提升一档，越来越快。',
+        '慢速 / 标准 / 快速三档，各排各的榜。进度自动存档，退出随时继续。'
+      ],
+      disclaimer: '贪吃蛇的分数和反应、预判都有关，但更看手熟——多玩几局成绩自然会涨。仅供参考。',
+      certs: [
+        { min: 300, icon: 'crown', name: '蛇王', text: '整块棋盘都被你占满了——这已经不是玩游戏，是行为艺术。' },
+        { min: 180, icon: 'gem', name: '老练猎手', text: '路线规划得很稳，知道什么时候该绕、什么时候该吃。' },
+        { min: 90, icon: 'bolt', name: '渐入佳境', text: '已经能稳住节奏了，差的是长蛇之后的空间管理。' },
+        { min: 0, icon: 'smile', name: '新手上路', text: '撞墙不可怕，贪吃蛇本来就是撞出来的经验。' }
+      ]
+    },
+
     /* ============ 10 定位射击靶场 ============
        FPS 式定位训练：场上恒定三颗球，打掉补新，点空扣分。
        30 秒限时，按总分进全服排行榜。 */
@@ -743,5 +767,5 @@
     }
   };
   /* 首页章节顺序 */
-  window.SM_ORDER = ['social-battery', 'procrastination', 'slacking', 'night-owl', 'reaction', 'color', 'game-2048', 'minesweeper', 'schulte', 'aim', 'sudoku', 'slide', 'tetris'];
+  window.SM_ORDER = ['social-battery', 'procrastination', 'slacking', 'night-owl', 'reaction', 'color', 'game-2048', 'minesweeper', 'schulte', 'aim', 'sudoku', 'slide', 'tetris', 'snake'];
 })();

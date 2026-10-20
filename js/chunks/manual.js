@@ -719,6 +719,30 @@
       ]
     },
 
+    /* ============ 14 贪吃蛇 ============
+       经典吃食物长大，撞墙或撞自己结束。空格随时暂停，
+       进度自动存档。三档速度各排各的榜（分数越高越好）。 */
+    snake: {
+      id: 'snake', num: '14', mode: 'interactive', engine: 'snake',
+      title: '贪吃蛇', en: 'SNAKE',
+      tagline: '吃食物、变长、别撞墙——空格随时暂停，进度自动存档',
+      icon: 'spiral', color: '#22C55E',
+      meta: '三档速度 · 自动存档',
+      intro: [
+        '方向键或 WASD 控制蛇的走向，吃到食物身体变长、分数增加。',
+        '撞墙或撞到自己就结束；空格或按钮随时暂停。',
+        '每吃 5 个食物速度提升一档，越来越快。',
+        '慢速 / 标准 / 快速三档，各排各的榜。进度自动存档，退出随时继续。'
+      ],
+      disclaimer: '贪吃蛇的分数和反应、预判都有关，但更看手熟——多玩几局成绩自然会涨。仅供参考。',
+      certs: [
+        { min: 300, icon: 'crown', name: '蛇王', text: '整块棋盘都被你占满了——这已经不是玩游戏，是行为艺术。' },
+        { min: 180, icon: 'gem', name: '老练猎手', text: '路线规划得很稳，知道什么时候该绕、什么时候该吃。' },
+        { min: 90, icon: 'bolt', name: '渐入佳境', text: '已经能稳住节奏了，差的是长蛇之后的空间管理。' },
+        { min: 0, icon: 'smile', name: '新手上路', text: '撞墙不可怕，贪吃蛇本来就是撞出来的经验。' }
+      ]
+    },
+
     /* ============ 10 定位射击靶场 ============
        FPS 式定位训练：场上恒定三颗球，打掉补新，点空扣分。
        30 秒限时，按总分进全服排行榜。 */
@@ -744,7 +768,7 @@
     }
   };
   /* 首页章节顺序 */
-  window.SM_ORDER = ['social-battery', 'procrastination', 'slacking', 'night-owl', 'reaction', 'color', 'game-2048', 'minesweeper', 'schulte', 'aim', 'sudoku', 'slide', 'tetris'];
+  window.SM_ORDER = ['social-battery', 'procrastination', 'slacking', 'night-owl', 'reaction', 'color', 'game-2048', 'minesweeper', 'schulte', 'aim', 'sudoku', 'slide', 'tetris', 'snake'];
 })();
 
 ;
@@ -4739,6 +4763,430 @@
       }
     };
   };
+
+  /* ==================================================================
+   * 14 贪吃蛇 (SNAKE)
+   * 20×20 网格，吃食物变长。撞墙 / 撞自己结束。
+   * 空格或按钮暂停，进度自动存档。三档速度各排各的榜（分数越高越好）。
+   * 计分：每个食物 +10；每吃 5 个提速一档（下限 90ms）。
+   * ================================================================== */
+  window.startSnake = function (root, onFinish) {
+    var el = makeRoot(root);
+    var destroyed = false, finished = false;
+
+    var COLS = 20, ROWS = 20;
+    var SAVE_KEY = 'sm_snake_state';
+    var FOOD_SCORE = 10;
+
+    /* 三档基础速度（毫秒/格）：越慢越容易上手 */
+    var LEVELS = {
+      slow:   { key: 'slow',   name: '慢速', tick: 260 },
+      normal: { key: 'normal', name: '标准', tick: 200 },
+      fast:   { key: 'fast',   name: '快速', tick: 150 }
+    };
+    var lv = LEVELS.normal;
+
+    var snake = [];        // [{x,y}]，头在 [0]
+    var dir = { x: 1, y: 0 };
+    var nextDir = { x: 1, y: 0 };
+    var food = { x: 0, y: 0 };
+    var score = 0, eaten = 0;
+    var tickMs = lv.tick;
+    var paused = false, running = false, gameOver = false;
+    var timerId = 0;
+    var lastTick = 0;
+
+    var lbPanel = window.AppLbPanel ? window.AppLbPanel.create({
+      game: 'snake_normal',
+      storeKey: 'sm_snake_runs_normal',
+      higher: true,
+      idPrefix: 'lbsnake',
+      formatScore: function (v) { return v + ' 分'; },
+      describe: function (run) {
+        return { score: run.score, extra: { length: run.length, lv: run.lv } };
+      },
+      localCols: function (r) {
+        return [
+          '<span class="lb-score">' + (r.score || 0) + '</span>',
+          '<span class="lb-tile">' + (r.length || 3) + ' 节</span>',
+          '<span class="lb-meta">' + lvLabelSnake(r.lv) + '</span>'
+        ];
+      },
+      globalCols: function (r) {
+        return [
+          '<span class="lb-ava">' + window.AppLbPanel.esc(r.avatar || '🙂') + '</span>',
+          '<span class="lb-name">' + window.AppLbPanel.esc(r.name || '匿名玩家') +
+            (r.isMe ? '<i class="lb-me">我</i>' : '') + '</span>',
+          '<span class="lb-score">' + (r.score || 0) + '</span>',
+          '<span class="lb-tile">' + ((r.extra && r.extra.length) || 3) + ' 节</span>'
+        ];
+      }
+    }) : null;
+
+    function lvLabelSnake(k) {
+      return k === 'fast' ? '快速' : k === 'slow' ? '慢速' : '标准';
+    }
+
+    function mountLbHost() {
+      mountLbHostFor(lbPanel, root, el);
+    }
+
+    function syncLbLevel() {
+      if (lbPanel) lbPanel.setGame('snake_' + lv.key, 'sm_snake_runs_' + lv.key);
+    }
+
+    /* ---------- 存档 ---------- */
+    function saveState() {
+      if (gameOver || finished) return;
+      try {
+        localStorage.setItem(SAVE_KEY, JSON.stringify({
+          lv: lv.key, snake: snake, dir: dir, food: food,
+          score: score, eaten: eaten, tickMs: tickMs
+        }));
+      } catch (e) {}
+    }
+    function loadState() {
+      try {
+        var s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
+        var ok = s && Array.isArray(s.snake) && s.snake.length >= 3 &&
+          s.snake.every(function (c) { return c && typeof c.x === 'number' && typeof c.y === 'number'; }) &&
+          s.food && typeof s.food.x === 'number' && LEVELS[s.lv];
+        if (s && ok) return s;
+      } catch (e) {}
+      return null;
+    }
+    function clearState() {
+      try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
+    }
+
+    /* ---------- 逻辑 ---------- */
+    function occupied(x, y) {
+      for (var i = 0; i < snake.length; i++) {
+        if (snake[i].x === x && snake[i].y === y) return true;
+      }
+      return false;
+    }
+
+    function placeFood() {
+      var free = [];
+      for (var y = 0; y < ROWS; y++) {
+        for (var x = 0; x < COLS; x++) {
+          if (!occupied(x, y)) free.push({ x: x, y: y });
+        }
+      }
+      if (!free.length) { food = null; return; }
+      food = free[Math.floor(Math.random() * free.length)];
+    }
+
+    function resetGame() {
+      var cx = Math.floor(COLS / 2), cy = Math.floor(ROWS / 2);
+      snake = [{ x: cx, y: cy }, { x: cx - 1, y: cy }, { x: cx - 2, y: cy }];
+      dir = { x: 1, y: 0 };
+      nextDir = { x: 1, y: 0 };
+      score = 0; eaten = 0; tickMs = lv.tick;
+      gameOver = false; paused = false;
+      placeFood();
+      saveState();
+    }
+
+    function step() {
+      if (!running || paused || gameOver || destroyed) return;
+
+      // 应用方向（禁止 180 度掉头）
+      if (nextDir.x !== -dir.x || nextDir.y !== -dir.y) dir = nextDir;
+
+      var head = snake[0];
+      var nx = head.x + dir.x, ny = head.y + dir.y;
+
+      // 撞墙
+      if (nx < 0 || ny < 0 || nx >= COLS || ny >= ROWS) { endGame(); return; }
+      // 撞自己（尾巴即将移开的那一格不算）
+      var willGrow = food && nx === food.x && ny === food.y;
+      var limit = willGrow ? snake.length : snake.length - 1;
+      for (var i = 0; i < limit; i++) {
+        if (snake[i].x === nx && snake[i].y === ny) { endGame(); return; }
+      }
+
+      snake.unshift({ x: nx, y: ny });
+      if (willGrow) {
+        score += FOOD_SCORE;
+        eaten++;
+        // 每吃 5 个提速一档，下限 90ms
+        if (eaten % 5 === 0) tickMs = Math.max(90, tickMs - 20);
+        if (window.SFX && window.SFX.select) window.SFX.select();
+        placeFood();
+        if (!food) { endGame(); return; }   // 满屏也算通关
+      } else {
+        snake.pop();
+      }
+      saveState();
+      draw();
+      updateHud();
+    }
+
+    function scheduleTick() {
+      if (timerId) clearInterval(timerId);
+      if (!running || paused || gameOver || destroyed) return;
+      timerId = setInterval(step, tickMs);
+    }
+
+    function restartTimer() {
+      // 提速后重建 interval，让新速度立即生效
+      scheduleTick();
+    }
+
+    /* ---------- 渲染 ---------- */
+    function draw() {
+      var canvas = el.querySelector('#snakeCanvas');
+      if (!canvas) return;
+      var ctx = canvas.getContext('2d');
+      var cell = canvas.width / COLS;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // 棋盘格底纹
+      for (var y = 0; y < ROWS; y++) {
+        for (var x = 0; x < COLS; x++) {
+          if ((x + y) % 2 === 0) {
+            ctx.fillStyle = 'rgba(255,255,255,0.025)';
+            ctx.fillRect(x * cell, y * cell, cell, cell);
+          }
+        }
+      }
+
+      // 食物：圆形 + 外发光
+      if (food) {
+        var fx = food.x * cell + cell / 2;
+        var fy = food.y * cell + cell / 2;
+        var fr = cell * 0.34;
+        ctx.save();
+        ctx.shadowColor = 'rgba(245,158,11,0.8)';
+        ctx.shadowBlur = cell * 0.8;
+        ctx.fillStyle = '#F59E0B';
+        ctx.beginPath();
+        ctx.arc(fx, fy, fr, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // 蛇身：圆角方块，头亮尾暗
+      for (var i = snake.length - 1; i >= 0; i--) {
+        var seg = snake[i];
+        var t = i / Math.max(1, snake.length - 1);   // 0 = 头
+        var pad = Math.max(1, cell * 0.08);
+        var size = cell - pad * 2;
+        var radius = Math.max(2, cell * 0.22);
+        var color = i === 0
+          ? '#A78BFA'
+          : 'rgba(139,92,246,' + (0.95 - t * 0.5).toFixed(3) + ')';
+        roundRect(ctx, seg.x * cell + pad, seg.y * cell + pad, size, size, radius, color);
+        // 头部加一点高光
+        if (i === 0) {
+          ctx.fillStyle = 'rgba(255,255,255,0.28)';
+          roundRect(ctx, seg.x * cell + pad + size * 0.18, seg.y * cell + pad + size * 0.16,
+            size * 0.3, size * 0.22, radius * 0.5, 'rgba(255,255,255,0.28)');
+        }
+      }
+    }
+
+    function roundRect(ctx, x, y, w, h, r, fill) {
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+      ctx.fillStyle = fill;
+      ctx.fill();
+    }
+
+    function updateHud() {
+      var s = el.querySelector('#snakeScore'); if (s) s.textContent = score;
+      var l = el.querySelector('#snakeLen'); if (l) l.textContent = snake.length;
+      var sp = el.querySelector('#snakeSpeed'); if (sp) sp.textContent = tickMs + 'ms';
+    }
+
+    /* ---------- 暂停 ---------- */
+    function setPaused(p) {
+      paused = p;
+      var btn = el.querySelector('#snakePause');
+      if (btn) btn.textContent = p ? '▶ 继续' : '⏸ 暂停';
+      var ov = el.querySelector('#snakePauseOverlay');
+      if (ov) ov.classList.toggle('is-active', p);
+      if (p) { if (timerId) { clearInterval(timerId); timerId = 0; } saveState(); }
+      else scheduleTick();
+    }
+    function togglePause() {
+      if (!running || gameOver || finished) return;
+      if (window.SFX && window.SFX.tap) window.SFX.tap();
+      setPaused(!paused);
+    }
+
+    function onKeyDown(e) {
+      if (destroyed || !running) return;
+      var scr = document.querySelector('.sm-screen.active');
+      if (!scr || scr.id !== 'scr-sm-snake') return;
+      var k = e.key;
+      if (k === ' ' || k === 'p' || k === 'P') { e.preventDefault(); togglePause(); return; }
+      if (paused || gameOver || finished) return;
+      if (k === 'ArrowUp' || k === 'w' || k === 'W') { e.preventDefault(); nextDir = { x: 0, y: -1 }; }
+      else if (k === 'ArrowDown' || k === 's' || k === 'S') { e.preventDefault(); nextDir = { x: 0, y: 1 }; }
+      else if (k === 'ArrowLeft' || k === 'a' || k === 'A') { e.preventDefault(); nextDir = { x: -1, y: 0 }; }
+      else if (k === 'ArrowRight' || k === 'd' || k === 'D') { e.preventDefault(); nextDir = { x: 1, y: 0 }; }
+    }
+
+    /* ---------- 开始页 ---------- */
+    function intro() {
+      var saved = loadState();
+      var savedLv = saved ? LEVELS[saved.lv] : null;
+      el.innerHTML = hud('<b>贪吃蛇</b>', '三档速度各排各的榜') +
+        '<div class="rz-stage">' +
+        '<div class="rz-big" style="font-size:30px">贪吃蛇</div>' +
+        '<div class="rz-sub">方向键 / WASD 控制 · 空格暂停<br>' +
+        '吃食物变长加分，撞墙或撞自己结束。进度自动存档。</div>' +
+        '<div class="ms-levels" style="margin-top:20px;justify-content:center">' +
+        ['slow', 'normal', 'fast'].map(function (k) {
+          return '<button type="button" class="ms-lv' + (lv.key === k ? ' active' : '') +
+            '" data-lv="' + k + '">' + LEVELS[k].name + '</button>';
+        }).join('') +
+        '</div>' +
+        (saved ? '<button class="btn accent" id="snakeResume" style="margin-top:18px;width:auto;padding:12px 34px">继续上局（' +
+          saved.score + ' 分 · ' + saved.snake.length + ' 节）</button>' : '') +
+        '<button class="btn' + (saved ? '' : ' accent') + '" id="snakeNew" style="margin-top:12px;width:auto;padding:12px 34px">新开一局</button>' +
+        '</div>';
+
+      el.querySelectorAll('[data-lv]').forEach(function (b) {
+        b.onclick = function () {
+          var k = b.getAttribute('data-lv');
+          if (k === lv.key) return;
+          if (window.SFX && window.SFX.tap) window.SFX.tap();
+          lv = LEVELS[k];
+          syncLbLevel();
+          intro();
+        };
+      });
+      var resumeBtn = el.querySelector('#snakeResume');
+      if (resumeBtn) resumeBtn.onclick = function (e) {
+        e.stopPropagation();
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        var s = loadState();
+        if (!s) { intro(); return; }
+        lv = LEVELS[s.lv];
+        snake = s.snake; dir = s.dir; nextDir = s.dir; food = s.food;
+        score = s.score; eaten = s.eaten || 0; tickMs = s.tickMs || lv.tick;
+        gameOver = false; paused = false;
+        syncLbLevel();
+        startPlay();
+      };
+      var newBtn = el.querySelector('#snakeNew');
+      if (newBtn) newBtn.onclick = function (e) {
+        e.stopPropagation();
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        resetGame();
+        syncLbLevel();
+        startPlay();
+      };
+    }
+
+    function startPlay() {
+      paused = false; running = true; gameOver = false; finished = false;
+      el.innerHTML = hud('<b>贪吃蛇 · ' + lv.name + '</b>',
+        '<span class="ms-stat">⭐ <span id="snakeScore">' + score + '</span></span>' +
+        '<span class="ms-stat">🐍 <span id="snakeLen">' + snake.length + '</span> 节</span>' +
+        '<span class="ms-stat">⚡ <span id="snakeSpeed">' + tickMs + '</span>ms</span>') +
+        '<div class="snake-layout">' +
+        '<div class="snake-stage-wrap">' +
+        '<canvas id="snakeCanvas" width="480" height="480" class="snake-canvas"></canvas>' +
+        '<div class="snake-pause-overlay" id="snakePauseOverlay"><div>⏸ 已暂停<br><small>按空格或点「继续」</small></div></div>' +
+        '</div>' +
+        '<div class="snake-side">' +
+        '<button type="button" class="tt-btn" id="snakePause">⏸ 暂停</button>' +
+        '<button type="button" class="tt-btn" id="snakeRestart">↻ 重开</button>' +
+        '<div class="tt-keys">方向键 / WASD 移动<br>空格 暂停</div>' +
+        '</div></div>';
+      updateHud();
+      draw();
+      var pauseBtn = el.querySelector('#snakePause');
+      if (pauseBtn) pauseBtn.onclick = function (e) { e.stopPropagation(); togglePause(); };
+      var restartBtn = el.querySelector('#snakeRestart');
+      if (restartBtn) restartBtn.onclick = function (e) {
+        e.stopPropagation();
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        stopTimer();
+        resetGame();
+        startPlay();
+      };
+      scheduleTick();
+      // 提速后重建 interval
+      var speedWatch = setInterval(function () {
+        if (destroyed || !running || paused || gameOver) return;
+        if (timerId && tickMs !== lastTick) {
+          lastTick = tickMs;
+          restartTimer();
+        }
+      }, 400);
+      el._snakeWatch = speedWatch;
+    }
+
+    function stopTimer() {
+      if (timerId) { clearInterval(timerId); timerId = 0; }
+      if (el._snakeWatch) { clearInterval(el._snakeWatch); el._snakeWatch = null; }
+    }
+
+    function endGame() {
+      gameOver = true;
+      running = false;
+      stopTimer();
+      clearState();
+      if (window.SFX && window.SFX.wrong) window.SFX.wrong();
+      if (lbPanel && score > 0) {
+        lbPanel.submit({ score: score, length: snake.length, lv: lv.key });
+      }
+      finish();
+    }
+
+    function finish() {
+      var certs = window.SM_DATA.snake.certs;
+      var cert = certs[certs.length - 1];
+      for (var i = 0; i < certs.length; i++) {
+        if (score >= certs[i].min) { cert = certs[i]; break; }
+      }
+      onFinish({
+        icon: cert.icon, name: cert.name,
+        tag: score + ' 分 · ' + snake.length + ' 节 · ' + lv.name,
+        text: cert.text + ' 本局吃了 ' + eaten + ' 个食物，蛇身长到 ' + snake.length + ' 节。',
+        big: { label: '总分', value: score + ' <small>分</small>' },
+        bars: [
+          { label: '蛇身长度', pct: Math.min(100, Math.round((snake.length - 3) / 60 * 100)), hi: true },
+          { label: '进食效率', pct: Math.min(100, Math.round(eaten / 30 * 100)) }
+        ],
+        blocks: [
+          { h: '怎么练', text: '别贴墙走——留出回旋空间；长蛇之后尽量走「之」字，避免把自己围死。' }
+        ],
+        quip: window.SM_DATA.snake.disclaimer,
+        cert: cert.name + ' · 认证',
+        detail: { type: cert.name, score: score, length: snake.length, lv: lv.key }
+      });
+    }
+
+    function bindKeyboard() {
+      window.addEventListener('keydown', onKeyDown);
+    }
+
+    intro();
+    syncLbLevel();
+    mountLbHost();
+    bindKeyboard();
+    return {
+      destroy: function () {
+        destroyed = true;
+        running = false;
+        stopTimer();
+        window.removeEventListener('keydown', onKeyDown);
+        if (lbPanel) lbPanel.destroy();
+      }
+    };
+  };
 })();
 
 
@@ -5102,7 +5550,8 @@
     'aim': { scr: 'scr-sm-aim', top: 'sm-aimtop', body: 'sm-aimbody', start: 'startAimTrainer' },
     'sudoku': { scr: 'scr-sm-sudoku', top: 'sm-sudokutop', body: 'sm-sudokubody', start: 'startSudoku' },
     'slide': { scr: 'scr-sm-slide', top: 'sm-slidetop', body: 'sm-slidebody', start: 'startSlidePuzzle' },
-    'tetris': { scr: 'scr-sm-tetris', top: 'sm-tetristop', body: 'sm-tetrisbody', start: 'startTetris' }
+    'tetris': { scr: 'scr-sm-tetris', top: 'sm-tetristop', body: 'sm-tetrisbody', start: 'startTetris' },
+    'snake': { scr: 'scr-sm-snake', top: 'sm-snaketop', body: 'sm-snakebody', start: 'startSnake' }
   };
 
   function openGame(t, options) {

@@ -19,6 +19,10 @@
 const GAMES = {
   '2048': { z: 'j2048:z', p: 'j2048:p', higher: true },
   reaction: { z: 'jreaction:z', p: 'jreaction:p', higher: false },
+  // 反应速度擂台拆成三关各排各的：
+  // 第二关 = 选择反应平均时，第三关 = Go 反应中位数（都是毫秒，越低越好）
+  reaction2: { z: 'jreaction2:z', p: 'jreaction2:p', higher: false },
+  reaction3: { z: 'jreaction3:z', p: 'jreaction3:p', higher: false },
   color: { z: 'jcolor:z', p: 'jcolor:p', higher: true },
   // 扫雷三档难度各排各的：跨难度比时间没有意义，
   // 初级 30 秒和高级 300 秒不是同一种成绩。
@@ -226,6 +230,28 @@ function parseRun(game, body) {
     // 2 分方块合成 4 才得 4 分，所以分数不可能低于最大方块本身
     if (score < maxTile) return { error: '分数与方块不匹配' };
     return { score, extra: { mt: maxTile } };
+  }
+
+  if (game === 'reaction2') {
+    // 第二关：选择反应平均时（毫秒，越低越好）+ 正确数
+    const ms = intIn(body.score, 80, 3000);
+    const acc = intIn(body.acc, 0, 20);
+    const traps = intIn(body.traps, 0, 20);
+    if (ms == null) return { error: '反应时间不合法' };
+    if (acc == null) return { error: '正确次数不合法' };
+    if (traps == null) return { error: '规则反转识别数不合法' };
+    return { score: ms, extra: { acc, traps } };
+  }
+
+  if (game === 'reaction3') {
+    // 第三关：Go 反应中位数（毫秒，越低越好）+ 红点误按数
+    const ms = intIn(body.score, 80, 3000);
+    const falseHit = intIn(body.falseHit, 0, 20);
+    const goCount = intIn(body.goCount, 0, 20);
+    if (ms == null) return { error: '反应时间不合法' };
+    if (falseHit == null) return { error: '误按次数不合法' };
+    if (goCount == null) return { error: 'Go 次数不合法' };
+    return { score: ms, extra: { falseHit, goCount } };
   }
 
   if (game === 'reaction') {

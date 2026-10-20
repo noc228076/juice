@@ -8344,6 +8344,42 @@ html[data-theme="light"] #mod-manual .tt-btn { background: #FFFDF7; color: #2D27
 html[data-theme="light"] #mod-manual .tt-next { background: rgba(0, 0, 0, 0.04); border-color: #E4DCC9; }
 html[data-theme="light"] #mod-manual .tt-pause-overlay { background: rgba(250, 247, 238, 0.92); color: #2D2721; }
 
+/* ============ 反应速度擂台：三关榜单切换条 ============ */
+#mod-manual .rz-lb-stages {
+  display: flex;
+  gap: 6px;
+  margin-top: 14px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+#mod-manual .rz-lb-stage {
+  padding: 7px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #C9C3B8;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.16s;
+}
+#mod-manual .rz-lb-stage:hover { border-color: rgba(255, 255, 255, 0.3); color: #F2EEE3; }
+#mod-manual .rz-lb-stage.active {
+  background: #E05B4E;
+  border-color: #E05B4E;
+  color: #FFF6E8;
+}
+html[data-theme="light"] #mod-manual .rz-lb-stage {
+  background: #FFFDF7;
+  border-color: #D8CFB9;
+  color: #57503F;
+}
+html[data-theme="light"] #mod-manual .rz-lb-stage.active {
+  background: #C43C33;
+  border-color: #C43C33;
+  color: #FFF6E8;
+}
+
 
 /* === css/modules/decision.css === */
 /* =========================================================

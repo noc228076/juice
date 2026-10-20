@@ -1307,30 +1307,97 @@
       higher: false,
       idPrefix: 'lbreact',
       formatScore: function (v) { return v + ' ms'; },
+      // 三关共用一个面板实例，列定义按当前关切换：
+      // 第一关看准度+反应年龄，第二关看正确数与反转识别，第三关看误按数
       describe: function (run) {
-        return { score: run.ms, extra: { acc: run.acc, age: run.age } };
+        return {
+          score: run.ms,
+          extra: {
+            acc: run.acc, age: run.age, traps: run.traps,
+            falseHit: run.falseHit, goCount: run.goCount
+          }
+        };
       },
       localCols: function (r) {
-        return [
-          '<span class="lb-score">' + (r.score || 0) + '<small> ms</small></span>',
-          '<span class="lb-tile">' + (r.acc || 0) + '/20</span>',
-          '<span class="lb-meta">' + (r.age || '-') + ' 岁</span>',
-          '<span class="lb-date">' + window.AppLbPanel.fmtDay(r.at) + '</span>'
-        ];
+        var base = '<span class="lb-score">' + (r.score || 0) + '<small> ms</small></span>';
+        var date = '<span class="lb-date">' + window.AppLbPanel.fmtDay(r.at) + '</span>';
+        if (lbStage === 2) {
+          return [base, '<span class="lb-tile">' + (r.acc || 0) + '/20</span>',
+            '<span class="lb-meta">反转 ' + (r.traps || 0) + '</span>', date];
+        }
+        if (lbStage === 3) {
+          return [base, '<span class="lb-tile">误按 ' + (r.falseHit || 0) + '</span>',
+            '<span class="lb-meta">Go ' + (r.goCount || 0) + '</span>', date];
+        }
+        return [base, '<span class="lb-tile">' + (r.acc || 0) + '/20</span>',
+          '<span class="lb-meta">' + (r.age || '-') + ' 岁</span>', date];
       },
       globalCols: function (r) {
+        var score = '<span class="lb-score">' + (r.score || 0) + '<small> ms</small></span>';
+        var extra = r.extra || {};
+        var tail;
+        if (lbStage === 2) tail = '<span class="lb-tile">' + (extra.acc || 0) + '/20</span>';
+        else if (lbStage === 3) tail = '<span class="lb-tile">误按 ' + (extra.falseHit || 0) + '</span>';
+        else tail = '<span class="lb-tile">' + (extra.acc || 0) + '/20</span>';
         return [
           '<span class="lb-ava">' + window.AppLbPanel.esc(r.avatar || '🙂') + '</span>',
           '<span class="lb-name">' + window.AppLbPanel.esc(r.name || '匿名玩家') +
             (r.isMe ? '<i class="lb-me">我</i>' : '') + '</span>',
-          '<span class="lb-score">' + (r.score || 0) + '<small> ms</small></span>',
-          '<span class="lb-tile">' + ((r.extra && r.extra.acc) || 0) + '/20</span>'
+          score, tail
         ];
       }
     }) : null;
 
     function mountLbHost() {
       mountLbHostFor(lbPanel, root, el);
+    }
+
+    /* ---------------- 三关各自的榜单 ----------------
+       三关考的东西不同，混在一张榜里没法比：
+       第一关 = 简单反应中位数，第二关 = 选择反应平均时，
+       第三关 = Go 反应中位数（都按毫秒排名，越低越好）。
+       榜单面板用 setGame 切到当前关对应的榜。 */
+    var LB_STAGES = {
+      1: { game: 'reaction',  store: 'sm_reaction_runs',  name: '简单反应', metric: '中位数' },
+      2: { game: 'reaction2', store: 'sm_reaction2_runs', name: '选择反应', metric: '平均' },
+      3: { game: 'reaction3', store: 'sm_reaction3_runs', name: '冲动控制', metric: 'Go 中位数' }
+    };
+    var lbStage = 1;
+
+    function switchLbStage(n) {
+      if (!lbPanel || lbStage === n) return;
+      lbStage = n;
+      var cfg = LB_STAGES[n];
+      lbPanel.setGame(cfg.game, cfg.store);
+      syncStageBar();
+    }
+
+    function syncStageBar() {
+      var bar = el.querySelector('#rzStageBar');
+      if (!bar) return;
+      bar.querySelectorAll('[data-rzlb]').forEach(function (b) {
+        b.classList.toggle('active', Number(b.getAttribute('data-rzlb')) === lbStage);
+      });
+    }
+
+    function stageBarHTML() {
+      return '<div class="rz-lb-stages" id="rzStageBar">' +
+        [1, 2, 3].map(function (n) {
+          return '<button type="button" class="rz-lb-stage' + (lbStage === n ? ' active' : '') +
+            '" data-rzlb="' + n + '">' + n + ' · ' + LB_STAGES[n].name + '</button>';
+        }).join('') + '</div>';
+    }
+
+    function bindStageBar() {
+      var bar = el.querySelector('#rzStageBar');
+      if (!bar) return;
+      bar.querySelectorAll('[data-rzlb]').forEach(function (b) {
+        b.onclick = function (e) {
+          e.stopPropagation();
+          if (window.SFX && window.SFX.tap) window.SFX.tap();
+          switchLbStage(Number(b.getAttribute('data-rzlb')));
+        };
+      });
     }
 
     /* ---------- 关卡说明 ---------- */
@@ -1540,21 +1607,42 @@
       var body = '';
       if (n === 1) {
         var m = median(S1);
+        if (lbPanel) {
+          lbPanel.setGame(LB_STAGES[1].game, LB_STAGES[1].store);
+          lbPanel.submit({ ms: m, acc: S2.correct, age: reactionAge(m) });
+          lbStage = 1;
+        }
         body = '<div class="rz-big" style="font-size:52px">' + m + ' <span style="font-size:22px">ms</span></div>' +
-          '<div class="rz-sub">简单反应中位数 · 5 次平均发挥</div>';
+          '<div class="rz-sub">简单反应中位数 · 5 次取中位数，避开单次失误</div>';
       } else if (n === 2) {
         var mean = S2.rts.length ? Math.round(S2.rts.reduce(function (s, v) { return s + v; }, 0) / S2.rts.length) : 1500;
+        if (lbPanel && S2.rts.length) {
+          lbPanel.setGame(LB_STAGES[2].game, LB_STAGES[2].store);
+          lbPanel.submit({ ms: mean, acc: S2.correct, traps: S2.traps });
+          lbStage = 2;
+        }
         body = '<div class="rz-big" style="font-size:52px">' + S2.correct + '<span style="font-size:22px">/20</span></div>' +
-          '<div class="rz-sub">正确次数 · 平均 ' + mean + ' ms' + (S2.traps ? '<br>规则交换识别 ' + S2.traps + '/4' : '') + '</div>';
+          '<div class="rz-sub">正确 ' + S2.correct + '/20 · 平均反应 ' + mean + ' ms' + (S2.traps ? '<br>规则交换识别 ' + S2.traps + '/4' : '') + '</div>';
       } else {
         var gm = median(S3.goRts);
-        body = '<div class="rz-big" style="font-size:52px">' + S3.falseHit + '<span style="font-size:22px">/4</span></div>' +
-          '<div class="rz-sub">红点误按次数(冲动指数)· Go 中位数 ' + gm + ' ms</div>';
+        if (lbPanel && S3.goRts.length) {
+          lbPanel.setGame(LB_STAGES[3].game, LB_STAGES[3].store);
+          lbPanel.submit({ ms: gm, falseHit: S3.falseHit, goCount: S3.goRts.length });
+          lbStage = 3;
+        }
+        body = '<div class="rz-big" style="font-size:52px">' + gm + ' <span style="font-size:22px">ms</span></div>' +
+          '<div class="rz-sub">Go 反应中位数 · 红点误按 ' + S3.falseHit + '/4（冲动指数）</div>';
       }
+      // 切到本关对应的榜单（三关各排各的）
+      switchLbStage(n);
       el.innerHTML = hud('<b>反应速度擂台</b>', '第 ' + n + '/3 关') +
         '<div class="rz-stage">' + body +
-        '<button class="btn accent" id="rznext" style="margin-top:26px;width:auto;padding:12px 38px">' +
-        (n < 3 ? '进入下一关' : '查看判词') + '</button></div>';
+        '<div class="rz-sub" style="margin-top:16px">第 ' + n + ' 关成绩已记入「' + LB_STAGES[n].name +
+        '」榜（' + LB_STAGES[n].metric + ' ms）</div>' +
+        '<button class="btn accent" id="rznext" style="margin-top:20px;width:auto;padding:12px 38px">' +
+        (n < 3 ? '进入下一关' : '查看判词') + '</button></div>' +
+        stageBarHTML();
+      bindStageBar();
       var btnNext = el.querySelector('#rznext');
       if (btnNext) {
         btnNext.addEventListener('click', function () {
@@ -1562,6 +1650,11 @@
           if (n < 3) stageIntro(n + 1); else finish();
         });
       }
+    }
+
+    /* 反应中位数 → 反应年龄（第一关提交时也要用） */
+    function reactionAge(ms) {
+      return ms < 220 ? 16 : ms < 280 ? 22 : ms < 350 ? 30 : ms < 450 ? 45 : 60;
     }
 
     /* ---------- 总判定 ---------- */
@@ -1572,7 +1665,7 @@
       var cv = S2.rts.length > 1 ? stdev(S2.rts) / mean2 : 0.5;
       var impulse = S3.falseHit / 4;
 
-      var age = m1 < 220 ? 16 : m1 < 280 ? 22 : m1 < 350 ? 30 : m1 < 450 ? 45 : 60;
+      var age = reactionAge(m1);
       var speed = m1 < 220 ? 100 : m1 < 280 ? 88 : m1 < 350 ? 72 : m1 < 450 ? 52 : 35;
       var accPct = Math.round(acc * 100);
       var stab = cv < 0.15 ? 95 : cv < 0.25 ? 80 : cv < 0.35 ? 62 : 45;
@@ -1589,7 +1682,7 @@
           ? '红色对你来说只是个建议。'
           : '刹车片状态良好,日常够用。';
 
-      if (lbPanel) lbPanel.submit({ ms: m1, acc: S2.correct, age: age });
+      // 第一关成绩在小结时已提交；这里不再重复提交，避免同一局写两次
 
       onFinish({
         icon: ricon, name: rank, tag: '反应年龄 ' + age + ' 岁 · 三关综合判定',

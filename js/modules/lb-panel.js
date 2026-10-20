@@ -42,6 +42,17 @@
 
   /* ---------------- 本机战绩 ---------------- */
 
+  /* 本机战绩排序。默认同分时新的在前；游戏可通过 cfg.tieBreak 覆盖，
+     例如舒尔特要求「同秒数时错得少的在前，再相同则先达到的在前」。 */
+  function compareRuns(a, b, higher, tieBreak) {
+    if (a.score !== b.score) return higher ? b.score - a.score : a.score - b.score;
+    if (typeof tieBreak === 'function') {
+      var t = tieBreak(a, b);
+      if (t) return t;
+    }
+    return (b.at || 0) - (a.at || 0);
+  }
+
   function loadLocal(storeKey) {
     try {
       var raw = localStorage.getItem(storeKey);
@@ -83,10 +94,7 @@
       var list = loadLocal(storeKey).filter(function (r) {
         return r && typeof r.score === 'number' && isFinite(r.score);
       });
-      list.sort(function (a, b) {
-        if (a.score !== b.score) return higher ? b.score - a.score : a.score - b.score;
-        return (b.at || 0) - (a.at || 0);
-      });
+      list.sort(function (a, b) { return compareRuns(a, b, higher, cfg.tieBreak); });
       return list;
     }
 
@@ -155,10 +163,7 @@
       if (d.extra) for (var k in d.extra) if (Object.prototype.hasOwnProperty.call(d.extra, k)) rec[k] = d.extra[k];
       var list = loadLocal(storeKey);
       list.push(rec);
-      list.sort(function (a, b) {
-        if (a.score !== b.score) return higher ? b.score - a.score : a.score - b.score;
-        return (b.at || 0) - (a.at || 0);
-      });
+      list.sort(function (a, b) { return compareRuns(a, b, higher, cfg.tieBreak); });
       saveLocal(storeKey, list);
       var localRank = 0;
       for (var i = 0; i < list.length; i++) {

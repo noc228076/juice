@@ -1864,6 +1864,12 @@
       describe: function (run) {
         return { score: run.sec, extra: { sec: run.sec, lv: run.lv, err: run.err } };
       },
+      // 同分规则与服务端一致：秒数相同 → 错得少的在前 → 先达到的在前
+      tieBreak: function (a, b) {
+        var ae = a.err || 0, be = b.err || 0;
+        if (ae !== be) return ae - be;
+        return (a.at || 0) - (b.at || 0);
+      },
       localCols: function (r) {
         return [
           '<span class="lb-score">' + (r.sec || 0) + '<small> 秒</small></span>',

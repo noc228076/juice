@@ -396,6 +396,19 @@ async function readBoard(game, limit) {
     };
   });
 
+  // 舒尔特：秒数相同时错得少的在前，再相同则先达到的在前。
+  // ZSET 的 score 只有秒数，同分时 Redis 按 member 字典序排——
+  // 对玩家没有意义，所以在这里用 extra.err / at 做二级、三级排序。
+  if (SCHULTE_LEVELS[game]) {
+    board.sort((a, b) => {
+      if (a.score !== b.score) return a.score - b.score;           // 秒数少的在前
+      const ae = (a.extra && a.extra.err) || 0;
+      const be = (b.extra && b.extra.err) || 0;
+      if (ae !== be) return ae - be;                                // 错得少的在前
+      return (a.at || 0) - (b.at || 0);                             // 先达到的在前
+    });
+  }
+
   return { board, total };
 }
 
@@ -548,6 +561,11 @@ module.exports = async function handler(req, res) {
         rank = await call([cfgGame.higher ? 'ZREVRANK' : 'ZRANK', cfgGame.z, id]);
       }
       const { board, total } = await readBoard(game, 50);
+      // 舒尔特的同分排序在 readBoard 里重排过，rank 要按重排后的名次算
+      if (SCHULTE_LEVELS[game]) {
+        const i = board.findIndex((r) => r.id === id);
+        if (i >= 0) rank = i;
+      }
 
       res.status(200).json({
         ok: true,

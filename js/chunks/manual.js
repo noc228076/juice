@@ -1363,6 +1363,9 @@
       3: { game: 'reaction3', store: 'sm_reaction3_runs', name: '冲动控制', metric: 'Go 中位数' }
     };
     var lbStage = 1;
+    // 最近测过的一关：报告页「再测一次」会重建游戏实例，闭包变量会丢，
+    // 所以存 localStorage
+    var LAST_STAGE_KEY = 'sm_reaction_last_stage';
 
     function switchLbStage(n) {
       if (!lbPanel || lbStage === n) return;
@@ -1411,6 +1414,17 @@
        「选难度再开始」一致。也可以选「三关连测」跑完整流程。 */
     function lobby() {
       clearTimers();
+      // 「再测一次」从报告页回来时，直接恢复上一次测的那一关
+      var remembered = 0;
+      try { remembered = Number(localStorage.getItem(LAST_STAGE_KEY) || 0); } catch (e) {}
+      if (remembered >= 1 && remembered <= 3) {
+        var n = remembered;
+        if (n === 1) S1 = [];
+        else if (n === 2) S2 = { correct: 0, rts: [], traps: 0 };
+        else S3 = { goRts: [], falseHit: 0, trials: [] };
+        stageIntro(n);
+        return;
+      }
       el.innerHTML = hud('<b>反应速度擂台</b>', '三关各排各的榜') +
         '<div class="rz-stage">' +
         '<div class="rz-big" style="font-size:30px">选一关开始</div>' +
@@ -1422,28 +1436,24 @@
           return '<button type="button" class="ms-lv" data-stage="' + n + '">' + n + ' · ' + LB_STAGES[n].name + '</button>';
         }).join('') +
         '</div>' +
-        '<button class="btn accent" id="rzFull" style="margin-top:18px;width:auto;padding:12px 34px">三关连测（完整判词）</button>' +
+        '<div class="rz-sub" style="margin-top:16px">三关完全独立，每关测完即出该关判词。</div>' +
         '</div>';
 
       el.querySelectorAll('[data-stage]').forEach(function (b) {
         b.onclick = function (e) {
           e.stopPropagation();
           if (window.SFX && window.SFX.tap) window.SFX.tap();
+          // 每次选关都清空三关数据，保证只统计这一关
+          S1 = []; S2 = { correct: 0, rts: [], traps: 0 }; S3 = { goRts: [], falseHit: 0, trials: [] };
           stageIntro(Number(b.getAttribute('data-stage')));
         };
       });
-      var full = el.querySelector('#rzFull');
-      if (full) full.onclick = function (e) {
-        e.stopPropagation();
-        if (window.SFX && window.SFX.tap) window.SFX.tap();
-        S1 = []; S2 = { correct: 0, rts: [], traps: 0 }; S3 = { goRts: [], falseHit: 0, trials: [] };
-        stageIntro(1);
-      };
       switchLbStage(1);
     }
 
     function stageIntro(n) {
       clearTimers();
+      try { localStorage.setItem(LAST_STAGE_KEY, String(n)); } catch (e) {}
       var info = STAGE_INFO[n];
       el.innerHTML = hud('<b>反应速度擂台</b>', '第 ' + n + '/3 关') +
         '<div class="rz-stage"><div class="rz-big" style="font-size:30px">' + info.t + '</div>' +
@@ -1684,18 +1694,25 @@
         '<div class="rz-sub" style="margin-top:16px">第 ' + n + ' 关成绩已记入「' + LB_STAGES[n].name +
         '」榜（' + LB_STAGES[n].metric + ' ms）</div>' +
         '<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:20px">' +
-        '<button class="btn accent" id="rznext" style="width:auto;padding:12px 30px">' +
-        (n < 3 ? '进入下一关' : '查看判词') + '</button>' +
-        '<button class="btn" id="rzlobby" style="width:auto;padding:12px 26px">← 换一关</button></div></div>' +
+        '<button class="btn accent" id="rzview" style="width:auto;padding:12px 30px">查看判词</button>' +
+        '<button class="btn" id="rzagain" style="width:auto;padding:12px 26px">↻ 再测一次</button>' +
+        '<button class="btn" id="rzlobby" style="width:auto;padding:12px 26px">← 返回</button></div></div>' +
         stageBarHTML();
       bindStageBar();
-      var btnNext = el.querySelector('#rznext');
-      if (btnNext) {
-        btnNext.addEventListener('click', function () {
-          if (window.SFX && window.SFX.tap) window.SFX.tap();
-          if (n < 3) stageIntro(n + 1); else finish();
-        });
-      }
+      var btnView = el.querySelector('#rzview');
+      if (btnView) btnView.addEventListener('click', function () {
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        finish(n);
+      });
+      var btnAgain = el.querySelector('#rzagain');
+      if (btnAgain) btnAgain.addEventListener('click', function () {
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        // 只重测这一关
+        if (n === 1) S1 = [];
+        else if (n === 2) S2 = { correct: 0, rts: [], traps: 0 };
+        else S3 = { goRts: [], falseHit: 0, trials: [] };
+        stageIntro(n);
+      });
       var btnLobby = el.querySelector('#rzlobby');
       if (btnLobby) btnLobby.addEventListener('click', function () {
         if (window.SFX && window.SFX.tap) window.SFX.tap();
@@ -1709,45 +1726,81 @@
     }
 
     /* ---------- 总判定 ---------- */
-    function finish() {
-      var m1 = median(S1);
-      var acc = S2.correct / 20;
-      var mean2 = S2.rts.length ? S2.rts.reduce(function (s, v) { return s + v; }, 0) / S2.rts.length : 1500;
-      var cv = S2.rts.length > 1 ? stdev(S2.rts) / mean2 : 0.5;
-      var impulse = S3.falseHit / 4;
+    /* 按关出判词：三关完全独立，每关只报自己那一项 */
+    function finish(n) {
+      var certs = window.SM_DATA.reaction.certs;
+      var res;
 
-      var age = reactionAge(m1);
-      var speed = m1 < 220 ? 100 : m1 < 280 ? 88 : m1 < 350 ? 72 : m1 < 450 ? 52 : 35;
-      var accPct = Math.round(acc * 100);
-      var stab = cv < 0.15 ? 95 : cv < 0.25 ? 80 : cv < 0.35 ? 62 : 45;
+      if (n === 1) {
+        var m1 = median(S1);
+        var age = reactionAge(m1);
+        var speed = m1 < 220 ? 100 : m1 < 280 ? 88 : m1 < 350 ? 72 : m1 < 450 ? 52 : 35;
+        var ricon, rname;
+        if (m1 < 260) { rname = '闪电侠'; ricon = 'bolt'; }
+        else if (m1 < 330) { rname = '电竞手'; ricon = 'gamepad'; }
+        else if (m1 < 430) { rname = '正常人'; ricon = 'smile'; }
+        else { rname = '树懒本懒'; ricon = 'sleepy'; }
+        res = {
+          icon: ricon, name: rname,
+          tag: '简单反应 ' + m1 + ' ms · 反应年龄 ' + age + ' 岁',
+          text: '5 次简单反应取中位数 ' + m1 + ' ms' +
+            (age === 45 ? '，带着一点疲劳的痕迹——该睡个好觉了。' : age === 60 ? '，急事先预约，从容不是罪。' : '，手速在线。'),
+          big: { label: '简单反应中位数', value: m1 + ' <small>ms</small>' },
+          bars: [{ label: '速度', pct: speed, hi: true }],
+          blocks: [{ h: '怎么看', text: '中位数比平均值更抗单次走神——5 次里偶尔慢一下不会把成绩拽下去。' }],
+          detail: { type: rname, ms: m1, age: age }
+        };
+      } else if (n === 2) {
+        var mean = S2.rts.length ? Math.round(S2.rts.reduce(function (s, v) { return s + v; }, 0) / S2.rts.length) : 1500;
+        var cv = S2.rts.length > 1 ? stdev(S2.rts) / mean : 0.5;
+        var stab = cv < 0.15 ? 95 : cv < 0.25 ? 80 : cv < 0.35 ? 62 : 45;
+        var accPct = Math.round(S2.correct / 20 * 100);
+        var r2 = S2.correct >= 18 ? { name: '分心免疫', icon: 'crown' }
+          : S2.correct >= 14 ? { name: '反应稳健', icon: 'gem' }
+            : S2.correct >= 10 ? { name: '正常发挥', icon: 'smile' }
+              : { name: '有点上头', icon: 'sleepy' };
+        res = {
+          icon: r2.icon, name: r2.name,
+          tag: '正确 ' + S2.correct + '/20 · 平均 ' + mean + ' ms',
+          text: '选择反应正确 ' + S2.correct + '/20（' + accPct + '%），平均 ' + mean + ' ms，成绩波动' +
+            (stab >= 80 ? '很小，发挥稳如老狗。' : stab >= 62 ? '中等，状态有起伏。' : '偏大，可能手滑也可能心滑。'),
+          big: { label: '平均反应时', value: mean + ' <small>ms</small>' },
+          bars: [
+            { label: '准度', pct: accPct, hi: true },
+            { label: '稳定性', pct: stab }
+          ],
+          blocks: [{ h: '规则反转', text: '本局识破 ' + S2.traps + '/4 次规则交换——这一项最考验注意力的切换速度。' }],
+          detail: { type: r2.name, ms: mean, acc: S2.correct, traps: S2.traps }
+        };
+      } else {
+        var gm = median(S3.goRts);
+        var impulse = S3.falseHit / 4;
+        var r3 = S3.falseHit === 0 ? { name: '铁壁自控', icon: 'crown' }
+          : S3.falseHit === 1 ? { name: '刹车良好', icon: 'gem' }
+            : S3.falseHit === 2 ? { name: '偶尔手快', icon: 'bolt' }
+              : { name: '手比脑快', icon: 'sleepy' };
+        var quip = impulse < 0.10 ? '泰山崩于前而面不改色，期货市场失去了一位天才。'
+          : impulse > 0.40 ? '红色对你来说只是个建议。'
+            : '刹车片状态良好，日常够用。';
+        res = {
+          icon: r3.icon, name: r3.name,
+          tag: 'Go 反应 ' + gm + ' ms · 误按 ' + S3.falseHit + '/4',
+          text: '绿点反应中位数 ' + gm + ' ms，红点误按 ' + S3.falseHit + '/4（冲动指数 ' +
+            Math.round(impulse * 100) + '%）。' + quip,
+          big: { label: 'Go 反应中位数', value: gm + ' <small>ms</small>' },
+          bars: [
+            { label: '自控力', pct: Math.max(0, 100 - S3.falseHit * 25), hi: true },
+            { label: '出手速度', pct: gm < 300 ? 95 : gm < 400 ? 75 : gm < 550 ? 55 : 35 }
+          ],
+          blocks: [{ h: '冲动指数', text: '红点误按 ' + S3.falseHit + '/4（' + Math.round(impulse * 100) + '%）。' + quip }],
+          detail: { type: r3.name, ms: gm, falseHit: S3.falseHit }
+        };
+      }
 
-      var rank, ricon;
-      if (m1 < 260 && acc >= 0.85) { rank = '闪电侠'; ricon = 'bolt'; }
-      else if (m1 < 330 && acc >= 0.70) { rank = '电竞手'; ricon = 'gamepad'; }
-      else if (m1 < 430) { rank = '正常人'; ricon = 'smile'; }
-      else { rank = '树懒本懒'; ricon = 'sleepy'; }
-
-      var quip = impulse < 0.10
-        ? '泰山崩于前而面不改色,期货市场失去了一位天才。'
-        : impulse > 0.40
-          ? '红色对你来说只是个建议。'
-          : '刹车片状态良好,日常够用。';
-
-      // 第一关成绩在小结时已提交；这里不再重复提交，避免同一局写两次
-
-      onFinish({
-        icon: ricon, name: rank, tag: '反应年龄 ' + age + ' 岁 · 三关综合判定',
-        text: '简单反应中位数 ' + m1 + ' ms' + (age === 45 ? ',带着一点疲劳的痕迹——该睡个好觉了。' : age === 60 ? ',急事先预约,从容不是罪。' : ',手速在线。') +
-          '选择反应正确率 ' + accPct + '%,成绩波动' + (stab >= 80 ? '很小,发挥稳如老狗。' : stab >= 62 ? '中等,状态有起伏。' : '偏大,可能手滑也可能心滑。'),
-        big: { label: '简单反应中位数', value: m1 + ' <small>ms</small>' },
-        bars: [
-          { label: '速度', pct: speed }, { label: '准度', pct: accPct }, { label: '稳定性', pct: stab }
-        ],
-        blocks: [{ h: '冲动指数', text: '红点误按 ' + S3.falseHit + '/4(' + Math.round(impulse * 100) + '%)。' + quip }],
-        quip: window.SM_DATA.reaction.disclaimer,
-        cert: rank + ' · 认证',
-        detail: { type: rank, age: age, ms: m1 }
-      });
+      // 各关判词共用免责声明与认证文案
+      res.quip = window.SM_DATA.reaction.disclaimer;
+      res.cert = res.name + ' · 认证';
+      onFinish(res);
     }
 
     lobby();

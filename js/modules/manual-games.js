@@ -30,11 +30,28 @@
     return key === 'hard' ? '高级' : key === 'medium' ? '中级' : '初级';
   }
 
-  function makeRoot(root) {
+  function makeRoot(root, onRestart) {
     root.innerHTML = '';
     var el = document.createElement('div');
     el.className = 'stage';
     root.appendChild(el);
+    /* 没有自带重开按钮的游戏：容器右上角统一挂一枚重开（回调由各游戏提供） */
+    if (onRestart) {
+      root.style.position = 'relative';
+      var wrap = document.createElement('div');
+      wrap.className = 'sm-restart-wrap';
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'sm-restart';
+      b.textContent = '↻ 重开';
+      b.onclick = function (e) {
+        e.stopPropagation();
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        onRestart();
+      };
+      wrap.appendChild(b);
+      root.appendChild(wrap);
+    }
     return el;
   }
 
@@ -75,7 +92,7 @@
    * 05 反应速度擂台
    * ================================================================== */
   window.startReaction = function (root, onFinish) {
-    var el = makeRoot(root);
+    var el = makeRoot(root, function () { stageIntro(1); });
     var timers = [];
     var destroyed = false;
     function later(fn, ms) { var id = setTimeout(function () { if (!destroyed) fn(); }, ms); timers.push(id); return id; }
@@ -577,7 +594,7 @@
    * 06 色彩敏锐度挑战
    * ================================================================== */
   window.startColor = function (root, onFinish) {
-    var el = makeRoot(root);
+    var el = makeRoot(root, function () { intro(); });
     var timers = [];
     var destroyed = false;
     function later(fn, ms) { var id = setTimeout(function () { if (!destroyed) fn(); }, ms); timers.push(id); return id; }
@@ -2165,7 +2182,7 @@
    * 连击有加成，点空或让球缩没都断连击。按总分进全服排行榜。
    * ================================================================== */
   window.startAimTrainer = function (root, onFinish) {
-    var el = makeRoot(root);
+    var el = makeRoot(root, function () { intro(); });
     var timers = [];
     var destroyed = false;
     function later(fn, ms) { var id = setTimeout(function () { if (!destroyed) fn(); }, ms); timers.push(id); return id; }
@@ -2443,7 +2460,7 @@
    * 排名值 = 错误数（越少越好），按难度分榜。
    * ================================================================== */
   window.startSudoku = function (root, onFinish) {
-    var el = makeRoot(root);
+    var el = makeRoot(root, function () { startNew(); });
     var destroyed = false, finished = false;
 
     var LEVELS = {
@@ -2799,7 +2816,7 @@
    * 随机走合法步（必然可解）。排名值 = 步数（越少越好），按难度分榜。
    * ================================================================== */
   window.startSlidePuzzle = function (root, onFinish) {
-    var el = makeRoot(root);
+    var el = makeRoot(root, function () { startNew(); });
     var destroyed = false, finished = false;
 
     var LEVELS = {

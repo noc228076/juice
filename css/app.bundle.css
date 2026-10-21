@@ -8519,6 +8519,39 @@ html[data-theme="light"] #mod-manual .snake-pause-overlay {
 }
 
 
+/* ============ 通用：无重开按钮游戏的右上角重开 ============ */
+#mod-manual .sm-restart-wrap {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 8;
+}
+#mod-manual .sm-restart {
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 15px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  color: #F2EEE3;
+  font-size: 13px;
+  cursor: pointer;
+}
+#mod-manual .sm-restart:active {
+  transform: scale(0.96);
+}
+html[data-theme="light"] #mod-manual .sm-restart {
+  border-color: #D8CFB9;
+  background: rgba(90, 72, 42, 0.06);
+  color: #2D2721;
+}
+/* 给 HUD 右侧统计让位，避免与重开按钮重叠 */
+#mod-manual .sm-restart-wrap ~ .stage .hud {
+  padding-right: 96px;
+}
+
+
 /* === css/modules/decision.css === */
 /* =========================================================
    模块 6：纠结拯救机 (Cyber Decision Oracle)

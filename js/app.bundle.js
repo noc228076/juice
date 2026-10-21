@@ -1,4 +1,4 @@
-window.__APP_VERSION__ = '161';
+window.__APP_VERSION__ = '164';
 /* === js/core-drink.js === */
 /* 人格研究所 — 题库与档案数据 */
 'use strict';
@@ -8652,6 +8652,60 @@ if ('serviceWorker' in navigator) {
         if (ti1) ti1.textContent = nextTheme === 'dark' ? '☾' : '☀';
         const ti2 = document.querySelector('#btnTheme2 span');
         if (ti2) ti2.textContent = nextTheme === 'dark' ? '☾' : '☀';
+      });
+    }
+    const btnAbout = document.getElementById('globalBtnAbout');
+    if (btnAbout) {
+      let aboutEl = null;
+      btnAbout.addEventListener('click', () => {
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        if (!aboutEl) {
+          aboutEl = document.createElement('div');
+          aboutEl.className = 'gp-modal';
+          aboutEl.id = 'modalAbout';
+          aboutEl.setAttribute('aria-hidden', 'true');
+          let ver = '';
+          const appJs = document.querySelector('script[src*="app.bundle.js"]');
+          const mv = appJs && appJs.src.match(/v=([0-9]+)/);
+          if (mv) ver = 'v' + mv[1];
+          aboutEl.innerHTML =
+            '<div class="gp-backdrop" data-about-close></div>' +
+            '<div class="gp-dialog" role="dialog" aria-modal="true" aria-label="关于本站">' +
+            '<div class="gp-head">' +
+            '<div><h3>关于本站</h3><p>饮料人格研究所 · Drink Persona Lab</p></div>' +
+            '<button class="gp-close" type="button" data-about-close aria-label="关闭">✕</button>' +
+            '</div>' +
+            '<div class="gp-body">' +
+            '<p>一台开在浏览器里的「趣味实验矩阵」：7 大模块、15 章自我说明书、小游戏全服排行榜。所有测评都在你的设备本地完成，排行榜只上传随机 ID 与昵称头像。</p>' +
+            '<div class="gp-label">开源</div>' +
+            '<p>本项目以 <b>MIT</b> 协议开源，欢迎参观与拍砖：<br>' +
+            '<a href="https://github.com/noc228076/juice" target="_blank" rel="noopener">github.com/noc228076/juice</a></p>' +
+            '<div class="gp-label">技术与致谢</div>' +
+            '<ul class="gp-about-list">' +
+            '<li>纯原生 HTML / CSS / JS，无框架、零运行时依赖</li>' +
+            '<li>泡泡猫机制参考 rembound Bubble Shooter（MIT）</li>' +
+            '<li>糖果按钮素材来自 pzUH（CC0）；橘猫形象为本站原创生成</li>' +
+            '<li>音效由 WebAudio 实时合成，不加载任何音频文件</li>' +
+            '</ul>' +
+            '<div class="gp-label">构建版本</div>' +
+            '<p class="gp-about-ver" id="gpAboutVer">' + (ver || 'dev') + '</p>' +
+            '</div>' +
+            '<div class="gp-foot">' +
+            '<a class="gp-btn ghost" href="https://github.com/noc228076/juice" target="_blank" rel="noopener">GitHub</a>' +
+            '<button class="gp-btn primary" type="button" data-about-close>知道了</button>' +
+            '</div>' +
+            '</div>' +
+            '</div>';
+          document.body.appendChild(aboutEl);
+          aboutEl.querySelectorAll('[data-about-close]').forEach(el => {
+            el.addEventListener('click', () => {
+              aboutEl.classList.remove('open');
+              aboutEl.setAttribute('aria-hidden', 'true');
+            });
+          });
+        }
+        aboutEl.classList.add('open');
+        aboutEl.setAttribute('aria-hidden', 'false');
       });
     }
     const btnSfx = document.getElementById('globalBtnSfx');

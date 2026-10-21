@@ -1071,3 +1071,41 @@ body.has-daily-ambient-bg .daily-wp-stage {
 .ck-zen-overlay.is-active {
   display: flex;
 }
+
+
+/* 关于弹窗（复用 gp-modal 体系） */
+#modalAbout .gp-body p {
+  font-size: 13px;
+  line-height: 1.75;
+  margin: 0 0 6px;
+}
+#modalAbout .gp-about-list {
+  margin: 0;
+  padding-left: 18px;
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+}
+#modalAbout a {
+  color: #4DABF7;
+  word-break: break-all;
+}
+html[data-theme="light"] #modalAbout a {
+  color: #1971C2;
+}
+#modalAbout .gp-about-ver {
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 12px;
+  opacity: 0.75;
+  margin: 0;
+}
+
+#modalAbout .gp-foot .gp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+#modalAbout .gp-foot a.gp-btn.ghost {
+  color: inherit;
+}

@@ -50,6 +50,9 @@ const GAMES = {
   snake_slow: { z: 'jsnake_s:z', p: 'jsnake_s:p', higher: true },
   snake_normal: { z: 'jsnake_n:z', p: 'jsnake_n:p', higher: true },
   snake_fast: { z: 'jsnake_f:z', p: 'jsnake_f:p', higher: true },
+  // 泡泡猫泡泡龙按难度分榜：简单（警戒线固定）与挑战（线上移）分数不可比
+  bubble_easy: { z: 'jbubble_e:z', p: 'jbubble_e:p', higher: true },
+  bubble_hard: { z: 'jbubble_h:z', p: 'jbubble_h:p', higher: true },
   // 旧版三档共用一个榜。保留只为兼容尚未刷新的客户端和后台删除接口，
   // 前端已经不再写这里。
   minesweeper: { z: 'jmine:z', p: 'jmine:p', higher: false, legacy: true }
@@ -78,6 +81,11 @@ const SLIDE_LEVELS = {
   slide_easy: 'easy',
   slide_medium: 'medium',
   slide_hard: 'hard'
+};
+
+const BUBBLE_LEVELS = {
+  bubble_easy: 'easy',
+  bubble_hard: 'hard'
 };
 
 const SNAKE_LEVELS = {
@@ -365,6 +373,22 @@ function parseRun(game, body) {
     if (score % 10 !== 0) return { error: '分数与食物数不匹配' };
     if (score / 10 !== length - 3) return { error: '分数与蛇身长度不匹配' };
     return { score, extra: { length, lv } };
+  }
+
+  if (BUBBLE_LEVELS[game]) {
+    // 泡泡猫泡泡龙：无尽模式总分 = 消除×10 + 坠落×20，再乘连消倍率（最高 ×3）。
+    // 0–50 万覆盖休闲到长局；消除数 0–9999，波数 1–999。
+    const score = intIn(body.score, 0, 500000);
+    const popped = intIn(body.popped, 0, 9999);
+    const wave = intIn(body.wave, 1, 999);
+    const lv = String(body.lv || '');
+    if (score == null) return { error: '分数不合法' };
+    if (popped == null) return { error: '消除数不合法' };
+    if (wave == null) return { error: '波数不合法' };
+    if (BUBBLE_LEVELS[game] !== lv) return { error: '成绩与难度不匹配' };
+    // 粗校验：单颗泡泡（含坠落与倍率）最多 60 分，另留清屏奖励余量
+    if (score > popped * 60 + 300) return { error: '分数与消除数不匹配' };
+    return { score, extra: { lv: BUBBLE_LEVELS[game] } };
   }
 
   return { error: '未知游戏' };

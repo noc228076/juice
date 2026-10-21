@@ -21,7 +21,7 @@
 - **`milktea` 奶茶人格配方** — 26 个品牌 logo + 人格解析
 
 ### 2. 📖 自我说明书
-`manual` — 14 章出厂说明书，区分问答型、外链章节与小游戏型：
+`manual` — 15 章出厂说明书，区分问答型、外链章节与小游戏型：
 
 | # | 测试 | 英文名 | 类型 |
 |---|---|---|---|
@@ -40,6 +40,7 @@
 | 12 | 数字华容道 | SLIDING PUZZLE | 交互小游戏 |
 | 13 | 俄罗斯方块 | TETRIS | 交互小游戏 |
 | 14 | 贪吃蛇 | SNAKE | 交互小游戏 |
+| 15 | 泡泡猫泡泡龙 | BUBBLE CAT | 交互小游戏 |
 
 ### 3. ☯️ 东西玄学
 四个子屏通过「西方塔罗 / 东方灵签 / 生辰八字 / 工位风水」切换条互跳：
@@ -130,7 +131,7 @@ juice/
 ├── server.js               # 零依赖本地服务器（含 api/ 模拟）
 ├── build-bundles.js        # 打包脚本
 ├── api/
-│   └── leaderboard.js      # 18 个 game key 的全服排行榜 Serverless 函数
+│   └── leaderboard.js      # 19 个 game key 的全服排行榜 Serverless 函数
 ├── favicon.png             # 旧版 192px 图标（已不再被 index.html 引用）
 │
 ├── js/
@@ -260,7 +261,7 @@ Vercel 托管，连接 GitHub `main` 分支自动部署，无需手动构建命�
 
 ### 全服排行榜（需要一次性配置）
 
-`api/leaderboard.js` 为 2048 / 反应速度 / 色彩敏锐度 / 扫雷三档 / 舒尔特三档提供全服榜（共 9 个在役 key，另有 legacy `minesweeper`），使用 Upstash Redis 存储，**不配置也能部署**——此时接口返回 503，前端自动退回本机战绩，游戏不受影响。
+`api/leaderboard.js` 提供全服榜（在役 key：2048 / 反应速度三关 / 色彩 / 扫雷三档 / 舒尔特三档 / 定位靶场 / 数独三档 / 华容道三档 / 俄罗斯方块 / 贪吃蛇三档 / 泡泡猫两档，另有 legacy `minesweeper`），使用 Upstash Redis 存储，**不配置也能部署**——此时接口返回 503，前端自动退回本机战绩，游戏不受影响。
 
 开启全服榜：
 

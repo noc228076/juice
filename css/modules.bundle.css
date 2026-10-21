@@ -6450,6 +6450,79 @@ html[data-theme="light"] #mod-manual .snake-pause-overlay {
 }
 
 
+/* ============ 15 泡泡猫泡泡龙 (BUBBLE CAT) ============ */
+/* 画风：糖果天空画进 canvas 自带背景，猫与按钮为 PNG 素材。
+   布局与贪吃蛇同族：舞台 + 右侧竖排按钮 + 暂停遮罩。 */
+#mod-manual .bc-layout {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  align-items: flex-start;
+}
+#mod-manual .bc-stage-wrap {
+  position: relative;
+  flex: 0 0 auto;
+}
+#mod-manual .bc-canvas {
+  display: block;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 14px;
+  max-width: 100%;
+  height: auto;
+  touch-action: none;
+  cursor: crosshair;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.32);
+}
+#mod-manual .bc-pause-overlay {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border-radius: 14px;
+  background: rgba(10, 8, 14, 0.86);
+  color: #F2EEE3;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.9;
+  z-index: 5;
+}
+#mod-manual .bc-pause-overlay.is-active { display: flex; }
+#mod-manual .bc-pause-overlay small {
+  font-size: 13px;
+  font-weight: 400;
+  color: #9A948A;
+}
+/* 暂停 / 重开：放警戒线下方的左下角草地上，
+   不挤占球堆顶部空间；z-index 高于暂停遮罩(5)，暂停后「继续」仍可点 */
+#mod-manual .bc-float {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  display: flex;
+  gap: 10px;
+  z-index: 6;
+}
+#mod-manual .bc-imgbtn {
+  padding: 0;
+  background: none;
+  border: 0;
+  cursor: pointer;
+  line-height: 0;
+}
+#mod-manual .bc-imgbtn img {
+  width: 44px;
+  height: 44px;
+  display: block;
+  filter: drop-shadow(0 3px 6px rgba(20, 10, 40, 0.35));
+}
+@media (max-width: 640px) {
+  #mod-manual .bc-canvas { width: 340px; }
+  #mod-manual .bc-imgbtn img { width: 36px; height: 36px; }
+}
+
+
 /* === css/modules/decision.css === */
 /* =========================================================
    模块 6：纠结拯救机 (Cyber Decision Oracle)

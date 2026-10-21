@@ -41,7 +41,8 @@
     swap: '<path d="M4 8h13.5M14 4.5 17.5 8 14 11.5M20 16H6.5M10 12.5 6.5 16l3.5 3.5"/>',
     sleepy: '<path d="M5 9.5h6l-6 5.5h6M14.5 4h4.7l-4.7 4.7h4.7"/>',
     list: '<path d="M8.5 6h12M8.5 12h12M8.5 18h12M4 6h.01M4 12h.01M4 18h.01"/>',
-    zap: '<path d="M13 2.5 4.8 13.4h6L9.6 21.5l8.7-11.4h-6.1L13 2.5Z"/>'
+    zap: '<path d="M13 2.5 4.8 13.4h6L9.6 21.5l8.7-11.4h-6.1L13 2.5Z"/>',
+    bubble: '<circle cx="9" cy="10" r="5.2"/><circle cx="17.6" cy="6.4" r="2.6"/><circle cx="16.2" cy="16.4" r="3.6"/><path d="M6.4 8.6a3.2 3.2 0 0 1 2-1.8"/>'
   };
 
   window.icon = function (name, cls) {

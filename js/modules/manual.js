@@ -357,7 +357,8 @@
     'sudoku': { scr: 'scr-sm-sudoku', top: 'sm-sudokutop', body: 'sm-sudokubody', start: 'startSudoku' },
     'slide': { scr: 'scr-sm-slide', top: 'sm-slidetop', body: 'sm-slidebody', start: 'startSlidePuzzle' },
     'tetris': { scr: 'scr-sm-tetris', top: 'sm-tetristop', body: 'sm-tetrisbody', start: 'startTetris' },
-    'snake': { scr: 'scr-sm-snake', top: 'sm-snaketop', body: 'sm-snakebody', start: 'startSnake' }
+    'snake': { scr: 'scr-sm-snake', top: 'sm-snaketop', body: 'sm-snakebody', start: 'startSnake' },
+    'bubble': { scr: 'scr-sm-bubble', top: 'sm-bubbletop', body: 'sm-bubblebody', start: 'startBubbleCat' }
   };
 
   function openGame(t, options) {

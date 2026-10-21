@@ -742,6 +742,30 @@
       ]
     },
 
+    /* ============ 15 泡泡猫泡泡龙 ============
+       猫咪发射泡泡，同色三连即消除，失去支撑的整串坠落。
+       球堆每 N 发下沉一行，压过警戒线结束。按总分进全服排行榜。 */
+    bubble: {
+      id: 'bubble', num: '15', mode: 'interactive', engine: 'bubble',
+      title: '泡泡猫泡泡龙', en: 'BUBBLE CAT',
+      tagline: '猫咪吐泡泡，三同色就消除——别让泡泡碰到警戒线',
+      icon: 'bubble', color: '#F472B6',
+      meta: '双难度分榜 · 自动存档',
+      intro: [
+        '移动指针（或手指）瞄准，点击 / 轻触发射泡泡。',
+        '同色凑满 3 颗即消除；隔断支撑让整串坠落，得分更高。',
+        '挑战模式每发射若干次警戒线上抬一行，简单模式警戒线固定；清空全场则退回底部。',
+        '彩虹泡泡可以当任意颜色用；进度自动存档，退出随时继续。'
+      ],
+      disclaimer: '泡泡龙的分数和角度预判强相关，触屏和鼠标手感也不同。图一乐、练眼力。仅供参考。',
+      certs: [
+        { min: 1500, icon: 'crown', name: '泡泡宗师', text: '弹道都在你眼里提前画好了——每一发都打在球堆最要命的那颗上。' },
+        { min: 800, icon: 'gem', name: '消泡高手', text: '卡缝、断桥、借墙反弹，你已经摸到泡泡龙的乐趣内核了。' },
+        { min: 300, icon: 'bolt', name: '手感在线', text: '三连消已经不稀奇，差的是让整串泡泡一起坠落的最后一刀。' },
+        { min: 0, icon: 'smile', name: '新手上喵', text: '每只猫的第一发泡泡都会歪，多撸几局就顺了。' }
+      ]
+    },
+
     /* ============ 10 定位射击靶场 ============
        FPS 式定位训练：场上恒定三颗球，打掉补新，点空扣分。
        30 秒限时，按总分进全服排行榜。 */
@@ -767,5 +791,5 @@
     }
   };
   /* 首页章节顺序 */
-  window.SM_ORDER = ['social-battery', 'procrastination', 'slacking', 'night-owl', 'reaction', 'color', 'game-2048', 'minesweeper', 'schulte', 'aim', 'sudoku', 'slide', 'tetris', 'snake'];
+  window.SM_ORDER = ['social-battery', 'procrastination', 'slacking', 'night-owl', 'reaction', 'color', 'game-2048', 'minesweeper', 'schulte', 'aim', 'sudoku', 'slide', 'tetris', 'snake', 'bubble'];
 })();

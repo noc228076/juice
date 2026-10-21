@@ -2606,7 +2606,7 @@
       return null;
     }
     function clearState() {
-      try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
+      try { localStorage.removeItem(saveKey()); } catch (e) {}
     }
 
     /* ---------- 界面 ---------- */
@@ -4023,6 +4023,860 @@
         destroyed = true;
         running = false;
         stopTimer();
+        window.removeEventListener('keydown', onKeyDown);
+        if (lbPanel) lbPanel.destroy();
+      }
+    };
+  };
+
+  /* ==================================================================
+   * 15 泡泡猫泡泡龙
+   * 机制参考 rembound/Bubble-Shooter-HTML5（MIT），按项目模块风格重写：
+   * 六边形网格 + 发射碰撞 + 同色三连消除 + 失去支撑坠落 + 定时下沉。
+   * 猫咪素材为项目原创生成；UI 按钮取自 pzUH Bubble Button Pack（CC0）。
+   * ================================================================== */
+  window.startBubbleCat = function (root, onFinish) {
+    var el = makeRoot(root);
+    var destroyed = false, finished = false;
+
+    var W = 480, H = 640;
+    var CEIL_H = 20;                 // 天花板细边轨高度（球堆尽量贴顶）
+    var COLS = 11;                   // 宽行泡泡数（窄行 10，整体右移半格）
+    var TILE_D = W / COLS;           // 泡泡直径
+    var R = TILE_D / 2;
+    var ROW_H = TILE_D * 0.866;      // 六边形行距
+    var DANGER_Y = 486;              // 警戒线：泡泡压过即结束
+    var LAUNCH = { x: W / 2, y: 520 };   /* 猫头顶上方：别盖住脸 */
+    var SPEED = 950;                 // 泡泡飞行速度 px/s
+    var SINK_BASE = 6;               // 开局几发下沉一次（随波数加快，下限 3）
+    /* 双难度：简单=警戒线固定（错球下堆仍可输）；挑战=警戒线上移 */
+    var MODES = {
+      easy: { key: 'easy', name: '简单', desc: '警戒线固定不动，适合休闲热手' },
+      hard: { key: 'hard', name: '挑战', desc: '警戒线步步紧逼，全服榜主战场' }
+    };
+    var dif = MODES.easy;
+    function saveKey() { return 'sm_bubble_state_' + dif.key; }   /* 进度按难度分开存 */
+    var EMPTY = 0, RAINBOW = 7;
+
+    /* 糖果 6 色（与素材总览一致）：[暗边, 亮部, 主色] */
+    var PALETTE = [
+      { dark: '#C4435B', light: '#FFD3DA', base: '#FF6B81' },
+      { dark: '#E8770E', light: '#FFE3BF', base: '#FFA94D' },
+      { dark: '#D9A404', light: '#FFF3BF', base: '#FFD43B' },
+      { dark: '#2F9E44', light: '#C3FAD0', base: '#51CF66' },
+      { dark: '#1971C2', light: '#C5E3FF', base: '#4DABF7' },
+      { dark: '#6741D9', light: '#E5DBFF', base: '#9775FA' }
+    ];
+
+    /* ---------- 榜单 ---------- */
+    var lbPanel = window.AppLbPanel ? window.AppLbPanel.create({
+      game: 'bubble_easy',
+      storeKey: 'sm_bubble_runs_easy',
+      higher: true,
+      idPrefix: 'lbbubble',
+      formatScore: function (v) { return v + ' 分'; },
+      describe: function (run) {
+        return { score: run.score, extra: { wave: run.wave, popped: run.popped, lv: dif.key } };
+      },
+      localCols: function (r) {
+        return [
+          '<span class="lb-score">' + (r.score || 0) + '</span>',
+          '<span class="lb-tile">第 ' + (r.wave || 1) + ' 波</span>',
+          '<span class="lb-meta">消 ' + (r.popped || 0) + ' 颗</span>'
+        ];
+      },
+      globalCols: function (r) {
+        return [
+          '<span class="lb-ava">' + window.AppLbPanel.esc(r.avatar || '🙂') + '</span>',
+          '<span class="lb-name">' + window.AppLbPanel.esc(r.name || '匿名玩家') +
+            (r.isMe ? '<i class="lb-me">我</i>' : '') + '</span>',
+          '<span class="lb-score">' + (r.score || 0) + '</span>',
+          '<span class="lb-tile">' + ((r.extra && r.extra.lv) === 'hard' ? '挑战' : '简单') + '</span>'
+        ];
+      }
+    }) : null;
+    function mountLbHost() {
+      mountLbHostFor(lbPanel, root, el);
+    }
+
+    function syncLbMode() {
+      if (lbPanel) lbPanel.setGame('bubble_' + dif.key, 'sm_bubble_runs_' + dif.key);
+    }
+
+    /* ---------- 状态 ---------- */
+    var rows = [];          // rows[i][c] ∈ 0(空) | 1..6(色) | 7(彩虹)
+    var evenTop = true;     // 第 0 行是否为宽行（每次下沉翻转）
+    var cur = 1, next = 2;  // 待发 / 下一颗（1..6，7=彩虹）
+    var score = 0, waves = 1, poppedTotal = 0;
+    var shotsUntilSink = 6, sinkEvery = 6;
+    var streak = 0;         // 连消次数（连续有消除的发射数）
+    var sinkCount = 0;      // 警戒线已上抬的行数
+    var mode = 'intro';     // intro | play | over
+    var paused = false;
+    var flying = null;      // {x,y,vx,vy,v}
+    var aimA = Math.PI / 2;
+    var catPose = 'idle', poseUntil = 0;
+    var particles = [], texts = [];
+    var sinkT = 1;          // 下沉动画进度 0→1（1=静止）
+    var canvasEl = null, ctx = null, skyCv = null;
+    var rafId = 0, lastTs = 0;
+    var sprites = {};       // 泡泡预渲染图
+
+    /* 猫咪立绘（进入章节即开始预载） */
+    var catImgs = {};
+    ['idle', 'shoot', 'cheer'].forEach(function (k) {
+      var im = new Image();
+      im.src = 'assets/bubble-cat/cat_' + k + '.webp';
+      catImgs[k] = im;
+    });
+
+    /* ---------- 网格几何 ---------- */
+    function isWide(i) { return (i % 2 === 0) === evenTop; }
+    function rowWidth(i) { return isWide(i) ? COLS : COLS - 1; }
+    function cellX(i, c) { return R + c * TILE_D + (isWide(i) ? 0 : R); }
+    function cellY(i) { return CEIL_H + R + i * ROW_H; }
+    function ensureRow(i) {
+      while (rows.length <= i) rows.push(new Array(rowWidth(rows.length)).fill(EMPTY));
+    }
+    function getCell(i, c) {
+      if (i < 0 || !rows[i] || c < 0 || c >= rows[i].length) return EMPTY;
+      return rows[i][c];
+    }
+    /* 相邻六格：宽行的上下行是窄行 → (c-1, c)；窄行的上下行是宽行 → (c, c+1) */
+    function neighborsOf(i, c) {
+      var a = isWide(i) ? c - 1 : c;
+      var b = isWide(i) ? c : c + 1;
+      return [[i, c - 1], [i, c + 1], [i - 1, a], [i - 1, b], [i + 1, a], [i + 1, b]];
+    }
+
+    /* ---------- 关卡配色：波数越高颜色越多 ---------- */
+    function paletteCount() { return Math.min(6, 3 + Math.ceil(waves / 3)); }
+    function activeColors() {
+      var limit = paletteCount(), present = {};
+      rows.forEach(function (row) {
+        row.forEach(function (v) { if (v >= 1 && v <= 6) present[v] = 1; });
+      });
+      var list = [];
+      for (var v = 1; v <= limit; v++) if (present[v]) list.push(v);
+      if (!list.length) for (var w = 1; w <= limit; w++) list.push(w);
+      return list;
+    }
+    function rollBubble(other) {
+      /* 彩虹概率 6%，且不与待发位上的另一颗连珠 */
+      if (Math.random() < 0.06 && other !== RAINBOW) return RAINBOW;
+      var list = activeColors();
+      return list[Math.floor(Math.random() * list.length)];
+    }
+
+    /* ---------- 存档 ---------- */
+    function saveState() {
+      if (mode !== 'play') return;
+      try {
+        localStorage.setItem(saveKey(), JSON.stringify({
+          v: 3,
+          md: dif.key,
+          rows: rows.map(function (row) { return row.slice(); }),
+          score: score, waves: waves, popped: poppedTotal,
+          sk: sinkCount, sus: shotsUntilSink, se: sinkEvery,
+          cur: cur, next: next
+        }));
+      } catch (e) {}
+    }
+    function loadState() {
+      try {
+        var s = JSON.parse(localStorage.getItem(saveKey()) || 'null');
+        var ok = s && s.v === 3 && s.md === dif.key && Array.isArray(s.rows) && s.rows.length > 0 &&
+          s.rows.every(function (row) {
+            return Array.isArray(row) && row.length >= 8 &&
+              row.every(function (v) { return v >= 0 && v <= 7; });
+          }) && typeof s.score === 'number' && s.waves >= 1;
+        return ok ? s : null;
+      } catch (e) { return null; }
+    }
+    function clearState() {
+      try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
+    }
+
+    /* ---------- 布局 ---------- */
+    function resetGame() {
+      rows = [];
+      evenTop = true;
+      for (var i = 0; i < 5; i++) {
+        rows.push(new Array(rowWidth(i)).fill(EMPTY));
+        for (var c = 0; c < rowWidth(i); c++) {
+          rows[i][c] = 1 + Math.floor(Math.random() * 4);   // 开局 4 色，好上手
+        }
+      }
+      score = 0; waves = 1; poppedTotal = 0; sinkCount = 0;
+      shotsUntilSink = SINK_BASE; sinkEvery = SINK_BASE;
+      streak = 0; cur = rollBubble(0); next = rollBubble(cur);
+      flying = null; particles = []; texts = []; sinkT = 1;
+      catPose = 'idle';
+    }
+
+    /* 警戒线当前 y：每 sink 一次上抬一行。球堆本身不再下插空行，
+       「失去支撑」的锚点恒为紧贴天花板的第 0 行——
+       之前在顶部插空行会导致锚点丢失、整堆被误判坠落、无限清屏。 */
+    function dangerLineY() {
+      return DANGER_Y - sinkCount * ROW_H;
+    }
+
+    function doSink() {
+      waves++;
+      sinkEvery = Math.max(3, SINK_BASE - Math.floor(waves / 4));
+      shotsUntilSink = sinkEvery;
+      if (dif.key !== 'hard') return;   // 简单模式：只升颜色档，警戒线固定
+      sinkCount++;
+      sinkT = 0;   // 上抬动画
+      // 空间耗尽：警戒线顶到天花板附近
+      if (dangerLineY() <= CEIL_H + 2 * R) { endGame(); return; }
+      // 任何泡泡碰到警戒线即结束
+      for (var i = 0; i < rows.length; i++) {
+        for (var c = 0; c < rows[i].length; c++) {
+          if (rows[i][c] && CEIL_H + R + i * ROW_H + R >= dangerLineY()) { endGame(); return; }
+        }
+      }
+    }
+
+    /* ---------- 泡泡贴图预渲染 ---------- */
+    function hexA(hex, a) {
+      var n = parseInt(hex.slice(1), 16);
+      return 'rgba(' + ((n >> 16) & 255) + ',' + ((n >> 8) & 255) + ',' + (n & 255) + ',' + a + ')';
+    }
+    function makeSprite(v, r) {
+      var S = Math.ceil(r * 2 + 4);
+      var cv = document.createElement('canvas');
+      cv.width = S; cv.height = S;
+      var g = cv.getContext('2d');
+      var cx = S / 2, cy = S / 2;
+      if (v === RAINBOW) {
+        var seg = (Math.PI * 2) / 6;
+        for (var k = 0; k < 6; k++) {
+          g.beginPath();
+          g.moveTo(cx, cy);
+          g.arc(cx, cy, r * 0.94, k * seg - Math.PI / 2, (k + 1) * seg - Math.PI / 2);
+          g.closePath();
+          g.fillStyle = PALETTE[k].base;
+          g.fill();
+        }
+        g.fillStyle = 'rgba(255,255,255,0.30)';
+        g.beginPath(); g.arc(cx, cy, r * 0.94, 0, Math.PI * 2); g.fill();
+        g.strokeStyle = 'rgba(255,255,255,0.85)';
+        g.lineWidth = Math.max(1.5, r * 0.10);
+        g.beginPath(); g.arc(cx, cy, r * 0.94 - g.lineWidth / 2, 0, Math.PI * 2); g.stroke();
+      } else {
+        var pal = PALETTE[v - 1];
+        var grad = g.createRadialGradient(cx - r * 0.38, cy - r * 0.42, r * 0.12, cx, cy, r * 1.02);
+        grad.addColorStop(0, pal.light);
+        grad.addColorStop(0.5, pal.base);
+        grad.addColorStop(1, pal.dark);
+        g.fillStyle = grad;
+        g.beginPath(); g.arc(cx, cy, r, 0, Math.PI * 2); g.fill();
+        g.strokeStyle = hexA(pal.dark, 0.45);
+        g.lineWidth = Math.max(1.5, r * 0.09);
+        g.beginPath(); g.arc(cx, cy, r - g.lineWidth / 2, 0, Math.PI * 2); g.stroke();
+      }
+      /* 高光：斜椭圆 + 小圆点 + 底部反光，玻璃球质感 */
+      g.fillStyle = 'rgba(255,255,255,0.92)';
+      g.beginPath();
+      g.ellipse(cx - r * 0.34, cy - r * 0.42, r * 0.30, r * 0.17, -0.55, 0, Math.PI * 2);
+      g.fill();
+      g.fillStyle = 'rgba(255,255,255,0.55)';
+      g.beginPath(); g.arc(cx + r * 0.30, cy - r * 0.44, r * 0.09, 0, Math.PI * 2); g.fill();
+      g.fillStyle = 'rgba(255,255,255,0.20)';
+      g.beginPath();
+      g.ellipse(cx + r * 0.06, cy + r * 0.54, r * 0.34, r * 0.13, 0.2, 0, Math.PI * 2);
+      g.fill();
+      return cv;
+    }
+    function buildSprites() {
+      for (var v = 1; v <= 6; v++) {
+        sprites[v] = makeSprite(v, R);
+        sprites['s' + v] = makeSprite(v, 15);
+      }
+      sprites[RAINBOW] = makeSprite(RAINBOW, R);
+      sprites['s' + RAINBOW] = makeSprite(RAINBOW, 15);
+    }
+
+    /* ---------- 静态背景（天空 / 天花板 / 草地 / 警戒线） ---------- */
+    function buildSky() {
+      var cv = document.createElement('canvas');
+      cv.width = W; cv.height = H;
+      var g = cv.getContext('2d');
+      var grad = g.createLinearGradient(0, 0, 0, H);
+      grad.addColorStop(0, '#A5D8FF');
+      grad.addColorStop(0.55, '#D0BFFF');
+      grad.addColorStop(1, '#FFDEEB');
+      g.fillStyle = grad;
+      g.fillRect(0, 0, W, H);
+      /* 云 */
+      g.fillStyle = 'rgba(255,255,255,0.75)';
+      [[70, 300, 1], [410, 360, 1.2], [50, 420, 0.7]].forEach(function (cl) {
+        var cx = cl[0], cy = cl[1], s = cl[2];
+        g.beginPath();
+        g.ellipse(cx, cy, 46 * s, 17 * s, 0, 0, Math.PI * 2);
+        g.ellipse(cx + 22 * s, cy - 10 * s, 26 * s, 13 * s, 0, 0, Math.PI * 2);
+        g.fill();
+      });
+      /* 草地 */
+      g.fillStyle = '#8CE99A';
+      g.beginPath(); g.ellipse(W / 2 - 150, H + 34, 250, 78, 0, 0, Math.PI * 2); g.fill();
+      g.fillStyle = '#69DB7C';
+      g.beginPath(); g.ellipse(W / 2 + 150, H + 40, 260, 84, 0, 0, Math.PI * 2); g.fill();
+      /* 天花板：细边轨 */
+      g.fillStyle = '#748FFC';
+      g.fillRect(0, 0, W, CEIL_H);
+      g.fillStyle = '#5F7BEA';
+      g.fillRect(0, CEIL_H, W, 4);
+      g.fillStyle = 'rgba(255,255,255,0.35)';
+      for (var x = 15; x < W; x += 30) {
+        g.beginPath(); g.arc(x, 10, 2.5, 0, Math.PI * 2); g.fill();
+      }
+      return cv;
+    }
+
+    /* ---------- 逻辑 ---------- */
+    function snapCell(px, py) {
+      var best = null, bestD = 1e9;
+      var lim = TILE_D * 1.15, lim2 = lim * lim;
+      /* 上限必须先取值：ensureRow 会让 rows.length 增长，
+         写成 i <= rows.length 会导致循环条件永远成立、无限推行直到崩溃 */
+      var maxRow = rows.length;
+      for (var i = 0; i <= maxRow; i++) {
+        ensureRow(i);
+        for (var c = 0; c < rowWidth(i); c++) {
+          if (rows[i][c]) continue;
+          var dx = cellX(i, c) - px, dy = (CEIL_H + R + i * ROW_H) - py;
+          var d2 = dx * dx + dy * dy;
+          if (d2 < bestD && d2 < lim2) { bestD = d2; best = [i, c]; }
+        }
+      }
+      return best;
+    }
+
+    function collectMatches(si, sc, v) {
+      /* 彩虹泡泡：吸附后变成相邻最多的那种颜色 */
+      var target = v;
+      if (v === RAINBOW) {
+        var cnt = {};
+        neighborsOf(si, sc).forEach(function (n) {
+          var g = getCell(n[0], n[1]);
+          if (g >= 1 && g <= 6) cnt[g] = (cnt[g] || 0) + 1;
+        });
+        var bestC = 0, bestN = 0;
+        for (var k in cnt) if (cnt[k] > bestN) { bestN = cnt[k]; bestC = +k; }
+        if (!bestC) return null;
+        target = bestC;
+      }
+      var seen = {}, stack = [[si, sc]], out = [];
+      seen[si + '_' + sc] = 1;
+      while (stack.length) {
+        var cur_ = stack.pop();
+        out.push(cur_);
+        neighborsOf(cur_[0], cur_[1]).forEach(function (n) {
+          var key = n[0] + '_' + n[1];
+          if (seen[key]) return;
+          var g = getCell(n[0], n[1]);
+          /* 彩虹(7)是万能牌：跟随任何目标色参与匹配，
+             否则会作为死子永久卡在场里、还挡住穿过它的连线 */
+          if (g === target || g === RAINBOW) { seen[key] = 1; stack.push(n); }
+        });
+      }
+      return out.length >= 3 ? out : null;
+    }
+
+    function removeFloating() {
+      var seen = {}, stack = [];
+      if (rows[0]) {
+        for (var c = 0; c < rows[0].length; c++) {
+          if (rows[0][c]) { seen['0_' + c] = 1; stack.push([0, c]); }
+        }
+      }
+      while (stack.length) {
+        var cur_ = stack.pop();
+        neighborsOf(cur_[0], cur_[1]).forEach(function (n) {
+          var key = n[0] + '_' + n[1];
+          if (seen[key] || !getCell(n[0], n[1])) return;
+          seen[key] = 1;
+          stack.push(n);
+        });
+      }
+      var dropped = 0;
+      for (var i = 0; i < rows.length; i++) {
+        for (var cc = 0; cc < rows[i].length; cc++) {
+          if (!rows[i][cc]) continue;
+          if (seen[i + '_' + cc]) continue;
+          particles.push({
+            x: cellX(i, cc), y: CEIL_H + R + i * ROW_H,
+            vx: (Math.random() - 0.5) * 120, vy: -60 - Math.random() * 60,
+            v: rows[i][cc], life: 1.2
+          });
+          rows[i][cc] = EMPTY;
+          dropped++;
+        }
+      }
+      return dropped;
+    }
+
+    function spawnBurst(x, y, v) {
+      var col = v === RAINBOW ? '#FFD43B' : PALETTE[v - 1].base;
+      var lite = v === RAINBOW ? '#FFF3BF' : PALETTE[v - 1].light;
+      for (var i = 0; i < 7; i++) {
+        var a = (i / 7) * Math.PI * 2 + Math.random() * 0.8;
+        var sp = 70 + Math.random() * 90;
+        particles.push({
+          x: x, y: y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 40,
+          v: v, dot: true, col: i % 2 ? lite : col, life: 0.5
+        });
+      }
+    }
+
+    function addText(x, y, str, big) {
+      texts.push({ x: x, y: y, str: str, life: 1, big: !!big });
+    }
+
+    function resolveShot(px, py, v) {
+      var cell = snapCell(px, py);
+      if (!cell) { endGame(); return; }
+      rows[cell[0]][cell[1]] = v;
+      var matches = collectMatches(cell[0], cell[1], v);
+      var mx = cellX(cell[0], cell[1]), my = CEIL_H + R + cell[0] * ROW_H;
+      var gained = 0, dropped = 0, poppedN = 0;
+      if (matches) {
+        streak++;
+        var mult = Math.min(3, streak);
+        poppedN = matches.length;
+        matches.forEach(function (m) {
+          spawnBurst(cellX(m[0], m[1]), CEIL_H + R + m[0] * ROW_H, v === RAINBOW ? RAINBOW : v);
+          rows[m[0]][m[1]] = EMPTY;
+        });
+        dropped = removeFloating();
+        gained = poppedN * 10 * mult + dropped * 20;
+        score += gained;
+        poppedTotal += poppedN + dropped;
+        addText(mx, my, '+' + gained, mult > 1 || dropped > 0);
+        if (mult > 1) addText(W / 2, my - 44, '连消 ×' + mult, true);
+        if (dropped >= 4) { catPose = 'cheer'; poseUntil = performance.now() + 800; }
+        if (window.SFX && window.SFX.select) window.SFX.select();
+      } else {
+        streak = 0;
+      }
+      if (my + R >= dangerLineY()) { endGame(); return; }
+      shotsUntilSink--;
+      if (shotsUntilSink <= 0) {
+        doSink();
+        if (mode !== 'play') return;
+      }
+      /* 清屏奖励：整片清空补一批新泡泡，游戏继续 */
+      var left = 0;
+      rows.forEach(function (row) { row.forEach(function (v2) { if (v2) left++; }); });
+      if (!left) {
+        score += 200;
+        addText(W / 2, 300, '清屏 +200', true);
+        catPose = 'cheer'; poseUntil = performance.now() + 900;
+        rows = [];
+        evenTop = true;
+        for (var i = 0; i < 4; i++) {
+          rows.push(new Array(rowWidth(i)).fill(EMPTY));
+          for (var c = 0; c < rowWidth(i); c++) {
+            rows[i][c] = 1 + Math.floor(Math.random() * paletteCount());
+          }
+        }
+        /* 清屏奖励：警戒线退回底部，补满活动空间（sinkT=1 跳过上移动画） */
+        sinkCount = 0;
+        sinkT = 1;
+        shotsUntilSink = Math.max(shotsUntilSink, SINK_BASE);
+      }
+      cur = next;
+      next = rollBubble(cur);
+      saveState();
+      updateHud();
+    }
+
+    function endGame() {
+      if (mode !== 'play') return;
+      mode = 'over';
+      flying = null;
+      stopLoop();
+      clearState();
+      if (window.SFX && window.SFX.wrong) window.SFX.wrong();
+      if (lbPanel && score > 0) {
+        lbPanel.submit({ score: score, wave: waves, popped: poppedTotal });
+      }
+      finish(false);
+    }
+
+    /* 主动结算：玩家自行结束本局，成绩照常上榜 */
+    function settleRun() {
+      if (mode !== 'play' || finished) return;
+      mode = 'over';
+      flying = null;
+      stopLoop();
+      clearState();
+      if (window.SFX && window.SFX.select) window.SFX.select();
+      if (lbPanel && score > 0) {
+        lbPanel.submit({ score: score, wave: waves, popped: poppedTotal });
+      }
+      finish(true);
+    }
+
+    function finish(voluntary) {
+      var certs = window.SM_DATA.bubble.certs;
+      var cert = certs[certs.length - 1];
+      for (var i = 0; i < certs.length; i++) {
+        if (score >= certs[i].min) { cert = certs[i]; break; }
+      }
+      onFinish({
+        icon: cert.icon, name: cert.name,
+        tag: (voluntary ? '主动结算 · ' : '') + score + ' 分 · ' + dif.name + ' · 第 ' + waves + ' 波 · 消除 ' + poppedTotal + ' 颗',
+        text: cert.text + ' 本局共消除 ' + poppedTotal + ' 颗泡泡，坚持到第 ' + waves + ' 波。',
+        big: { label: '总分', value: score + ' <small>分</small>' },
+        bars: [
+          { label: '消泡数', pct: Math.min(100, Math.round(poppedTotal / 120 * 100)), hi: true },
+          { label: '坚持波数', pct: Math.min(100, Math.round(waves / 12 * 100)) }
+        ],
+        blocks: [
+          { h: '怎么练', text: '优先打「断桥」：隔断某片泡泡与顶部的连接，让整串失去支撑一起坠落，比分颗消划算得多。' }
+        ],
+        quip: window.SM_DATA.bubble.disclaimer,
+        cert: cert.name + ' · 认证',
+        detail: { type: cert.name, score: score, wave: waves, popped: poppedTotal, dif: dif.key }
+      });
+    }
+
+    /* ---------- 帧循环 ---------- */
+    function update(dt) {
+      if (sinkT < 1) sinkT = Math.min(1, sinkT + dt / 0.5);
+      if (catPose !== 'idle' && performance.now() > poseUntil) catPose = 'idle';
+      if (flying) {
+        flying.x += flying.vx * dt;
+        flying.y += flying.vy * dt;
+        if (flying.x < R + 2) { flying.x = R + 2; flying.vx = Math.abs(flying.vx); }
+        if (flying.x > W - R - 2) { flying.x = W - R - 2; flying.vx = -Math.abs(flying.vx); }
+        var hit = flying.y - R <= CEIL_H;
+        if (!hit) {
+          for (var i = 0; i < rows.length && !hit; i++) {
+            for (var c = 0; c < rows[i].length; c++) {
+              if (!rows[i][c]) continue;
+              var dx = cellX(i, c) - flying.x, dy = (CEIL_H + R + i * ROW_H) - flying.y;
+              if (dx * dx + dy * dy < TILE_D * 0.90 * (TILE_D * 0.90)) { hit = true; break; }
+            }
+          }
+        }
+        if (hit) {
+          var fx = flying.x, fy = Math.max(flying.y, CEIL_H + R), fv = flying.v;
+          flying = null;
+          resolveShot(fx, fy, fv);
+        }
+      }
+      particles = particles.filter(function (p) {
+        p.life -= dt;
+        if (p.life <= 0) return false;
+        p.x += p.vx * dt; p.y += p.vy * dt;
+        p.vy += (p.dot ? 260 : 900) * dt;
+        return true;
+      });
+      texts = texts.filter(function (t) {
+        t.life -= dt * 1.4;
+        t.y -= 28 * dt;
+        return t.life > 0;
+      });
+    }
+
+    function draw() {
+      if (!ctx) return;
+      ctx.clearRect(0, 0, W, H);
+      if (skyCv) ctx.drawImage(skyCv, 0, 0);
+      /* 球堆 */
+      for (var i = 0; i < rows.length; i++) {
+        for (var c = 0; c < rows[i].length; c++) {
+          var v = rows[i][c];
+          if (!v) continue;
+          var sp = sprites[v];
+          if (sp) ctx.drawImage(sp, cellX(i, c) - sp.width / 2, cellY(i) - sp.height / 2);
+        }
+      }
+      /* 警戒线（随波数上移，带动画） */
+      /* 匀速直线平移：缓出曲线起步太快，观感像「闪现在上面再往回蹭」 */
+      var lineY = dangerLineY() + (sinkT < 1 ? (1 - sinkT) * ROW_H : 0);   /* 从旧位置(新位置+一行)向上滑入 */
+      ctx.strokeStyle = 'rgba(224,70,70,0.75)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([10, 8]);
+      ctx.beginPath(); ctx.moveTo(0, lineY); ctx.lineTo(W, lineY); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = 'rgba(224,70,70,0.85)';
+      ctx.font = 'bold 12px sans-serif';
+      ctx.fillText('⚠ 警戒线', 8, lineY - 6);
+
+      /* 瞄准虚线 */
+      if (mode === 'play' && !paused && !flying && !finished) {
+        var len = 118, step = 22, t0 = 30;
+        ctx.fillStyle = 'rgba(255,255,255,0.85)';
+        for (var d = t0; d <= len; d += step) {
+          ctx.beginPath();
+          ctx.arc(LAUNCH.x + Math.cos(aimA) * d, LAUNCH.y - Math.sin(aimA) * d, 4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+      /* 飞行泡泡 */
+      if (flying) {
+        var fsp = sprites[flying.v];
+        if (fsp) ctx.drawImage(fsp, flying.x - fsp.width / 2, flying.y - fsp.height / 2);
+      }
+      /* 猫咪 */
+      var img = catImgs[catPose] || catImgs.idle;
+      if (img && img.complete && img.naturalWidth) {
+        var ch = 100, cw = img.naturalWidth * ch / img.naturalHeight;
+        ctx.drawImage(img, LAUNCH.x - cw / 2, H - ch - 4, cw, ch);
+      }
+      /* 待发泡泡 + 下一颗 */
+      if (mode === 'play') {
+        var csp = flying ? null : sprites[cur];
+        if (csp) ctx.drawImage(csp, LAUNCH.x - csp.width / 2, LAUNCH.y - csp.height / 2);
+        var nsp = sprites['s' + next];
+        if (nsp) ctx.drawImage(nsp, W - 84 - nsp.width / 2, H - 46 - nsp.height / 2);
+        ctx.fillStyle = 'rgba(255,255,255,0.9)';
+        ctx.font = '12px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText('下一颗', W - 84, H - 14);
+        ctx.textAlign = 'left';
+      }
+      /* 粒子与飘字 */
+      particles.forEach(function (p) {
+        if (p.dot) {
+          ctx.globalAlpha = Math.max(0, p.life / 0.5);
+          ctx.fillStyle = p.col;
+          ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI * 2); ctx.fill();
+        } else {
+          var sp2 = sprites[p.v];
+          if (sp2) {
+            ctx.globalAlpha = Math.max(0, Math.min(1, p.life / 1.2));
+            ctx.drawImage(sp2, p.x - sp2.width / 2, p.y - sp2.height / 2);
+          }
+        }
+        ctx.globalAlpha = 1;
+      });
+      texts.forEach(function (t) {
+        ctx.globalAlpha = Math.max(0, Math.min(1, t.life));
+        ctx.fillStyle = '#FFFFFF';
+        ctx.strokeStyle = 'rgba(60,40,90,0.85)';
+        ctx.lineWidth = 4;
+        ctx.font = (t.big ? 'bold 26px' : 'bold 18px') + ' sans-serif';
+        ctx.textAlign = 'center';
+        ctx.strokeText(t.str, t.x, t.y);
+        ctx.fillText(t.str, t.x, t.y);
+        ctx.globalAlpha = 1;
+        ctx.textAlign = 'left';
+      });
+    }
+
+    function loop(ts) {
+      rafId = 0;
+      if (destroyed || mode !== 'play' || paused) return;
+      var dt = Math.min((ts - lastTs) / 1000, 0.05);
+      lastTs = ts;
+      update(dt);
+      draw();
+      if (mode === 'play' && !paused) rafId = requestAnimationFrame(loop);
+    }
+    function stopLoop() {
+      if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
+    }
+    function ensureLoop() {
+      if (!rafId && mode === 'play' && !paused && !destroyed) {
+        lastTs = performance.now();
+        rafId = requestAnimationFrame(loop);
+      }
+    }
+
+    /* ---------- HUD / 暂停 ---------- */
+    function updateHud() {
+      var s = el.querySelector('#bcScore'); if (s) s.textContent = score;
+      var w = el.querySelector('#bcWave'); if (w) w.textContent = waves;
+      var n = el.querySelector('#bcSink'); if (n) n.textContent = shotsUntilSink;
+      var b = el.querySelector('#bcPop'); if (b) b.textContent = poppedTotal;
+    }
+
+    function setPaused(p) {
+      paused = p;
+      var btn = el.querySelector('#bcPause');
+      if (btn) btn.innerHTML = '<img src="assets/bubble-cat/btn_' + (p ? 'play' : 'pause') +
+        '.webp" alt="' + (p ? '继续' : '暂停') + '">';
+      var ov = el.querySelector('#bcPauseOverlay');
+      if (ov) ov.classList.toggle('is-active', p);
+      if (p) {
+        saveState();
+      } else {
+        lastTs = performance.now();
+        ensureLoop();
+      }
+    }
+    function togglePause() {
+      if (mode !== 'play' || finished) return;
+      if (window.SFX && window.SFX.tap) window.SFX.tap();
+      setPaused(!paused);
+    }
+
+    function onKeyDown(e) {
+      if (destroyed || mode !== 'play') return;
+      var scr = document.querySelector('.sm-screen.active');
+      if (!scr || scr.id !== 'scr-sm-bubble') return;
+      var k = e.key;
+      if (k === ' ' || k === 'p' || k === 'P') { e.preventDefault(); togglePause(); }
+    }
+
+    function aimFromEvent(e) {
+      var rect = canvasEl.getBoundingClientRect();
+      var sx = W / rect.width;
+      var x = (e.clientX - rect.left) * sx;
+      var y = (e.clientY - rect.top) * sx;
+      var a = Math.atan2(LAUNCH.y - y, x - LAUNCH.x);
+      if (!isFinite(a)) return;
+      aimA = Math.max(0.30, Math.min(Math.PI - 0.30, a));
+    }
+    function onCanvasDown(e) {
+      if (mode !== 'play' || paused || flying || sinkT < 1 || finished) return;
+      aimFromEvent(e);
+      flying = {
+        x: LAUNCH.x, y: LAUNCH.y,
+        vx: Math.cos(aimA) * SPEED, vy: -Math.sin(aimA) * SPEED,
+        v: cur
+      };
+      cur = next;
+      next = rollBubble(cur);
+      catPose = 'shoot';
+      poseUntil = performance.now() + 260;
+      if (window.SFX && window.SFX.tap) window.SFX.tap();
+      updateHud();
+      ensureLoop();
+    }
+
+    /* ---------- 开始页 ---------- */
+    function intro() {
+      mode = 'intro';
+      var saved = loadState();
+      el.innerHTML = hud('<b>泡泡猫泡泡龙</b>', '无尽计分 · 自动存档') +
+        '<div class="rz-stage">' +
+        '<div class="rz-big" style="font-size:30px">泡泡猫泡泡龙</div>' +
+        '<div class="rz-sub">移动指针瞄准，点击 / 轻触发射<br>' +
+        '同色三连即消除，断桥坠落加分更多。简单模式警戒线固定，挑战模式步步紧逼。</div>' +
+        '<div class="ms-levels" style="margin-top:18px;justify-content:center">' +
+        ['easy', 'hard'].map(function (k) {
+          return '<button type="button" class="ms-lv' + (dif.key === k ? ' active' : '') +
+            '" data-dif="' + k + '">' + MODES[k].name + '</button>';
+        }).join('') +
+        '</div>' +
+        '<div class="text-small text-muted" style="margin-top:6px" id="bcDifDesc">' + dif.desc + '</div>' +
+        (saved ? '<button class="btn accent" id="bcResume" style="margin-top:18px;width:auto;padding:12px 34px">继续上局（' +
+          saved.score + ' 分 · 第 ' + saved.waves + ' 波）</button>' : '') +
+        '<button class="btn' + (saved ? '' : ' accent') + '" id="bcNew" style="margin-top:12px;width:auto;padding:12px 34px">新开一局</button>' +
+        '</div>';
+      el.querySelectorAll('[data-dif]').forEach(function (b) {
+        b.onclick = function (e) {
+          e.stopPropagation();
+          var k = b.getAttribute('data-dif');
+          if (k === dif.key) return;
+          if (window.SFX && window.SFX.tap) window.SFX.tap();
+          dif = MODES[k];
+          var desc = el.querySelector('#bcDifDesc');
+          if (desc) desc.textContent = dif.desc;
+          syncLbMode();
+          intro();
+        };
+      });
+      var resumeBtn = el.querySelector('#bcResume');
+      if (resumeBtn) resumeBtn.onclick = function (e) {
+        e.stopPropagation();
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        var s = loadState();
+        if (!s) { intro(); return; }
+        evenTop = !!s.eo;
+        rows = s.rows.map(function (row) { return row.slice(); });
+        score = s.score; waves = s.waves; poppedTotal = s.popped || 0;
+        sinkCount = s.sk || 0;
+        shotsUntilSink = s.sus || SINK_BASE; sinkEvery = s.se || SINK_BASE;
+        cur = s.cur; next = s.next;
+        if (cur === EMPTY || cur === undefined) cur = rollBubble(0);
+        if (next === EMPTY || next === undefined || (cur === RAINBOW && next === RAINBOW)) next = rollBubble(cur);
+        startPlay();
+      };
+      var newBtn = el.querySelector('#bcNew');
+      if (newBtn) newBtn.onclick = function (e) {
+        e.stopPropagation();
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        resetGame();
+        startPlay();
+      };
+    }
+
+    function startPlay() {
+      mode = 'play';
+      paused = false; finished = false;
+      flying = null; particles = []; texts = []; sinkT = 1;
+      catPose = 'idle';
+      el.innerHTML = hud('<b>泡泡猫 · ' + dif.name + ' · 第 <span id="bcWave">' + waves + '</span> 波</b>',
+        '<span class="ms-stat">⭐ <span id="bcScore">' + score + '</span></span>' +
+        (dif.key === 'hard'
+          ? '<span class="ms-stat">🫧 <span id="bcSink">' + shotsUntilSink + '</span> 发后下沉</span>'
+          : '<span class="ms-stat">🌊 警戒线固定</span>') +
+        '<span class="ms-stat">💥 已消 <span id="bcPop">' + poppedTotal + '</span></span>') +
+        '<div class="bc-layout">' +
+        '<div class="bc-stage-wrap">' +
+        '<canvas id="bcCanvas" width="' + W + '" height="' + H + '" class="bc-canvas"></canvas>' +
+        '<div class="bc-float">' +
+        '<button type="button" class="bc-imgbtn" id="bcPause"><img src="assets/bubble-cat/btn_pause.webp" alt="暂停"></button>' +
+        '<button type="button" class="bc-imgbtn" id="bcRestart"><img src="assets/bubble-cat/btn_refresh.webp" alt="重开"></button>' +
+        '<button type="button" class="bc-imgbtn" id="bcSettle"><img src="assets/bubble-cat/btn_trophy.webp" alt="结算"></button>' +
+        '</div>' +
+        '<div class="bc-pause-overlay" id="bcPauseOverlay"><div>⏸ 已暂停<br><small>按空格、点右上角按钮或任意处继续<br>移动指针瞄准，点击 / 轻触发射</small>' +
+        '<br><button type="button" class="btn accent" id="bcSettleGo" style="margin-top:12px;width:auto;padding:10px 26px">🏁 结束并结算本局</button>' +
+        '</div></div>' +
+        '</div></div>';
+      canvasEl = el.querySelector('#bcCanvas');
+      ctx = canvasEl.getContext('2d');
+      if (!skyCv) skyCv = buildSky();
+      if (!Object.keys(sprites).length) buildSprites();
+      canvasEl.addEventListener('pointermove', aimFromEvent);
+      canvasEl.addEventListener('pointerdown', onCanvasDown);
+      var pauseBtn = el.querySelector('#bcPause');
+      if (pauseBtn) pauseBtn.onclick = function (e) { e.stopPropagation(); togglePause(); };
+      var pauseOv = el.querySelector('#bcPauseOverlay');
+      if (pauseOv) pauseOv.onclick = function () { if (paused) togglePause(); };
+      var settleBtn = el.querySelector('#bcSettle');
+      if (settleBtn) settleBtn.onclick = function (e) {
+        e.stopPropagation();
+        if (mode !== 'play' || finished) return;
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        setPaused(true);   // 打开暂停菜单，内含「结束并结算」确认
+      };
+      var settleGo = el.querySelector('#bcSettleGo');
+      if (settleGo) settleGo.onclick = function (e) {
+        e.stopPropagation();
+        settleRun();
+      };
+      var restartBtn = el.querySelector('#bcRestart');
+      if (restartBtn) restartBtn.onclick = function (e) {
+        e.stopPropagation();
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        clearState();
+        resetGame();
+        startPlay();
+      };
+      updateHud();
+      draw();
+      ensureLoop();
+    }
+
+    intro();
+    syncLbMode();
+    mountLbHost();
+    window.addEventListener('keydown', onKeyDown);
+    return {
+      destroy: function () {
+        if (mode === 'play' && !finished) saveState();
+        destroyed = true;
+        mode = 'over';
+        stopLoop();
         window.removeEventListener('keydown', onKeyDown);
         if (lbPanel) lbPanel.destroy();
       }

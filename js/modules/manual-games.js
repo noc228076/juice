@@ -3431,7 +3431,9 @@
     function startNew() {
       board = emptyBoard();
       score = 0; lines = 0; level = 1;
-      bag = []; nextType = null; gameOver = false; finished = false;
+      bag = []; nextType = null; cur = null;   /* 不清 cur 会跳过 spawn：旧块继续、预览消失 */
+      paused = false; running = false;
+      gameOver = false; finished = false;
       startPlay();
     }
 

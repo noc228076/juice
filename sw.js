@@ -1,5 +1,5 @@
-/* 饮料人格研究所 & 七合一趣味实验矩阵 — 轻量无感 Service Worker v165 */
-const CACHE_NAME = 'juice-persona-v165';
+/* 饮料人格研究所 & 七合一趣味实验矩阵 — 轻量无感 Service Worker v166 */
+const CACHE_NAME = 'juice-persona-v166';
 
 self.addEventListener('install', () => {
   // 零并发预拉取：严禁在 install 阶段并发请求数十个资源，避免触发 Vercel 边缘防火墙 705 拦截

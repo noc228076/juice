@@ -1670,6 +1670,31 @@ html[data-theme="light"] #modalAbout a {
   color: inherit;
 }
 
+#modalAbout .gp-body {
+  max-height: 62vh;
+  overflow-y: auto;
+}
+#modalAbout .gp-func-list {
+  display: grid;
+  gap: 7px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+#modalAbout .gp-func-list b {
+  font-weight: 600;
+}
+#modalAbout .gp-tip {
+  margin-top: 10px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(77, 171, 247, 0.10);
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+html[data-theme="light"] #modalAbout .gp-tip {
+  background: rgba(77, 171, 247, 0.14);
+}
+
 
 /* === css/modules/history.css === */
 /* =========================================================

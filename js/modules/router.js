@@ -746,6 +746,24 @@
         if (ti2) ti2.textContent = nextTheme === 'dark' ? '☾' : '☀';
       });
     }
+    /* Space 快速开测：活动屏幕上有可见的「开始* / 新开一局」按钮时，空格直接开始 */
+    window.addEventListener('keydown', (e) => {
+      if (e.code !== 'Space' || e.repeat) return;
+      const tag = (e.target && e.target.tagName) || '';
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target && e.target.isContentEditable)) return;
+      const active = document.querySelector('.sm-screen.active');
+      if (!active) return;
+      const btn = Array.from(active.querySelectorAll('button')).find(b => {
+        if (!b.offsetWidth) return false;
+        const t = (b.textContent || '').trim();
+        return t.startsWith('开始') || t === '新开一局';
+      });
+      if (!btn) return;
+      e.preventDefault();
+      e.stopPropagation();
+      if (window.SFX && window.SFX.tap) window.SFX.tap();
+      btn.click();
+    });
     const btnAbout = document.getElementById('globalBtnAbout');
     if (btnAbout) {
       let aboutEl = null;
@@ -764,21 +782,25 @@
             '<div class="gp-backdrop" data-about-close></div>' +
             '<div class="gp-dialog" role="dialog" aria-modal="true" aria-label="关于本站">' +
             '<div class="gp-head">' +
-            '<div><h3>关于本站</h3><p>饮料人格研究所 · Drink Persona Lab</p></div>' +
+            '<div><h3>关于本站</h3><p>灵感人格研究所 · Inspiration Persona Lab</p></div>' +
             '<button class="gp-close" type="button" data-about-close aria-label="关闭">✕</button>' +
             '</div>' +
             '<div class="gp-body">' +
-            '<p>一台开在浏览器里的「趣味实验矩阵」：7 大模块、15 章自我说明书、小游戏全服排行榜。所有测评都在你的设备本地完成，排行榜只上传随机 ID 与昵称头像。</p>' +
+            '<p>一台专为年轻人打造的<b>工位摸鱼、解压娱乐与自我测评</b>纯前端工具箱。免登录、无广告，所有数据只存在你的设备本地。</p>' +
+            '<div class="gp-label">📌 7 大功能</div>' +
+            '<div class="gp-func-list">' +
+            '<div>🍹 <b>饮品测评</b> —— 测专属饮料 / 奶茶人格，支持当代 SBTI 发疯测试与 MBTI。</div>' +
+            '<div>📖 <b>自我说明书</b> —— 15 关挑战：扫雷、俄罗斯方块、贪吃蛇、泡泡猫等 11 款小游戏 + 全服冲榜。</div>' +
+            '<div>☯️ <b>东西玄学</b> —— 22 张塔罗大阿卡那、观音百签摇签、八字精准排盘、工位风水。</div>' +
+            '<div>⏰ <b>摸鱼解压</b> —— 实时带薪秒薪时钟、全屏 Fliqlo 翻页屏保、电子木鱼、碎纸解压。</div>' +
+            '<div>🪙 <b>纠结拯救</b> —— 命运大轮盘、抛硬币、掷骰子、掷圣杯，治好选择困难症。</div>' +
+            '<div>🗞️ <b>今日风向</b> —— 每天 60 秒早报速递、全网实时热搜榜、必应 4K 壁纸。</div>' +
+            '<div>🎟️ <b>幸运刮刮乐</b> —— 5 款经典拟真彩票，真实物理刮擦涂层与刮彩账本。</div>' +
+            '</div>' +
+            '<div class="gp-tip">💡 极简提示：按 <b>Space</b> 快速开测 / 敲木鱼，按 <b>ESC</b> 退出全屏屏保。</div>' +
             '<div class="gp-label">开源</div>' +
             '<p>本项目以 <b>MIT</b> 协议开源，欢迎参观与拍砖：<br>' +
             '<a href="https://github.com/noc228076/juice" target="_blank" rel="noopener">github.com/noc228076/juice</a></p>' +
-            '<div class="gp-label">技术与致谢</div>' +
-            '<ul class="gp-about-list">' +
-            '<li>纯原生 HTML / CSS / JS，无框架、零运行时依赖</li>' +
-            '<li>泡泡猫机制参考 rembound Bubble Shooter（MIT）</li>' +
-            '<li>糖果按钮素材来自 pzUH（CC0）；橘猫形象为本站原创生成</li>' +
-            '<li>音效由 WebAudio 实时合成，不加载任何音频文件</li>' +
-            '</ul>' +
             '<div class="gp-label">构建版本</div>' +
             '<p class="gp-about-ver" id="gpAboutVer">' + (ver || 'dev') + '</p>' +
             '</div>' +

@@ -1,4 +1,4 @@
-window.__APP_VERSION__ = '164';
+window.__APP_VERSION__ = '165';
 /* === js/core-drink.js === */
 /* 人格研究所 — 题库与档案数据 */
 'use strict';

@@ -35,9 +35,10 @@
     var el = document.createElement('div');
     el.className = 'stage';
     root.appendChild(el);
-    /* 没有自带重开按钮的游戏：容器右上角统一挂一枚重开（回调由各游戏提供） */
+    /* 没有自带重开按钮的游戏：舞台右上角统一挂一枚重开（回调由各游戏提供）。
+       按钮必须挂在舞台内而非容器上——容器右侧是排行榜面板，挂容器上会压到榜头。 */
     if (onRestart) {
-      root.style.position = 'relative';
+      el.style.position = 'relative';
       var wrap = document.createElement('div');
       wrap.className = 'sm-restart-wrap';
       var b = document.createElement('button');
@@ -50,7 +51,11 @@
         onRestart();
       };
       wrap.appendChild(b);
-      root.appendChild(wrap);
+      el.appendChild(wrap);
+      /* 游戏每次 innerHTML 重渲会把按钮冲掉，观察器负责把它补回舞台 */
+      new MutationObserver(function () {
+        if (wrap.parentNode !== el) el.appendChild(wrap);
+      }).observe(el, { childList: true });
     }
     return el;
   }

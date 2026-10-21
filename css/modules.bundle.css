@@ -6551,8 +6551,13 @@ html[data-theme="light"] #mod-manual .sm-restart {
   color: #2D2721;
 }
 /* 给 HUD 右侧统计让位，避免与重开按钮重叠 */
-#mod-manual .sm-restart-wrap ~ .stage .hud {
+#mod-manual .stage:has(> .sm-restart-wrap) .hud {
   padding-right: 96px;
+}
+#mod-manual .stage > .sm-restart-wrap {
+  position: absolute;
+  top: 10px;
+  right: 10px;
 }
 
 

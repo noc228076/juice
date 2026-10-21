@@ -562,6 +562,15 @@ html.cover-ready #bootSkeleton {
   .global-nav-right {
     gap: 3px;
   }
+  .global-btn-profile {
+    min-width: 46px;
+    padding: 3px 5px 4px;
+  }
+  .global-btn-profile .gp-avatar { font-size: 14px; }
+  .global-btn-profile .gp-nick {
+    font-size: 9px;
+    max-width: 40px;
+  }
   /* 档案 pill 在移动端收成圆形图标按钮，为导航条腾出约 20px */
   .global-btn-pill {
     width: 30px;
@@ -718,19 +727,30 @@ html[data-theme="light"] .subnav-pill-btn.active[data-sub-jump="merit"] {
    设置后描边点亮，一眼能看出「我是谁」。
    -------------------------------------------- */
 .global-btn-profile {
-  width: var(--ui-btn-h);
+  min-width: 52px;
   height: var(--ui-btn-h);
   flex: none;
-  padding: 0;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  font-size: 17px;
+  padding: 4px 8px 5px;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
   line-height: 1;
   cursor: pointer;
   background: var(--card);
   border: 1px dashed var(--line-strong);
   transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.global-btn-profile .gp-nick {
+  max-width: 60px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 10px;
+  line-height: 1.15;
+  opacity: 0.85;
 }
 .global-btn-profile:hover {
   transform: scale(1.06);
@@ -746,7 +766,8 @@ html[data-theme="light"] .subnav-pill-btn.active[data-sub-jump="merit"] {
 }
 .global-btn-profile .gp-avatar {
   display: block;
-  transform: translateY(0.5px);
+  font-size: 15px;
+  line-height: 1;
 }
 
 /* ============ 玩家身份弹窗 ============ */

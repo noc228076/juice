@@ -72,6 +72,8 @@
     const p = get();
     const av = btn.querySelector('.gp-avatar');
     if (av) av.textContent = p.avatar;
+    const nick = btn.querySelector('.gp-nick');
+    if (nick) nick.textContent = displayName(p);
     btn.title = p.name ? ('当前玩家：' + p.name) : '设置头像和昵称';
     btn.classList.toggle('is-set', !!p.name);
   }

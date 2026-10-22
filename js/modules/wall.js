@@ -179,14 +179,38 @@
     return fetch(url, { headers: { Accept: 'application/json' } })
       .then(function (r) { return r.json(); })
       .then(function (d) {
-        if (!d || !d.ok) return;
+        if (!d || !d.ok) throw new Error((d && d.error) || 'bad');
         wall = d.wall || [];
         total = d.total || 0;
         refillQueue();
         renderList();
         primeStage();
+        return d;
       })
       .catch(function () { /* 静默：下次轮询再试 */ });
+  }
+
+  /* 手动刷新：转圈 → 拉最新 → 轻提示 */
+  function manualRefresh() {
+    const btn = document.getElementById('wlRefresh');
+    const errEl = document.getElementById('wlErr');
+    if (btn) { btn.disabled = true; btn.classList.add('spin'); btn.textContent = '↻ 刷新中'; }
+    if (errEl) errEl.textContent = '';
+    fetchWall().then(function (d) {
+      if (btn) { btn.disabled = false; btn.classList.remove('spin'); btn.textContent = '↻ 刷新'; }
+      if (!d) { if (errEl) errEl.textContent = '刷新失败，稍后再试'; return; }
+      if (errEl) {
+        errEl.textContent = '';
+        errEl.className = 'wl-err wl-err-ok';
+        errEl.textContent = '已刷新 · 共 ' + (d.total || 0) + ' 条';
+        setTimeout(function () {
+          if (errEl.textContent.indexOf('已刷新') === 0) {
+            errEl.textContent = '';
+            errEl.className = 'wl-err';
+          }
+        }, 1800);
+      }
+    });
   }
 
   function sendText() {
@@ -286,6 +310,8 @@
 
     const sendBtn = document.getElementById('wlSend');
     if (sendBtn) sendBtn.addEventListener('click', sendText);
+    const refreshBtn = document.getElementById('wlRefresh');
+    if (refreshBtn) refreshBtn.addEventListener('click', manualRefresh);
     const input = document.getElementById('wlInput');
     if (input) {
       input.addEventListener('keydown', function (e) {

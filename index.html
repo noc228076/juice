@@ -17,8 +17,8 @@
 <meta property="og:title" content="饮料人格研究所 · 测测你的精神状态与灵魂特调">
 <meta property="og:description" content="当代年轻人精神状态测试 (SBTI) / 经典 16 型人格 (MBTI) / 16 款灵魂饮料特调，测出你的独家出厂配方与精神病友。">
 <meta property="og:image" content="assets/icons/icon-512.png">
-  <link rel="stylesheet" href="css/core.bundle.css?v=191">
-  <script defer src="js/app.bundle.js?v=191" fetchpriority="high"></script>
+  <link rel="stylesheet" href="css/core.bundle.css?v=194">
+  <script defer src="js/app.bundle.js?v=194" fetchpriority="high"></script>
   <script>
     (function(){
       // 主题必须在首次绘制前定下来。以前只有 <html data-theme="dark"> 的硬编码默认值，
@@ -1313,6 +1313,7 @@
         <div class="subnav-pill-bar" style="margin: 0 auto 16px; position: relative; z-index: 5;">
           <button type="button" class="subnav-pill-btn active" data-sub-jump="clock">⏰ 摸鱼时钟 & 工资</button>
           <button type="button" class="subnav-pill-btn" data-sub-jump="merit">📿 功德木鱼 & 碎纸解压</button>
+          <button type="button" class="subnav-pill-btn" data-sub-jump="films">🎬 摸鱼片单</button>
         </div>
         <!-- 顶部状态与快捷工具栏 -->
         <div class="ck-topbar">
@@ -1478,6 +1479,7 @@
         <div class="subnav-pill-bar" style="margin: 0 auto 16px; position: relative; z-index: 5;">
           <button type="button" class="subnav-pill-btn" data-sub-jump="clock">⏰ 摸鱼时钟 & 工资</button>
           <button type="button" class="subnav-pill-btn active" data-sub-jump="merit">📿 功德木鱼 & 碎纸解压</button>
+          <button type="button" class="subnav-pill-btn" data-sub-jump="films">🎬 摸鱼片单</button>
         </div>
         <header class="mr-header">
           <span class="mr-tag">MINDFUL MERIT & STRESS RELIEF · 静心解压所</span>
@@ -1607,8 +1609,37 @@
           </div>
         </div>
 
+
+
         <div class="mr-footer-actions">
           <button class="mr-btn-poster" id="mrBtnPoster">📸 开具《静心功德与怨气清运凭证》并归档</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 模块 12：摸鱼片单 (Slacking Watchlist) -->
+    <section id="mod-films" class="app-module">
+      <div class="fl-wrap">
+        <!-- 摸鱼解压子导航：时钟 / 功德 / 片单 -->
+        <div class="subnav-pill-bar" style="margin: 0 auto 16px; position: relative; z-index: 5;">
+          <button type="button" class="subnav-pill-btn" data-sub-jump="clock">⏰ 摸鱼时钟 & 工资</button>
+          <button type="button" class="subnav-pill-btn" data-sub-jump="merit">📿 功德木鱼 & 碎纸解压</button>
+          <button type="button" class="subnav-pill-btn active" data-sub-jump="films">🎬 摸鱼片单</button>
+        </div>
+        <header class="fl-header">
+          <span class="fl-tag">SLACKING WATCHLIST · 追剧资源索引</span>
+          <h1 class="fl-title">摸鱼片单</h1>
+          <p class="fl-sub">124 个站点，人工精选 + 每日检测可用性 · 按摸鱼指数排序</p>
+        </header>
+        <div class="films-head">
+          <div class="films-sub" id="filmsSub">正在加载资源…</div>
+          <button class="films-boss" id="filmsBoss" type="button" title="一键切回木鱼（老板键）">🕵️ 老板键</button>
+        </div>
+        <div class="films-cats" id="filmsCats"></div>
+        <div class="films-grid" id="filmsGrid"></div>
+        <div class="films-note">
+          数据来源：<a href="https://github.com/laoma528/awesome-zhuiju-free" target="_blank" rel="noopener">awesome-zhuiju-free</a>（CC BY 4.0）·
+          仅索引第三方站点，内容与安全由各站点自行负责
         </div>
       </div>
     </section>

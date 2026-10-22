@@ -1,4 +1,4 @@
-window.__APP_VERSION__ = '191';
+window.__APP_VERSION__ = '194';
 /* === js/core-drink.js === */
 /* 人格研究所 — 题库与档案数据 */
 'use strict';
@@ -8026,7 +8026,7 @@ if ('serviceWorker' in navigator) {
 
   const STATE_VERSION = 1;
   const HOME_MOD = 'drinks';
-  const ALLOWED_MODS = ['drinks', 'milktea', 'manual', 'fengshui', 'tarot', 'lingqian', 'decision', 'clock', 'merit', 'lifeguide', 'bazi', 'daily', 'scratch', 'wall'];
+  const ALLOWED_MODS = ['drinks', 'milktea', 'manual', 'fengshui', 'tarot', 'lingqian', 'decision', 'clock', 'merit', 'films', 'lifeguide', 'bazi', 'daily', 'scratch', 'wall'];
   const MODULE_CHUNKS = {
     milktea: 'milktea',
     manual: 'manual',
@@ -8037,6 +8037,7 @@ if ('serviceWorker' in navigator) {
     bazi: 'bazi',
     clock: 'relax',
     merit: 'relax',
+    films: 'films',
     decision: 'decision',
     scratch: 'scratch',
     wall: 'wall'
@@ -8053,6 +8054,7 @@ if ('serviceWorker' in navigator) {
     bazi: 'AppBazi',
     clock: 'AppClock',
     merit: 'AppMerit',
+    films: 'AppFilms',
     decision: 'AppDecision',
     scratch: 'AppScratch',
     wall: 'AppWall'
@@ -8066,6 +8068,7 @@ if ('serviceWorker' in navigator) {
     fengshui: 'tarot',
     clock: 'clock',
     merit: 'clock',
+    films: 'clock',
     lifeguide: 'manual'
   };
 
@@ -8354,7 +8357,7 @@ if ('serviceWorker' in navigator) {
   function rememberModule(modKey) {
     if (modKey === 'drinks' || modKey === 'milktea') lastDrinkMod = modKey;
     if (modKey === 'tarot' || modKey === 'lingqian' || modKey === 'bazi' || modKey === 'fengshui') lastMysticMod = modKey;
-    if (modKey === 'clock' || modKey === 'merit') lastRelaxMod = modKey;
+    if (modKey === 'clock' || modKey === 'merit' || modKey === 'films') lastRelaxMod = modKey;
   }
 
   function layerApi(name) {

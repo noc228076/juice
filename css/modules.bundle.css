@@ -15108,3 +15108,271 @@ html[data-theme="light"] .sc-security-box {
 .wl-err-ok {
   color: #37b24d !important;
 }
+
+
+/* === css/modules/films.css === */
+/* =========================================================
+   模块 12：摸鱼片单 (Slacking Watchlist)
+   ========================================================= */
+
+.fl-wrap {
+  max-width: 1120px;
+  margin: 0 auto;
+}
+.fl-header {
+  text-align: center;
+  margin-bottom: 16px;
+}
+.fl-tag {
+  font-size: 11px;
+  letter-spacing: 2px;
+  opacity: 0.55;
+}
+.fl-title {
+  margin: 6px 0 6px;
+  font-size: 30px;
+  line-height: 1.2;
+}
+.fl-sub {
+  margin: 0;
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+.films-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.films-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+.films-sub {
+  font-size: 12px;
+  opacity: 0.6;
+  line-height: 1.5;
+}
+.films-boss {
+  flex: none;
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  background: var(--card);
+  color: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.films-boss:hover {
+  border-color: #2f80ed;
+}
+.films-boss:active {
+  transform: scale(0.96);
+}
+
+.films-cats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+.films-cat {
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.films-cat:hover {
+  border-color: var(--line-strong);
+}
+.films-cat.active {
+  background: rgba(47, 128, 237, 0.12);
+  border-color: #2f80ed;
+  color: #2f80ed;
+  font-weight: 600;
+}
+html[data-theme="dark"] .films-cat.active {
+  background: rgba(77, 171, 247, 0.18);
+  border-color: #4dabf7;
+  color: #4dabf7;
+}
+
+.films-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 10px;
+}
+.films-card {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 12px 13px;
+  border-radius: 14px;
+  background: var(--card);
+  border: 1px solid var(--line-strong);
+  transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.films-card:hover {
+  border-color: #2f80ed;
+  transform: translateY(-1px);
+}
+.films-card-top {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+.films-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+}
+.films-badge {
+  font-size: 10px;
+  font-weight: 500;
+  padding: 1px 6px;
+  border-radius: 999px;
+  line-height: 1.5;
+}
+.films-badge.feat {
+  background: rgba(77, 171, 247, 0.16);
+  color: #4dabf7;
+}
+.films-badge.risk {
+  background: rgba(255, 146, 43, 0.16);
+  color: #f08c00;
+}
+.films-fav {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: inherit;
+  opacity: 0.45;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.films-fav:hover { opacity: 0.9; }
+.films-fav.on {
+  opacity: 1;
+  color: #f0b400;
+  border-color: rgba(240, 180, 0, 0.5);
+}
+.films-sum {
+  font-size: 12.5px;
+  line-height: 1.55;
+  opacity: 0.72;
+  min-height: 2.4em;
+}
+.films-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  font-size: 11.5px;
+}
+.films-score {
+  color: #2f80ed;
+  font-weight: 600;
+}
+html[data-theme="dark"] .films-score {
+  color: #4dabf7;
+}
+.films-status {
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  opacity: 0.75;
+}
+.films-status.ok { color: #37b24d; }
+.films-status.warn { color: #f08c00; }
+.films-status.bad { color: #ff6b6b; }
+.films-date {
+  opacity: 0.42;
+}
+.films-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 2px;
+}
+.films-open,
+.films-copy {
+  flex: 1;
+  text-align: center;
+  padding: 6px 10px;
+  border-radius: 9px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+.films-open {
+  /* 用固定品牌蓝：跟随模块主色会变成荧光绿，浅色主题下对比度极差 */
+  background: #2f80ed;
+  color: #fff;
+  border: 1px solid transparent;
+  font-weight: 600;
+}
+.films-open:hover { filter: brightness(1.08); }
+.films-copy {
+  background: transparent;
+  color: inherit;
+  border: 1px solid var(--line-strong);
+  opacity: 0.8;
+}
+.films-copy:hover { opacity: 1; border-color: #2f80ed; }
+.films-note {
+  margin-top: 14px;
+  font-size: 11px;
+  line-height: 1.6;
+  opacity: 0.45;
+}
+.films-note a {
+  color: inherit;
+  text-decoration: underline;
+}
+.films-empty {
+  grid-column: 1 / -1;
+  padding: 24px;
+  text-align: center;
+  font-size: 13px;
+  opacity: 0.6;
+  line-height: 1.8;
+}
+.films-retry {
+  margin-top: 8px;
+  padding: 5px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+@media (max-width: 640px) {
+  .films-grid {
+    grid-template-columns: 1fr;
+  }
+  .films-head {
+    flex-direction: column;
+  }
+}

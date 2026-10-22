@@ -8,7 +8,7 @@
 
   const STATE_VERSION = 1;
   const HOME_MOD = 'drinks';
-  const ALLOWED_MODS = ['drinks', 'milktea', 'manual', 'fengshui', 'tarot', 'lingqian', 'decision', 'clock', 'merit', 'lifeguide', 'bazi', 'daily', 'scratch', 'wall'];
+  const ALLOWED_MODS = ['drinks', 'milktea', 'manual', 'fengshui', 'tarot', 'lingqian', 'decision', 'clock', 'merit', 'films', 'lifeguide', 'bazi', 'daily', 'scratch', 'wall'];
   const MODULE_CHUNKS = {
     milktea: 'milktea',
     manual: 'manual',
@@ -19,6 +19,7 @@
     bazi: 'bazi',
     clock: 'relax',
     merit: 'relax',
+    films: 'films',
     decision: 'decision',
     scratch: 'scratch',
     wall: 'wall'
@@ -35,6 +36,7 @@
     bazi: 'AppBazi',
     clock: 'AppClock',
     merit: 'AppMerit',
+    films: 'AppFilms',
     decision: 'AppDecision',
     scratch: 'AppScratch',
     wall: 'AppWall'
@@ -48,6 +50,7 @@
     fengshui: 'tarot',
     clock: 'clock',
     merit: 'clock',
+    films: 'clock',
     lifeguide: 'manual'
   };
 
@@ -336,7 +339,7 @@
   function rememberModule(modKey) {
     if (modKey === 'drinks' || modKey === 'milktea') lastDrinkMod = modKey;
     if (modKey === 'tarot' || modKey === 'lingqian' || modKey === 'bazi' || modKey === 'fengshui') lastMysticMod = modKey;
-    if (modKey === 'clock' || modKey === 'merit') lastRelaxMod = modKey;
+    if (modKey === 'clock' || modKey === 'merit' || modKey === 'films') lastRelaxMod = modKey;
   }
 
   function layerApi(name) {

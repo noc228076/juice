@@ -3,6 +3,7 @@
     { "src": "api/**/*.js", "use": "@vercel/node" },
     { "src": "api/wall.js", "use": "@vercel/node" },
     { "src": "api/douban.js", "use": "@vercel/node" },
+    { "src": "api/zhuiju.js", "use": "@vercel/node" },
     { "src": "index.html", "use": "@vercel/static" },
     { "src": "sw.js", "use": "@vercel/static" },
     { "src": "manifest.json", "use": "@vercel/static" },
@@ -15,7 +16,8 @@
   "rewrites": [
     { "source": "/api/leaderboard", "destination": "/api/leaderboard.js" },
     { "source": "/api/wall", "destination": "/api/wall.js" },
-    { "source": "/api/douban", "destination": "/api/douban.js" }
+    { "source": "/api/douban", "destination": "/api/douban.js" },
+    { "source": "/api/zhuiju", "destination": "/api/zhuiju.js" }
   ],
   "headers": [
     {

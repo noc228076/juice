@@ -1,6 +1,7 @@
 {
   "builds": [
     { "src": "api/**/*.js", "use": "@vercel/node" },
+    { "src": "api/wall.js", "use": "@vercel/node" },
     { "src": "index.html", "use": "@vercel/static" },
     { "src": "sw.js", "use": "@vercel/static" },
     { "src": "manifest.json", "use": "@vercel/static" },
@@ -11,7 +12,8 @@
     { "src": "assets/**", "use": "@vercel/static" }
   ],
   "rewrites": [
-    { "source": "/api/leaderboard", "destination": "/api/leaderboard.js" }
+    { "source": "/api/leaderboard", "destination": "/api/leaderboard.js" },
+    { "source": "/api/wall", "destination": "/api/wall.js" }
   ],
   "headers": [
     {

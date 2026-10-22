@@ -263,3 +263,24 @@ html[data-theme="dark"] .films-score {
     flex-direction: column;
   }
 }
+
+/* 状态图例：解释「可用 / 谨慎 / 失效」 */
+.films-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin-bottom: 8px;
+  font-size: 11.5px;
+  opacity: 0.85;
+}
+.films-legend span {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+}
+.films-legend b {
+  font-weight: 600;
+}
+.films-legend b.ok { color: #37b24d; }
+.films-legend b.warn { color: #f08c00; }
+.films-legend b.bad { color: #ff6b6b; }

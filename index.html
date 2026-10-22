@@ -17,8 +17,8 @@
 <meta property="og:title" content="饮料人格研究所 · 测测你的精神状态与灵魂特调">
 <meta property="og:description" content="当代年轻人精神状态测试 (SBTI) / 经典 16 型人格 (MBTI) / 16 款灵魂饮料特调，测出你的独家出厂配方与精神病友。">
 <meta property="og:image" content="assets/icons/icon-512.png">
-  <link rel="stylesheet" href="css/core.bundle.css?v=203">
-  <script defer src="js/app.bundle.js?v=203" fetchpriority="high"></script>
+  <link rel="stylesheet" href="css/core.bundle.css?v=204">
+  <script defer src="js/app.bundle.js?v=204" fetchpriority="high"></script>
   <script>
     (function(){
       // 主题必须在首次绘制前定下来。以前只有 <html data-theme="dark"> 的硬编码默认值，
@@ -1314,6 +1314,7 @@
           <button type="button" class="subnav-pill-btn active" data-sub-jump="clock">⏰ 摸鱼时钟 & 工资</button>
           <button type="button" class="subnav-pill-btn" data-sub-jump="merit">📿 功德木鱼 & 碎纸解压</button>
           <button type="button" class="subnav-pill-btn" data-sub-jump="films">🎬 摸鱼片单</button>
+          <button type="button" class="subnav-pill-btn" data-sub-jump="tv">📺 电视直播</button>
         </div>
         <!-- 顶部状态与快捷工具栏 -->
         <div class="ck-topbar">
@@ -1480,6 +1481,7 @@
           <button type="button" class="subnav-pill-btn" data-sub-jump="clock">⏰ 摸鱼时钟 & 工资</button>
           <button type="button" class="subnav-pill-btn active" data-sub-jump="merit">📿 功德木鱼 & 碎纸解压</button>
           <button type="button" class="subnav-pill-btn" data-sub-jump="films">🎬 摸鱼片单</button>
+          <button type="button" class="subnav-pill-btn" data-sub-jump="tv">📺 电视直播</button>
         </div>
         <header class="mr-header">
           <span class="mr-tag">MINDFUL MERIT & STRESS RELIEF · 静心解压所</span>
@@ -1645,6 +1647,42 @@
           </div>
           数据来源：<a href="https://github.com/laoma528/awesome-zhuiju-free" target="_blank" rel="noopener">awesome-zhuiju-free</a>（CC BY 4.0）·
           仅索引第三方站点，内容与安全由各站点自行负责
+        </div>
+      </div>
+    </section>
+
+    <!-- 模块 13：电视直播 (Live TV) -->
+    <section id="mod-tv" class="app-module">
+      <div class="tv-wrap">
+        <div class="subnav-pill-bar" style="margin: 0 auto 16px; position: relative; z-index: 5;">
+          <button type="button" class="subnav-pill-btn" data-sub-jump="clock">⏰ 摸鱼时钟 & 工资</button>
+          <button type="button" class="subnav-pill-btn" data-sub-jump="merit">📿 功德木鱼 & 碎纸解压</button>
+          <button type="button" class="subnav-pill-btn" data-sub-jump="films">🎬 摸鱼片单</button>
+          <button type="button" class="subnav-pill-btn" data-sub-jump="tv">📺 电视直播</button>
+        </div>
+        <header class="tv-header">
+          <span class="tv-tag">LIVE TV · 央视 & 卫视</span>
+          <h1 class="tv-title">电视直播</h1>
+          <p class="tv-sub">央视 18 个频道站内直接看 · 卫视跳转央视频官网</p>
+        </header>
+        <div id="tvBody">
+          <div class="tv-main">
+            <div class="tv-stage" id="tvStage">
+              <video id="tvVideo" playsinline webkit-playsinline preload="none"></video>
+              <div class="tv-status" id="tvStatus" hidden></div>
+              <div class="tv-bar">
+                <button type="button" class="tv-btn" id="tvPlay" aria-label="播放/暂停">▶</button>
+                <button type="button" class="tv-btn" id="tvMute" aria-label="静音">🔊</button>
+                <input type="range" class="tv-vol" id="tvVolume" min="0" max="1" step="0.05" value="1" aria-label="音量">
+                <span class="tv-quality" id="tvQuality">自动</span>
+                <span class="tv-now" id="tvNow">未选择频道</span>
+                <a class="tv-ext" id="tvExtLink" href="#" target="_blank" rel="noopener" hidden>央视频打开 ↗</a>
+                <button type="button" class="tv-btn" id="tvFullscreen" aria-label="全屏">⛶</button>
+              </div>
+            </div>
+            <div class="tv-groups" id="tvGroups"></div>
+            <div class="tv-list" id="tvList"></div>
+          </div>
         </div>
       </div>
     </section>

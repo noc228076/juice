@@ -23,7 +23,8 @@ const moduleCssFiles = [
   'css/modules/daily.css',
   'css/modules/scratch.css',
   'css/modules/wall.css',
-  'css/modules/films.css'
+  'css/modules/films.css',
+  'css/modules/tv.css'
 ];
 
 // 首屏核心：饮品封面、身份、榜单、历史、Daily 全局壁纸入口与路由本身。
@@ -65,6 +66,7 @@ const chunks = {
   decision: ['js/modules/decision.js'],
   scratch: ['js/modules/scratch.js'],
   films: ['js/modules/films.js'],
+  tv: ['js/modules/tv.js'],
   wall: ['js/modules/wall.js'],
   milktea: ['js/modules/milktea.js']
 };

@@ -3489,11 +3489,10 @@ const SFX = (function () {
       if (window.SFX && typeof window.SFX.setSound === 'function') {
         window.SFX.setSound(v);
       }
-      const gBtn = document.getElementById('globalBtnSfx');
-      if (gBtn) {
-        gBtn.textContent = v ? '🔊' : '🔇';
-        if (gBtn.title) gBtn.title = v ? '音效已开启' : '音效已静音';
-      }
+      const gIco = document.getElementById('gnavSfxIco');
+      if (gIco) gIco.textContent = v ? '🔊' : '🔇';
+      const gTxt = document.getElementById('gnavSfxTxt');
+      if (gTxt) gTxt.textContent = v ? '音效开启' : '音效已静音';
       if (v) ensure();
     },
     setVibrate(v) { state.vibrate = v; store.set('dp_vibrate', v); if (v) vib(20); },
@@ -3722,8 +3721,11 @@ const SFX = (function () {
     document.documentElement.dataset.theme = t;
     $('themeIcon').textContent = t === 'dark' ? '☾' : '☀';
     $('btnTheme2').querySelector('span').textContent = t === 'dark' ? '☾' : '☀';
-    const gTheme = document.getElementById('globalBtnTheme');
-    if (gTheme) gTheme.textContent = t === 'dark' ? '☾' : '☀';
+    /* 顶栏主题入口已收进「⋯」菜单：只更新菜单项内部图标，别覆盖整个按钮 */
+    const gThemeIco = document.getElementById('gnavThemeIco');
+    if (gThemeIco) gThemeIco.textContent = t === 'dark' ? '☾' : '☀';
+    const gThemeTxt = document.getElementById('gnavThemeTxt');
+    if (gThemeTxt) gThemeTxt.textContent = t === 'dark' ? '深色主题' : '浅色主题';
     try { localStorage.setItem('dp_theme', t); } catch (e) {}
     if (window.AndroidBridge && AndroidBridge.setLightTheme) {
       AndroidBridge.setLightTheme(t === 'light');

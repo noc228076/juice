@@ -11,9 +11,15 @@
 
   const KEY = 'juice_profile_v1';
 
-  // 16 个内置头像，够用且不用上传图片
-  const AVATARS = ['🙂', '😎', '🦊', '🐼', '🐸', '🐧', '🦄', '🐙',
-    '🍋', '🍉', '🥑', '🧋', '🌙', '⚡', '🔥', '👾'];
+  /* 内置头像：4 组共 60 个，纯 emoji 不上传图片（零存储、跨端一致）。
+     分组展示比一排 60 个更容易挑。 */
+  const AVATAR_GROUPS = [
+    { name: '表情', list: ['🙂', '😎', '😴', '🤔', '🥳', '😇', '🤯', '😭', '😤', '🫠', '🤡', '👻', '💀', '🤖', '👽'] },
+    { name: '动物', list: ['🦊', '🐼', '🐸', '🐧', '🦄', '🐙', '🐱', '🐶', '🐨', '🐯', '🦁', '🐷', '🐔', '🦉', '🐝'] },
+    { name: '吃喝', list: ['🧋', '🍋', '🍉', '🥑', '🍩', '🍕', '🍜', '🍺', '☕', '🧊', '🍰', '🥟', '🍫', '🧃', '🥤'] },
+    { name: '符号', list: ['🌙', '⚡', '🔥', '👾', '🎮', '🎲', '🎯', '🏆', '💎', '🌊', '⭐', '🍀', '🪐', '🎧', '📚'] }
+  ];
+  const AVATARS = AVATAR_GROUPS.reduce(function (acc, g) { return acc.concat(g.list); }, []);
 
   const DEFAULTS = { id: '', name: '', avatar: '🙂' };
 
@@ -100,6 +106,7 @@
       '<div class="gp-avatars" id="gpAvatars"></div>' +
       '<div class="gp-label">昵称 <span>最多 16 个字</span></div>' +
       '<input class="gp-input" id="gpNameInput" type="text" maxlength="16" placeholder="给自己起个名字" autocomplete="off">' +
+      '<div class="gp-dup" id="gpDupHint" role="status"></div>' +
       '<div class="gp-tip">昵称和头像只保存在本机，排行榜只上传随机 ID 与这两项，不含任何设备信息。</div>' +
       '</div>' +
       '<div class="gp-foot">' +
@@ -110,14 +117,23 @@
     document.body.appendChild(modalEl);
 
     const avBox = modalEl.querySelector('#gpAvatars');
-    AVATARS.forEach(function (a) {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'gp-avatar-opt';
-      b.dataset.avatar = a;
-      b.textContent = a;
-      b.addEventListener('click', function () { pickAvatar(a); });
-      avBox.appendChild(b);
+    AVATAR_GROUPS.forEach(function (group) {
+      const head = document.createElement('div');
+      head.className = 'gp-avatar-group';
+      head.textContent = group.name;
+      avBox.appendChild(head);
+      const row = document.createElement('div');
+      row.className = 'gp-avatar-row';
+      group.list.forEach(function (a) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'gp-avatar-opt';
+        b.dataset.avatar = a;
+        b.textContent = a;
+        b.addEventListener('click', function () { pickAvatar(a); });
+        row.appendChild(b);
+      });
+      avBox.appendChild(row);
     });
 
     modalEl.querySelectorAll('[data-gp-close]').forEach(function (n) {
@@ -127,6 +143,7 @@
     const input = modalEl.querySelector('#gpNameInput');
     input.addEventListener('input', function () {
       modalEl.querySelector('#gpPreviewName').textContent = input.value.trim() || '匿名玩家';
+      scheduleDupCheck(input.value);
     });
     input.addEventListener('keydown', function (e) {
       if (e.key === 'Enter') { e.preventDefault(); save(); }
@@ -140,6 +157,61 @@
     });
 
     return modalEl;
+  }
+
+  /* ---------- 昵称重名提示 ----------
+     免登录、纯本地身份下无法做「真唯一」：清空浏览器就能换个 ID 抢名字。
+     所以这里只做提示：查到别人在用同名就提醒，但不阻止保存。 */
+  let dupTimer = 0, dupSeq = 0;
+
+  function scheduleDupCheck(raw) {
+    const name = Array.from(String(raw || '').trim()).slice(0, 16).join('');
+    const hint = modalEl && modalEl.querySelector('#gpDupHint');
+    if (!hint) return;
+    clearTimeout(dupTimer);
+    if (!name) { hint.textContent = ''; hint.className = 'gp-dup'; return; }
+    hint.textContent = '';
+    hint.className = 'gp-dup';
+    dupTimer = setTimeout(function () { checkDup(name); }, 500);
+  }
+
+  function checkDup(name) {
+    const myId = get().id;
+    const seq = ++dupSeq;
+    const mark = function (others) {
+      if (seq !== dupSeq) return;                       // 已有更新的一次检查
+      const hint = modalEl && modalEl.querySelector('#gpDupHint');
+      if (!hint) return;
+      if (others > 0) {
+        hint.textContent = '已有 ' + others + ' 位玩家在用这个昵称，建议换个更好认的';
+        hint.className = 'gp-dup warn';
+      } else {
+        hint.textContent = '这个昵称还没人用';
+        hint.className = 'gp-dup ok';
+      }
+    };
+    const collect = function (board) {
+      let n = 0;
+      const seen = {};
+      (board || []).forEach(function (row) {
+        if (!row || row.id === myId) return;
+        if (row.name !== name) return;
+        if (seen[row.id]) return;
+        seen[row.id] = 1;
+        n++;
+      });
+      return n;
+    };
+    // 查全服榜（任意一个榜都行，名字是同一份 profile 同步过去的）。
+    // force=true 绕过 60s 客户端缓存——重名判断必须看最新数据，
+    // 否则刚有人在榜上改名也会漏判。
+    if (window.AppLeaderboard && window.AppLeaderboard.getBoard) {
+      window.AppLeaderboard.getBoard('2048', 50, true)
+        .then(function (res) { mark(collect(res && res.board)); })
+        .catch(function () { mark(0); });
+    } else {
+      mark(0);
+    }
   }
 
   let draft = { avatar: '🙂' };
@@ -162,6 +234,8 @@
     const m = ensureModal();
     const p = get();
     draft = { avatar: p.avatar };
+    const dupHint = modalEl.querySelector('#gpDupHint');
+    if (dupHint) { dupHint.textContent = ''; dupHint.className = 'gp-dup'; }
     pickAvatar(p.avatar);
     const input = m.querySelector('#gpNameInput');
     input.value = p.name || '';

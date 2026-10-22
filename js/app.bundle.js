@@ -1,4 +1,4 @@
-window.__APP_VERSION__ = '171';
+window.__APP_VERSION__ = '182';
 /* === js/core-drink.js === */
 /* 人格研究所 — 题库与档案数据 */
 'use strict';
@@ -3491,11 +3491,10 @@ const SFX = (function () {
       if (window.SFX && typeof window.SFX.setSound === 'function') {
         window.SFX.setSound(v);
       }
-      const gBtn = document.getElementById('globalBtnSfx');
-      if (gBtn) {
-        gBtn.textContent = v ? '🔊' : '🔇';
-        if (gBtn.title) gBtn.title = v ? '音效已开启' : '音效已静音';
-      }
+      const gIco = document.getElementById('gnavSfxIco');
+      if (gIco) gIco.textContent = v ? '🔊' : '🔇';
+      const gTxt = document.getElementById('gnavSfxTxt');
+      if (gTxt) gTxt.textContent = v ? '音效开启' : '音效已静音';
       if (v) ensure();
     },
     setVibrate(v) { state.vibrate = v; store.set('dp_vibrate', v); if (v) vib(20); },
@@ -3724,8 +3723,11 @@ const SFX = (function () {
     document.documentElement.dataset.theme = t;
     $('themeIcon').textContent = t === 'dark' ? '☾' : '☀';
     $('btnTheme2').querySelector('span').textContent = t === 'dark' ? '☾' : '☀';
-    const gTheme = document.getElementById('globalBtnTheme');
-    if (gTheme) gTheme.textContent = t === 'dark' ? '☾' : '☀';
+    /* 顶栏主题入口已收进「⋯」菜单：只更新菜单项内部图标，别覆盖整个按钮 */
+    const gThemeIco = document.getElementById('gnavThemeIco');
+    if (gThemeIco) gThemeIco.textContent = t === 'dark' ? '☾' : '☀';
+    const gThemeTxt = document.getElementById('gnavThemeTxt');
+    if (gThemeTxt) gThemeTxt.textContent = t === 'dark' ? '深色主题' : '浅色主题';
     try { localStorage.setItem('dp_theme', t); } catch (e) {}
     if (window.AndroidBridge && AndroidBridge.setLightTheme) {
       AndroidBridge.setLightTheme(t === 'light');
@@ -6627,6 +6629,9 @@ if ('serviceWorker' in navigator) {
     const btn = document.getElementById('globalBtnWallpaper');
     if (!btn) return;
     btn.hidden = !isSiteBgActive;
+    // 菜单开着时壁纸项显隐变化，保持菜单高度自然
+    const menu = document.getElementById('gnavMenu');
+    if (menu && !menu.hidden) menu.hidden = false;
   }
 
   function init() {
@@ -6689,9 +6694,15 @@ if ('serviceWorker' in navigator) {
 
   const KEY = 'juice_profile_v1';
 
-  // 16 个内置头像，够用且不用上传图片
-  const AVATARS = ['🙂', '😎', '🦊', '🐼', '🐸', '🐧', '🦄', '🐙',
-    '🍋', '🍉', '🥑', '🧋', '🌙', '⚡', '🔥', '👾'];
+  /* 内置头像：4 组共 60 个，纯 emoji 不上传图片（零存储、跨端一致）。
+     分组展示比一排 60 个更容易挑。 */
+  const AVATAR_GROUPS = [
+    { name: '表情', list: ['🙂', '😎', '😴', '🤔', '🥳', '😇', '🤯', '😭', '😤', '🫠', '🤡', '👻', '💀', '🤖', '👽'] },
+    { name: '动物', list: ['🦊', '🐼', '🐸', '🐧', '🦄', '🐙', '🐱', '🐶', '🐨', '🐯', '🦁', '🐷', '🐔', '🦉', '🐝'] },
+    { name: '吃喝', list: ['🧋', '🍋', '🍉', '🥑', '🍩', '🍕', '🍜', '🍺', '☕', '🧊', '🍰', '🥟', '🍫', '🧃', '🥤'] },
+    { name: '符号', list: ['🌙', '⚡', '🔥', '👾', '🎮', '🎲', '🎯', '🏆', '💎', '🌊', '⭐', '🍀', '🪐', '🎧', '📚'] }
+  ];
+  const AVATARS = AVATAR_GROUPS.reduce(function (acc, g) { return acc.concat(g.list); }, []);
 
   const DEFAULTS = { id: '', name: '', avatar: '🙂' };
 
@@ -6778,6 +6789,7 @@ if ('serviceWorker' in navigator) {
       '<div class="gp-avatars" id="gpAvatars"></div>' +
       '<div class="gp-label">昵称 <span>最多 16 个字</span></div>' +
       '<input class="gp-input" id="gpNameInput" type="text" maxlength="16" placeholder="给自己起个名字" autocomplete="off">' +
+      '<div class="gp-dup" id="gpDupHint" role="status"></div>' +
       '<div class="gp-tip">昵称和头像只保存在本机，排行榜只上传随机 ID 与这两项，不含任何设备信息。</div>' +
       '</div>' +
       '<div class="gp-foot">' +
@@ -6788,14 +6800,23 @@ if ('serviceWorker' in navigator) {
     document.body.appendChild(modalEl);
 
     const avBox = modalEl.querySelector('#gpAvatars');
-    AVATARS.forEach(function (a) {
-      const b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'gp-avatar-opt';
-      b.dataset.avatar = a;
-      b.textContent = a;
-      b.addEventListener('click', function () { pickAvatar(a); });
-      avBox.appendChild(b);
+    AVATAR_GROUPS.forEach(function (group) {
+      const head = document.createElement('div');
+      head.className = 'gp-avatar-group';
+      head.textContent = group.name;
+      avBox.appendChild(head);
+      const row = document.createElement('div');
+      row.className = 'gp-avatar-row';
+      group.list.forEach(function (a) {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'gp-avatar-opt';
+        b.dataset.avatar = a;
+        b.textContent = a;
+        b.addEventListener('click', function () { pickAvatar(a); });
+        row.appendChild(b);
+      });
+      avBox.appendChild(row);
     });
 
     modalEl.querySelectorAll('[data-gp-close]').forEach(function (n) {
@@ -6805,6 +6826,7 @@ if ('serviceWorker' in navigator) {
     const input = modalEl.querySelector('#gpNameInput');
     input.addEventListener('input', function () {
       modalEl.querySelector('#gpPreviewName').textContent = input.value.trim() || '匿名玩家';
+      scheduleDupCheck(input.value);
     });
     input.addEventListener('keydown', function (e) {
       if (e.key === 'Enter') { e.preventDefault(); save(); }
@@ -6818,6 +6840,61 @@ if ('serviceWorker' in navigator) {
     });
 
     return modalEl;
+  }
+
+  /* ---------- 昵称重名提示 ----------
+     免登录、纯本地身份下无法做「真唯一」：清空浏览器就能换个 ID 抢名字。
+     所以这里只做提示：查到别人在用同名就提醒，但不阻止保存。 */
+  let dupTimer = 0, dupSeq = 0;
+
+  function scheduleDupCheck(raw) {
+    const name = Array.from(String(raw || '').trim()).slice(0, 16).join('');
+    const hint = modalEl && modalEl.querySelector('#gpDupHint');
+    if (!hint) return;
+    clearTimeout(dupTimer);
+    if (!name) { hint.textContent = ''; hint.className = 'gp-dup'; return; }
+    hint.textContent = '';
+    hint.className = 'gp-dup';
+    dupTimer = setTimeout(function () { checkDup(name); }, 500);
+  }
+
+  function checkDup(name) {
+    const myId = get().id;
+    const seq = ++dupSeq;
+    const mark = function (others) {
+      if (seq !== dupSeq) return;                       // 已有更新的一次检查
+      const hint = modalEl && modalEl.querySelector('#gpDupHint');
+      if (!hint) return;
+      if (others > 0) {
+        hint.textContent = '已有 ' + others + ' 位玩家在用这个昵称，建议换个更好认的';
+        hint.className = 'gp-dup warn';
+      } else {
+        hint.textContent = '这个昵称还没人用';
+        hint.className = 'gp-dup ok';
+      }
+    };
+    const collect = function (board) {
+      let n = 0;
+      const seen = {};
+      (board || []).forEach(function (row) {
+        if (!row || row.id === myId) return;
+        if (row.name !== name) return;
+        if (seen[row.id]) return;
+        seen[row.id] = 1;
+        n++;
+      });
+      return n;
+    };
+    // 查全服榜（任意一个榜都行，名字是同一份 profile 同步过去的）。
+    // force=true 绕过 60s 客户端缓存——重名判断必须看最新数据，
+    // 否则刚有人在榜上改名也会漏判。
+    if (window.AppLeaderboard && window.AppLeaderboard.getBoard) {
+      window.AppLeaderboard.getBoard('2048', 50, true)
+        .then(function (res) { mark(collect(res && res.board)); })
+        .catch(function () { mark(0); });
+    } else {
+      mark(0);
+    }
   }
 
   let draft = { avatar: '🙂' };
@@ -6840,6 +6917,8 @@ if ('serviceWorker' in navigator) {
     const m = ensureModal();
     const p = get();
     draft = { avatar: p.avatar };
+    const dupHint = modalEl.querySelector('#gpDupHint');
+    if (dupHint) { dupHint.textContent = ''; dupHint.className = 'gp-dup'; }
     pickAvatar(p.avatar);
     const input = m.querySelector('#gpNameInput');
     input.value = p.name || '';
@@ -7918,7 +7997,7 @@ if ('serviceWorker' in navigator) {
 
   const STATE_VERSION = 1;
   const HOME_MOD = 'drinks';
-  const ALLOWED_MODS = ['drinks', 'milktea', 'manual', 'fengshui', 'tarot', 'lingqian', 'decision', 'clock', 'merit', 'lifeguide', 'bazi', 'daily', 'scratch'];
+  const ALLOWED_MODS = ['drinks', 'milktea', 'manual', 'fengshui', 'tarot', 'lingqian', 'decision', 'clock', 'merit', 'lifeguide', 'bazi', 'daily', 'scratch', 'wall'];
   const MODULE_CHUNKS = {
     milktea: 'milktea',
     manual: 'manual',
@@ -7930,7 +8009,8 @@ if ('serviceWorker' in navigator) {
     clock: 'relax',
     merit: 'relax',
     decision: 'decision',
-    scratch: 'scratch'
+    scratch: 'scratch',
+    wall: 'wall'
   };
   const MODULE_API = {
     drinks: 'AppDrinks',
@@ -7945,7 +8025,8 @@ if ('serviceWorker' in navigator) {
     clock: 'AppClock',
     merit: 'AppMerit',
     decision: 'AppDecision',
-    scratch: 'AppScratch'
+    scratch: 'AppScratch',
+    wall: 'AppWall'
   };
   const MOD_PARENT_MAP = {
     milktea: 'drinks',
@@ -8641,20 +8722,45 @@ if ('serviceWorker' in navigator) {
   function bindGlobalControls() {
     const btnTheme = document.getElementById('globalBtnTheme');
     if (btnTheme) {
-      const initTheme = document.documentElement.dataset.theme || 'dark';
-      btnTheme.textContent = initTheme === 'dark' ? '☾' : '☀';
+      const syncThemeUi = (theme) => {
+        const dark = theme === 'dark';
+        const ico = document.getElementById('gnavThemeIco');
+        if (ico) ico.textContent = dark ? '☾' : '☀';
+        const txt = document.getElementById('gnavThemeTxt');
+        if (txt) txt.textContent = dark ? '深色主题' : '浅色主题';
+        const ti1 = document.getElementById('themeIcon');
+        if (ti1) ti1.textContent = dark ? '☾' : '☀';
+        const ti2 = document.querySelector('#btnTheme2 span');
+        if (ti2) ti2.textContent = dark ? '☾' : '☀';
+      };
+      syncThemeUi(document.documentElement.dataset.theme || 'dark');
       btnTheme.addEventListener('click', () => {
         if (window.SFX && window.SFX.tap) window.SFX.tap();
         const curTheme = document.documentElement.dataset.theme;
         const nextTheme = curTheme === 'dark' ? 'light' : 'dark';
         document.documentElement.dataset.theme = nextTheme;
         try { localStorage.setItem('dp_theme', nextTheme); } catch (e) {}
-        btnTheme.textContent = nextTheme === 'dark' ? '☾' : '☀';
-        const ti1 = document.getElementById('themeIcon');
-        if (ti1) ti1.textContent = nextTheme === 'dark' ? '☾' : '☀';
-        const ti2 = document.querySelector('#btnTheme2 span');
-        if (ti2) ti2.textContent = nextTheme === 'dark' ? '☾' : '☀';
+        syncThemeUi(nextTheme);
       });
+    }
+    /* 「⋯」菜单开合：点外部 / Esc 关闭 */
+    const moreWrap = document.getElementById('gnavMore');
+    const moreBtn = document.getElementById('globalBtnMore');
+    const moreMenu = document.getElementById('gnavMenu');
+    if (moreWrap && moreBtn && moreMenu) {
+      const setOpen = (open) => {
+        moreMenu.hidden = !open;
+        moreBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      };
+      moreBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        setOpen(moreMenu.hidden);
+      });
+      moreMenu.addEventListener('click', (e) => e.stopPropagation());
+      document.addEventListener('click', () => setOpen(false));
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setOpen(false); });
+      window.__closeGnavMenu = () => setOpen(false);
     }
     /* Space 快速开测：活动屏幕上有可见的「开始* / 新开一局」按钮时，空格直接开始 */
     window.addEventListener('keydown', (e) => {
@@ -8679,6 +8785,7 @@ if ('serviceWorker' in navigator) {
       let aboutEl = null;
       btnAbout.addEventListener('click', () => {
         if (window.SFX && window.SFX.tap) window.SFX.tap();
+        if (typeof window.__closeGnavMenu === 'function') window.__closeGnavMenu();
         if (!aboutEl) {
           aboutEl = document.createElement('div');
           aboutEl.className = 'gp-modal';
@@ -8697,7 +8804,7 @@ if ('serviceWorker' in navigator) {
             '</div>' +
             '<div class="gp-body">' +
             '<p>一台专为年轻人打造的<b>工位摸鱼、解压娱乐与自我测评</b>纯前端工具箱。免登录、无广告，所有数据只存在你的设备本地。</p>' +
-            '<div class="gp-label">📌 7 大功能</div>' +
+            '<div class="gp-label">📌 8 大功能</div>' +
             '<div class="gp-func-list">' +
             '<div>🍹 <b>饮品测评</b> —— 测专属饮料 / 奶茶人格，支持当代 SBTI 发疯测试与 MBTI。</div>' +
             '<div>📖 <b>自我说明书</b> —— 15 关挑战：扫雷、俄罗斯方块、贪吃蛇、泡泡猫等 11 款小游戏 + 全服冲榜。</div>' +
@@ -8706,6 +8813,7 @@ if ('serviceWorker' in navigator) {
             '<div>🪙 <b>纠结拯救</b> —— 命运大轮盘、抛硬币、掷骰子、掷圣杯，治好选择困难症。</div>' +
             '<div>🗞️ <b>今日风向</b> —— 每天 60 秒早报速递、全网实时热搜榜、必应 4K 壁纸。</div>' +
             '<div>🎟️ <b>幸运刮刮乐</b> —— 5 款经典拟真彩票，真实物理刮擦涂层与刮彩账本。</div>' +
+            '<div>💬 <b>弹幕墙</b> —— 一人一句留言上墙，看看大家在聊什么。</div>' +
             '</div>' +
             '<div class="gp-tip">💡 极简提示：按 <b>Space</b> 快速开测 / 敲木鱼，按 <b>ESC</b> 退出全屏屏保。</div>' +
             '<div class="gp-label">开源</div>' +
@@ -8734,16 +8842,19 @@ if ('serviceWorker' in navigator) {
     }
     const btnSfx = document.getElementById('globalBtnSfx');
     if (btnSfx) {
+      const syncSfxUi = (enabled) => {
+        const ico = document.getElementById('gnavSfxIco');
+        if (ico) ico.textContent = enabled ? '🔊' : '🔇';
+        const txt = document.getElementById('gnavSfxTxt');
+        if (txt) txt.textContent = enabled ? '音效开启' : '音效已静音';
+      };
       if (window.SFX && typeof window.SFX.isMuted === 'function') {
-        const initEnabled = !window.SFX.isMuted();
-        btnSfx.textContent = initEnabled ? '🔊' : '🔇';
-        if (btnSfx.title) btnSfx.title = initEnabled ? '音效已开启' : '音效已静音';
+        syncSfxUi(!window.SFX.isMuted());
       }
       btnSfx.addEventListener('click', () => {
         if (window.SFX && window.SFX.toggle) {
           const enabled = window.SFX.toggle();
-          btnSfx.textContent = enabled ? '🔊' : '🔇';
-          if (btnSfx.title) btnSfx.title = enabled ? '音效已开启' : '音效已静音';
+          syncSfxUi(enabled);
           if (typeof window.__syncDrinkSfx === 'function') window.__syncDrinkSfx(enabled);
         }
       });

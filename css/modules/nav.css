@@ -294,12 +294,21 @@ html[data-theme="light"] .nav-tabs {
 }
 .global-btn-pill .pill-badge {
   font-size: 10.5px;
-  font-weight: 800;
+  font-weight: 700;
   padding: 1.5px 6px;
   border-radius: 999px;
-  background: var(--mod-ac);
-  color: var(--mod-ac-ink);
+  /* 低饱和品牌色：原来用 --mod-ac 荧光绿，比所有功能按钮都抢眼 */
+  background: rgba(139, 92, 246, 0.16);
+  color: #A78BFA;
   line-height: 1.2;
+}
+html[data-theme="light"] .global-btn-pill .pill-badge {
+  background: rgba(124, 58, 237, 0.10);
+  color: #6D28D9;
+}
+.global-btn-pill .pill-ico {
+  font-size: 14px;
+  line-height: 1;
 }
 
 .global-icon-btn {
@@ -740,7 +749,7 @@ html[data-theme="light"] .subnav-pill-btn.active[data-sub-jump="merit"] {
   line-height: 1;
   cursor: pointer;
   background: var(--card);
-  border: 1px dashed var(--line-strong);
+  border: 1px solid var(--line-strong);
   transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
 }
 .global-btn-profile .gp-nick {
@@ -754,15 +763,17 @@ html[data-theme="light"] .subnav-pill-btn.active[data-sub-jump="merit"] {
 }
 .global-btn-profile:hover {
   transform: scale(1.06);
-  border-color: var(--mod-ac);
+  border-color: var(--tx);
+  opacity: 0.9;
 }
 .global-btn-profile:active {
   transform: scale(0.92);
 }
 .global-btn-profile.is-set {
   border-style: solid;
-  border-color: var(--mod-ac);
-  box-shadow: 0 0 0 2px var(--mod-ac-soft);
+  /* 用中性色描边表示「已设置身份」，不再跟随模块主色（否则换个模块就荧光一次） */
+  border-color: var(--line-strong);
+  box-shadow: inset 0 0 0 1px var(--mod-ac-soft);
 }
 .global-btn-profile .gp-avatar {
   display: block;
@@ -888,10 +899,24 @@ html[data-theme="light"] .subnav-pill-btn.active[data-sub-jump="merit"] {
 .gp-label span { font-size: 11px; font-weight: 600; color: var(--tx-faint); }
 
 .gp-avatars {
+  display: block;
+  margin-bottom: 18px;
+  max-height: 232px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.gp-avatar-group {
+  font-size: 11px;
+  opacity: 0.55;
+  margin: 8px 0 5px;
+}
+.gp-avatar-group:first-child {
+  margin-top: 0;
+}
+.gp-avatar-row {
   display: grid;
   grid-template-columns: repeat(8, 1fr);
   gap: 6px;
-  margin-bottom: 18px;
 }
 .gp-avatar-opt {
   aspect-ratio: 1 / 1;
@@ -923,6 +948,18 @@ html[data-theme="light"] .subnav-pill-btn.active[data-sub-jump="merit"] {
   transition: border-color 0.18s ease;
 }
 .gp-input:focus { border-color: var(--mod-ac); }
+.gp-dup {
+  min-height: 17px;
+  margin: 6px 0 0;
+  font-size: 12px;
+  line-height: 1.4;
+}
+.gp-dup.warn {
+  color: #F08C00;
+}
+.gp-dup.ok {
+  color: #37B24D;
+}
 .gp-tip {
   margin-top: 10px;
   font-size: 11.5px;
@@ -1154,4 +1191,79 @@ html[data-theme="light"] #modalAbout a {
 }
 html[data-theme="light"] #modalAbout .gp-tip {
   background: rgba(77, 171, 247, 0.14);
+}
+
+
+/* ============ 顶栏「更多」收纳菜单 ============
+   主题 / 音效 / 壁纸 / 关于收进这里，明面上只留头像、档案、⋯
+   -------------------------------------------- */
+.gnav-more {
+  position: relative;
+  flex: none;
+}
+#globalBtnMore {
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  line-height: 1;
+}
+#globalBtnMore[aria-expanded="true"] {
+  border-color: var(--mod-ac);
+  background: var(--mod-ac-soft);
+}
+.gnav-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 168px;
+  padding: 6px;
+  border-radius: 14px;
+  background: var(--card);
+  border: 1px solid var(--line-strong);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.32);
+  z-index: 60;
+  display: grid;
+  gap: 2px;
+  animation: gnav-in 0.16s ease;
+}
+.gnav-menu[hidden] {
+  display: none;
+}
+@keyframes gnav-in {
+  from { opacity: 0; transform: translateY(-6px); }
+}
+.gnav-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  width: 100%;
+  padding: 9px 10px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--tx);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.gnav-item:hover {
+  background: var(--mod-ac-soft, rgba(255, 255, 255, 0.07));
+}
+.gnav-item[hidden] {
+  display: none;
+}
+.gnav-ico {
+  font-size: 15px;
+  line-height: 1;
+  width: 18px;
+  text-align: center;
+}
+.gnav-txt {
+  flex: 1;
+}
+@media (max-width: 640px) {
+  .gnav-menu {
+    min-width: 152px;
+  }
 }

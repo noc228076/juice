@@ -1,0 +1,262 @@
+/* =========================================================
+   模块 14：弹幕墙 (Bullet Wall)
+   ========================================================= */
+
+.wl-wrap {
+  max-width: 720px;
+  margin: 0 auto;
+}
+
+.wl-header {
+  text-align: center;
+  margin-bottom: 16px;
+}
+.wl-tag {
+  font-size: 11px;
+  letter-spacing: 2px;
+  opacity: 0.55;
+}
+.wl-title {
+  margin: 6px 0 6px;
+  font-size: 30px;
+  line-height: 1.2;
+}
+.wl-sub {
+  margin: 0 0 10px;
+  font-size: 14px;
+  opacity: 0.8;
+}
+.wl-stat {
+  font-size: 12px;
+  opacity: 0.6;
+}
+.wl-stat b {
+  color: var(--mod-ac, var(--accent, #4dabf7));
+}
+
+/* 弹幕舞台：一块「屏幕」，深浅主题都保持深色底 */
+.wl-stage {
+  position: relative;
+  height: 300px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: linear-gradient(180deg, #1b1930 0%, #232031 60%, #2a2338 100%);
+  border: 1px solid var(--line-strong);
+  box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.35);
+}
+.wl-hint {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.35);
+  pointer-events: none;
+}
+.wl-dm {
+  position: absolute;
+  left: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 13px 5px 7px;
+  border-radius: 999px;
+  background: rgba(12, 10, 20, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #f5f2ea;
+  font-size: 13px;
+  line-height: 1.4;
+  white-space: nowrap;
+  will-change: transform;
+}
+.wl-dm .a {
+  font-size: 15px;
+  line-height: 1;
+}
+.wl-dm .n {
+  opacity: 0.62;
+  font-size: 12px;
+}
+.wl-dm.mine {
+  background: rgba(77, 171, 247, 0.22);
+  border-color: rgba(77, 171, 247, 0.55);
+}
+
+/* 发送栏 */
+.wl-inputbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  padding: 10px 12px;
+  border-radius: 14px;
+  background: var(--card);
+  border: 1px solid var(--line-strong);
+}
+.wl-me-avatar {
+  font-size: 20px;
+  line-height: 1;
+}
+.wl-me-col {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  flex: 1;            /* 占满剩余宽度，否则输入框被内容宽度挤成一条缝 */
+}
+.wl-me-name {
+  font-size: 10px;
+  opacity: 0.6;
+}
+.wl-input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 14px;
+  padding: 4px 2px;
+  line-height: 1.4;
+}
+.wl-input::placeholder {
+  opacity: 0.4;
+}
+.wl-counter {
+  font-size: 11px;
+  opacity: 0.5;
+  flex: none;
+}
+.wl-send {
+  flex: none;
+  border: 0;
+  border-radius: 999px;
+  padding: 8px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  color: #fff;
+  background: #4dabf7;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+.wl-send:hover {
+  filter: brightness(1.1);
+}
+.wl-send:active {
+  transform: scale(0.95);
+}
+.wl-send:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+.wl-err {
+  min-height: 18px;
+  margin: 6px 4px 0;
+  font-size: 12px;
+  color: #ff8787;
+  text-align: right;
+}
+
+/* 最近留言 */
+.wl-list-head {
+  margin: 18px 4px 8px;
+  font-size: 14px;
+  opacity: 0.75;
+}
+.wl-list {
+  display: grid;
+  gap: 8px;
+}
+.wl-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  background: var(--card);
+  border: 1px solid var(--line-strong);
+  animation: wl-in 0.3s ease;
+}
+@keyframes wl-in {
+  from { opacity: 0; transform: translateY(-6px); }
+}
+.wl-item .a {
+  font-size: 17px;
+  line-height: 1.2;
+}
+.wl-item .mid {
+  flex: 1;
+  min-width: 0;
+}
+.wl-item .n {
+  font-size: 12px;
+  opacity: 0.6;
+  margin-right: 6px;
+}
+.wl-item .t {
+  font-size: 13.5px;
+  line-height: 1.5;
+  word-break: break-all;
+}
+.wl-item .time {
+  font-size: 11px;
+  opacity: 0.45;
+  flex: none;
+  margin-top: 2px;
+}
+/* 自己的留言：高亮 + 可删除 */
+.wl-item.mine {
+  border-color: rgba(77, 171, 247, 0.45);
+  background: rgba(77, 171, 247, 0.07);
+}
+.wl-del {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  margin-top: 1px;
+  border-radius: 50%;
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: inherit;
+  opacity: 0.5;
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  transition: opacity 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+.wl-del:hover {
+  opacity: 1;
+  border-color: #ff8787;
+  color: #ff8787;
+}
+.wl-del:disabled {
+  cursor: default;
+  opacity: 0.35;
+}
+
+.wl-empty {
+  padding: 14px;
+  font-size: 13px;
+  opacity: 0.55;
+  text-align: center;
+}
+
+@media (max-width: 480px) {
+  .wl-stage {
+    height: 240px;
+  }
+  .wl-dm {
+    font-size: 12px;
+  }
+  .wl-inputbar {
+    gap: 8px;
+    padding: 8px 10px;
+  }
+  .wl-counter {
+    display: none;
+  }
+  .wl-send {
+    padding: 8px 14px;
+  }
+}

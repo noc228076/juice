@@ -17,8 +17,8 @@
 <meta property="og:title" content="饮料人格研究所 · 测测你的精神状态与灵魂特调">
 <meta property="og:description" content="当代年轻人精神状态测试 (SBTI) / 经典 16 型人格 (MBTI) / 16 款灵魂饮料特调，测出你的独家出厂配方与精神病友。">
 <meta property="og:image" content="assets/icons/icon-512.png">
-  <link rel="stylesheet" href="css/core.bundle.css?v=171">
-  <script defer src="js/app.bundle.js?v=171" fetchpriority="high"></script>
+  <link rel="stylesheet" href="css/core.bundle.css?v=182">
+  <script defer src="js/app.bundle.js?v=182" fetchpriority="high"></script>
   <script>
     (function(){
       // 主题必须在首次绘制前定下来。以前只有 <html data-theme="dark"> 的硬编码默认值，
@@ -100,6 +100,12 @@
             <span class="tab-label-full">幸运刮刮乐</span>
             <span class="tab-label-short">刮刮</span>
           </button>
+
+          <button class="nav-tab" data-mod="wall">
+            <span class="tab-icon">💬</span>
+            <span class="tab-label-full">弹幕墙</span>
+            <span class="tab-label-short">弹幕</span>
+          </button>
         </nav>
       </div>
     </div>
@@ -108,15 +114,29 @@
         <span class="gp-avatar">🙂</span>
         <span class="gp-nick" id="globalNick">匿名玩家</span>
       </button>
-      <button class="global-icon-btn" id="globalBtnWallpaper" aria-label="关闭全站壁纸背景" title="关闭全站壁纸背景" hidden>🖼️</button>
       <button class="global-btn-pill" id="globalBtnHistory" title="查看研究所测评档案">
-        <span style="font-size:14px;">📜</span>
+        <span class="pill-ico">📜</span>
         <span class="pill-txt">档案</span>
         <span class="pill-badge history-count-badge" id="globalHistoryCount" style="display:none;">0</span>
       </button>
-      <button class="global-icon-btn" id="globalBtnAbout" aria-label="关于本站" title="关于本站">ⓘ</button>
-      <button class="global-icon-btn" id="globalBtnTheme" aria-label="切换主题" title="切换深色/浅色主题">☾</button>
-      <button class="global-icon-btn" id="globalBtnSfx" aria-label="开关音效" title="开关音效">🔊</button>
+      <div class="gnav-more" id="gnavMore">
+        <button class="global-icon-btn" id="globalBtnMore" aria-label="更多设置" aria-haspopup="menu"
+                aria-expanded="false" title="更多">⋯</button>
+        <div class="gnav-menu" id="gnavMenu" role="menu" hidden>
+          <button class="gnav-item" id="globalBtnWallpaper" role="menuitem" type="button" hidden>
+            <span class="gnav-ico">🖼️</span><span class="gnav-txt">关闭壁纸</span>
+          </button>
+          <button class="gnav-item" id="globalBtnTheme" role="menuitem" type="button">
+            <span class="gnav-ico" id="gnavThemeIco">☾</span><span class="gnav-txt" id="gnavThemeTxt">深色主题</span>
+          </button>
+          <button class="gnav-item" id="globalBtnSfx" role="menuitem" type="button">
+            <span class="gnav-ico" id="gnavSfxIco">🔊</span><span class="gnav-txt" id="gnavSfxTxt">音效开启</span>
+          </button>
+          <button class="gnav-item" id="globalBtnAbout" role="menuitem" type="button">
+            <span class="gnav-ico">ⓘ</span><span class="gnav-txt">关于本站</span>
+          </button>
+        </div>
+      </div>
     </div>
   </header>
 
@@ -2244,6 +2264,18 @@
         </div>
       </div>
     </section>
+
+      <section id="mod-wall" class="app-module">
+        <div class="wl-wrap">
+          <header class="wl-header">
+            <span class="wl-tag">BULLET WALL · 一人一句上墙</span>
+            <h1 class="wl-title">💬 弹幕墙</h1>
+            <p class="wl-sub">想说什么就说什么，一人一句，弹在墙上给大家看</p>
+            <div class="wl-stat">📢 墙上共 <b id="wlCount">0</b> 条</div>
+          </header>
+          <div id="wallBody"></div>
+        </div>
+      </section>
   </main>
 
   <!-- 历史档案抽屉浮层 -->

@@ -1144,6 +1144,9 @@
     const btn = document.getElementById('globalBtnWallpaper');
     if (!btn) return;
     btn.hidden = !isSiteBgActive;
+    // 菜单开着时壁纸项显隐变化，保持菜单高度自然
+    const menu = document.getElementById('gnavMenu');
+    if (menu && !menu.hidden) menu.hidden = false;
   }
 
   function init() {

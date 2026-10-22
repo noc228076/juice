@@ -8,7 +8,7 @@
 
   const STATE_VERSION = 1;
   const HOME_MOD = 'drinks';
-  const ALLOWED_MODS = ['drinks', 'milktea', 'manual', 'fengshui', 'tarot', 'lingqian', 'decision', 'clock', 'merit', 'lifeguide', 'bazi', 'daily', 'scratch'];
+  const ALLOWED_MODS = ['drinks', 'milktea', 'manual', 'fengshui', 'tarot', 'lingqian', 'decision', 'clock', 'merit', 'lifeguide', 'bazi', 'daily', 'scratch', 'wall'];
   const MODULE_CHUNKS = {
     milktea: 'milktea',
     manual: 'manual',
@@ -20,7 +20,8 @@
     clock: 'relax',
     merit: 'relax',
     decision: 'decision',
-    scratch: 'scratch'
+    scratch: 'scratch',
+    wall: 'wall'
   };
   const MODULE_API = {
     drinks: 'AppDrinks',
@@ -35,7 +36,8 @@
     clock: 'AppClock',
     merit: 'AppMerit',
     decision: 'AppDecision',
-    scratch: 'AppScratch'
+    scratch: 'AppScratch',
+    wall: 'AppWall'
   };
   const MOD_PARENT_MAP = {
     milktea: 'drinks',
@@ -731,20 +733,45 @@
   function bindGlobalControls() {
     const btnTheme = document.getElementById('globalBtnTheme');
     if (btnTheme) {
-      const initTheme = document.documentElement.dataset.theme || 'dark';
-      btnTheme.textContent = initTheme === 'dark' ? '☾' : '☀';
+      const syncThemeUi = (theme) => {
+        const dark = theme === 'dark';
+        const ico = document.getElementById('gnavThemeIco');
+        if (ico) ico.textContent = dark ? '☾' : '☀';
+        const txt = document.getElementById('gnavThemeTxt');
+        if (txt) txt.textContent = dark ? '深色主题' : '浅色主题';
+        const ti1 = document.getElementById('themeIcon');
+        if (ti1) ti1.textContent = dark ? '☾' : '☀';
+        const ti2 = document.querySelector('#btnTheme2 span');
+        if (ti2) ti2.textContent = dark ? '☾' : '☀';
+      };
+      syncThemeUi(document.documentElement.dataset.theme || 'dark');
       btnTheme.addEventListener('click', () => {
         if (window.SFX && window.SFX.tap) window.SFX.tap();
         const curTheme = document.documentElement.dataset.theme;
         const nextTheme = curTheme === 'dark' ? 'light' : 'dark';
         document.documentElement.dataset.theme = nextTheme;
         try { localStorage.setItem('dp_theme', nextTheme); } catch (e) {}
-        btnTheme.textContent = nextTheme === 'dark' ? '☾' : '☀';
-        const ti1 = document.getElementById('themeIcon');
-        if (ti1) ti1.textContent = nextTheme === 'dark' ? '☾' : '☀';
-        const ti2 = document.querySelector('#btnTheme2 span');
-        if (ti2) ti2.textContent = nextTheme === 'dark' ? '☾' : '☀';
+        syncThemeUi(nextTheme);
       });
+    }
+    /* 「⋯」菜单开合：点外部 / Esc 关闭 */
+    const moreWrap = document.getElementById('gnavMore');
+    const moreBtn = document.getElementById('globalBtnMore');
+    const moreMenu = document.getElementById('gnavMenu');
+    if (moreWrap && moreBtn && moreMenu) {
+      const setOpen = (open) => {
+        moreMenu.hidden = !open;
+        moreBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      };
+      moreBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        setOpen(moreMenu.hidden);
+      });
+      moreMenu.addEventListener('click', (e) => e.stopPropagation());
+      document.addEventListener('click', () => setOpen(false));
+      document.addEventListener('keydown', (e) => { if (e.key === 'Escape') setOpen(false); });
+      window.__closeGnavMenu = () => setOpen(false);
     }
     /* Space 快速开测：活动屏幕上有可见的「开始* / 新开一局」按钮时，空格直接开始 */
     window.addEventListener('keydown', (e) => {
@@ -769,6 +796,7 @@
       let aboutEl = null;
       btnAbout.addEventListener('click', () => {
         if (window.SFX && window.SFX.tap) window.SFX.tap();
+        if (typeof window.__closeGnavMenu === 'function') window.__closeGnavMenu();
         if (!aboutEl) {
           aboutEl = document.createElement('div');
           aboutEl.className = 'gp-modal';
@@ -787,7 +815,7 @@
             '</div>' +
             '<div class="gp-body">' +
             '<p>一台专为年轻人打造的<b>工位摸鱼、解压娱乐与自我测评</b>纯前端工具箱。免登录、无广告，所有数据只存在你的设备本地。</p>' +
-            '<div class="gp-label">📌 7 大功能</div>' +
+            '<div class="gp-label">📌 8 大功能</div>' +
             '<div class="gp-func-list">' +
             '<div>🍹 <b>饮品测评</b> —— 测专属饮料 / 奶茶人格，支持当代 SBTI 发疯测试与 MBTI。</div>' +
             '<div>📖 <b>自我说明书</b> —— 15 关挑战：扫雷、俄罗斯方块、贪吃蛇、泡泡猫等 11 款小游戏 + 全服冲榜。</div>' +
@@ -796,6 +824,7 @@
             '<div>🪙 <b>纠结拯救</b> —— 命运大轮盘、抛硬币、掷骰子、掷圣杯，治好选择困难症。</div>' +
             '<div>🗞️ <b>今日风向</b> —— 每天 60 秒早报速递、全网实时热搜榜、必应 4K 壁纸。</div>' +
             '<div>🎟️ <b>幸运刮刮乐</b> —— 5 款经典拟真彩票，真实物理刮擦涂层与刮彩账本。</div>' +
+            '<div>💬 <b>弹幕墙</b> —— 一人一句留言上墙，看看大家在聊什么。</div>' +
             '</div>' +
             '<div class="gp-tip">💡 极简提示：按 <b>Space</b> 快速开测 / 敲木鱼，按 <b>ESC</b> 退出全屏屏保。</div>' +
             '<div class="gp-label">开源</div>' +
@@ -824,16 +853,19 @@
     }
     const btnSfx = document.getElementById('globalBtnSfx');
     if (btnSfx) {
+      const syncSfxUi = (enabled) => {
+        const ico = document.getElementById('gnavSfxIco');
+        if (ico) ico.textContent = enabled ? '🔊' : '🔇';
+        const txt = document.getElementById('gnavSfxTxt');
+        if (txt) txt.textContent = enabled ? '音效开启' : '音效已静音';
+      };
       if (window.SFX && typeof window.SFX.isMuted === 'function') {
-        const initEnabled = !window.SFX.isMuted();
-        btnSfx.textContent = initEnabled ? '🔊' : '🔇';
-        if (btnSfx.title) btnSfx.title = initEnabled ? '音效已开启' : '音效已静音';
+        syncSfxUi(!window.SFX.isMuted());
       }
       btnSfx.addEventListener('click', () => {
         if (window.SFX && window.SFX.toggle) {
           const enabled = window.SFX.toggle();
-          btnSfx.textContent = enabled ? '🔊' : '🔇';
-          if (btnSfx.title) btnSfx.title = enabled ? '音效已开启' : '音效已静音';
+          syncSfxUi(enabled);
           if (typeof window.__syncDrinkSfx === 'function') window.__syncDrinkSfx(enabled);
         }
       });

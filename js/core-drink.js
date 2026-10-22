@@ -3708,9 +3708,21 @@ const SFX = (function () {
     screens[cur].classList.remove('on');
     screens[name].classList.add('on');
     cur = name;
-    // 真实封面已经上屏，淡出首屏骨架（见 index.html #bootSkeleton）。
-    // 加在 <html> 上而不是删节点：删节点会触发一次重排，淡出更平滑。
-    document.documentElement.classList.add('cover-ready');
+    /* 真实封面已经上屏，淡出首屏骨架（见 index.html #bootSkeleton）。
+       必须等封面自己的淡入动画（screenIn 0.3s）跑完再撤骨架：
+       两边同时过渡时骨架 0.22s 就透明、封面 0.3s 才不透明，
+       中间那段两边都半透明，看起来就是「加载完闪一下」。 */
+    const skeletonOut = function () {
+      if (document.documentElement.classList.contains('cover-ready')) return;
+      document.documentElement.classList.add('cover-ready');
+    };
+    if (document.documentElement.classList.contains('cover-ready')) {
+      /* 已经撤过骨架（切屏回来等情况），不必再等 */
+    } else if (name === 'cover' && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      setTimeout(skeletonOut, 320);
+    } else {
+      skeletonOut();
+    }
   }
 
   /* ---------- 主题 ---------- */

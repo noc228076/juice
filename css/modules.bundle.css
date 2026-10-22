@@ -14810,18 +14810,14 @@ html[data-theme="light"] .sc-security-box {
 .wl-right .wl-list-head {
   margin-top: 0;
 }
+/* 显示全部留言：不再限制高度做内部滚动（之前 max-height 462px 会把
+   第 9 条之后的留言裁掉，看起来像「挤掉其他留言」） */
 .wl-right .wl-list {
   min-height: 0;
-  max-height: 462px;
-  overflow-y: auto;
-  padding-right: 4px;
 }
 @media (max-width: 860px) {
   .wl-main {
     grid-template-columns: 1fr;
-  }
-  .wl-right .wl-list {
-    max-height: none;
   }
 }
 

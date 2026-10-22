@@ -156,7 +156,7 @@
     const list = document.getElementById('wlList');
     if (!list) return;
     list.innerHTML = '';
-    wall.slice(0, 30).forEach(function (c) {
+    wall.forEach(function (c) {
       const row = document.createElement('div');
       row.className = 'wl-item' + (c.mine ? ' mine' : '');
       row.innerHTML = '<span class="a"></span><div class="mid"><span class="n"></span>' +

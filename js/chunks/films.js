@@ -11,7 +11,8 @@
   const FILMS_KEY = 'juice_films_cache_v1';
   const FILMS_FAV_KEY = 'juice_films_fav_v1';
   let filmsData = null;        // { updatedAt, categories, resources }
-  let filmsCat = '';           // '' = 全部（精选优先）
+  let filmsCat = '';           // '' = 全部
+  let filmsStatus = '';        // '' = 全部状态 | recommended | caution
   let filmsFav = [];
 
   function loadFilmsFav() {
@@ -22,11 +23,18 @@
     try { localStorage.setItem(FILMS_FAV_KEY, JSON.stringify(filmsFav.slice(0, 100))); } catch (e) {}
   }
 
+  /* 数据源实际使用的状态值：recommended / caution / removed
+     （早期代码按 ok/broken 写，导致 recommended 全部落进「未检测」） */
   function filmsStatusMeta(st) {
-    if (st === 'ok') return { cls: 'ok', text: '可用' };
+    if (st === 'recommended' || st === 'ok') return { cls: 'ok', text: '可用' };
     if (st === 'caution') return { cls: 'warn', text: '谨慎' };
-    if (st === 'broken') return { cls: 'bad', text: '失效' };
+    if (st === 'removed' || st === 'broken') return { cls: 'bad', text: '已失效' };
     return { cls: '', text: '未检测' };
+  }
+
+  function countStatus(st) {
+    if (!filmsData) return 0;
+    return filmsData.resources.filter(function (r) { return r.status === st; }).length;
   }
 
   function renderFilmsCats() {
@@ -38,13 +46,33 @@
       const n = filmsData.resources.filter(function (r) { return r.category === k; }).length;
       if (n) items.push({ key: k, label: cats[k] + ' ' + n });
     });
-    box.innerHTML = items.map(function (it) {
-      return '<button type="button" class="films-cat' + (filmsCat === it.key ? ' active' : '') +
-        '" data-cat="' + it.key + '">' + it.label + '</button>';
-    }).join('');
+    const statusItems = [
+      { key: '', label: '全部状态' },
+      { key: 'recommended', label: '✅ 可用 ' + countStatus('recommended') },
+      { key: 'caution', label: '⚠️ 谨慎 ' + countStatus('caution') },
+      { key: 'removed', label: '⛔ 已失效 ' + countStatus('removed') }
+    ];
+    box.innerHTML =
+      items.map(function (it) {
+        return '<button type="button" class="films-cat' + (filmsCat === it.key ? ' active' : '') +
+          '" data-cat="' + it.key + '">' + it.label + '</button>';
+      }).join('') +
+      '<span class="films-cat-sep"></span>' +
+      statusItems.map(function (it) {
+        return '<button type="button" class="films-cat status' + (filmsStatus === it.key ? ' active' : '') +
+          '" data-status="' + it.key + '">' + it.label + '</button>';
+      }).join('');
     box.querySelectorAll('[data-cat]').forEach(function (b) {
       b.onclick = function () {
         filmsCat = b.getAttribute('data-cat');
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        renderFilmsCats();
+        renderFilmsGrid();
+      };
+    });
+    box.querySelectorAll('[data-status]').forEach(function (b) {
+      b.onclick = function () {
+        filmsStatus = b.getAttribute('data-status');
         if (window.SFX && window.SFX.tap) window.SFX.tap();
         renderFilmsCats();
         renderFilmsGrid();
@@ -59,10 +87,12 @@
 
     let list = filmsData.resources;
     if (filmsCat) list = list.filter(function (r) { return r.category === filmsCat; });
+    if (filmsStatus) list = list.filter(function (r) { return r.status === filmsStatus; });
 
     if (sub) {
       sub.textContent = filmsData.total + ' 个站点 · 数据更新于 ' + (filmsData.updatedAt || '未知') +
-        (filmsCat ? '' : ' · 精选与高摸鱼指数优先');
+        ' · 当前显示 ' + list.length + ' 个' +
+        (filmsStatus === 'recommended' ? '（已验证可用）' : filmsStatus === 'caution' ? '（需自行判断）' : '');
     }
 
     grid.innerHTML = list.map(function (r) {
@@ -133,28 +163,36 @@
     const sub = document.getElementById('filmsSub');
     if (!grid) return;
 
-    // 先渲染本地缓存，网络回来再刷新
+    /* 先渲染本地缓存争取秒开，但缓存必须有过期时间：
+       排序与状态是服务端算的，永远用缓存会导致规则更新后页面不跟随。 */
+    const CACHE_TTL = 30 * 60 * 1000;   // 30 分钟
+    let cacheFresh = false;
     if (!filmsData && !force) {
       try {
         const cached = JSON.parse(localStorage.getItem(FILMS_KEY) || 'null');
         if (cached && cached.resources && cached.resources.length) {
           filmsData = cached;
+          cacheFresh = Date.now() - (cached._cachedAt || 0) < CACHE_TTL;
           renderFilmsCats();
           renderFilmsGrid();
         }
       } catch (e) {}
     }
-    if (filmsData && !force) return;
+    if (filmsData && !force && cacheFresh) return;
 
     if (!filmsData && sub) sub.textContent = '正在加载资源…';
     if (!filmsData && grid) grid.innerHTML = '<div class="films-empty">正在加载…</div>';
 
-    fetch('/api/zhuiju', { headers: { Accept: 'application/json' } })
+    /* 带时间戳绕过 HTTP 缓存：接口虽然设了 Cache-Control，
+       但浏览器/中间层仍可能返回旧快照，导致排序规则更新后页面不跟随 */
+    fetch('/api/zhuiju?_=' + Date.now(), { headers: { Accept: 'application/json' }, cache: 'no-store' })
       .then(function (r) { return r.json(); })
       .then(function (d) {
         if (!d || !d.ok) throw new Error((d && d.error) || '加载失败');
         filmsData = d;
-        try { localStorage.setItem(FILMS_KEY, JSON.stringify(d)); } catch (e) {}
+        try {
+          localStorage.setItem(FILMS_KEY, JSON.stringify(Object.assign({ _cachedAt: Date.now() }, d)));
+        } catch (e) {}
         renderFilmsCats();
         renderFilmsGrid();
       })

@@ -15397,3 +15397,23 @@ html[data-theme="dark"] .films-score {
 .films-legend b.ok { color: #37b24d; }
 .films-legend b.warn { color: #f08c00; }
 .films-legend b.bad { color: #ff6b6b; }
+
+/* 分类条里的状态筛选分隔与样式 */
+.films-cat-sep {
+  width: 1px;
+  height: 16px;
+  margin: 0 2px;
+  background: var(--line-strong);
+  opacity: 0.5;
+  align-self: center;
+}
+.films-cat.status.active {
+  background: rgba(55, 178, 77, 0.12);
+  border-color: #37b24d;
+  color: #2f9e44;
+}
+html[data-theme="dark"] .films-cat.status.active {
+  background: rgba(81, 207, 102, 0.18);
+  border-color: #51cf66;
+  color: #69db7c;
+}

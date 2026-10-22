@@ -98,8 +98,14 @@ module.exports = async function handler(req, res) {
     const all = await loadResources();
     const list = cat ? all.filter(function (r) { return r.category === cat; }) : all;
 
-    // 排序：精选优先 → 摸鱼指数降序 → 名称
+    /* 排序：验证状态优先（可用 > 谨慎 > 失效）→ 精选 → 摸鱼指数 → 名称。
+       之前只按精选+指数排，工具类站点和在线影视站指数都是 5，
+       导致首屏被「谨慎」的影视站占满，16 个「可用」的反而沉底。 */
+    const STATUS_RANK = { recommended: 0, caution: 1, unknown: 2, removed: 3 };
     list.sort(function (a, b) {
+      const ra = STATUS_RANK[a.status] != null ? STATUS_RANK[a.status] : 2;
+      const rb = STATUS_RANK[b.status] != null ? STATUS_RANK[b.status] : 2;
+      if (ra !== rb) return ra - rb;
       if (a.featured !== b.featured) return a.featured ? -1 : 1;
       if (b.score !== a.score) return b.score - a.score;
       return a.name.localeCompare(b.name, 'zh');

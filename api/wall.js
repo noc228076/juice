@@ -67,9 +67,9 @@ function memAdd(score, member) {
   mem.sort((a, b) => a.score - b.score);
   if (mem.length > BOARD_CAP) mem.splice(0, mem.length - BOARD_CAP);
 }
-function memRevRange(a, b) {
+function memRevMembers(a, b) {
   const slice = mem.slice(Math.max(0, mem.length - (b + 1)), mem.length - a);
-  return slice.reverse().flatMap(i => [i.member, i.score]);
+  return slice.reverse().map(i => i.member);
 }
 function memDel(member) {
   const i = mem.findIndex(x => x.member === member);
@@ -78,28 +78,31 @@ function memDel(member) {
 
 /* ---------------- 读取 ---------------- */
 async function readWall(limit) {
-  let flat, total;
+  /* ZREVRANGE 不带 WITHSCORES 时返回纯成员数组（一条一个元素）。
+     之前这里按 i += 2 步进（那是 WITHSCORES 的成对格式），
+     导致每隔一条就被跳过——线上 total 与返回条数对不上、看起来像留言被挤掉。 */
+  let members, total;
   if (useMemory) {
-    flat = memRevRange(0, limit - 1);
+    members = memRevMembers(0, limit - 1);
     total = mem.length;
   } else {
     const out = await pipeline([
       ['ZREVRANGE', 'jwall', '0', String(limit - 1)],
       ['ZCARD', 'jwall']
     ]);
-    flat = out[0] || [];
+    members = out[0] || [];
     total = out[1] || 0;
   }
   const wall = [];
-  for (let i = 0; i < flat.length; i += 2) {
+  members.forEach(function (m) {
     try {
-      const d = JSON.parse(flat[i]);
+      const d = JSON.parse(m);
       wall.push({
         name: d.n || '匿名玩家', avatar: d.a || '🙂', text: d.t || '',
         at: d.at || 0, owner: d.i || ''   // owner 仅用于前端判断「是不是我的」，不回显完整 ID
       });
     } catch (e) { /* 跳过坏数据 */ }
-  }
+  });
   return { wall, total };
 }
 

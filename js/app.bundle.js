@@ -1,4 +1,4 @@
-window.__APP_VERSION__ = '187';
+window.__APP_VERSION__ = '189';
 /* === js/core-drink.js === */
 /* 人格研究所 — 题库与档案数据 */
 'use strict';
@@ -6163,13 +6163,28 @@ if ('serviceWorker' in navigator) {
     ]
   };
 
+  /* 豆瓣图床按 Referer 放行，浏览器 <img> 直连会 418。
+     统一走自家 /api/douban 代理（服务端补 Referer）。 */
+  function posterSrc(url) {
+    if (!url) return LOCAL_POSTER;
+    if (url.indexOf('/api/douban') === 0) return url;
+    return '/api/douban?img=' + encodeURIComponent(url);
+  }
+
+  /* 前端榜单 key → 代理支持的豆瓣集合 */
+  const MOVIE_COLLECTION = {
+    weekly_movie: 'movie_weekly_best',
+    tv_chinese: 'tv_chinese_best_weekly',
+    tv_global: 'tv_global_best_weekly'
+  };
+
   function normalizeMovieSeed(m, idx) {
     return {
       rank: idx + 1,
       title: m.title,
       rating: m.rating,
       card_subtitle: m.card_subtitle || m.description || '',
-      cover_proxy: m.cover_proxy || m.cover || LOCAL_POSTER,
+      cover_proxy: m.pic ? posterSrc(m.pic) : (m.cover_proxy || m.cover || LOCAL_POSTER),
       url: m.url || 'https://movie.douban.com',
       tags: Array.isArray(m.tags) ? m.tags : []
     };
@@ -6185,8 +6200,22 @@ if ('serviceWorker' in navigator) {
       .map(() => '<div class="daily-skeleton" style="height:140px;border-radius:16px;"></div>')
       .join('');
 
-    const seeds = MOVIE_SEEDS[type] || MOVIE_SEEDS.weekly_movie;
-    const list = seeds.map(normalizeMovieSeed);
+    /* 优先拉豆瓣实时榜单（经 /api/douban 代理，绕开 CORS 与 Referer 限制）；
+       接口不可用时回退本地种子，保证永不空白。 */
+    let list = null;
+    const collection = MOVIE_COLLECTION[type] || MOVIE_COLLECTION.weekly_movie;
+    try {
+      const resp = await fetch('/api/douban?list=' + encodeURIComponent(collection), { headers: { Accept: 'application/json' } });
+      const data = await resp.json();
+      if (resp.ok && data && data.ok && Array.isArray(data.items) && data.items.length) {
+        list = data.items.map(normalizeMovieSeed);
+      }
+    } catch (e) { /* 走下面的种子兜底 */ }
+
+    if (!list || !list.length) {
+      const seeds = MOVIE_SEEDS[type] || MOVIE_SEEDS.weekly_movie;
+      list = seeds.map(normalizeMovieSeed);
+    }
 
     fillWithContent(
       grid,
@@ -6197,7 +6226,7 @@ if ('serviceWorker' in navigator) {
           const tags = Array.isArray(m.tags) ? m.tags : [];
           return `
           <a class="daily-movie-card" style="--i:${idx < 8 ? idx : 7}" href="${m.url || '#'}" target="_blank" rel="noopener noreferrer">
-            <img class="daily-mcard-poster" src="${poster}" alt="${esc(m.title)}" loading="lazy" onerror="this.src='${LOCAL_POSTER}'" />
+            <img class="daily-mcard-poster" src="${poster}" alt="${esc(m.title)}" decoding="async" onerror="this.onerror=null;this.src='${LOCAL_POSTER}'" />
             <div class="daily-mcard-info">
               <div>
                 <div class="daily-mcard-head">

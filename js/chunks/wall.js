@@ -31,6 +31,19 @@
   }
 
   /* ---------- 弹幕引擎 ---------- */
+  /* rAF 在后台标签会被浏览器完全暂停，但 engine.raf 仍留着旧句柄，
+     导致切回来后「if (!engine.raf)」判断失效、弹幕永久停在原地。
+     这里用心跳时间判断循环是否已死，必要时重启。 */
+  function ensureLoop() {
+    if (!engine.items.length && !engine.queue.length) return;
+    const stalled = engine.raf && (performance.now() - (engine.aliveAt || 0) > 1200);
+    if (!engine.raf || stalled) {
+      engine.last = performance.now();
+      engine.aliveAt = performance.now();
+      engine.raf = requestAnimationFrame(frame);
+    }
+  }
+
   function spawn(item, mine) {
     const stage = document.getElementById('wlStage');
     if (!stage) return;
@@ -47,33 +60,36 @@
     elm.querySelector('.n').textContent = item.name;
     elm.querySelector('.t').textContent = item.text;
     /* 航道避让：已占用的航道（含正在飞行的）不再选，避免弹幕叠字 */
-    const LANES = 8;
+    const LANES = 12;
     const used = {};
     engine.items.forEach(function (d) { used[d.lane] = true; });
     const free = [];
     for (let li = 0; li < LANES; li++) if (!used[li]) free.push(li);
     const lane = free.length ? free[(Math.random() * free.length) | 0] : ((Math.random() * LANES) | 0);
     const dur = 8500 + Math.random() * 5500;
-    elm.style.top = (7 + lane * (74 / (LANES - 1))) + '%';
+    elm.style.top = (5 + lane * (78 / (LANES - 1))) + '%';
+    /* 先摆到舞台右边界外（含自身宽度）再插入，避免元素从右边缘「探出」或闪一帧 */
+    elm.style.transform = 'translateX(9999px)';
     stage.appendChild(elm);
 
+    const w = elm.offsetWidth || 160;
+    const startX = stage.clientWidth + 20;
+    elm.style.transform = 'translateX(' + startX + 'px)';
     engine.items.push({
       el: elm,
       at: item.at || 0,
       lane: lane,
-      x: stage.clientWidth,
-      w: elm.offsetWidth || 160,
-      speed: (stage.clientWidth + (elm.offsetWidth || 160) + 40) / (dur / 1000)
+      x: startX,
+      w: w,
+      speed: (startX + w + 40) / (dur / 1000)
     });
-    if (!engine.raf) {
-      engine.last = performance.now();
-      engine.raf = requestAnimationFrame(frame);
-    }
+    ensureLoop();
   }
 
   function frame(now) {
     const dt = Math.min((now - engine.last) / 1000, 0.1);
     engine.last = now;
+    engine.aliveAt = now;
     const stage = document.getElementById('wlStage');
     for (let i = engine.items.length - 1; i >= 0; i--) {
       const d = engine.items[i];
@@ -140,7 +156,7 @@
     const list = document.getElementById('wlList');
     if (!list) return;
     list.innerHTML = '';
-    wall.slice(0, 12).forEach(function (c) {
+    wall.slice(0, 30).forEach(function (c) {
       const row = document.createElement('div');
       row.className = 'wl-item' + (c.mine ? ' mine' : '');
       row.innerHTML = '<span class="a"></span><div class="mid"><span class="n"></span>' +
@@ -291,17 +307,24 @@
     if (!el) return;
 
     el.innerHTML =
-      '<div class="wl-stage" id="wlStage"><div class="wl-hint" id="wlStageHint">最新留言会从这里飞过 →</div></div>' +
-      '<div class="wl-inputbar">' +
-      '<span class="wl-me-avatar" id="wlMeAvatar">🙂</span>' +
-      '<div class="wl-me-col"><span class="wl-me-name" id="wlMeName">匿名玩家</span>' +
-      '<input class="wl-input" id="wlInput" maxlength="60" autocomplete="off" ' +
-      'placeholder="一人一句，最多 60 字（回车发送）"></div>' +
-      '<span class="wl-counter" id="wlCounter">0/60</span>' +
-      '<button class="wl-send" id="wlSend" type="button">发送</button></div>' +
-      '<div class="wl-err" id="wlErr" role="alert"></div>' +
-      '<div class="wl-list-head">最近留言</div>' +
-      '<div class="wl-list" id="wlList"></div>';
+      '<div class="wl-main">' +
+        '<div class="wl-left">' +
+          '<div class="wl-stage" id="wlStage"><div class="wl-hint" id="wlStageHint">最新留言会从这里飞过 →</div></div>' +
+          '<div class="wl-inputbar">' +
+            '<span class="wl-me-avatar" id="wlMeAvatar">🙂</span>' +
+            '<div class="wl-me-col"><span class="wl-me-name" id="wlMeName">匿名玩家</span>' +
+            '<input class="wl-input" id="wlInput" maxlength="60" autocomplete="off" ' +
+            'placeholder="一人一句，最多 60 字（回车发送）"></div>' +
+            '<span class="wl-counter" id="wlCounter">0/60</span>' +
+            '<button class="wl-send" id="wlSend" type="button">发送</button>' +
+          '</div>' +
+          '<div class="wl-err" id="wlErr" role="alert"></div>' +
+        '</div>' +
+        '<div class="wl-right">' +
+          '<div class="wl-list-head">最近留言</div>' +
+          '<div class="wl-list" id="wlList"></div>' +
+        '</div>' +
+      '</div>';
 
     const me = profile();
     const avEl = document.getElementById('wlMeAvatar');
@@ -324,6 +347,9 @@
       });
     }
 
+    document.addEventListener('visibilitychange', function () {
+      if (!document.hidden) ensureLoop();
+    });
     fetchWall().then(primeStage);
     pollTimer = setInterval(function () {
       if (document.hidden) return;

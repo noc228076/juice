@@ -3,13 +3,48 @@
    ========================================================= */
 
 .wl-wrap {
-  max-width: 720px;
+  max-width: 1120px;
   margin: 0 auto;
+}
+/* 宽屏两栏：左舞台 + 右留言列表，避免中间一条长条留白 */
+.wl-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1.55fr) minmax(280px, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+.wl-left {
+  min-width: 0;
+}
+.wl-right {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  /* 与左侧「舞台 + 输入栏」整体等高，避免右栏孤零零一截 */
+  align-self: stretch;
+}
+.wl-right .wl-list-head {
+  margin-top: 0;
+}
+.wl-right .wl-list {
+  flex: 1;
+  min-height: 0;
+  max-height: 462px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+@media (max-width: 860px) {
+  .wl-main {
+    grid-template-columns: 1fr;
+  }
+  .wl-right .wl-list {
+    max-height: none;
+  }
 }
 
 .wl-header {
   text-align: center;
-  margin-bottom: 16px;
+  margin-bottom: 18px;
 }
 .wl-tag {
   font-size: 11px;
@@ -37,7 +72,7 @@
 /* 弹幕舞台：一块「屏幕」，深浅主题都保持深色底 */
 .wl-stage {
   position: relative;
-  height: 300px;
+  height: 380px;
   border-radius: 16px;
   overflow: hidden;
   background: linear-gradient(180deg, #1b1930 0%, #232031 60%, #2a2338 100%);
@@ -244,7 +279,7 @@
 
 @media (max-width: 480px) {
   .wl-stage {
-    height: 240px;
+    height: 260px;
   }
   .wl-dm {
     font-size: 12px;

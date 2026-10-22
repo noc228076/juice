@@ -17003,7 +17003,6 @@ html[data-theme="light"] .sc-security-box {
   margin-top: 0;
 }
 .wl-right .wl-list {
-  flex: 1;
   min-height: 0;
   max-height: 462px;
   overflow-y: auto;
@@ -17178,6 +17177,9 @@ html[data-theme="light"] .sc-security-box {
 .wl-list {
   display: grid;
   gap: 8px;
+  /* grid 默认 align-content: stretch，容器被 flex 撑高后会把每行留言
+     平均拉高填满整块（截图里卡片变成长条）。必须显式顶对齐。 */
+  align-content: start;
 }
 .wl-item {
   display: flex;

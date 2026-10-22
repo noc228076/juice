@@ -751,7 +751,7 @@
       title: '泡泡猫泡泡龙', en: 'BUBBLE CAT',
       tagline: '猫咪吐泡泡，三同色就消除——别让泡泡碰到警戒线',
       icon: 'bubble', color: '#F472B6',
-      meta: '双难度分榜 · 自动存档',
+      meta: '双难度分榜 · 无尽计分',
       intro: [
         '移动指针（或手指）瞄准，点击 / 轻触发射泡泡。',
         '同色凑满 3 颗即消除；隔断支撑让整串坠落，得分更高。',
@@ -5342,7 +5342,6 @@
       hard: { key: 'hard', name: '挑战', desc: '警戒线步步紧逼，全服榜主战场' }
     };
     var dif = MODES.easy;
-    function saveKey() { return 'sm_bubble_state_' + dif.key; }   /* 进度按难度分开存 */
     var EMPTY = 0, RAINBOW = 7;
 
     /* 糖果 6 色（与素材总览一致）：[暗边, 亮部, 主色] */
@@ -5453,35 +5452,6 @@
       if (Math.random() < 0.06 && other !== RAINBOW) return RAINBOW;
       var list = activeColors();
       return list[Math.floor(Math.random() * list.length)];
-    }
-
-    /* ---------- 存档 ---------- */
-    function saveState() {
-      if (mode !== 'play') return;
-      try {
-        localStorage.setItem(saveKey(), JSON.stringify({
-          v: 3,
-          md: dif.key,
-          rows: rows.map(function (row) { return row.slice(); }),
-          score: score, waves: waves, popped: poppedTotal,
-          sk: sinkCount, sus: shotsUntilSink, se: sinkEvery,
-          cur: cur, next: next
-        }));
-      } catch (e) {}
-    }
-    function loadState() {
-      try {
-        var s = JSON.parse(localStorage.getItem(saveKey()) || 'null');
-        var ok = s && s.v === 3 && s.md === dif.key && Array.isArray(s.rows) && s.rows.length > 0 &&
-          s.rows.every(function (row) {
-            return Array.isArray(row) && row.length >= 8 &&
-              row.every(function (v) { return v >= 0 && v <= 7; });
-          }) && typeof s.score === 'number' && s.waves >= 1;
-        return ok ? s : null;
-      } catch (e) { return null; }
-    }
-    function clearState() {
-      try { localStorage.removeItem(SAVE_KEY); } catch (e) {}
     }
 
     /* ---------- 布局 ---------- */
@@ -5776,7 +5746,6 @@
       }
       cur = next;
       next = rollBubble(cur);
-      saveState();
       updateHud();
     }
 
@@ -5785,7 +5754,6 @@
       mode = 'over';
       flying = null;
       stopLoop();
-      clearState();
       if (window.SFX && window.SFX.wrong) window.SFX.wrong();
       if (lbPanel && score > 0) {
         lbPanel.submit({ score: score, wave: waves, popped: poppedTotal });
@@ -5799,7 +5767,6 @@
       mode = 'over';
       flying = null;
       stopLoop();
-      clearState();
       if (window.SFX && window.SFX.select) window.SFX.select();
       if (lbPanel && score > 0) {
         lbPanel.submit({ score: score, wave: waves, popped: poppedTotal });
@@ -5992,7 +5959,6 @@
       var ov = el.querySelector('#bcPauseOverlay');
       if (ov) ov.classList.toggle('is-active', p);
       if (p) {
-        saveState();
       } else {
         lastTs = performance.now();
         ensureLoop();
@@ -6041,8 +6007,7 @@
     /* ---------- 开始页 ---------- */
     function intro() {
       mode = 'intro';
-      var saved = loadState();
-      el.innerHTML = hud('<b>泡泡猫泡泡龙</b>', '无尽计分 · 自动存档') +
+      el.innerHTML = hud('<b>泡泡猫泡泡龙</b>', '无尽计分') +
         '<div class="rz-stage">' +
         '<div class="rz-big" style="font-size:30px">泡泡猫泡泡龙</div>' +
         '<div class="rz-sub">移动指针瞄准，点击 / 轻触发射<br>' +
@@ -6054,9 +6019,7 @@
         }).join('') +
         '</div>' +
         '<div class="text-small text-muted" style="margin-top:6px" id="bcDifDesc">' + dif.desc + '</div>' +
-        (saved ? '<button class="btn accent" id="bcResume" style="margin-top:18px;width:auto;padding:12px 34px">继续上局（' +
-          saved.score + ' 分 · 第 ' + saved.waves + ' 波）</button>' : '') +
-        '<button class="btn' + (saved ? '' : ' accent') + '" id="bcNew" style="margin-top:12px;width:auto;padding:12px 34px">新开一局</button>' +
+        '<button class="btn accent" id="bcNew" style="margin-top:18px;width:auto;padding:12px 34px">新开一局</button>' +
         '</div>';
       el.querySelectorAll('[data-dif]').forEach(function (b) {
         b.onclick = function (e) {
@@ -6071,22 +6034,6 @@
           intro();
         };
       });
-      var resumeBtn = el.querySelector('#bcResume');
-      if (resumeBtn) resumeBtn.onclick = function (e) {
-        e.stopPropagation();
-        if (window.SFX && window.SFX.tap) window.SFX.tap();
-        var s = loadState();
-        if (!s) { intro(); return; }
-        evenTop = !!s.eo;
-        rows = s.rows.map(function (row) { return row.slice(); });
-        score = s.score; waves = s.waves; poppedTotal = s.popped || 0;
-        sinkCount = s.sk || 0;
-        shotsUntilSink = s.sus || SINK_BASE; sinkEvery = s.se || SINK_BASE;
-        cur = s.cur; next = s.next;
-        if (cur === EMPTY || cur === undefined) cur = rollBubble(0);
-        if (next === EMPTY || next === undefined || (cur === RAINBOW && next === RAINBOW)) next = rollBubble(cur);
-        startPlay();
-      };
       var newBtn = el.querySelector('#bcNew');
       if (newBtn) newBtn.onclick = function (e) {
         e.stopPropagation();
@@ -6145,7 +6092,6 @@
       if (restartBtn) restartBtn.onclick = function (e) {
         e.stopPropagation();
         if (window.SFX && window.SFX.tap) window.SFX.tap();
-        clearState();
         resetGame();
         startPlay();
       };
@@ -6160,7 +6106,6 @@
     window.addEventListener('keydown', onKeyDown);
     return {
       destroy: function () {
-        if (mode === 'play' && !finished) saveState();
         destroyed = true;
         mode = 'over';
         stopLoop();

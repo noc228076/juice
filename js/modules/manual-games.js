@@ -4481,8 +4481,8 @@
         sinkT = 1;
         shotsUntilSink = Math.max(shotsUntilSink, SINK_BASE);
       }
-      cur = next;
-      next = rollBubble(cur);
+      /* 待发/预测球在发射时（onCanvasDown）已经推进过一次，
+         这里不能再推进——否则预测球会在消除瞬间无故变颜色 */
       updateHud();
     }
 

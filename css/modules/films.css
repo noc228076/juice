@@ -96,11 +96,14 @@ html[data-theme="dark"] .films-cat.active {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 10px;
+  /* 同一行的卡片不强制等高：内容少的不会被拉长留白 */
+  align-items: start;
 }
 .films-card {
   display: flex;
   flex-direction: column;
   gap: 7px;
+  align-self: start;
   padding: 12px 13px;
   border-radius: 14px;
   background: var(--card);
@@ -166,7 +169,7 @@ html[data-theme="dark"] .films-cat.active {
   font-size: 12.5px;
   line-height: 1.55;
   opacity: 0.72;
-  min-height: 2.4em;
+  /* 不再强制占两行：短简介不留空白，卡片高度随内容走 */
 }
 .films-meta {
   display: flex;

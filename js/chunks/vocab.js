@@ -61,7 +61,7 @@
     return arr;
   }
 
-  /* 四选一：同词性优先、长度接近、排除同义项
+  /* 四选一释义：同词性优先、长度接近、排除同义项
      —— 避免「最长的是答案」被当规律用，也避免两个选项意思一样 */
   function makeOptions(words, byPos, idx) {
     var row = words[idx];
@@ -79,7 +79,6 @@
         if (j === idx) continue;
         var t = words[j][2];
         if (seen[t]) continue;
-        /* 长度差超过 12 字大概率是「一眼假」的选项，七成概率跳过 */
         if (Math.abs(t.length - answer.length) > 12 && Math.random() < 0.75) continue;
         seen[t] = 1;
         picked.push(t);
@@ -98,6 +97,98 @@
     return shuffle(opts);
   }
 
+  /* 填空：从例句里挖掉目标词，四选一词形
+     —— 同词性、长度接近，且不选原词本身 */
+  function makeClozeOptions(words, byPos, idx) {
+    var row = words[idx];
+    var answer = row[0];
+    var p = posOf(row[2]);
+    var pool = (p && byPos[p] && byPos[p].length > 4) ? byPos[p] : null;
+    var picked = [];
+    var seen = Object.create(null);
+    seen[answer.toLowerCase()] = 1;
+
+    function tryPick(from, want) {
+      var guard = 0;
+      while (picked.length < want && guard++ < 600) {
+        var j = from[Math.floor(Math.random() * from.length)];
+        if (j === idx) continue;
+        var w = words[j][0];
+        if (seen[w.toLowerCase()]) continue;
+        if (Math.abs(w.length - answer.length) > 5 && Math.random() < 0.8) continue;
+        seen[w.toLowerCase()] = 1;
+        picked.push(w);
+      }
+    }
+
+    if (pool) tryPick(pool, 3);
+    if (picked.length < 3) {
+      var all = [];
+      for (var k = 0; k < words.length; k++) all.push(k);
+      tryPick(all, 3);
+    }
+
+    var opts = [{ text: answer, ok: true }];
+    for (var i = 0; i < picked.length; i++) opts.push({ text: picked[i], ok: false });
+    return shuffle(opts);
+  }
+
+  /* 把例句里的目标词替换成空格。大小写与词形变化都尽量兜住：
+     先试原词，再试首字母大写，最后试词干前缀（-s/-ed/-ing 等）。 */
+  function blankOut(sentence, word) {
+    if (!sentence) return '';
+    var w = String(word);
+    var forms = [w, w.charAt(0).toUpperCase() + w.slice(1), w.toUpperCase()];
+    /* 词干兜底：去掉常见后缀后的主体，长度至少 4 才用 */
+    var stem = w.replace(/(ing|ed|es|s|ly|er|est)$/i, '');
+    if (stem.length >= 4 && stem !== w) {
+      forms.push(stem, stem.charAt(0).toUpperCase() + stem.slice(1));
+    }
+    for (var i = 0; i < forms.length; i++) {
+      var f = forms[i];
+      var re = new RegExp('\\b' + f.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '[a-z]{0,3}\\b');
+      if (re.test(sentence)) return sentence.replace(re, '______');
+    }
+    return '';
+  }
+
+  /* ---------- 发音 ---------- */
+  var voiceCache = null;
+  var speakOK = (typeof window !== 'undefined') && 'speechSynthesis' in window;
+
+  function pickVoice() {
+    if (!speakOK) return null;
+    if (voiceCache !== null) return voiceCache;
+    var vs = window.speechSynthesis.getVoices() || [];
+    /* 优先美音，其次英音，再次任意 en-* */
+    voiceCache = vs.find(function (v) { return /en[-_]US/i.test(v.lang); })
+      || vs.find(function (v) { return /en[-_]GB/i.test(v.lang); })
+      || vs.find(function (v) { return /^en/i.test(v.lang); })
+      || null;
+    return voiceCache;
+  }
+
+  function speak(text) {
+    if (!speakOK || !text) return false;
+    try {
+      window.speechSynthesis.cancel();
+      var u = new SpeechSynthesisUtterance(String(text));
+      u.lang = 'en-US';
+      u.rate = 0.9;
+      var v = pickVoice();
+      if (v) u.voice = v;
+      window.speechSynthesis.speak(u);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /* 有些浏览器 voices 是异步填充的，首次取到空要再试一次 */
+  if (speakOK && typeof window.speechSynthesis.onvoiceschanged !== 'undefined') {
+    window.speechSynthesis.onvoiceschanged = function () { voiceCache = null; pickVoice(); };
+  }
+
   window.AppVocabData = {
     loadBook: function (level) {
       return loadJson(level).then(function (words) {
@@ -108,8 +199,12 @@
     loadRoots: function (level) { return loadJson(level + '_roots'); },
     loadExam: function (level) { return loadJson(level + '_exam'); },
     makeOptions: makeOptions,
+    makeClozeOptions: makeClozeOptions,
+    blankOut: blankOut,
     posOf: posOf,
-    shuffle: shuffle
+    shuffle: shuffle,
+    speak: speak,
+    canSpeak: function () { return speakOK && !!pickVoice(); }
   };
 })();
 
@@ -118,14 +213,16 @@
 /* =========================================================
    模块 13：背单词 (Vocabulary · CET-4 / CET-6)
    ---------------------------------------------------------
-   今日屏 / 答题屏 / 统计屏 / 设置屏 四屏。
+   四屏：今日 / 生词本 / 统计 / 设置，外加答题屏。
    词库来自 KyleBing/english-vocabulary（BSD-3-Clause），
    由 scripts/build-vocab*.js 清洗成 assets/vocab/*.json。
 
+   三种题型按记忆档位轮转：
+     box 0-1 → 认词（词 → 四选一释义）
+     box 2-3 → 拼写（释义 + 音标 + 首字母 → 键盘输入）
+     box 4-5 → 填空（例句挖空 → 四选一词形，真题优先）
    调度：box 0..5，间隔 [0,1,2,4,7,15,30] 天。
      答对 → box+1；答错 → 归 0，当局限一次重排。
-   每日：到期复习（上限 60）+ 新词（数量可调，默认 15）。
-   出词顺序：顺序（按词表游标） / 乱序（随机抽未学过的词）。
    ========================================================= */
 
 (function () {
@@ -136,27 +233,26 @@
   var MAX_BOX = 5;
   var REVIEW_CAP = 60;
   var DAILY_CHOICES = [10, 15, 25, 50];
-  /* 单次挂机超过 30 分钟不计入学习时长：切走忘了关很常见，
-     不设上限的话「学习时长」会变成「页面开着多久」 */
   var IDLE_CAP_MS = 30 * 60 * 1000;
+  var HEAT_DAYS = 90;
 
   /* ---------- 状态 ---------- */
   function emptyState() {
     return {
       book: 'cet4',
       day: '',
-      newDoneToday: 0,   // 今日已学新词数（额度 = dailyNew - 这个）
-      doneToday: 0,      // 今日已答题数
+      newDoneToday: 0,
+      doneToday: 0,
       streak: 0,
       lastDone: '',
       words: {},         // 词 → { box, due, seen, wrong }
-      seq: 0,            // 顺序模式下的词表游标
+      seq: 0,
       dailyNew: 15,
-      order: 'seq',      // seq | random
-      totalMs: 0,        // 累计学习时长
+      order: 'seq',
+      totalMs: 0,
       totalAnswered: 0,
       totalRight: 0,
-      days: {}           // { 'YYYY-M-D': 当日答题数 }
+      days: {}
     };
   }
 
@@ -182,22 +278,19 @@
       state = Object.assign(emptyState(), s);
       if (!state.words || typeof state.words !== 'object') state.words = {};
       if (!state.days || typeof state.days !== 'object') state.days = {};
-      /* 旧存档只有 newLeft，没有 newDoneToday —— 折算回来，避免额度重置 */
       if (typeof s.newLeft === 'number' && typeof s.newDoneToday !== 'number') {
         state.newDoneToday = Math.max(0, (state.dailyNew || 15) - s.newLeft);
       }
     } catch (e) {
       state = emptyState();
     }
-    /* 这里不能把 state.day 改成今天：跨天判定要读存档里的旧日期 */
+    /* 不能在这里把 day 改成今天：跨天判定要读存档里的旧日期 */
   }
 
   function saveState() {
     try { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); } catch (e) {}
   }
 
-  /* 跨天检查。每次进入模块都跑——页面开着过夜、或从别的标签切回来，
-     都不能让昨天的额度继续生效。 */
   function rollDay() {
     var today = todayKey();
     if (state.day === today) return false;
@@ -214,19 +307,14 @@
 
   /* ---------- 学习时长 ---------- */
   var tickAt = 0;
-
   function tickStart() { tickAt = Date.now(); }
-
   function tickFlush() {
     if (!tickAt) return;
     var now = Date.now();
     var d = now - tickAt;
     tickAt = now;
-    if (d > 0 && d < IDLE_CAP_MS) {
-      state.totalMs = (state.totalMs || 0) + d;
-    }
+    if (d > 0 && d < IDLE_CAP_MS) state.totalMs = (state.totalMs || 0) + d;
   }
-
   function fmtDuration(ms) {
     var min = Math.floor((ms || 0) / 60000);
     if (min < 60) return min + ' 分钟';
@@ -236,7 +324,7 @@
   }
 
   /* ---------- 数据 ---------- */
-  var book = null;        // { words, byPos }
+  var book = null;
   var extra = { ex: null, roots: null, exam: null };
   var loading = null;
   var loadErr = '';
@@ -250,9 +338,9 @@
     return loading;
   }
 
-  /* 详情数据按需加载：只有展开卡片背面才拉 */
+  /* 详情数据按需加载：只有需要卡片背面 / 填空题才拉 */
   function ensureExtra() {
-    if (extra.roots && extra.exam) return Promise.resolve(extra);
+    if (extra.roots && extra.exam && extra.ex) return Promise.resolve(extra);
     return Promise.all([
       window.AppVocabData.loadRoots(state.book),
       window.AppVocabData.loadExam(state.book),
@@ -283,8 +371,6 @@
     return due.concat(pickNew(newLeftToday()));
   }
 
-  /* 取 N 个未学过的词。顺序模式按词表游标往后走；
-     乱序模式把剩余未学词打散后抽前 N 个。 */
   function pickNew(count) {
     if (!book || count <= 0) return [];
     var words = book.words;
@@ -309,10 +395,9 @@
     return out;
   }
 
-  /* ---------- 渲染工具 ---------- */
+  /* ---------- 渲染状态 ---------- */
   var el = null;
-  var view = 'home';      // home | play | result | stats | settings
-  var tab = 'today';      // today | stats | settings
+  var tab = 'today';      // today | words | stats | settings
   var queue = [];
   var qi = 0;
   var answered = false;
@@ -325,34 +410,37 @@
     });
   }
 
-  function owl(name, cls) {
-    return '<img class="vc-owl' + (cls ? ' ' + cls : '') + '" src="assets/vocab/owl_' + name + '.webp" alt="" draggable="false">';
+  function owl(name) {
+    return '<img class="vc-owl" src="assets/vocab/owl_' + name + '.webp" alt="" draggable="false">';
   }
 
+  var TABS = [
+    { k: 'today', label: '今日' },
+    { k: 'words', label: '生词本' },
+    { k: 'stats', label: '统计' },
+    { k: 'settings', label: '设置' }
+  ];
+
   function subnav() {
-    return '<div class="vc-subnav">' +
-      ['today', 'stats', 'settings'].map(function (k) {
-        var label = k === 'today' ? '今日' : k === 'stats' ? '统计' : '设置';
-        return '<button type="button" class="vc-tab' + (tab === k ? ' active' : '') +
-          '" data-tab="' + k + '">' + label + '</button>';
-      }).join('') +
-      '</div>';
+    return '<div class="vc-subnav">' + TABS.map(function (t) {
+      return '<button type="button" class="vc-tab' + (tab === t.k ? ' active' : '') +
+        '" data-tab="' + t.k + '">' + t.label + '</button>';
+    }).join('') + '</div>';
   }
 
   function bindSubnav() {
     el.querySelectorAll('[data-tab]').forEach(function (b) {
       b.onclick = function () {
         if (window.SFX && window.SFX.tap) window.SFX.tap();
+        tickFlush();
+        saveState();
         tab = b.getAttribute('data-tab');
-        view = 'home';
         renderHome();
       };
     });
   }
 
-  function knownCount() {
-    return Object.keys(state.words).length;
-  }
+  function knownCount() { return Object.keys(state.words).length; }
 
   function masteredCount() {
     var n = 0;
@@ -362,72 +450,94 @@
 
   function accuracy() {
     var a = state.totalAnswered || 0;
-    if (!a) return 0;
-    return Math.round((state.totalRight || 0) / a * 100);
+    return a ? Math.round((state.totalRight || 0) / a * 100) : 0;
   }
 
-  /* ---------- 今日屏 ---------- */
+  /* 生词本：答错过 2 次以上的词 */
+  function toughWords() {
+    var out = [];
+    for (var k in state.words) {
+      var r = state.words[k];
+      if ((r.wrong || 0) >= 2) out.push({ word: k, rec: r });
+    }
+    out.sort(function (a, b) {
+      if (b.rec.wrong !== a.rec.wrong) return b.rec.wrong - a.rec.wrong;
+      return (a.rec.box || 0) - (b.rec.box || 0);
+    });
+    return out;
+  }
+
+  function idxOfWord(w) {
+    if (!book) return -1;
+    for (var i = 0; i < book.words.length; i++) {
+      if (book.words[i][0] === w) return i;
+    }
+    return -1;
+  }
+
+  /* ---------- 首页分发 ---------- */
   function renderHome() {
     if (!el) return;
     if (loadErr) { renderLoadError(); return; }
-
-    var total = queue.length;
-    var dueN = 0, newN = 0;
-    queue.forEach(function (q) { if (q.isNew) newN++; else dueN++; });
-
     var head = '<div class="vc-wrap">' + subnav();
-
-    if (tab === 'stats') { el.innerHTML = head + statsHtml() + '</div>'; bindSubnav(); bindStats(); return; }
-    if (tab === 'settings') { el.innerHTML = head + settingsHtml() + '</div>'; bindSubnav(); bindSettings(); return; }
-
-    var body;
-    if (!total) {
-      body =
-        '<div class="vc-panel vc-done">' + owl('sleep') +
-          '<h2>今天的任务清空了</h2>' +
-          '<p>已答 <b>' + state.doneToday + '</b> 题 · 连续打卡 <b>' + state.streak + '</b> 天</p>' +
-          '<p class="vc-dim">明天到期复习会自动排好；也可以现在多背一组。</p>' +
-          '<div class="vc-actions">' +
-            '<button class="vc-btn primary" id="vcExtra" type="button">再来一组新词</button>' +
-            '<button class="vc-btn ghost" id="vcGoStats" type="button">看统计</button>' +
-          '</div>' +
-        '</div>';
-    } else {
-      var pct = total ? Math.round((1 - (dueN + newN) / total) * 0) : 0;
-      body =
-        '<div class="vc-hero">' +
-          '<div class="vc-hero-art">' + owl('think') + '</div>' +
-          '<div class="vc-hero-main">' +
-            '<div class="vc-hero-tag">' + (state.book === 'cet6' ? 'CET-6' : 'CET-4') +
-              ' · 第 ' + (state.streak + 1) + ' 天 · ' + (state.order === 'random' ? '乱序' : '顺序') + '</div>' +
-            '<h1 class="vc-hero-title">今日摸鱼局</h1>' +
-            '<p class="vc-hero-sub">待复习 <b>' + dueN + '</b> · 新词 <b>' + newN + '</b> · 共 <b>' + total + '</b> 题</p>' +
-            '<div class="vc-bar"><i style="width:' + Math.min(100, Math.round(state.doneToday / Math.max(total, 1) * 100)) + '%"></i></div>' +
-            '<div class="vc-actions">' +
-              '<button class="vc-btn primary" id="vcStart" type="button">开始背 →</button>' +
-              '<button class="vc-btn ghost" id="vcToSettings" type="button">调设置</button>' +
-            '</div>' +
-          '</div>' +
-        '</div>' +
-        statStrip() +
-        weekStrip();
-    }
+    var body = '';
+    if (tab === 'today') body = todayHtml();
+    else if (tab === 'words') body = wordsHtml();
+    else if (tab === 'stats') body = statsHtml();
+    else body = settingsHtml();
 
     el.innerHTML = head + body +
       '<div class="vc-note">词库 KyleBing/english-vocabulary（BSD-3-Clause）· 进度只存本机</div>' +
       '</div>';
 
     bindSubnav();
+    if (tab === 'today') bindToday();
+    if (tab === 'words') bindWords();
+    if (tab === 'stats') bindStats();
+    if (tab === 'settings') bindSettings();
+  }
+
+  /* ---------- 今日屏 ---------- */
+  function todayHtml() {
+    var total = queue.length;
+    var dueN = 0, newN = 0;
+    queue.forEach(function (q) { if (q.isNew) newN++; else dueN++; });
+
+    if (!total) {
+      return '<div class="vc-panel vc-done">' + owl('sleep') +
+        '<h2>今天的任务清空了</h2>' +
+        '<p>已答 <b>' + state.doneToday + '</b> 题 · 连续打卡 <b>' + state.streak + '</b> 天</p>' +
+        '<p class="vc-dim">明天到期复习会自动排好；也可以现在多背一组。</p>' +
+        '<div class="vc-actions">' +
+          '<button class="vc-btn primary" id="vcExtra" type="button">再来一组新词</button>' +
+          '<button class="vc-btn ghost" id="vcGoStats" type="button">看统计</button>' +
+        '</div></div>';
+    }
+
+    return '<div class="vc-hero">' +
+        '<div class="vc-hero-art">' + owl('think') + '</div>' +
+        '<div class="vc-hero-main">' +
+          '<div class="vc-hero-tag">' + (state.book === 'cet6' ? 'CET-6' : 'CET-4') +
+            ' · 第 ' + (state.streak + 1) + ' 天 · ' + (state.order === 'random' ? '乱序' : '顺序') + '</div>' +
+          '<h1 class="vc-hero-title">今日摸鱼局</h1>' +
+          '<p class="vc-hero-sub">待复习 <b>' + dueN + '</b> · 新词 <b>' + newN + '</b> · 共 <b>' + total + '</b> 题</p>' +
+          '<div class="vc-bar"><i style="width:' + Math.min(100, Math.round(state.doneToday / Math.max(total, 1) * 100)) + '%"></i></div>' +
+          '<div class="vc-actions">' +
+            '<button class="vc-btn primary" id="vcStart" type="button">开始背 →</button>' +
+            '<button class="vc-btn ghost" id="vcToSettings" type="button">调设置</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+      statStrip() + weekStrip();
+  }
+
+  function bindToday() {
     var sb = el.querySelector('#vcStart');
     if (sb) sb.onclick = function () { startSession(); };
     var tb = el.querySelector('#vcToSettings');
     if (tb) tb.onclick = function () { tab = 'settings'; renderHome(); };
     var eb = el.querySelector('#vcExtra');
-    if (eb) eb.onclick = function () {
-      state.newDoneToday = 0;
-      saveState();
-      buildAndStart();
-    };
+    if (eb) eb.onclick = function () { state.newDoneToday = 0; saveState(); buildAndStart(); };
     var gs = el.querySelector('#vcGoStats');
     if (gs) gs.onclick = function () { tab = 'stats'; renderHome(); };
   }
@@ -446,7 +556,6 @@
     }).join('') + '</div>';
   }
 
-  /* 最近 7 天打卡条 */
   function weekStrip() {
     var out = [];
     var now = new Date();
@@ -460,6 +569,63 @@
     }
     return '<div class="vc-week"><div class="vc-week-h">最近 7 天</div>' +
       '<div class="vc-week-grid">' + out.join('') + '</div></div>';
+  }
+
+  /* ---------- 生词本 ---------- */
+  function wordsHtml() {
+    var list = toughWords();
+    if (!list.length) {
+      return '<div class="vc-panel vc-done">' + owl('happy') +
+        '<h2>生词本还是空的</h2>' +
+        '<p class="vc-dim">同一个词答错 2 次就会自动进来，方便集中攻克。</p>' +
+        '</div>';
+    }
+    return '<div class="vc-panel">' +
+      '<h2 class="vc-h2">生词本</h2>' +
+      '<p class="vc-field-d">答错 2 次以上的词自动收录，按错误次数排序。</p>' +
+      '<div class="vc-actions" style="margin-bottom:14px">' +
+        '<button class="vc-btn primary" id="vcDrill" type="button">专攻这 ' + list.length + ' 个词</button>' +
+      '</div>' +
+      '<div class="vc-wordlist">' + list.map(function (it, i) {
+        var idx = idxOfWord(it.word);
+        var m = idx >= 0 ? book.words[idx][2] : '';
+        var ph = idx >= 0 ? book.words[idx][1] : '';
+        return '<div class="vc-wordrow">' +
+          '<div class="vc-wordrow-main">' +
+            '<b>' + esc(it.word) + '</b>' +
+            (ph ? '<i>' + esc(ph) + '</i>' : '') +
+            '<span>' + esc(m) + '</span>' +
+          '</div>' +
+          '<div class="vc-wordrow-meta">' +
+            '<em>错 ' + it.rec.wrong + ' 次</em>' +
+            '<button class="vc-mini" type="button" data-remove="' + esc(it.word) + '">移除</button>' +
+          '</div>' +
+        '</div>';
+      }).join('') + '</div></div>';
+  }
+
+  function bindWords() {
+    var list = toughWords();
+    var db = el.querySelector('#vcDrill');
+    if (db) db.onclick = function () {
+      var items = list.map(function (it) {
+        var idx = idxOfWord(it.word);
+        return idx >= 0 ? { idx: idx, rec: state.words[it.word], isNew: false } : null;
+      }).filter(Boolean);
+      if (!items.length) return;
+      queue = items;
+      startSession();
+    };
+    el.querySelectorAll('[data-remove]').forEach(function (b) {
+      b.onclick = function () {
+        var w = b.getAttribute('data-remove');
+        if (state.words[w]) {
+          state.words[w].wrong = 0;
+          saveState();
+        }
+        renderHome();
+      };
+    });
   }
 
   /* ---------- 统计屏 ---------- */
@@ -478,7 +644,8 @@
       '<h2 class="vc-h2">学习统计</h2>' +
       '<div class="vc-kv"><span>累计学过</span><b>' + known + ' / ' + total + ' 词</b></div>' +
       '<div class="vc-bar"><i style="width:' + pct + '%"></i></div>' +
-      '<div class="vc-kv small"><span>' + (state.book === 'cet6' ? 'CET-6' : 'CET-4') + ' 词库完成度</span><b>' + pct + '%</b></div>' +
+      '<div class="vc-kv small"><span>' + (state.book === 'cet6' ? 'CET-6' : 'CET-4') +
+        ' 词库完成度</span><b>' + pct + '%</b></div>' +
       '<div class="vc-grid2">' +
         '<div class="vc-cell"><b>' + masteredCount() + '</b><span>已掌握（4 档以上）</span></div>' +
         '<div class="vc-cell"><b>' + fmtDuration(state.totalMs) + '</b><span>累计学习时长</span></div>' +
@@ -491,7 +658,8 @@
           '<div class="vc-bar thin"><i style="width:' + (known ? Math.round(n / known * 100) : 0) + '%"></i></div>' +
           '<b>' + n + '</b></div>';
       }).join('') + '</div>' +
-      '<div class="vc-h3">最近 30 天</div>' + heatmap(30) +
+      '<div class="vc-h3">最近 ' + HEAT_DAYS + ' 天</div>' + heatmap(HEAT_DAYS) +
+      '<div class="vc-heat-legend"><span>少</span><i class="lv0"></i><i class="lv1"></i><i class="lv2"></i><i class="lv3"></i><span>多</span></div>' +
       '</div>';
   }
 
@@ -508,7 +676,7 @@
     return '<div class="vc-heat">' + cells.join('') + '</div>';
   }
 
-  function bindStats() { /* 纯展示，无交互 */ }
+  function bindStats() { /* 纯展示 */ }
 
   /* ---------- 设置屏 ---------- */
   function settingsHtml() {
@@ -605,8 +773,6 @@
     state.totalAnswered = 0;
     state.totalRight = 0;
     saveState();
-    /* 队列和当前题都是旧词书的索引，必须一起清掉——
-       只清 book 的话，接着答题会用旧词表的下标去读新词表 */
     queue = [];
     qi = 0;
     answered = false;
@@ -616,30 +782,136 @@
     boot();
   }
 
+  /* ---------- 题型 ---------- */
+  /* 按记忆档位选题型：新学用认词，中档用拼写，高档用填空 */
+  function kindOf(rec) {
+    if (!rec) return 'recall';
+    var box = rec.box || 0;
+    if (box >= 4) return 'cloze';
+    if (box >= 2) return 'spell';
+    return 'recall';
+  }
+
+  function kindLabel(k) {
+    return k === 'cloze' ? '填空' : k === 'spell' ? '拼写' : '认词';
+  }
+
   /* ---------- 答题屏 ---------- */
+  function startSession() {
+    if (!queue.length) { buildAndStart(); return; }
+    qi = 0;
+    answered = false;
+    sessionStats = { right: 0, wrong: 0 };
+    tickStart();
+    /* 填空题需要例句数据，先预取；失败也不影响认词/拼写 */
+    ensureExtra().then(function () {
+      current = makeQuestion(queue[0]);
+      renderQuestion();
+    });
+  }
+
+  function makeQuestion(item) {
+    var idx = item.idx;
+    var w = book.words[idx];
+    var rec = state.words[w[0]] || (item.rec || null);
+    var kind = item.forceKind || kindOf(rec);
+
+    var q = {
+      idx: idx,
+      retry: !!item.retry,
+      kind: kind,
+      word: w[0],
+      phonetic: w[1],
+      meaning: w[2],
+      options: null,
+      sentence: '',
+      sentenceCn: '',
+      source: ''
+    };
+
+    if (kind === 'recall') {
+      q.options = window.AppVocabData.makeOptions(book.words, book.byPos, idx);
+    } else if (kind === 'spell') {
+      q.hint = w[0].charAt(0);
+      q.answer = w[0];
+    } else {
+      /* 填空：真题优先，其次造句例句 */
+      var examRow = extra.exam && extra.exam[idx];
+      var exRow = extra.ex && extra.ex[idx];
+      var raw = '', cn = '', src = '';
+      if (examRow && examRow[0]) {
+        raw = examRow[0]; src = examRow[1] || '真题';
+      } else if (exRow && exRow[0]) {
+        raw = exRow[0]; cn = exRow[1] || ''; src = '例句';
+      }
+      var blanked = window.AppVocabData.blankOut(raw, w[0]);
+      if (!blanked) {
+        /* 没有可用例句：退回认词，不让玩家卡住 */
+        q.kind = 'recall';
+        q.options = window.AppVocabData.makeOptions(book.words, book.byPos, idx);
+      } else {
+        q.sentence = blanked;
+        q.sentenceCn = cn;
+        q.source = src;
+        q.options = window.AppVocabData.makeClozeOptions(book.words, book.byPos, idx);
+      }
+    }
+    return q;
+  }
+
   function renderQuestion() {
     if (!el || !current) return;
     var w = current;
     var n = qi + 1;
     var pct = queue.length ? Math.round(qi / queue.length * 100) : 0;
     var leftN = Math.max(0, queue.length - qi - 1);
+    var canSpeak = window.AppVocabData.canSpeak();
+
+    var inner = '';
+
+    if (w.kind === 'recall') {
+      inner =
+        '<div class="vc-word">' + esc(w.word) + '</div>' +
+        '<div class="vc-phon">' + esc(w.phonetic || '') +
+          (canSpeak ? '<button class="vc-speak" type="button" id="vcSpeak" aria-label="朗读">🔊</button>' : '') +
+        '</div>' +
+        '<div class="vc-opts" id="vcOpts">' +
+          w.options.map(function (o, i) {
+            return '<button class="vc-opt" type="button" data-i="' + i + '">' + esc(o.text) + '</button>';
+          }).join('') +
+        '</div>';
+    } else if (w.kind === 'spell') {
+      inner =
+        '<div class="vc-word small">' + esc(w.meaning) + '</div>' +
+        '<div class="vc-phon">' + esc(w.phonetic || '') +
+          (canSpeak ? '<button class="vc-speak" type="button" id="vcSpeak" aria-label="朗读">🔊</button>' : '') +
+        '</div>' +
+        '<div class="vc-spell">' +
+          '<div class="vc-spell-hint">首字母 <b>' + esc(w.hint) + '</b> · 共 <b>' + w.answer.length + '</b> 个字母</div>' +
+          '<input class="vc-input" id="vcInput" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="拼写这个单词">' +
+          '<div class="vc-spell-actions"><button class="vc-btn primary" id="vcSubmit" type="button">提交</button></div>' +
+        '</div>';
+    } else {
+      inner =
+        '<div class="vc-cloze">' + esc(w.sentence) + '</div>' +
+        (w.sentenceCn ? '<div class="vc-cloze-cn">' + esc(w.sentenceCn) + '</div>' : '') +
+        '<div class="vc-source">' + esc(w.source) + '</div>' +
+        '<div class="vc-opts" id="vcOpts">' +
+          w.options.map(function (o, i) {
+            return '<button class="vc-opt" type="button" data-i="' + i + '">' + esc(o.text) + '</button>';
+          }).join('') +
+        '</div>';
+    }
 
     el.innerHTML =
       '<div class="vc-wrap vc-play">' +
         '<div class="vc-top">' +
           '<button class="vc-back" id="vcBack" type="button" aria-label="返回今日">← 返回</button>' +
-          '<span class="vc-kind">' + (w.retry ? '再来一次' : '认词') + '</span>' +
+          '<span class="vc-kind">' + (w.retry ? '再来一次 · ' : '') + kindLabel(w.kind) + '</span>' +
           '<span class="vc-count">' + n + ' / ' + queue.length + '</span>' +
         '</div>' +
         '<div class="vc-bar thin"><i style="width:' + pct + '%"></i></div>' +
-        '<div class="vc-card">' +
-          '<div class="vc-word">' + esc(w.word) + '</div>' +
-          (w.phonetic ? '<div class="vc-phon">' + esc(w.phonetic) + '</div>' : '') +
-          '<div class="vc-opts" id="vcOpts">' +
-            w.options.map(function (o, i) {
-              return '<button class="vc-opt" type="button" data-i="' + i + '">' + esc(o.text) + '</button>';
-            }).join('') +
-          '</div>' +
+        '<div class="vc-card">' + inner +
           '<div class="vc-feedback" id="vcFb"></div>' +
         '</div>' +
         '<div class="vc-playfoot">' +
@@ -652,23 +924,47 @@
         '</div>' +
       '</div>';
 
+    bindQuestion();
+  }
+
+  function bindQuestion() {
+    var back = el.querySelector('#vcBack');
+    if (back) back.onclick = leaveSession;
+
+    var sp = el.querySelector('#vcSpeak');
+    if (sp) sp.onclick = function (e) {
+      e.stopPropagation();
+      window.AppVocabData.speak(current.word);
+    };
+
     var opts = el.querySelectorAll('.vc-opt');
     for (var i = 0; i < opts.length; i++) opts[i].onclick = onPick;
 
-    var back = el.querySelector('#vcBack');
-    if (back) back.onclick = function () {
-      if (window.SFX && window.SFX.back) window.SFX.back();
-      tickFlush();
-      saveState();
-      queue = [];
-      qi = 0;
-      answered = false;
-      current = null;
-      tab = 'today';
-      view = 'home';
-      queue = buildQueue();
-      renderHome();
-    };
+    if (current.kind === 'spell') {
+      var input = el.querySelector('#vcInput');
+      var sub = el.querySelector('#vcSubmit');
+      if (sub) sub.onclick = onSubmitSpell;
+      if (input) {
+        input.focus();
+        input.onkeydown = function (e) {
+          if (e.key === 'Enter') { e.preventDefault(); onSubmitSpell(); }
+        };
+      }
+    }
+  }
+
+  function onSubmitSpell() {
+    if (answered) return;
+    var input = el.querySelector('#vcInput');
+    if (!input) return;
+    var val = String(input.value || '').trim().toLowerCase();
+    if (!val) return;
+    var ok = val === current.answer.toLowerCase();
+    answered = true;
+    input.disabled = true;
+    var sub = el.querySelector('#vcSubmit');
+    if (sub) sub.disabled = true;
+    finishAnswer(ok, current.answer);
   }
 
   function onPick(e) {
@@ -679,18 +975,21 @@
     var opt = current.options[i];
     var ok = !!opt.ok;
 
-    if (window.SFX && window.SFX.tap) window.SFX.tap();
-
     var all = el.querySelectorAll('.vc-opt');
     for (var k = 0; k < all.length; k++) {
       all[k].disabled = true;
       if (current.options[+all[k].getAttribute('data-i')].ok) all[k].classList.add('right');
     }
     if (!ok) btn.classList.add('wrong');
+    finishAnswer(ok, current.word);
+  }
+
+  /* 三种题型共用的结算：统计 → 调度 → 反馈面板（含卡片背面） */
+  function finishAnswer(ok, shown) {
+    if (window.SFX && window.SFX.tap) window.SFX.tap();
 
     tickFlush();
 
-    /* 累计统计：答题数、正确数、当日热力 */
     state.totalAnswered = (state.totalAnswered || 0) + 1;
     if (ok) state.totalRight = (state.totalRight || 0) + 1;
     state.doneToday = (state.doneToday || 0) + 1;
@@ -702,23 +1001,74 @@
 
     applySchedule(current.idx, ok);
 
-    var fb = el.querySelector('#vcFb');
-    if (fb) {
-      fb.className = 'vc-feedback show ' + (ok ? 'ok' : 'bad');
-      fb.innerHTML = '<b>' + (ok ? '答对了' : '答错了') + '</b>' +
-        '<span>' + esc(current.meaning) + '</span>' +
-        '<button class="vc-btn small" id="vcNext" type="button">' + (qi + 1 >= queue.length ? '看结果' : '下一题') + '</button>';
-      var nb = fb.querySelector('#vcNext');
-      if (nb) nb.onclick = function () { nextQuestion(); };
-    }
     if (window.SFX) {
       if (ok && window.SFX.select) window.SFX.select();
       else if (!ok && window.SFX.wrong) window.SFX.wrong();
     }
+
+    var fb = el.querySelector('#vcFb');
+    if (!fb) return;
+    fb.className = 'vc-feedback show ' + (ok ? 'ok' : 'bad');
+    fb.innerHTML =
+      '<div class="vc-fb-head"><b>' + (ok ? '答对了' : '答错了') + '</b>' +
+      '<span class="vc-fb-ans">' + esc(current.word) + ' · ' + esc(current.meaning) + '</span></div>' +
+      '<div class="vc-back-panel" id="vcBackPanel"></div>' +
+      '<button class="vc-btn small" id="vcNext" type="button">' +
+        (qi + 1 >= queue.length ? '看结果' : '下一题') + '</button>';
+
+    var nb = fb.querySelector('#vcNext');
+    if (nb) nb.onclick = nextQuestion;
+
+    renderBackPanel();
   }
 
-  /* 答题结果落到调度表。答错的词当场插到队尾重来一次，
-     但同一局只重排一次——否则一直答错会让队列无限增长。 */
+  /* 卡片背面：拆词 / 词族 / 真题，有数据才渲染 */
+  function renderBackPanel() {
+    var box = el.querySelector('#vcBackPanel');
+    if (!box) return;
+    var idx = current.idx;
+    var roots = extra.roots && extra.roots[idx];
+    var exam = extra.exam && extra.exam[idx];
+    var parts = [];
+
+    if (roots && roots[0]) {
+      parts.push('<div class="vc-bp-block"><div class="vc-bp-h">🧩 拆词</div>' +
+        '<div class="vc-bp-txt">' + esc(roots[0]) + '</div></div>');
+    }
+    if (roots && roots[1] && roots[1].length) {
+      var byPos = {};
+      roots[1].forEach(function (it) {
+        var p = it[1] || '其他';
+        (byPos[p] || (byPos[p] = [])).push(it[0]);
+      });
+      var fam = Object.keys(byPos).map(function (p) {
+        return '<div class="vc-fam-row"><span>' + esc(p) + '.</span>' +
+          byPos[p].map(function (w) {
+            var j = idxOfWord(w);
+            return j >= 0
+              ? '<button type="button" class="vc-fam-word" data-jump="' + j + '">' + esc(w) + '</button>'
+              : '<em>' + esc(w) + '</em>';
+          }).join('') + '</div>';
+      }).join('');
+      parts.push('<div class="vc-bp-block"><div class="vc-bp-h">🌳 词族</div>' + fam + '</div>');
+    }
+    if (exam && exam[0]) {
+      parts.push('<div class="vc-bp-block"><div class="vc-bp-h">📝 真题</div>' +
+        '<div class="vc-bp-exam">' + esc(exam[0]) + '</div>' +
+        '<div class="vc-bp-src">' + esc(exam[1] || '') + '</div></div>');
+    }
+    if (!parts.length) { box.innerHTML = ''; return; }
+
+    box.innerHTML = parts.join('');
+    box.querySelectorAll('[data-jump]').forEach(function (b) {
+      b.onclick = function () {
+        var j = +b.getAttribute('data-jump');
+        queue.splice(qi + 1, 0, { idx: j, rec: state.words[book.words[j][0]] || null, isNew: false, forceKind: 'recall' });
+        nextQuestion();
+      };
+    });
+  }
+
   function applySchedule(idx, ok) {
     var words = book.words;
     var key = words[idx][0];
@@ -750,28 +1100,17 @@
     renderQuestion();
   }
 
-  function makeQuestion(item) {
-    var idx = item.idx;
-    var w = book.words[idx];
-    return {
-      idx: idx,
-      retry: !!item.retry,
-      word: w[0],
-      phonetic: w[1],
-      meaning: w[2],
-      options: window.AppVocabData.makeOptions(book.words, book.byPos, idx)
-    };
-  }
-
-  function startSession() {
-    if (!queue.length) { buildAndStart(); return; }
+  function leaveSession() {
+    if (window.SFX && window.SFX.back) window.SFX.back();
+    tickFlush();
+    saveState();
+    queue = [];
     qi = 0;
     answered = false;
-    sessionStats = { right: 0, wrong: 0 };
-    current = makeQuestion(queue[0]);
-    tickStart();
-    view = 'play';
-    renderQuestion();
+    current = null;
+    tab = 'today';
+    queue = buildQueue();
+    renderHome();
   }
 
   function finishSession() {
@@ -784,7 +1123,6 @@
       state.lastDone = todayKey();
       state.streak = (state.streak || 0) + 1;
     }
-    /* 新词额度按本局实际消耗扣减 */
     var usedNew = 0, maxNewIdx = -1;
     queue.forEach(function (q) {
       if (!q.isNew) return;
@@ -792,13 +1130,11 @@
       if (q.idx > maxNewIdx) maxNewIdx = q.idx;
     });
     state.newDoneToday = (state.newDoneToday || 0) + usedNew;
-    /* 游标只推进到本局真正出现过的新词之后；乱序模式不动游标 */
     if (state.order !== 'random' && maxNewIdx >= 0) {
       state.seq = Math.max(state.seq, maxNewIdx + 1);
     }
     saveState();
 
-    view = 'result';
     el.innerHTML =
       '<div class="vc-wrap">' + subnav() +
       '<div class="vc-panel vc-done">' + owl(pose) +
@@ -818,14 +1154,13 @@
       queue = buildQueue();
       qi = 0;
       tab = 'today';
-      view = 'home';
       renderHome();
     };
   }
 
   function buildAndStart() {
     queue = buildQueue();
-    if (!queue.length) { tab = 'today'; view = 'home'; renderHome(); return; }
+    if (!queue.length) { tab = 'today'; renderHome(); return; }
     startSession();
   }
 
@@ -848,8 +1183,9 @@
       qi = 0;
       answered = false;
       current = null;
-      view = 'home';
       renderHome();
+      /* 背面数据后台预热，答题时不用等 */
+      ensureExtra();
     }).catch(function () { renderLoadError(); });
   }
 
@@ -865,15 +1201,12 @@
       loadState();
       initVocab();
     },
-    /* router 每次进入/切回本模块都会调用：重新读盘、做跨天检查、重建队列。
-       不能因为 DOM 里已有内容就跳过——页面开着过夜后额度要能重置。 */
     restoreView: function () {
       loadState();
       rollDay();
       if (!el) el = document.getElementById('mod-vocab');
       if (el) boot();
     },
-    /* 离开模块时把未结算的学习时长落盘 */
     destroy: function () {
       tickFlush();
       saveState();

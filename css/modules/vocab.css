@@ -526,3 +526,283 @@
   .vc-bar i, .vc-opt, .vc-btn, .vc-day { transition: none; }
   .vc-spinner { animation-duration: 2.4s; }
 }
+
+/* =========================================================
+   P2：三题型 / 卡片背面 / 生词本 / 发音
+   ========================================================= */
+
+/* ---------- 发音按钮 ---------- */
+.vc-speak {
+  appearance: none;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 15px;
+  line-height: 1;
+  padding: 2px 4px;
+  margin-left: 8px;
+  border-radius: 8px;
+  opacity: 0.65;
+  transition: opacity 0.16s ease, transform 0.12s ease;
+  vertical-align: middle;
+}
+.vc-speak:hover { opacity: 1; transform: scale(1.12); }
+.vc-speak:active { transform: scale(0.94); }
+
+/* ---------- 拼写题型 ---------- */
+.vc-word.small {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.45;
+  letter-spacing: 0;
+}
+.vc-spell { margin-top: 20px; }
+.vc-spell-hint {
+  font-size: 12.5px;
+  color: var(--tx-faint);
+  margin-bottom: 10px;
+}
+.vc-spell-hint b {
+  color: var(--mod-ac);
+  font-size: 15px;
+  letter-spacing: 1px;
+}
+.vc-input {
+  width: 100%;
+  font: inherit;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--tx);
+  background: var(--btn-ghost-bg);
+  border: 1.5px solid var(--line);
+  border-radius: var(--r-sm);
+  padding: 14px 16px;
+  outline: none;
+  transition: border-color 0.16s ease, background 0.16s ease;
+}
+.vc-input:focus {
+  border-color: var(--mod-ac);
+  background: var(--mod-ac-soft);
+}
+.vc-input:disabled { opacity: 0.7; }
+.vc-spell-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
+/* ---------- 填空题型 ---------- */
+.vc-cloze {
+  font-size: 18px;
+  line-height: 1.75;
+  color: var(--tx);
+  letter-spacing: 0.2px;
+}
+.vc-cloze-cn {
+  margin-top: 10px;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--tx-faint);
+}
+.vc-source {
+  display: inline-block;
+  margin-top: 12px;
+  font-size: 11.5px;
+  color: var(--mod-ac);
+  opacity: 0.85;
+  letter-spacing: 0.6px;
+}
+
+/* ---------- 反馈面板 + 卡片背面 ---------- */
+.vc-feedback.show {
+  display: block;
+}
+.vc-fb-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+.vc-fb-head b { font-size: 15px; }
+.vc-feedback.ok .vc-fb-head b { color: var(--ok); }
+.vc-feedback.bad .vc-fb-head b { color: var(--warn-c); }
+.vc-fb-ans {
+  font-size: 13.5px;
+  color: var(--tx-dim);
+  line-height: 1.5;
+}
+.vc-feedback .vc-btn { margin-top: 12px; }
+
+.vc-back-panel {
+  display: grid;
+  gap: 10px;
+  margin-top: 4px;
+}
+.vc-bp-block {
+  background: var(--card-solid, var(--btn-ghost-bg));
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+.vc-bp-h {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--tx-faint);
+  letter-spacing: 0.8px;
+  margin-bottom: 7px;
+}
+.vc-bp-txt {
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--tx);
+  word-break: break-word;
+}
+.vc-fam-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-start;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  line-height: 1.9;
+}
+.vc-fam-row > span {
+  color: var(--tx-faint);
+  font-size: 11.5px;
+  min-width: 34px;
+  flex: 0 0 auto;
+}
+.vc-fam-word {
+  appearance: none;
+  border: none;
+  background: var(--mod-ac-soft);
+  color: var(--mod-ac);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 2px 9px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.16s ease, color 0.16s ease;
+}
+.vc-fam-word:hover {
+  background: var(--mod-ac);
+  color: var(--mod-ac-ink);
+}
+.vc-fam-row em {
+  font-style: normal;
+  color: var(--tx-dim);
+  font-size: 13px;
+  padding: 2px 0;
+}
+.vc-bp-exam {
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: var(--tx);
+  font-style: italic;
+}
+.vc-bp-src {
+  margin-top: 8px;
+  font-size: 11.5px;
+  color: var(--tx-faint);
+  letter-spacing: 0.4px;
+}
+
+/* ---------- 生词本 ---------- */
+.vc-wordlist {
+  display: grid;
+  gap: 8px;
+  max-height: 460px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.vc-wordrow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--btn-ghost-bg);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+}
+.vc-wordrow-main {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.vc-wordrow-main b {
+  font-size: 15px;
+  font-weight: 800;
+}
+.vc-wordrow-main i {
+  font-style: normal;
+  font-size: 12px;
+  color: var(--tx-faint);
+}
+.vc-wordrow-main span {
+  font-size: 13px;
+  color: var(--tx-dim);
+}
+.vc-wordrow-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+}
+.vc-wordrow-meta em {
+  font-style: normal;
+  font-size: 11.5px;
+  color: var(--warn-c);
+  white-space: nowrap;
+}
+.vc-mini {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--tx-faint);
+  font: inherit;
+  font-size: 11.5px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: border-color 0.16s ease, color 0.16s ease;
+}
+.vc-mini:hover { border-color: var(--warn-c); color: var(--warn-c); }
+
+/* ---------- 90 天热力图 ---------- */
+.vc-heat {
+  grid-template-columns: repeat(15, 1fr);
+}
+.vc-heat i.lv0 { background: var(--btn-ghost-bg); }
+.vc-heat-legend {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--tx-faint);
+}
+.vc-heat-legend i {
+  display: block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: var(--btn-ghost-bg);
+}
+.vc-heat-legend i.lv1 { background: var(--mod-ac-soft); }
+.vc-heat-legend i.lv2 { background: var(--mod-ac-fade); }
+.vc-heat-legend i.lv3 { background: var(--mod-ac); }
+.vc-heat-legend span { margin: 0 2px; }
+
+@media (max-width: 620px) {
+  .vc-heat { grid-template-columns: repeat(10, 1fr); }
+  .vc-cloze { font-size: 16px; }
+  .vc-input { font-size: 19px; }
+  .vc-wordrow { flex-direction: column; gap: 8px; }
+  .vc-wordrow-meta { align-self: flex-end; }
+}

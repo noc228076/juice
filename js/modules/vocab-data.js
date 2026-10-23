@@ -60,7 +60,7 @@
     return arr;
   }
 
-  /* 四选一：同词性优先、长度接近、排除同义项
+  /* 四选一释义：同词性优先、长度接近、排除同义项
      —— 避免「最长的是答案」被当规律用，也避免两个选项意思一样 */
   function makeOptions(words, byPos, idx) {
     var row = words[idx];
@@ -78,7 +78,6 @@
         if (j === idx) continue;
         var t = words[j][2];
         if (seen[t]) continue;
-        /* 长度差超过 12 字大概率是「一眼假」的选项，七成概率跳过 */
         if (Math.abs(t.length - answer.length) > 12 && Math.random() < 0.75) continue;
         seen[t] = 1;
         picked.push(t);
@@ -97,6 +96,98 @@
     return shuffle(opts);
   }
 
+  /* 填空：从例句里挖掉目标词，四选一词形
+     —— 同词性、长度接近，且不选原词本身 */
+  function makeClozeOptions(words, byPos, idx) {
+    var row = words[idx];
+    var answer = row[0];
+    var p = posOf(row[2]);
+    var pool = (p && byPos[p] && byPos[p].length > 4) ? byPos[p] : null;
+    var picked = [];
+    var seen = Object.create(null);
+    seen[answer.toLowerCase()] = 1;
+
+    function tryPick(from, want) {
+      var guard = 0;
+      while (picked.length < want && guard++ < 600) {
+        var j = from[Math.floor(Math.random() * from.length)];
+        if (j === idx) continue;
+        var w = words[j][0];
+        if (seen[w.toLowerCase()]) continue;
+        if (Math.abs(w.length - answer.length) > 5 && Math.random() < 0.8) continue;
+        seen[w.toLowerCase()] = 1;
+        picked.push(w);
+      }
+    }
+
+    if (pool) tryPick(pool, 3);
+    if (picked.length < 3) {
+      var all = [];
+      for (var k = 0; k < words.length; k++) all.push(k);
+      tryPick(all, 3);
+    }
+
+    var opts = [{ text: answer, ok: true }];
+    for (var i = 0; i < picked.length; i++) opts.push({ text: picked[i], ok: false });
+    return shuffle(opts);
+  }
+
+  /* 把例句里的目标词替换成空格。大小写与词形变化都尽量兜住：
+     先试原词，再试首字母大写，最后试词干前缀（-s/-ed/-ing 等）。 */
+  function blankOut(sentence, word) {
+    if (!sentence) return '';
+    var w = String(word);
+    var forms = [w, w.charAt(0).toUpperCase() + w.slice(1), w.toUpperCase()];
+    /* 词干兜底：去掉常见后缀后的主体，长度至少 4 才用 */
+    var stem = w.replace(/(ing|ed|es|s|ly|er|est)$/i, '');
+    if (stem.length >= 4 && stem !== w) {
+      forms.push(stem, stem.charAt(0).toUpperCase() + stem.slice(1));
+    }
+    for (var i = 0; i < forms.length; i++) {
+      var f = forms[i];
+      var re = new RegExp('\\b' + f.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '[a-z]{0,3}\\b');
+      if (re.test(sentence)) return sentence.replace(re, '______');
+    }
+    return '';
+  }
+
+  /* ---------- 发音 ---------- */
+  var voiceCache = null;
+  var speakOK = (typeof window !== 'undefined') && 'speechSynthesis' in window;
+
+  function pickVoice() {
+    if (!speakOK) return null;
+    if (voiceCache !== null) return voiceCache;
+    var vs = window.speechSynthesis.getVoices() || [];
+    /* 优先美音，其次英音，再次任意 en-* */
+    voiceCache = vs.find(function (v) { return /en[-_]US/i.test(v.lang); })
+      || vs.find(function (v) { return /en[-_]GB/i.test(v.lang); })
+      || vs.find(function (v) { return /^en/i.test(v.lang); })
+      || null;
+    return voiceCache;
+  }
+
+  function speak(text) {
+    if (!speakOK || !text) return false;
+    try {
+      window.speechSynthesis.cancel();
+      var u = new SpeechSynthesisUtterance(String(text));
+      u.lang = 'en-US';
+      u.rate = 0.9;
+      var v = pickVoice();
+      if (v) u.voice = v;
+      window.speechSynthesis.speak(u);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /* 有些浏览器 voices 是异步填充的，首次取到空要再试一次 */
+  if (speakOK && typeof window.speechSynthesis.onvoiceschanged !== 'undefined') {
+    window.speechSynthesis.onvoiceschanged = function () { voiceCache = null; pickVoice(); };
+  }
+
   window.AppVocabData = {
     loadBook: function (level) {
       return loadJson(level).then(function (words) {
@@ -107,7 +198,11 @@
     loadRoots: function (level) { return loadJson(level + '_roots'); },
     loadExam: function (level) { return loadJson(level + '_exam'); },
     makeOptions: makeOptions,
+    makeClozeOptions: makeClozeOptions,
+    blankOut: blankOut,
     posOf: posOf,
-    shuffle: shuffle
+    shuffle: shuffle,
+    speak: speak,
+    canSpeak: function () { return speakOK && !!pickVoice(); }
   };
 })();

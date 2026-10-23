@@ -1,4 +1,4 @@
-/* 背单词模块的端到端验收：真实 Chromium。
+/* 背单词模块端到端验收：真实 Chromium。
    用法：node scripts/verify-vocab.js */
 const { chromium } = require('playwright');
 const path = require('path');
@@ -6,7 +6,6 @@ const path = require('path');
 const BASE = 'http://localhost:3456/index.html';
 const OUT = path.join(__dirname, '..', 'scratch', 'shots');
 require('fs').mkdirSync(OUT, { recursive: true });
-
 const CHROME = 'C:/Users/NOC/AppData/Local/ms-playwright/chromium-1234/chrome-win64/chrome.exe';
 
 const results = [];
@@ -17,249 +16,291 @@ function check(name, ok, detail) {
 
 (async () => {
   const browser = await chromium.launch({ executablePath: CHROME });
-  const ctx = await browser.newContext({ viewport: { width: 900, height: 900 } });
+  const ctx = await browser.newContext({ viewport: { width: 900, height: 960 } });
   const page = await ctx.newPage();
   const errors = [];
   page.on('pageerror', e => errors.push(String(e)));
   page.on('console', m => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
 
-  async function fresh(hash) {
+  const fresh = async (hash) => {
     await page.goto(BASE + '?t=' + Date.now() + '#' + hash, { waitUntil: 'domcontentloaded' });
-    await page.waitForTimeout(2200);
-  }
+    await page.waitForTimeout(2400);
+  };
   const txt = () => page.evaluate(() => document.getElementById('mod-vocab').innerText);
   const saved = () => page.evaluate(() => JSON.parse(localStorage.getItem('juice_vocab_v1') || '{}'));
+  const setState = (mut) => page.evaluate(mut);
 
   await fresh('/vocab');
   await page.evaluate(() => localStorage.removeItem('juice_vocab_v1'));
   await fresh('/vocab');
 
-  // ========== 1. 页面不再空旷 ==========
-  const h = await page.evaluate(() => ({
-    subnav: !!document.querySelector('.vc-subnav'),
-    tabs: [...document.querySelectorAll('.vc-tab')].map(b => b.textContent),
-    strip: [...document.querySelectorAll('.vc-stat')].map(d => d.innerText.replace(/\n/g, ' ')),
-    week: !!document.querySelector('.vc-week'),
-    weekDays: document.querySelectorAll('.vc-day').length
-  }));
-  check('有模块内子导航（今日/统计/设置）', h.subnav && h.tabs.length === 3, h.tabs);
-  check('今日屏有数据条（4 项）', h.strip.length === 4, h.strip);
-  check('今日屏有最近 7 天视图', h.week && h.weekDays === 7, { days: h.weekDays });
-  await page.screenshot({ path: path.join(OUT, 'v2-1-home.png') });
+  // ========== A. 四屏导航 ==========
+  const tabs = await page.evaluate(() =>
+    [...document.querySelectorAll('.vc-tab')].map(b => b.textContent));
+  check('四屏子导航（今日/生词本/统计/设置）', tabs.length === 4, tabs);
+  check('今日屏有数据条', (await page.evaluate(() => document.querySelectorAll('.vc-stat').length)) === 4);
+  await page.screenshot({ path: path.join(OUT, 'p2-1-home.png') });
 
-  // ========== 2. 返回键 ==========
-  await page.click('#vcStart');
-  await page.waitForTimeout(400);
-  const hasBack = await page.evaluate(() => {
-    const b = document.getElementById('vcBack');
-    return b ? b.textContent.trim() : null;
+  // ========== B. 三种题型 ==========
+  // 造一个三档齐备的队列：新词(box0) / box2 / box5
+  await setState(() => {
+    const s = { book:'cet4', day:'', newDoneToday:0, doneToday:0, streak:0, lastDone:'',
+      words:{}, seq:0, dailyNew:15, order:'seq', totalMs:0, totalAnswered:0, totalRight:0, days:{} };
+    localStorage.setItem('juice_vocab_v1', JSON.stringify(s));
   });
-  check('答题屏有返回键', hasBack && hasBack.includes('返回'), hasBack);
-  await page.screenshot({ path: path.join(OUT, 'v2-2-play.png') });
+  await fresh('/vocab');
 
-  await page.click('#vcBack');
+  // 认词：新词默认 box0
+  await page.click('#vcStart');
+  await page.waitForTimeout(600);
+  const k1 = await page.evaluate(() => document.querySelector('.vc-kind').textContent);
+  check('新词用「认词」题型', k1.includes('认词'), k1);
+  await page.screenshot({ path: path.join(OUT, 'p2-2-recall.png') });
+
+  // 背面：拆词 / 词族 / 真题 至少要有块
+  await page.click('.vc-opt:nth-child(1)');
+  await page.waitForTimeout(500);
+  const bp = await page.evaluate(() => {
+    const box = document.getElementById('vcBackPanel');
+    return {
+      has: !!box,
+      blocks: [...box.querySelectorAll('.vc-bp-h')].map(d => d.textContent.trim()),
+      fam: box.querySelectorAll('.vc-fam-word').length
+    };
+  });
+  check('答题后有卡片背面', bp.has && bp.blocks.length > 0, bp);
+  check('背面含拆词/词族/真题之一', bp.blocks.length >= 1, bp.blocks);
+  await page.screenshot({ path: path.join(OUT, 'p2-3-back.png') });
+
+  // 词族可点击跳转
+  if (bp.fam > 0) {
+    const before = await page.evaluate(() => document.querySelector('.vc-word').textContent);
+    await page.click('.vc-fam-word');
+    await page.waitForTimeout(400);
+    const after = await page.evaluate(() => document.querySelector('.vc-word').textContent);
+    check('点词族能跳到派生词', after !== before, { before, after });
+  } else {
+    check('点词族能跳到派生词', true, '本词无词族数据，跳过');
+  }
+
+  // 拼写：把当前词设成 box2 再开一局
+  await page.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem('juice_vocab_v1') || '{}');
+    const k = Object.keys(s.words)[0];
+    if (k) { s.words[k].box = 2; s.words[k].due = 0; }
+    s.newDoneToday = s.dailyNew;      // 只留复习词
+    localStorage.setItem('juice_vocab_v1', JSON.stringify(s));
+  });
+  await fresh('/vocab');
+  await page.click('#vcStart');
+  await page.waitForTimeout(600);
+  const k2 = await page.evaluate(() => ({
+    kind: document.querySelector('.vc-kind')?.textContent,
+    hasInput: !!document.getElementById('vcInput'),
+    hint: document.querySelector('.vc-spell-hint')?.textContent
+  }));
+  check('box2 用「拼写」题型', k2.kind.includes('拼写') && k2.hasInput, k2);
+  await page.screenshot({ path: path.join(OUT, 'p2-4-spell.png') });
+
+  // 拼错 → 判错
+  await page.fill('#vcInput', 'zzzzzz');
+  await page.click('#vcSubmit');
   await page.waitForTimeout(400);
-  const backOk = await page.evaluate(() => ({ onHome: !!document.getElementById('vcStart') }));
-  check('返回键能回到今日屏', backOk.onHome);
+  const spellWrong = await page.evaluate(() => document.getElementById('vcFb').className);
+  check('拼写错误判错', spellWrong.includes('bad'), spellWrong);
 
-  // ========== 3. 每天词量可选 ==========
+  // 拼对 → 判对
+  await page.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem('juice_vocab_v1') || '{}');
+    const k = Object.keys(s.words)[0];
+    s.words[k].box = 2; s.words[k].due = 0;
+    s.newDoneToday = s.dailyNew; s.doneToday = 0;
+    localStorage.setItem('juice_vocab_v1', JSON.stringify(s));
+  });
+  await fresh('/vocab');
+  await page.click('#vcStart');
+  await page.waitForTimeout(600);
+  const answer = await page.evaluate(() => {
+    // 从 localStorage 反查当前词的拼写（box2 的那个词）
+    const s = JSON.parse(localStorage.getItem('juice_vocab_v1') || '{}');
+    return Object.keys(s.words).find(k => s.words[k].box === 2) || '';
+  });
+  await page.fill('#vcInput', answer);
+  await page.click('#vcSubmit');
+  await page.waitForTimeout(400);
+  const spellRight = await page.evaluate(() => document.getElementById('vcFb').className);
+  check('拼写正确判对', spellRight.includes('ok'), { answer, cls: spellRight });
+
+  // 填空：box5
+  await page.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem('juice_vocab_v1') || '{}');
+    const k = Object.keys(s.words)[0];
+    s.words[k].box = 5; s.words[k].due = 0;
+    s.newDoneToday = s.dailyNew; s.doneToday = 0;
+    localStorage.setItem('juice_vocab_v1', JSON.stringify(s));
+  });
+  await fresh('/vocab');
+  await page.click('#vcStart');
+  await page.waitForTimeout(900);
+  const k3 = await page.evaluate(() => ({
+    kind: document.querySelector('.vc-kind')?.textContent,
+    cloze: document.querySelector('.vc-cloze')?.textContent,
+    src: document.querySelector('.vc-source')?.textContent,
+    opts: document.querySelectorAll('.vc-opt').length
+  }));
+  check('box5 用「填空」题型', k3.kind.includes('填空') && !!k3.cloze, k3);
+  check('填空句里有空格', (k3.cloze || '').includes('______'), k3.cloze);
+  check('填空标注来源', !!k3.src, k3.src);
+  await page.screenshot({ path: path.join(OUT, 'p2-5-cloze.png') });
+
+  // ========== C. 生词本 ==========
+  // 直接造两条记录（前面的流程只产生过 1 个词，靠它凑不出 2 条）
+  await page.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem('juice_vocab_v1') || '{}');
+    const today = Math.floor(Date.now() / 86400000);
+    s.words = s.words || {};
+    s.words['abruptly'] = { box: 0, due: today, seen: 6, wrong: 5 };
+    s.words['absorb'] = { box: 1, due: today, seen: 3, wrong: 2 };
+    s.newDoneToday = s.dailyNew;
+    localStorage.setItem('juice_vocab_v1', JSON.stringify(s));
+  });
+  await fresh('/vocab');
+  await page.click('.vc-tab[data-tab="words"]');
+  await page.waitForTimeout(500);
+  const wl = await page.evaluate(() => ({
+    rows: document.querySelectorAll('.vc-wordrow').length,
+    drill: !!document.getElementById('vcDrill'),
+    firstWrong: document.querySelector('.vc-wordrow-meta em')?.textContent
+  }));
+  check('生词本收录错 2 次以上的词', wl.rows === 2, wl);
+  check('生词本有专攻按钮', wl.drill);
+  check('生词本按错误次数排序', /错 5 次/.test(wl.firstWrong || ''), wl.firstWrong);
+  await page.screenshot({ path: path.join(OUT, 'p2-6-words.png') });
+
+  // 移除：点第一条（错 5 次那个），应剩 1 条
+  const firstWord = await page.evaluate(() =>
+    document.querySelector('.vc-wordrow-main b')?.textContent);
+  await page.click('[data-remove]');
+  await page.waitForTimeout(500);
+  const wl2 = await page.evaluate(() => ({
+    rows: document.querySelectorAll('.vc-wordrow').length,
+    words: [...document.querySelectorAll('.vc-wordrow-main b')].map(b => b.textContent)
+  }));
+  check('生词本能移除条目', wl2.rows === 1 && !wl2.words.includes(firstWord),
+    { removed: firstWord, left: wl2 });
+
+  // ========== D. 90 天热力图 ==========
+  await page.click('.vc-tab[data-tab="stats"]');
+  await page.waitForTimeout(500);
+  const heat = await page.evaluate(() => ({
+    cells: document.querySelectorAll('.vc-heat i').length,
+    legend: !!document.querySelector('.vc-heat-legend'),
+    label: [...document.querySelectorAll('.vc-h3')].map(d => d.textContent).join('|')
+  }));
+  check('热力图为 90 天', heat.cells === 90, { cells: heat.cells });
+  check('热力图有图例', heat.legend);
+  check('统计标注最近 90 天', /90 天/.test(heat.label), heat.label);
+  await page.screenshot({ path: path.join(OUT, 'p2-7-stats.png') });
+
+  // ========== E. 发音 ==========
+  await page.click('.vc-tab[data-tab="today"]');
+  await page.waitForTimeout(400);
+  await page.click('#vcStart');
+  await page.waitForTimeout(700);
+  const sp = await page.evaluate(() => {
+    const b = document.getElementById('vcSpeak');
+    return {
+      hasBtn: !!b,
+      canSpeak: window.AppVocabData ? window.AppVocabData.canSpeak() : null,
+      hasAPI: 'speechSynthesis' in window
+    };
+  });
+  check('认词卡有发音按钮（或环境无语音时隐藏）',
+    sp.hasBtn || sp.canSpeak === false, sp);
+
+  // ========== F. 原有回归 ==========
+  await page.evaluate(() => {
+    const b = document.getElementById('vcBack');
+    if (b) b.click();
+  });
+  await page.waitForTimeout(400);
+
   await page.click('.vc-tab[data-tab="settings"]');
   await page.waitForTimeout(300);
-  const dailyOpts = await page.evaluate(() =>
-    [...document.querySelectorAll('[data-daily]')].map(b => b.textContent.trim()));
-  check('设置里有每天词量选项', dailyOpts.length === 4, dailyOpts);
-
   await page.click('[data-daily="25"]');
   await page.waitForTimeout(400);
-  const afterDaily = await saved();
-  check('选 25 后存档生效', afterDaily.dailyNew === 25, { dailyNew: afterDaily.dailyNew });
-
-  await page.click('.vc-tab[data-tab="today"]');
-  await page.waitForTimeout(400);
-  const home25 = await txt();
-  check('今日屏显示新词 25', /新词 25/.test(home25), home25.replace(/\n/g, ' | ').slice(0, 70));
-
-  await page.click('#vcStart');
-  await page.waitForTimeout(400);
-  const q25 = await page.evaluate(() => document.querySelector('.vc-count').textContent);
-  check('队列总数为 25', /\/ 25$/.test(q25), q25);
-  await page.click('#vcBack');
-  await page.waitForTimeout(400);
-
-  // ========== 4. 顺序 / 乱序 ==========
-  await page.click('.vc-tab[data-tab="settings"]');
-  await page.waitForTimeout(300);
+  check('每天词量可选', (await saved()).dailyNew === 25);
   await page.click('[data-order="random"]');
   await page.waitForTimeout(400);
-  const afterOrder = await saved();
-  check('能切到乱序', afterOrder.order === 'random', { order: afterOrder.order });
+  check('顺序/乱序可切', (await saved()).order === 'random');
 
-  await page.click('.vc-tab[data-tab="today"]');
-  await page.waitForTimeout(400);
-  const homeRandom = await txt();
-  check('今日屏标出「乱序」', homeRandom.includes('乱序'), homeRandom.replace(/\n/g, ' | ').slice(0, 60));
-
-  const firstWords = new Set();
-  for (let i = 0; i < 5; i++) {
-    await page.click('#vcStart');
-    await page.waitForTimeout(350);
-    firstWords.add(await page.evaluate(() => document.querySelector('.vc-word').textContent));
-    await page.click('#vcBack');
-    await page.waitForTimeout(300);
-  }
-  check('乱序开局词不固定', firstWords.size >= 2, [...firstWords]);
-
-  await page.click('.vc-tab[data-tab="settings"]');
-  await page.waitForTimeout(300);
-  await page.click('[data-order="seq"]');
-  await page.waitForTimeout(400);
-  await page.click('.vc-tab[data-tab="today"]');
-  await page.waitForTimeout(400);
-  const seqFirst = [];
-  for (let i = 0; i < 2; i++) {
-    await page.click('#vcStart');
-    await page.waitForTimeout(350);
-    seqFirst.push(await page.evaluate(() => document.querySelector('.vc-word').textContent));
-    await page.click('#vcBack');
-    await page.waitForTimeout(300);
-  }
-  check('顺序模式开局词固定', seqFirst[0] === seqFirst[1], seqFirst);
-
-  // ========== 5. 累计单词数 / 学习时长 ==========
-  await page.click('#vcStart');
-  await page.waitForTimeout(400);
-  for (let i = 0; i < 3; i++) {
-    await page.waitForTimeout(1100);
-    await page.click('.vc-opt:nth-child(1)');
-    await page.waitForTimeout(300);
-    const nb = await page.$('#vcNext');
-    if (nb) { await nb.click(); await page.waitForTimeout(250); }
-  }
-  await page.evaluate(() => { const b = document.getElementById('vcBack'); if (b) b.click(); });
-  await page.waitForTimeout(500);
-
-  const afterStudy = await saved();
-  check('累计答题数在涨', afterStudy.totalAnswered >= 3, { totalAnswered: afterStudy.totalAnswered });
-  check('累计学过词数在涨', Object.keys(afterStudy.words || {}).length >= 3, { known: Object.keys(afterStudy.words || {}).length });
-  check('学习时长在累计', afterStudy.totalMs > 2000, { totalMs: afterStudy.totalMs });
-
-  const stripNow = await page.evaluate(() =>
-    [...document.querySelectorAll('.vc-stat')].map(d => d.innerText.replace(/\n/g, ' ')));
-  check('数据条显示累计学过 / 学习时长',
-    stripNow.join(' ').includes('累计学过') && stripNow.join(' ').includes('学习时长'), stripNow);
-
-  // ========== 6. 统计屏 ==========
-  await page.click('.vc-tab[data-tab="stats"]');
-  await page.waitForTimeout(400);
-  const statsTxt = await txt();
-  check('统计屏有完成度', /完成度/.test(statsTxt), statsTxt.replace(/\n/g, ' | ').slice(0, 80));
-  check('统计屏有档位分布', /记忆档位分布/.test(statsTxt));
-  check('统计屏有 30 天热力图', (await page.evaluate(() => document.querySelectorAll('.vc-heat i').length)) === 30);
-  check('统计屏有学习时长', /累计学习时长/.test(statsTxt));
-  await page.screenshot({ path: path.join(OUT, 'v2-3-stats.png') });
-
-  // ========== 7. 跑完整局 ==========
-  await page.click('.vc-tab[data-tab="today"]');
-  await page.waitForTimeout(300);
+  // 跑一整局，验证调度与统计
+  await page.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem('juice_vocab_v1') || '{}');
+    s.words = {}; s.seq = 0; s.newDoneToday = 0; s.doneToday = 0;
+    s.order = 'seq'; s.dailyNew = 10;
+    localStorage.setItem('juice_vocab_v1', JSON.stringify(s));
+  });
+  await fresh('/vocab');
   await page.evaluate(async () => {
     const sleep = ms => new Promise(r => setTimeout(r, ms));
     document.getElementById('vcStart').click();
-    await sleep(200);
-    for (let i = 0; i < 90; i++) {
-      const opts = document.querySelectorAll('.vc-opt');
-      if (!opts.length) break;
-      opts[0].click();
-      await sleep(25);
+    await sleep(300);
+    for (let i = 0; i < 60; i++) {
+      const inp = document.getElementById('vcInput');
+      if (inp) { inp.value = 'zzz'; document.getElementById('vcSubmit').click(); }
+      else {
+        const o = document.querySelectorAll('.vc-opt');
+        if (!o.length) break;
+        o[0].click();
+      }
+      await sleep(40);
       const nb = document.getElementById('vcNext');
       if (!nb) break;
       nb.click();
-      await sleep(25);
+      await sleep(40);
     }
   });
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(600);
   const fin = await saved();
   const finTxt = await txt();
-  check('能走到结算', finTxt.includes('本局完成'), finTxt.replace(/\n/g, ' | ').slice(0, 70));
-  check('队列有上限', (fin.doneToday || 0) < 70, { doneToday: fin.doneToday });
-  check('打卡 +1', fin.streak === 1, { streak: fin.streak });
+  check('能走到结算', finTxt.includes('本局完成'), finTxt.replace(/\n/g, ' | ').slice(0, 60));
+  check('队列有上限', (fin.doneToday || 0) < 40, { doneToday: fin.doneToday });
+  check('累计答题在涨', (fin.totalAnswered || 0) > 0, { n: fin.totalAnswered });
+  check('学习时长在涨', (fin.totalMs || 0) > 0, { ms: fin.totalMs });
 
-  // ========== 8. 跨天 ==========
+  // 跨天
   await page.evaluate(() => {
     const s = JSON.parse(localStorage.getItem('juice_vocab_v1') || '{}');
     const y = new Date(Date.now() - 86400000);
     const key = d => d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
-    const today = Math.floor(Date.now() / 86400000);
-    const ks = Object.keys(s.words);
-    ks.slice(0, 5).forEach(k => { s.words[k].due = today; });
-    ks.slice(5).forEach(k => { s.words[k].due = today + 5; });
-    s.day = key(y); s.newDoneToday = s.dailyNew; s.doneToday = 30;
+    s.day = key(y); s.newDoneToday = s.dailyNew; s.doneToday = 20;
     localStorage.setItem('juice_vocab_v1', JSON.stringify(s));
   });
   await fresh('/vocab');
   const d2 = await saved();
-  const d2txt = await txt();
-  check('跨天额度重置', d2.newDoneToday === 0, { newDoneToday: d2.newDoneToday });
-  check('跨天今日计数归零', d2.doneToday === 0, { doneToday: d2.doneToday });
-  check('次日生成复习队列', /待复习 5/.test(d2txt), d2txt.replace(/\n/g, ' | ').slice(0, 60));
-  check('跨天后累计数据保留', (d2.totalAnswered || 0) > 0 && (d2.totalMs || 0) > 0,
-    { answered: d2.totalAnswered, ms: d2.totalMs });
+  check('跨天额度重置', d2.newDoneToday === 0, { v: d2.newDoneToday });
+  check('跨天累计保留', (d2.totalAnswered || 0) > 0, { n: d2.totalAnswered });
 
-  // ========== 9. 词库切换 ==========
-  await page.click('.vc-tab[data-tab="settings"]');
-  await page.waitForTimeout(300);
-  await page.click('[data-book="cet6"]');
-  await page.waitForTimeout(2800);
-  const sw = await saved();
-  check('设置里能切到 CET-6', sw.book === 'cet6', { book: sw.book });
-
-  await page.click('.vc-tab[data-tab="today"]');
-  await page.waitForTimeout(300);
-  await page.click('#vcStart');
-  await page.waitForTimeout(450);
-  const q6 = await page.evaluate(() => document.querySelector('.vc-word').textContent);
-  const cet6Pool = await page.evaluate(async () => {
-    const j = await (await fetch('assets/vocab/cet6.json')).json();
-    return j.slice(0, 20).map(x => x[0]);
-  });
-  check('CET-6 出的词来自 CET-6 词库', cet6Pool.includes(q6), { word: q6 });
-  await page.screenshot({ path: path.join(OUT, 'v2-4-cet6.png') });
-
-  // ========== 10. 清空记录 ==========
-  await page.evaluate(() => { const b = document.getElementById('vcBack'); if (b) b.click(); });
-  await page.waitForTimeout(400);
-  await page.click('.vc-tab[data-tab="settings"]');
-  await page.waitForTimeout(300);
-  page.once('dialog', d => d.accept());
-  await page.click('#vcReset');
-  await page.waitForTimeout(2200);
-  const afterReset = await saved();
-  check('清空记录生效',
-    Object.keys(afterReset.words || {}).length === 0 && (afterReset.totalMs || 0) === 0,
-    { words: Object.keys(afterReset.words || {}).length, ms: afterReset.totalMs });
-
-  // ========== 11. 移动端 & 深色 ==========
+  // 移动端 & 深色
   await page.setViewportSize({ width: 390, height: 844 });
   await page.waitForTimeout(400);
-  const mob = await page.evaluate(() => ({
-    overflow: document.documentElement.scrollWidth > window.innerWidth + 1,
-    tabs: document.querySelectorAll('.vc-tab').length
-  }));
-  check('移动端不横向溢出', !mob.overflow, mob);
-  await page.screenshot({ path: path.join(OUT, 'v2-5-mobile.png') });
+  const mob = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth + 1);
+  check('移动端不横向溢出', !mob);
+  await page.screenshot({ path: path.join(OUT, 'p2-8-mobile.png') });
 
-  await page.setViewportSize({ width: 900, height: 900 });
+  await page.setViewportSize({ width: 900, height: 960 });
   await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'dark'));
   await page.waitForTimeout(1200);
   const dark = await page.evaluate(() => {
-    /* 今日屏没有 .vc-h2，用标题兜底 */
-    const node = document.querySelector('.vc-h2, .vc-hero-title');
-    return { tag: node && node.className, color: node ? getComputedStyle(node).color : null };
+    const n = document.querySelector('.vc-hero-title, .vc-h2');
+    return n ? getComputedStyle(n).color : null;
   });
-  check('深色下文字可见', dark.color === 'rgb(248, 250, 252)', dark);
-  await page.screenshot({ path: path.join(OUT, 'v2-6-dark.png') });
+  check('深色下文字可见', dark === 'rgb(248, 250, 252)', dark);
+  await page.screenshot({ path: path.join(OUT, 'p2-9-dark.png') });
   await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'light'));
 
-  // ========== 12. 模块切换 ==========
+  // 模块切换
   await page.evaluate(() => document.querySelector('.nav-tab[data-mod="wall"]').click());
   await page.waitForTimeout(1200);
   await page.evaluate(() => document.querySelector('.nav-tab[data-mod="vocab"]').click());

@@ -17401,14 +17401,13 @@ html[data-theme="dark"] .films-cat.active {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 10px;
-  /* 同一行的卡片不强制等高：内容少的不会被拉长留白 */
-  align-items: start;
+  /* 同行等高，保持网格整齐；多出来的空白由卡片内部消化（见 .films-actions） */
+  align-items: stretch;
 }
 .films-card {
   display: flex;
   flex-direction: column;
   gap: 7px;
-  align-self: start;
   padding: 12px 13px;
   border-radius: 14px;
   background: var(--card);
@@ -17505,7 +17504,10 @@ html[data-theme="dark"] .films-score {
 .films-actions {
   display: flex;
   gap: 8px;
-  margin-top: 2px;
+  /* 沉底：卡片被拉伸时，多余空间落在按钮上方（简介与按钮之间），
+     而不是全部堆在按钮下方 */
+  margin-top: auto;
+  padding-top: 2px;
 }
 .films-open,
 .films-copy {

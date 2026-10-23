@@ -90,7 +90,7 @@
     if (filmsStatus) list = list.filter(function (r) { return r.status === filmsStatus; });
 
     if (sub) {
-      sub.textContent = filmsData.total + ' 个站点 · 数据更新于 ' + (filmsData.updatedAt || '未知') +
+      sub.textContent = filmsData.total + ' 个站点 · 源数据更新于 ' + (filmsData.updatedAt || '未知') +
         ' · 当前显示 ' + list.length + ' 个' +
         (filmsStatus === 'recommended' ? '（已验证可用）' : filmsStatus === 'caution' ? '（需自行判断）' : '');
     }
@@ -164,8 +164,10 @@
     if (!grid) return;
 
     /* 先渲染本地缓存争取秒开，但缓存必须有过期时间：
-       排序与状态是服务端算的，永远用缓存会导致规则更新后页面不跟随。 */
-    const CACHE_TTL = 30 * 60 * 1000;   // 30 分钟
+       排序与状态是服务端算的，永远用缓存会导致规则更新后页面不跟随。
+       5 分钟：上游每 30 分钟探测一次，前端 5 分钟拉一次服务端，
+       相当于上游更新后最多 35 分钟内可见。 */
+    const CACHE_TTL = 5 * 60 * 1000;
     let cacheFresh = false;
     if (!filmsData && !force) {
       try {

@@ -29,8 +29,11 @@ const CATEGORY_LABELS = {
   open_source: '开源项目'
 };
 
-let cache = null;          // { at, resources }
-const CACHE_MS = 6 * 3600 * 1000;
+let cache = null;          // { at, resources, updatedAt, etag, lastModified }
+/* 30 分钟软过期：过期后先发条件请求（If-None-Match / If-Modified-Since），
+   上游没变就拿到 304（几乎零成本），变了立刻更新。
+   这样既不会每次请求都打 GitHub，又能在上游更新后半小时内跟上。 */
+const CACHE_MS = 30 * 60 * 1000;
 
 function normalize(r) {
   const v = r.verification || {};
@@ -64,28 +67,48 @@ function normalize(r) {
 
 async function loadResources() {
   const now = Date.now();
+  // 软过期内直接用内存缓存
   if (cache && now - cache.at < CACHE_MS) return cache.resources;
 
-  let data = null, lastErr = '';
+  let data = null, lastErr = '', notModified = false;
   for (const src of SOURCES) {
     try {
+      const headers = { 'User-Agent': UA, Accept: ACCEPT };
+      // 有缓存时带条件头，让 GitHub 直接回 304
+      if (cache && cache.etag) headers['If-None-Match'] = cache.etag;
+      if (cache && cache.lastModified) headers['If-Modified-Since'] = cache.lastModified;
+
       const resp = await fetch(src, {
-        headers: { 'User-Agent': UA, Accept: ACCEPT },
+        headers: headers,
         signal: AbortSignal.timeout ? AbortSignal.timeout(12000) : undefined
       });
+
+      if (resp.status === 304) { notModified = true; break; }
       if (!resp.ok) { lastErr = '上游 ' + resp.status; continue; }
+
       const text = await resp.text();
       data = JSON.parse(text);
-      break;
+      cache = {
+        at: now,
+        resources: (data.resources || []).map(normalize).filter(function (r) { return r.name && r.url; }),
+        updatedAt: data.updated_at || '',
+        etag: resp.headers.get('etag') || '',
+        lastModified: resp.headers.get('last-modified') || ''
+      };
+      return cache.resources;
     } catch (e) {
       lastErr = e && e.message ? e.message : 'unknown';
     }
   }
-  if (!data) throw new Error(lastErr || '所有数据源均不可用');
-  const list = (data.resources || []).map(normalize).filter(function (r) { return r.name && r.url; });
 
-  cache = { at: now, resources: list, updatedAt: data.updated_at || '' };
-  return list;
+  // 上游没变（304）：刷新时间戳，继续用旧数据
+  if (notModified && cache) {
+    cache.at = now;
+    return cache.resources;
+  }
+  // 全部失败但有旧缓存：继续用旧的，别让页面空白
+  if (cache) return cache.resources;
+  throw new Error(lastErr || '所有数据源均不可用');
 }
 
 module.exports = async function handler(req, res) {

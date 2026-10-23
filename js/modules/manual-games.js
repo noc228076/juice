@@ -4355,20 +4355,8 @@
       return best;
     }
 
-    function collectMatches(si, sc, v) {
-      /* 彩虹泡泡：吸附后变成相邻最多的那种颜色 */
-      var target = v;
-      if (v === RAINBOW) {
-        var cnt = {};
-        neighborsOf(si, sc).forEach(function (n) {
-          var g = getCell(n[0], n[1]);
-          if (g >= 1 && g <= 6) cnt[g] = (cnt[g] || 0) + 1;
-        });
-        var bestC = 0, bestN = 0;
-        for (var k in cnt) if (cnt[k] > bestN) { bestN = cnt[k]; bestC = +k; }
-        if (!bestC) return null;
-        target = bestC;
-      }
+    /* 从落点出发，按 target 色搜连通块；彩虹(7)恒为万能牌参与 */
+    function collectColor(si, sc, target) {
       var seen = {}, stack = [[si, sc]], out = [];
       seen[si + '_' + sc] = 1;
       while (stack.length) {
@@ -4378,12 +4366,26 @@
           var key = n[0] + '_' + n[1];
           if (seen[key]) return;
           var g = getCell(n[0], n[1]);
-          /* 彩虹(7)是万能牌：跟随任何目标色参与匹配，
-             否则会作为死子永久卡在场里、还挡住穿过它的连线 */
           if (g === target || g === RAINBOW) { seen[key] = 1; stack.push(n); }
         });
       }
       return out.length >= 3 ? out : null;
+    }
+
+    function collectMatches(si, sc, v) {
+      /* 彩球落子不锁色：对 6 种颜色各试一遍，取最大的连通块。
+         只看「直接相邻最多的颜色」会漏掉一种情况——挨着的红球只有 1 颗，
+         而蓝球虽然只挨着 1 颗、后面却连着一大片，锁红就白打了。
+         6 种颜色都不足三连时返回 null，彩球原样留在场上继续当万能牌。 */
+      if (v === RAINBOW) {
+        var best = null;
+        for (var c = 1; c <= 6; c++) {
+          var got = collectColor(si, sc, c);
+          if (got && (!best || got.length > best.length)) best = got;
+        }
+        return best;
+      }
+      return collectColor(si, sc, v);
     }
 
     function removeFloating() {

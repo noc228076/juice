@@ -154,13 +154,21 @@
     if (!video) return;
 
     // 每次播放前重置
-    /* 音量只在首次进入时初始化，切台保留用户设置
-       （办公室场景把音量拉满会社死） */
+    /* 首次进入以静音起播：浏览器允许静音自动播放，
+       未静音会被策略拦截并可能表现为「时间在走但没画面」。
+       用户手动调音量/取消静音后不再重置。 */
     if (!volumeInited) {
       volumeInited = true;
+      video.muted = true;
       video.volume = 1;
       const volume = document.getElementById('tvVolume');
       if (volume) volume.value = '1';
+      const muteBtn = document.getElementById('tvMute');
+      if (muteBtn) {
+        muteBtn.textContent = '🔇';
+        muteBtn.setAttribute('aria-label', '取消静音');
+        muteBtn.setAttribute('aria-pressed', 'true');
+      }
     }
     const qEl = document.getElementById('tvQuality');
     if (qEl) qEl.textContent = '自动';
@@ -174,10 +182,12 @@
       }
       engine = eng;
       if (eng === 'native') {
+        /* 只设 src，不要紧跟 load()：
+           load() 会中止刚刚发起的 play()，抛 AbortError 并让 currentTime 永远停在 0
+           （表现就是黑屏/花屏但 readyState 已经是 3）。 */
         video.src = url;
-        video.load();
-        video.play().catch(function () {
-          // 自动播放被拦（未静音策略），提示用户点一下
+        video.play().catch(function (err) {
+          if (err && err.name === 'AbortError') return;   // 被后续操作打断，忽略
           setStatus('点一下播放按钮开始', 'warn');
         });
         // 原生播放失败（404/解码错误）→ 尝试 hls.js 兜底
@@ -292,6 +302,12 @@
 
   function afterStart() {
     setStatus('', '');
+    /* 3 秒后仍无可用帧 → 多半是自动播放被策略拦，给用户明确指引 */
+    setTimeout(function () {
+      if (!video || video.readyState >= 2) return;
+      if (video.paused) return;   // 已经是暂停态，由 play() 的 catch 处理
+      setStatus('点一下播放按钮开始', 'warn');
+    }, 3000);
     // 看门狗：15 秒 currentTime 不前进就重建
     clearInterval(watchdogTimer);
     lastTime = 0; stalledSince = 0;

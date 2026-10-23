@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>电视直播 · 多引擎对照实验</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#0b0c10; color:#f2eee3; font-family:-apple-system,"Segoe UI",system-ui,sans-serif; padding:16px; }
+  h1 { font-size:17px; margin-bottom:2px; }
+  .sub { font-size:12px; opacity:.55; margin-bottom:14px; }
+
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(420px,1fr)); gap:14px; max-width:1400px; }
+  .cell { background:#111318; border-radius:10px; overflow:hidden; border:1px solid rgba(255,255,255,.08); }
+  .cell-hd { padding:8px 12px; font-size:13px; display:flex; justify-content:space-between; align-items:center;
+             border-bottom:1px solid rgba(255,255,255,.06); }
+  .cell-hd b { font-weight:600; }
+  .st { font-size:11px; font-family:ui-monospace,monospace; padding:2px 8px; border-radius:5px;
+        background:rgba(255,255,255,.08); }
+  .st.ok { background:#2b8a3e; color:#fff; }
+  .st.bad { background:#c92a2a; color:#fff; }
+  .st.warn { background:#e67700; color:#fff; }
+  .cell video { width:100%; aspect-ratio:16/9; display:block; background:#000; }
+  .cell-info { padding:6px 12px; font-size:11px; font-family:ui-monospace,monospace; opacity:.6; }
+</style>
+</head>
+<body>
+<h1>📺 多引擎对照实验</h1>
+<div class="sub">同一路流，四种播放方式同时跑，看哪个能出正常画面</div>
+<div class="grid" id="grid"></div>
+
+<script src="js/vendor/hls-1.7.3.min.js"></script>
+<script>
+(function () {
+  var URL = 'https://ldocctvwbcdbyte.volcfcdn.com/ldocctvwbcd/cdrmldcctv10_1/index.m3u8?b=200-4000';
+  var grid = document.getElementById('grid');
+
+  /* MSE codec 补丁（只对 hls.js 生效） */
+  var origAdd = MediaSource.prototype.addSourceBuffer;
+  MediaSource.prototype.addSourceBuffer = function (type) {
+    var fixed = String(type).replace(/avc1\.([0-9a-f]{2})[0-9a-f]{2}([0-9a-f]{2})/gi, 'avc1.$100$2');
+    this.__lastType = fixed;
+    return origAdd.call(this, fixed);
+  };
+
+  var CELLS = [
+    { id: 'native',    title: '原生 HLS' },
+    { id: 'hls',       title: 'hls.js 默认' },
+    { id: 'hlsSafe',   title: 'hls.js 保守' },
+    { id: 'hlsNoPatch',title: 'hls.js 无补丁' }
+  ];
+
+  var instances = [];
+
+  CELLS.forEach(function (c) {
+    var el = document.createElement('div');
+    el.className = 'cell';
+    el.innerHTML =
+      '<div class="cell-hd"><b>' + c.title + '</b><span class="st" id="st-' + c.id + '">启动中</span></div>' +
+      '<video id="v-' + c.id + '" playsinline webkit-playsinline muted></video>' +
+      '<div class="cell-info" id="info-' + c.id + '">-</div>';
+    grid.appendChild(el);
+    instances.push({ cfg: c, v: el.querySelector('video'), st: el.querySelector('.st'), info: el.querySelector('.cell-info') });
+  });
+
+  function setSt(inst, text, cls) {
+    inst.st.textContent = text;
+    inst.st.className = 'st ' + (cls || '');
+  }
+
+  function sample(inst, label) {
+    var v = inst.v;
+    var base = 'rs=' + v.readyState + ' ' + v.videoWidth + 'x' + v.videoHeight +
+               ' t=' + v.currentTime.toFixed(1);
+    // 抓帧判色
+    var verdict = 'pending', gPct = -1;
+    if (v.videoWidth > 0) {
+      try {
+        var cv = document.createElement('canvas');
+        cv.width = 120; cv.height = Math.round(120 * v.videoHeight / v.videoWidth) || 68;
+        var g = cv.getContext('2d');
+        g.drawImage(v, 0, 0, cv.width, cv.height);
+        var d = g.getImageData(0, 0, cv.width, cv.height).data;
+        var green = 0, black = 0, n = d.length / 4;
+        for (var i = 0; i < d.length; i += 4) {
+          if (d[i] < 25 && d[i+1] < 25 && d[i+2] < 25) black++;
+          else if (d[i+1] > d[i] + 30 && d[i+1] > d[i+2] + 30) green++;
+        }
+        gPct = green / n * 100;
+        verdict = gPct > 50 ? '绿色花屏' : (black/n > 0.9 ? '黑屏' : '正常');
+        inst.info.textContent = base + ' | 绿 ' + gPct.toFixed(0) + '% | ' + verdict;
+        setSt(inst, verdict, gPct > 50 ? 'bad' : (black/n > 0.9 ? 'warn' : 'ok'));
+      } catch (e) {
+        inst.info.textContent = base + ' | 抓帧受限(CORS)';
+        setSt(inst, '播放中(无法抓帧)', 'warn');
+      }
+    } else {
+      inst.info.textContent = base + ' | 无画面数据';
+      setSt(inst, '无画面', 'bad');
+    }
+  }
+
+  /* ---- 原生 ---- */
+  (function () {
+    var inst = instances[0];
+    inst.v.src = URL;
+    inst.v.play().catch(function(){});
+  })();
+
+  /* ---- hls.js 默认 ---- */
+  (function () {
+    var inst = instances[1];
+    var h = new Hls({ lowLatencyMode: true, enableWorker: true });
+    h.on(Hls.Events.ERROR, function (e, d) {
+      inst.info.textContent = 'ERR ' + d.details + (d.fatal ? ' (fatal)' : '');
+    });
+    h.loadSource(URL); h.attachMedia(inst.v);
+    inst.v.play().catch(function(){});
+    inst.hls = h;
+  })();
+
+  /* ---- hls.js 保守 ---- */
+  (function () {
+    var inst = instances[2];
+    var h = new Hls({
+      lowLatencyMode: false, enableWorker: false,
+      maxBufferLength: 20, startLevel: -1
+    });
+    h.on(Hls.Events.ERROR, function (e, d) {
+      inst.info.textContent = 'ERR ' + d.details + (d.fatal ? ' (fatal)' : '');
+    });
+    h.loadSource(URL); h.attachMedia(inst.v);
+    inst.v.play().catch(function(){});
+    inst.hls = h;
+  })();
+
+  /* ---- hls.js 无补丁（对照：验证补丁是否真必要）---- */
+  (function () {
+    var inst = instances[3];
+    // 临时还原原始 addSourceBuffer
+    MediaSource.prototype.addSourceBuffer = origAdd;
+    var h = new Hls({ lowLatencyMode: true, enableWorker: true });
+    h.on(Hls.Events.ERROR, function (e, d) {
+      inst.info.textContent = 'ERR ' + d.details + (d.fatal ? ' (fatal)' : '');
+    });
+    h.loadSource(URL); h.attachMedia(inst.v);
+    inst.v.play().catch(function(){});
+    inst.hls = h;
+    // 恢复补丁
+    setTimeout(function () {
+      MediaSource.prototype.addSourceBuffer = function (type) {
+        var fixed = String(type).replace(/avc1\.([0-9a-f]{2})[0-9a-f]{2}([0-9a-f]{2})/gi, 'avc1.$100$2');
+        return origAdd.call(this, fixed);
+      };
+    }, 3000);
+  })();
+
+  setTimeout(function () { instances.forEach(function (i) { sample(i, '5s'); }); }, 5000);
+  setTimeout(function () { instances.forEach(function (i) { sample(i, '12s'); }); }, 12000);
+})();
+</script>
+</body>
+</html>

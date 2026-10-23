@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>电视直播 · 独立验证页</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#0b0c10; color:#f2eee3; font-family:-apple-system,"Segoe UI",system-ui,sans-serif;
+         padding:16px; min-height:100vh; }
+  h1 { font-size:17px; font-weight:600; margin-bottom:3px; }
+  .sub { font-size:12px; opacity:.55; margin-bottom:14px; }
+
+  .bar { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px; }
+  .bar button { padding:7px 15px; border-radius:8px; border:1px solid rgba(255,255,255,.16);
+                background:rgba(255,255,255,.06); color:#f2eee3; font-size:13px; cursor:pointer; }
+  .bar button:hover { background:rgba(255,255,255,.13); }
+  .bar button.on { background:#2f80ed; border-color:#2f80ed; color:#fff; }
+  .bar select { padding:7px 10px; border-radius:8px; border:1px solid rgba(255,255,255,.16);
+                background:#171922; color:#f2eee3; font-size:13px; }
+
+  #stage { position:relative; width:100%; max-width:960px; aspect-ratio:16/9;
+           background:#000; border-radius:10px; overflow:hidden; }
+  video { width:100%; height:100%; display:block; background:#000; }
+
+  #badge { position:absolute; top:10px; left:10px; padding:4px 10px; border-radius:6px;
+           font-size:12px; font-family:ui-monospace,monospace; background:rgba(0,0,0,.7);
+           border:1px solid rgba(255,255,255,.15); }
+  #badge.ok { color:#69db7c; border-color:#2f9e44; }
+  #badge.bad { color:#ff8787; border-color:#c92a2a; }
+
+  #log { margin-top:12px; max-width:960px; font-family:ui-monospace,Consolas,monospace;
+         font-size:11.5px; line-height:1.65; background:#111318; border-radius:8px;
+         padding:10px 12px; max-height:340px; overflow:auto; white-space:pre-wrap; }
+  .ok{color:#69db7c}.bad{color:#ff8787}.warn{color:#ffd43b}.dim{opacity:.5}.hi{color:#74c0fc}
+</style>
+</head>
+<body>
+<h1>📺 电视直播 · 独立验证页</h1>
+<div class="sub">对比不同引擎/配置，定位绿色花屏的根因</div>
+
+<div class="bar">
+  <select id="ch"></select>
+  <button id="bHls" class="on">hls.js（默认配置）</button>
+  <button id="bHlsSafe">hls.js（保守配置）</button>
+  <button id="bNative">原生 HLS</button>
+  <button id="bFrame">抓帧检测</button>
+</div>
+
+<div id="stage">
+  <video id="v" playsinline webkit-playsinline muted></video>
+  <div id="badge">待开始</div>
+</div>
+<div id="log"></div>
+
+<script src="js/vendor/hls-1.7.3.min.js"></script>
+<script>
+(function () {
+  var logEl = document.getElementById('log');
+  var badge = document.getElementById('badge');
+  var v = document.getElementById('v');
+  var hls = null;
+  var frameTimer = 0;
+
+  function log(msg, cls) {
+    var d = document.createElement('div');
+    if (cls) d.className = cls;
+    d.textContent = '[' + new Date().toISOString().slice(11, 23) + '] ' + msg;
+    logEl.appendChild(d);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+  function setBadge(t, cls) { badge.textContent = t; badge.className = cls || ''; }
+
+  /* ---------- 频道数据 ---------- */
+  var CHANNELS = [
+    { name: 'CCTV-10 科教', url: 'https://ldocctvwbcdbyte.volcfcdn.com/ldocctvwbcd/cdrmldcctv10_1/index.m3u8?b=200-4000' },
+    { name: 'CCTV-6 电影',  url: 'https://ldocctvwbcdbyte.volcfcdn.com/ldocctvwbcd/cdrmldcctv6_1/index.m3u8?b=200-4000' },
+    { name: 'CCTV-5 体育',  url: 'https://ldocctvwbcdks.v.kcdnvip.com/ldcctvwbcd/cdrmldcctv5_1/index.m3u8?b=200-4000' },
+    { name: 'CCTV-13 新闻', url: 'https://ldocctvwbcdbd.a.bdydns.com/ldocctvwbcd/cdrmldcctv13_1/index.m3u8?b=200-4000' }
+  ];
+  var sel = document.getElementById('ch');
+  CHANNELS.forEach(function (c, i) {
+    var o = document.createElement('option');
+    o.value = i; o.textContent = c.name;
+    sel.appendChild(o);
+  });
+  function curUrl() { return CHANNELS[+sel.value].url; }
+
+  /* ---------- 视频事件 ---------- */
+  ['loadedmetadata','loadeddata','canplay','playing','waiting','stalled','error'].forEach(function (ev) {
+    v.addEventListener(ev, function () {
+      var extra = '';
+      if (ev === 'error' && v.error) extra = ' code=' + v.error.code + ' ' + (v.error.message || '');
+      log('event ' + ev + extra,
+        ev === 'error' || ev === 'stalled' ? 'bad' : ev === 'playing' ? 'ok' : 'dim');
+    });
+  });
+
+  function teardown() {
+    clearInterval(frameTimer);
+    if (hls) { try { hls.destroy(); } catch (e) {} hls = null; }
+    v.onerror = null;
+    try { v.pause(); } catch (e) {}
+    v.removeAttribute('src');
+    try { v.load(); } catch (e) {}
+    logEl.innerHTML = '';
+    setBadge('待开始');
+  }
+
+  /* ---------- 抓帧检测 ---------- */
+  function checkFrame(label) {
+    if (!v.videoWidth) { log('抓帧跳过：还没有画面尺寸', 'warn'); return; }
+    try {
+      var c = document.createElement('canvas');
+      c.width = 160; c.height = Math.round(160 * v.videoHeight / v.videoWidth) || 90;
+      var g = c.getContext('2d');
+      g.drawImage(v, 0, 0, c.width, c.height);
+      var d = g.getImageData(0, 0, c.width, c.height).data;
+      var green = 0, black = 0, white = 0, other = 0, n = d.length / 4;
+      for (var i = 0; i < d.length; i += 4) {
+        var r = d[i], gg = d[i+1], b = d[i+2];
+        if (r < 25 && gg < 25 && b < 25) black++;
+        else if (r > 230 && gg > 230 && b > 230) white++;
+        else if (gg > r + 30 && gg > b + 30) green++;
+        else other++;
+      }
+      var gPct = green/n*100, bPct = black/n*100;
+      var verdict = gPct > 50 ? 'bad' : (bPct > 90 ? 'warn' : 'ok');
+      log(label + ' 抓帧 ' + c.width + 'x' + c.height +
+          ' → 绿 ' + gPct.toFixed(1) + '% / 黑 ' + bPct.toFixed(1) +
+          '% / 白 ' + (white/n*100).toFixed(1) + '% / 其他 ' + (other/n*100).toFixed(1) + '%', verdict);
+      if (gPct > 50) setBadge('❌ 绿色花屏', 'bad');
+      else if (bPct > 90) setBadge('⚠ 黑屏', 'warn');
+      else setBadge('✅ 画面正常', 'ok');
+      return gPct;
+    } catch (e) {
+      log(label + ' 抓帧失败（跨域污染，属正常现象）', 'dim');
+    }
+  }
+
+  /* ---------- MSE codec 补丁 ---------- */
+  function patchMse() {
+    if (!window.MediaSource) return;
+    var orig = MediaSource.prototype.addSourceBuffer;
+    if (orig.__patched) return;
+    MediaSource.prototype.addSourceBuffer = function (type) {
+      var fixed = String(type).replace(/avc1\.([0-9a-f]{2})[0-9a-f]{2}([0-9a-f]{2})/gi, 'avc1.$100$2');
+      if (fixed !== type) log('addSourceBuffer: ' + type + ' → ' + fixed, 'hi');
+      return orig.call(this, fixed);
+    };
+    MediaSource.prototype.addSourceBuffer.__patched = true;
+  }
+
+  /* ---------- hls.js 默认配置 ---------- */
+  function startHlsDefault() {
+    teardown();
+    log('=== hls.js 默认配置 ===', 'hi');
+    patchMse();
+    if (!window.Hls) { log('Hls 未加载', 'bad'); return; }
+    hls = new Hls({ lowLatencyMode: true, enableWorker: true });
+    bindHls();
+    hls.loadSource(curUrl());
+    hls.attachMedia(v);
+    v.play().catch(function(){});
+    startSampling('hls默认');
+  }
+
+  /* ---------- hls.js 保守配置 ---------- */
+  function startHlsSafe() {
+    teardown();
+    log('=== hls.js 保守配置（禁用 worker/LL-HLS，强制 H.264）===', 'hi');
+    patchMse();
+    if (!window.Hls) { log('Hls 未加载', 'bad'); return; }
+    hls = new Hls({
+      lowLatencyMode: false,
+      enableWorker: false,
+      startLevel: -1,
+      maxBufferLength: 20,
+      manifestLoadingTimeOut: 15000,
+      manifestLoadingMaxRetry: 2,
+      levelLoadingTimeOut: 15000,
+      fragLoadingTimeOut: 30000
+    });
+    bindHls();
+    hls.loadSource(curUrl());
+    hls.attachMedia(v);
+    v.play().catch(function(){});
+    startSampling('hls保守');
+  }
+
+  function bindHls() {
+    hls.on(Hls.Events.MANIFEST_PARSED, function (e, d) {
+      log('MANIFEST_PARSED levels=' + d.levels.length, 'ok');
+      d.levels.forEach(function (l, i) {
+        log('  L' + i + ' ' + l.width + 'x' + l.height + ' ' + (l.videoCodec||'?') + ' / ' + (l.audioCodec||'?'), 'dim');
+      });
+    });
+    hls.on(Hls.Events.LEVEL_SWITCHED, function (e, d) {
+      log('LEVEL_SWITCHED → L' + d.level, 'dim');
+    });
+    hls.on(Hls.Events.FRAG_LOADED, function () { });
+    hls.on(Hls.Events.ERROR, function (e, d) {
+      log('ERROR ' + d.type + '/' + d.details + ' fatal=' + d.fatal +
+          (d.error ? ' | ' + d.error.message : ''), d.fatal ? 'bad' : 'warn');
+    });
+  }
+
+  /* ---------- 原生 ---------- */
+  function startNative() {
+    teardown();
+    log('=== 原生 HLS ===', 'hi');
+    log('canPlayType = "' + v.canPlayType('application/vnd.apple.mpegurl') + '"');
+    v.src = curUrl();
+    v.play().then(function () { log('play() resolved', 'ok'); })
+              .catch(function (e) { log('play() rejected: ' + e.name, 'bad'); });
+    startSampling('原生');
+  }
+
+  function startSampling(label) {
+    var n = 0;
+    clearInterval(frameTimer);
+    frameTimer = setInterval(function () {
+      n++;
+      if (n === 2 || n === 5 || n === 9) {
+        log(label + ' ' + (n*1.5) + 's → rs=' + v.readyState +
+            ' size=' + v.videoWidth + 'x' + v.videoHeight +
+            ' t=' + v.currentTime.toFixed(1) +
+            ' buf=' + (v.buffered.length ? v.buffered.end(0).toFixed(1) : 0), 'dim');
+        checkFrame(label);
+      }
+      if (n >= 12) clearInterval(frameTimer);
+    }, 1500);
+  }
+
+  document.getElementById('bHls').onclick = function () {
+    setMode(this); startHlsDefault();
+  };
+  document.getElementById('bHlsSafe').onclick = function () {
+    setMode(this); startHlsSafe();
+  };
+  document.getElementById('bNative').onclick = function () {
+    setMode(this); startNative();
+  };
+  document.getElementById('bFrame').onclick = function () { checkFrame('手动'); };
+  sel.onchange = function () {
+    var on = document.querySelector('.bar button.on');
+    if (on && on.id === 'bNative') startNative();
+    else if (on && on.id === 'bHlsSafe') startHlsSafe();
+    else startHlsDefault();
+  };
+  function setMode(btn) {
+    document.querySelectorAll('.bar button').forEach(function (b) { b.classList.remove('on'); });
+    btn.classList.add('on');
+  }
+
+  log('UA: ' + navigator.userAgent, 'dim');
+  log('MSE H264: ' + (window.MediaSource ? MediaSource.isTypeSupported('video/mp4; codecs="avc1.42E01E"') : '无 MSE'), 'dim');
+  log('MSE avc1.64011e: ' + (window.MediaSource ? MediaSource.isTypeSupported('video/mp4; codecs="avc1.64011e"') : '-'), 'dim');
+  log('MSE avc1.64001e: ' + (window.MediaSource ? MediaSource.isTypeSupported('video/mp4; codecs="avc1.64001e"') : '-'), 'dim');
+  startHlsDefault();
+})();
+</script>
+</body>
+</html>

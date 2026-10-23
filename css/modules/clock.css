@@ -595,10 +595,15 @@ html[data-theme="light"] .ck-cfg-item select option {
 .ck-bottom-actions {
   display: flex;
   gap: 10px;
+  /* 按钮只占右半边，左半边留白，避免整条横幅式的按钮压住页面重心 */
+  justify-content: flex-end;
+  padding-left: 50%;
+  box-sizing: border-box;
 }
 
 .ck-btn-poster {
-  width: 100%;
+  flex: 1;
+  min-width: 0;
   padding: 12px 20px;
   border-radius: 999px;
   background: var(--ck-gold);

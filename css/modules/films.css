@@ -3,7 +3,7 @@
    ========================================================= */
 
 .fl-wrap {
-  max-width: 1120px;
+  max-width: 1440px;
   margin: 0 auto;
 }
 .fl-header {
@@ -94,10 +94,17 @@ html[data-theme="dark"] .films-cat.active {
 
 .films-grid {
   display: grid;
+  /* 最多 5 列：超宽屏不再无限加列，避免卡片被拉太散、视线跨度太长。
+     窄屏仍按 240px 自动折列。 */
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: 10px;
   /* 同行等高，保持网格整齐；多出来的空白由卡片内部消化（见 .films-actions） */
   align-items: stretch;
+}
+@media (min-width: 1400px) {
+  .films-grid {
+    grid-template-columns: repeat(5, 1fr);
+  }
 }
 .films-card {
   display: flex;

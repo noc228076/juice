@@ -641,6 +641,20 @@ html[data-active-module="scratch"] {
   --mod-ac-glow: rgba(245, 158, 11, 0.38);
   --mod-ambient: rgba(245, 158, 11, 0.07);
 }
+/* 背单词：靛蓝。与 daily 的蓝、tarot 的紫都拉开了距离，
+   且与吉祥物猫头鹰的暖棕互补，冷色底更适合专注记忆的场景 */
+html[data-active-module="vocab"] {
+  --mod-ac: #6366F1;
+  --mod-ac-ink: #FFFFFF;
+  --mod-ac-glow: rgba(99, 102, 241, 0.38);
+  --mod-ambient: rgba(99, 102, 241, 0.07);
+}
+html[data-theme="light"][data-active-module="vocab"] {
+  --mod-ac: #4F46E5;
+  --mod-ac-ink: #FFFFFF;
+  --mod-ac-glow: rgba(79, 70, 229, 0.32);
+  --mod-ambient: rgba(79, 70, 229, 0.06);
+}
 
 #global-header {
   position: fixed;

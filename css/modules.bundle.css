@@ -15466,3 +15466,298 @@ html[data-theme="dark"] .films-badge.dl {
 html[data-theme="light"] .films-open.alt {
   background: #b8860b;
 }
+
+
+/* === css/modules/vocab.css === */
+/* =========================================================
+   模块 13：背单词 (Vocabulary)
+   主色走 --mod-ac（靛蓝 #6366F1，见 nav.css）
+   ========================================================= */
+
+.vc-wrap {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 16px 40px;
+}
+
+/* ---------- 今日屏 ---------- */
+.vc-hero {
+  display: flex;
+  gap: 22px;
+  align-items: center;
+  padding: 26px 26px 24px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow);
+}
+.vc-hero-art {
+  flex: 0 0 auto;
+  width: 132px;
+  height: 132px;
+}
+.vc-owl {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+.vc-hero-main {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.vc-hero-tag {
+  font-size: 11px;
+  letter-spacing: 1.6px;
+  font-weight: 700;
+  color: var(--mod-ac);
+  opacity: 0.9;
+}
+.vc-hero-title {
+  margin: 6px 0 6px;
+  font-size: 26px;
+  line-height: 1.2;
+}
+.vc-hero-sub {
+  margin: 0 0 12px;
+  font-size: 13.5px;
+  color: var(--tx-dim);
+}
+.vc-hero-sub b {
+  color: var(--tx);
+  font-weight: 700;
+}
+.vc-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--btn-ghost-bg);
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+.vc-bar.thin {
+  height: 5px;
+  margin: 10px 0 14px;
+}
+.vc-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--mod-ac);
+  box-shadow: 0 0 12px var(--mod-ac-glow);
+  transition: width 0.35s cubic-bezier(0.2, 1, 0.3, 1);
+}
+.vc-hero-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* ---------- 按钮 ---------- */
+.vc-btn {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: var(--btn-ghost-bg);
+  color: var(--tx);
+  font: inherit;
+  font-weight: 700;
+  font-size: 14px;
+  padding: 11px 22px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: transform 0.14s ease, filter 0.18s ease, background 0.18s ease;
+  white-space: nowrap;
+}
+.vc-btn:hover { filter: brightness(1.08); }
+.vc-btn:active { transform: scale(0.97); }
+.vc-btn.primary {
+  background: var(--mod-ac);
+  color: var(--mod-ac-ink);
+  border-color: transparent;
+  box-shadow: 0 8px 22px var(--mod-ac-glow);
+}
+.vc-btn.small {
+  padding: 8px 18px;
+  font-size: 13px;
+}
+.vc-btn.ghost { color: var(--tx-dim); }
+
+/* ---------- 答题屏 ---------- */
+.vc-play {
+  max-width: 640px;
+}
+.vc-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--tx-faint);
+  margin-bottom: 4px;
+}
+.vc-kind { color: var(--mod-ac); }
+
+.vc-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: 28px 24px 22px;
+  box-shadow: var(--shadow);
+}
+.vc-word {
+  font-size: 40px;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.5px;
+  word-break: break-word;
+}
+.vc-phon {
+  margin-top: 6px;
+  font-size: 15px;
+  color: var(--tx-faint);
+  letter-spacing: 0.4px;
+}
+
+.vc-opts {
+  display: grid;
+  gap: 10px;
+  margin-top: 22px;
+}
+.vc-opt {
+  appearance: none;
+  text-align: left;
+  font: inherit;
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--tx);
+  background: var(--btn-ghost-bg);
+  border: 1.5px solid var(--line);
+  border-radius: var(--r-sm);
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: border-color 0.16s ease, background 0.16s ease, transform 0.12s ease;
+}
+.vc-opt:hover:not(:disabled) {
+  border-color: var(--mod-ac);
+  background: var(--mod-ac-soft);
+}
+.vc-opt:active:not(:disabled) { transform: scale(0.99); }
+.vc-opt:disabled { cursor: default; }
+.vc-opt.right {
+  border-color: var(--ok);
+  background: rgba(123, 229, 139, 0.12);
+  color: var(--tx);
+}
+.vc-opt.wrong {
+  border-color: var(--warn-c);
+  background: rgba(255, 122, 107, 0.12);
+}
+
+.vc-feedback {
+  display: none;
+  margin-top: 16px;
+  padding: 14px 16px;
+  border-radius: var(--r-sm);
+  background: var(--btn-ghost-bg);
+  border: 1px solid var(--line);
+}
+.vc-feedback.show {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.vc-feedback b { font-size: 14px; }
+.vc-feedback.ok b { color: var(--ok); }
+.vc-feedback.bad b { color: var(--warn-c); }
+.vc-feedback span {
+  flex: 1 1 160px;
+  font-size: 14px;
+  color: var(--tx-dim);
+  line-height: 1.5;
+}
+.vc-feedback .vc-btn { margin-left: auto; }
+
+.vc-playfoot {
+  display: flex;
+  justify-content: flex-end;
+  padding: 14px 8px 0;
+}
+.vc-playfoot .vc-owl {
+  width: 76px;
+  height: 76px;
+  opacity: 0.9;
+}
+
+/* ---------- 空态 / 结算 ---------- */
+.vc-empty {
+  text-align: center;
+  padding: 46px 20px 40px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow);
+}
+.vc-empty .vc-owl {
+  width: 148px;
+  height: 148px;
+  margin: 0 auto 14px;
+}
+.vc-empty h2 {
+  margin: 0 0 8px;
+  font-size: 22px;
+}
+.vc-empty p {
+  margin: 0 0 6px;
+  font-size: 14px;
+  color: var(--tx-dim);
+}
+.vc-empty p b { color: var(--tx); }
+.vc-dim { opacity: 0.7; font-size: 13px !important; }
+.vc-empty-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
+
+.vc-note {
+  margin-top: 14px;
+  text-align: center;
+  font-size: 11.5px;
+  color: var(--tx-faint);
+  opacity: 0.75;
+}
+
+.vc-spinner {
+  width: 34px;
+  height: 34px;
+  margin: 0 auto 16px;
+  border: 3px solid var(--line);
+  border-top-color: var(--mod-ac);
+  border-radius: 50%;
+  animation: vc-spin 0.8s linear infinite;
+}
+@keyframes vc-spin { to { transform: rotate(360deg); } }
+
+/* ---------- 移动端 ---------- */
+@media (max-width: 620px) {
+  .vc-hero {
+    flex-direction: column;
+    text-align: center;
+    padding: 22px 18px;
+  }
+  .vc-hero-art { width: 108px; height: 108px; }
+  .vc-hero-row { justify-content: center; }
+  .vc-word { font-size: 32px; }
+  .vc-card { padding: 22px 16px 18px; }
+  .vc-playfoot .vc-owl { width: 62px; height: 62px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vc-bar i, .vc-opt, .vc-btn { transition: none; }
+  .vc-spinner { animation-duration: 2.4s; }
+}

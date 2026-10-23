@@ -1,4 +1,4 @@
-window.__APP_VERSION__ = '220';
+window.__APP_VERSION__ = '228';
 /* === js/core-drink.js === */
 /* 人格研究所 — 题库与档案数据 */
 'use strict';
@@ -8038,7 +8038,7 @@ if ('serviceWorker' in navigator) {
 
   const STATE_VERSION = 1;
   const HOME_MOD = 'drinks';
-  const ALLOWED_MODS = ['drinks', 'milktea', 'manual', 'fengshui', 'tarot', 'lingqian', 'decision', 'clock', 'merit', 'films', 'lifeguide', 'bazi', 'daily', 'scratch', 'wall'];
+  const ALLOWED_MODS = ['drinks', 'milktea', 'manual', 'fengshui', 'tarot', 'lingqian', 'decision', 'clock', 'merit', 'films', 'lifeguide', 'bazi', 'daily', 'scratch', 'wall', 'vocab'];
   const MODULE_CHUNKS = {
     milktea: 'milktea',
     manual: 'manual',
@@ -8052,7 +8052,8 @@ if ('serviceWorker' in navigator) {
     films: 'films',
     decision: 'decision',
     scratch: 'scratch',
-    wall: 'wall'
+    wall: 'wall',
+    vocab: 'vocab'
   };
   const MODULE_API = {
     drinks: 'AppDrinks',
@@ -8069,7 +8070,8 @@ if ('serviceWorker' in navigator) {
     films: 'AppFilms',
     decision: 'AppDecision',
     scratch: 'AppScratch',
-    wall: 'AppWall'
+    wall: 'AppWall',
+    vocab: 'AppVocab'
   };
   const MOD_PARENT_MAP = {
     milktea: 'drinks',
@@ -8848,7 +8850,7 @@ if ('serviceWorker' in navigator) {
             '</div>' +
             '<div class="gp-body">' +
             '<p>一台专为年轻人打造的<b>工位摸鱼、解压娱乐与自我测评</b>纯前端工具箱。免登录、无广告，所有数据只存在你的设备本地。</p>' +
-            '<div class="gp-label">📌 9 大功能</div>' +
+            '<div class="gp-label">📌 10 大功能</div>' +
             '<div class="gp-func-list">' +
             '<div>🍹 <b>饮品测评</b> —— 测专属饮料 / 奶茶人格，支持当代 SBTI 发疯测试与 MBTI。</div>' +
             '<div>📖 <b>自我说明书</b> —— 15 关挑战：扫雷、俄罗斯方块、贪吃蛇、泡泡猫等 11 款小游戏 + 全服冲榜。</div>' +
@@ -8859,6 +8861,7 @@ if ('serviceWorker' in navigator) {
             '<div>🗞️ <b>今日风向</b> —— 每天 60 秒早报速递、全网实时热搜榜、必应 4K 壁纸。</div>' +
             '<div>🎟️ <b>幸运刮刮乐</b> —— 5 款经典拟真彩票，真实物理刮擦涂层与刮彩账本。</div>' +
             '<div>💬 <b>弹幕墙</b> —— 一人一句留言上墙，看看大家在聊什么。</div>' +
+            '<div>📚 <b>背单词</b> —— 四六级词库 8500 词，间隔重复 + 四选一，进度存本机。</div>' +
             '</div>' +
             '<div class="gp-tip">💡 极简提示：按 <b>Space</b> 快速开测 / 敲木鱼，按 <b>ESC</b> 退出全屏屏保。</div>' +
             '<div class="gp-label">开源</div>' +
@@ -8870,6 +8873,7 @@ if ('serviceWorker' in navigator) {
             '<li>摸鱼片单：<a href="https://github.com/laoma528/awesome-zhuiju-free" target="_blank" rel="noopener">awesome-zhuiju-free</a>（CC BY 4.0）</li>' +
             '<li>热榜 / 早报：codelife.cc、60s 公开接口，失败自动回落本地缓存</li>' +
             '<li>排行榜与弹幕墙：Upstash Redis（只存随机 ID、昵称、头像与成绩）</li>' +
+            '<li>背单词词库：<a href="https://github.com/KyleBing/english-vocabulary" target="_blank" rel="noopener">english-vocabulary</a>（BSD-3-Clause）</li>' +
             '</ul>' +
             '<div class="gp-label">构建版本</div>' +
             '<p class="gp-about-ver" id="gpAboutVer">' + (ver || 'dev') + '</p>' +

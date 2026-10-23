@@ -1,4 +1,4 @@
-window.__APP_VERSION__ = '208';
+window.__APP_VERSION__ = '209';
 /* === js/core-drink.js === */
 /* 人格研究所 — 题库与档案数据 */
 'use strict';
@@ -8038,7 +8038,7 @@ if ('serviceWorker' in navigator) {
 
   const STATE_VERSION = 1;
   const HOME_MOD = 'drinks';
-  const ALLOWED_MODS = ['drinks', 'milktea', 'manual', 'fengshui', 'tarot', 'lingqian', 'decision', 'clock', 'merit', 'films', 'lifeguide', 'bazi', 'daily', 'scratch', 'wall', 'tv'];
+  const ALLOWED_MODS = ['drinks', 'milktea', 'manual', 'fengshui', 'tarot', 'lingqian', 'decision', 'clock', 'merit', 'films', 'lifeguide', 'bazi', 'daily', 'scratch', 'wall'];
   const MODULE_CHUNKS = {
     milktea: 'milktea',
     manual: 'manual',
@@ -8052,8 +8052,7 @@ if ('serviceWorker' in navigator) {
     films: 'films',
     decision: 'decision',
     scratch: 'scratch',
-    wall: 'wall',
-    tv: 'tv'
+    wall: 'wall'
   };
   const MODULE_API = {
     drinks: 'AppDrinks',
@@ -8070,8 +8069,7 @@ if ('serviceWorker' in navigator) {
     films: 'AppFilms',
     decision: 'AppDecision',
     scratch: 'AppScratch',
-    wall: 'AppWall',
-    tv: 'AppTv'
+    wall: 'AppWall'
   };
   const MOD_PARENT_MAP = {
     milktea: 'drinks',
@@ -8083,7 +8081,6 @@ if ('serviceWorker' in navigator) {
     clock: 'clock',
     merit: 'clock',
     films: 'clock',
-    tv: 'clock',
     lifeguide: 'manual'
   };
 
@@ -8160,18 +8157,6 @@ if ('serviceWorker' in navigator) {
     return moduleCssLoad;
   }
 
-  /* 离开电视直播必须停流：<video> 在 display:none 下不会自动暂停，
-     否则切到别的模块后画面/声音/流量仍在跑。 */
-  let prevActiveMod = '';
-  function stopLeavingMod(nextMod) {
-    if (prevActiveMod === 'tv' && nextMod !== 'tv') {
-      if (window.AppTv && typeof window.AppTv.destroy === 'function') {
-        try { window.AppTv.destroy(); } catch (e) {}
-      }
-    }
-    prevActiveMod = nextMod;
-  }
-
   function activateModule(modKey) {
     const parentModKey = MOD_PARENT_MAP[modKey] || modKey;
     document.querySelectorAll('.app-module').forEach(mod => {
@@ -8181,7 +8166,6 @@ if ('serviceWorker' in navigator) {
     const targetModuleEl = ownEl || document.getElementById('mod-' + parentModKey);
     if (targetModuleEl) targetModuleEl.classList.add('active');
     document.documentElement.classList.add('cover-ready');
-    stopLeavingMod(modKey);
   }
 
   function setNavLoading(isLoading) {
@@ -8252,7 +8236,7 @@ if ('serviceWorker' in navigator) {
   }
 
   function shouldReinit(modKey) {
-    return modKey === 'manual' || modKey === 'tv';
+    return modKey === 'manual';
   }
 
   function initModuleOnce(modKey) {
@@ -8385,7 +8369,7 @@ if ('serviceWorker' in navigator) {
   function rememberModule(modKey) {
     if (modKey === 'drinks' || modKey === 'milktea') lastDrinkMod = modKey;
     if (modKey === 'tarot' || modKey === 'lingqian' || modKey === 'bazi' || modKey === 'fengshui') lastMysticMod = modKey;
-    if (modKey === 'clock' || modKey === 'merit' || modKey === 'films' || modKey === 'tv') lastRelaxMod = modKey;
+    if (modKey === 'clock' || modKey === 'merit' || modKey === 'films') lastRelaxMod = modKey;
   }
 
   function layerApi(name) {
@@ -8864,14 +8848,13 @@ if ('serviceWorker' in navigator) {
             '</div>' +
             '<div class="gp-body">' +
             '<p>一台专为年轻人打造的<b>工位摸鱼、解压娱乐与自我测评</b>纯前端工具箱。免登录、无广告，所有数据只存在你的设备本地。</p>' +
-            '<div class="gp-label">📌 10 大功能</div>' +
+            '<div class="gp-label">📌 9 大功能</div>' +
             '<div class="gp-func-list">' +
             '<div>🍹 <b>饮品测评</b> —— 测专属饮料 / 奶茶人格，支持当代 SBTI 发疯测试与 MBTI。</div>' +
             '<div>📖 <b>自我说明书</b> —— 15 关挑战：扫雷、俄罗斯方块、贪吃蛇、泡泡猫等 11 款小游戏 + 全服冲榜。</div>' +
             '<div>☯️ <b>东西玄学</b> —— 22 张塔罗大阿卡那、观音百签摇签、八字精准排盘、工位风水。</div>' +
             '<div>⏰ <b>摸鱼解压</b> —— 实时带薪秒薪时钟、全屏 Fliqlo 翻页屏保、电子木鱼、碎纸解压、' +
-            '<b>摸鱼片单</b>（124 个追剧站点索引，含老板键一键切换）、'
-            '<b>电视直播</b>（央视 18 个频道站内直接看）。</div>' +
+            '<b>摸鱼片单</b>（124 个追剧站点索引，含老板键一键切换）。</div>' +
             '<div>🪙 <b>纠结拯救</b> —— 命运大轮盘、抛硬币、掷骰子、掷圣杯，治好选择困难症。</div>' +
             '<div>🗞️ <b>今日风向</b> —— 每天 60 秒早报速递、全网实时热搜榜、必应 4K 壁纸。</div>' +
             '<div>🎟️ <b>幸运刮刮乐</b> —— 5 款经典拟真彩票，真实物理刮擦涂层与刮彩账本。</div>' +

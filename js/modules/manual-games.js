@@ -4215,6 +4215,17 @@
       return DANGER_Y - sinkCount * ROW_H;
     }
 
+    /* 场上是否还有泡泡压到警戒线。判定只看「结算后的盘面」，
+       不看落点：这一发如果把压线的球消掉了，就该继续打（极限消除） */
+    function bubbleCrossesLine() {
+      for (var i = 0; i < rows.length; i++) {
+        for (var c = 0; c < rows[i].length; c++) {
+          if (rows[i][c] && CEIL_H + R + i * ROW_H + R >= dangerLineY()) return true;
+        }
+      }
+      return false;
+    }
+
     function doSink() {
       waves++;
       sinkEvery = Math.max(3, SINK_BASE - Math.floor(waves / 4));
@@ -4225,11 +4236,7 @@
       // 空间耗尽：警戒线顶到天花板附近
       if (dangerLineY() <= CEIL_H + 2 * R) { endGame(); return; }
       // 任何泡泡碰到警戒线即结束
-      for (var i = 0; i < rows.length; i++) {
-        for (var c = 0; c < rows[i].length; c++) {
-          if (rows[i][c] && CEIL_H + R + i * ROW_H + R >= dangerLineY()) { endGame(); return; }
-        }
-      }
+      if (bubbleCrossesLine()) endGame();
     }
 
     /* ---------- 泡泡贴图预渲染 ---------- */
@@ -4455,7 +4462,9 @@
       } else {
         streak = 0;
       }
-      if (my + R >= dangerLineY()) { endGame(); return; }
+      /* 压线判定必须在消除 + 坠落之后看整片盘面：
+         先判落点的话，一发把压线球清掉也照样算死，极限消除直接被吃掉 */
+      if (bubbleCrossesLine()) { endGame(); return; }
       shotsUntilSink--;
       if (shotsUntilSink <= 0) {
         doSink();

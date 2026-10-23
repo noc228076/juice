@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>hls.js 深度诊断</title>
+<style>
+  body { background:#0b0c10; color:#f2eee3; font-family:ui-monospace,Consolas,monospace;
+         font-size:12px; padding:14px; margin:0; }
+  h1 { font-family:-apple-system,sans-serif; font-size:16px; margin:0 0 10px; }
+  video { width:100%; max-width:720px; aspect-ratio:16/9; background:#000; display:block;
+          border-radius:8px; margin-bottom:10px; }
+  #log { background:#111318; border-radius:8px; padding:10px 12px; max-height:70vh; overflow:auto;
+         white-space:pre-wrap; line-height:1.6; }
+  .ok{color:#69db7c}.bad{color:#ff8787}.warn{color:#ffd43b}.dim{opacity:.5}.hi{color:#74c0fc}
+</style>
+</head>
+<body>
+<h1>hls.js 深度诊断（逐事件记录）</h1>
+<video id="v" playsinline muted></video>
+<div id="log"></div>
+<script src="js/vendor/hls-1.7.3.min.js"></script>
+<script>
+(function () {
+  var logEl = document.getElementById('log');
+  var v = document.getElementById('v');
+  function log(m, c) {
+    var d = document.createElement('div');
+    if (c) d.className = c;
+    d.textContent = new Date().toISOString().slice(11,23) + '  ' + m;
+    logEl.appendChild(d);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  log('UA: ' + navigator.userAgent, 'dim');
+  log('Hls version: ' + (window.Hls ? Hls.version : 'none'), 'dim');
+  log('MSE avc1.64001e: ' + MediaSource.isTypeSupported('video/mp4;codecs="avc1.64001e"'), 'dim');
+  log('MSE avc1.64001f: ' + MediaSource.isTypeSupported('video/mp4;codecs="avc1.64001f"'), 'dim');
+  log('MSE avc1.4d401e: ' + MediaSource.isTypeSupported('video/mp4;codecs="avc1.4d401e"'), 'dim');
+  log('MSE mp4a.40.2: ' + MediaSource.isTypeSupported('audio/mp4;codecs="mp4a.40.2"'), 'dim');
+  log('MSE mp4a.40.5: ' + MediaSource.isTypeSupported('audio/mp4;codecs="mp4a.40.5"'), 'dim');
+
+  // 补丁
+  var origAdd = MediaSource.prototype.addSourceBuffer;
+  MediaSource.prototype.addSourceBuffer = function (type) {
+    var fixed = String(type).replace(/avc1\.([0-9a-f]{2})[0-9a-f]{2}([0-9a-f]{2})/gi, 'avc1.$100$2');
+    log('addSourceBuffer("' + type + '")' + (fixed !== type ? ' → "' + fixed + '"' : ''), 'hi');
+    try {
+      var sb = origAdd.call(this, fixed);
+      log('  ✓ SourceBuffer 创建成功', 'ok');
+      sb.addEventListener('error', function () { log('  ✗ SourceBuffer error 事件', 'bad'); });
+      sb.addEventListener('updateend', function () {
+        if (!sb.__logged) {
+          sb.__logged = true;
+          log('  ✓ 首次 append 完成, buffered=' + (sb.buffered.length ? sb.buffered.end(0).toFixed(2) : 0), 'ok');
+        }
+      });
+      return sb;
+    } catch (e) {
+      log('  ✗ 创建失败: ' + e.message, 'bad');
+      throw e;
+    }
+  };
+
+  var hls = new Hls({ lowLatencyMode: false, enableWorker: false, debug: false });
+
+  Object.keys(Hls.Events).forEach(function (name) {
+    var evt = Hls.Events[name];
+    hls.on(evt, function (e, data) {
+      if (['MEDIA_ATTACHED','MANIFEST_LOADING','MANIFEST_LOADED','MANIFEST_PARSED',
+           'LEVEL_LOADED','FRAG_LOADING','FRAG_LOADED','BUFFER_CREATED','BUFFER_APPENDING',
+           'BUFFER_APPENDED','FRAG_PARSING_INIT_SEGMENT','FRAG_PARSING_DATA',
+           'BUFFER_CODECS','BUFFER_FLUSHING'].indexOf(name) >= 0) {
+        var extra = '';
+        if (name === 'FRAG_PARSING_DATA' && data && data.data1) extra = ' videoBytes=' + data.data1.byteLength;
+        if (name === 'BUFFER_CODECS' && data) extra = ' ' + JSON.stringify(data.tracks || data);
+        log('EVT ' + name + extra, 'dim');
+      }
+    });
+  });
+
+  hls.on(Hls.Events.ERROR, function (e, d) {
+    log('ERR ' + d.type + '/' + d.details +
+        ' fatal=' + d.fatal +
+        (d.error ? ' | ' + d.error.message : '') +
+        (d.frag ? ' | frag=' + d.frag.sn : ''), 'bad');
+    if (d.fatal) {
+      if (d.type === Hls.ErrorTypes.MEDIA_ERROR) {
+        log('  → 尝试 recoverMediaError()', 'warn');
+        hls.recoverMediaError();
+      }
+    }
+  });
+
+  hls.loadSource('https://ldocctvwbcdbyte.volcfcdn.com/ldocctvwbcd/cdrmldcctv10_1/index.m3u8?b=200-4000');
+  hls.attachMedia(v);
+  v.play().catch(function (e) { log('play() rejected: ' + e.name, 'bad'); });
+
+  setInterval(function () {
+    log('状态 rs=' + v.readyState + ' ' + v.videoWidth + 'x' + v.videoHeight +
+        ' t=' + v.currentTime.toFixed(2) +
+        ' buf=' + (v.buffered.length ? v.buffered.end(0).toFixed(1) : 0) +
+        ' | hls.currentLevel=' + hls.currentLevel +
+        ' nextLevel=' + hls.nextLevel, 'dim');
+  }, 4000);
+})();
+</script>
+</body>
+</html>

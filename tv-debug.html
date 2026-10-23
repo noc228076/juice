@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>电视直播 · 播放诊断</title>
+<style>
+  body { background:#0b0c10; color:#f2eee3; font-family:-apple-system,"Segoe UI",sans-serif; margin:0; padding:20px; }
+  h1 { font-size:18px; margin:0 0 4px; }
+  .sub { font-size:12px; opacity:.6; margin-bottom:16px; }
+  .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:12px; }
+  button { padding:8px 16px; border-radius:999px; border:1px solid rgba(255,255,255,.2);
+           background:rgba(255,255,255,.08); color:#fff; font-size:13px; cursor:pointer; }
+  button:hover { background:rgba(255,255,255,.16); }
+  button.on { background:#2f80ed; border-color:#2f80ed; }
+  #stage { width:100%; max-width:860px; aspect-ratio:16/9; background:#000; border-radius:12px; overflow:hidden; position:relative; }
+  video { width:100%; height:100%; display:block; background:#000; }
+  #log { margin-top:14px; font-family:ui-monospace,Consolas,monospace; font-size:12px; line-height:1.7;
+         background:#111318; border-radius:10px; padding:12px 14px; max-height:300px; overflow:auto; white-space:pre-wrap; }
+  .ok { color:#69db7c; } .bad { color:#ff8787; } .warn { color:#ffd43b; } .dim { opacity:.55; }
+</style>
+</head>
+<body>
+<h1>📺 电视直播 · 播放诊断</h1>
+<div class="sub">在真实浏览器里跑这个页面，把下方日志贴给我，就能定位花屏/黑屏的具体原因。</div>
+
+<div class="row">
+  <button id="bNative" class="on">原生 HLS</button>
+  <button id="bHls">hls.js</button>
+  <button id="bFrame">抓一帧检测</button>
+</div>
+
+<div id="stage"><video id="v" playsinline webkit-playsinline muted></video></div>
+<div id="log"></div>
+
+<script src="js/vendor/hls-1.7.3.min.js"></script>
+<script>
+(function () {
+  var URL = 'https://ldocctvwbcdbyte.volcfcdn.com/ldocctvwbcd/cdrmldcctv10_1/index.m3u8?b=200-4000';
+  var v = document.getElementById('v');
+  var logEl = document.getElementById('log');
+  var hls = null;
+  var mode = 'native';
+
+  function log(msg, cls) {
+    var t = new Date().toISOString().slice(11, 23);
+    var line = document.createElement('div');
+    if (cls) line.className = cls;
+    line.textContent = '[' + t + '] ' + msg;
+    logEl.appendChild(line);
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function stats(tag) {
+    log(tag + ' → readyState=' + v.readyState +
+        ' size=' + v.videoWidth + 'x' + v.videoHeight +
+        ' time=' + v.currentTime.toFixed(2) +
+        ' paused=' + v.paused +
+        ' buffered=' + (v.buffered.length ? v.buffered.end(0).toFixed(1) : 0) +
+        ' networkState=' + v.networkState);
+  }
+
+  ['loadedmetadata','loadeddata','canplay','canplaythrough','playing','waiting','stalled',
+   'suspend','abort','emptied','error'].forEach(function (ev) {
+    v.addEventListener(ev, function () {
+      var cls = (ev === 'error' || ev === 'stalled') ? 'bad' : (ev === 'playing' ? 'ok' : 'dim');
+      log('event: ' + ev + (ev === 'error' && v.error ? ' code=' + v.error.code + ' ' + (v.error.message || '') : ''), cls);
+    });
+  });
+
+  function teardown() {
+    if (hls) { try { hls.destroy(); } catch (e) {} hls = null; }
+    v.onerror = null;
+    v.pause();
+    v.removeAttribute('src');
+    v.load();
+    logEl.innerHTML = '';
+  }
+
+  function startNative() {
+    teardown(); mode = 'native';
+    log('=== 原生 HLS 模式 ===');
+    log('canPlayType(m3u8) = "' + v.canPlayType('application/vnd.apple.mpegurl') + '"');
+    v.src = URL;
+    v.play().then(function () { log('play() resolved', 'ok'); })
+              .catch(function (e) { log('play() rejected: ' + e.name + ' ' + e.message, 'bad'); });
+    setTimeout(function () { stats('3s'); }, 3000);
+    setTimeout(function () { stats('8s'); }, 8000);
+  }
+
+  function startHls() {
+    teardown(); mode = 'hlsjs';
+    log('=== hls.js 模式 ===');
+    if (!window.Hls) { log('Hls 未加载', 'bad'); return; }
+    log('Hls.isSupported() = ' + Hls.isSupported());
+    hls = new Hls({ lowLatencyMode: true, enableWorker: true });
+    hls.on(Hls.Events.MANIFEST_PARSED, function (e, d) {
+      log('MANIFEST_PARSED levels=' + (d.levels ? d.levels.length : 0), 'ok');
+      if (d.levels) d.levels.forEach(function (l, i) {
+        log('  level' + i + ': ' + l.width + 'x' + l.height + ' ' + (l.videoCodec || '') + ' ' + (l.audioCodec || ''));
+      });
+      v.play().catch(function (e) { log('play() rejected: ' + e.name, 'bad'); });
+    });
+    hls.on(Hls.Events.FRAG_LOADED, function () { log('FRAG_LOADED', 'dim'); });
+    hls.on(Hls.Events.ERROR, function (e, d) {
+      log('ERROR ' + d.type + '/' + d.details + ' fatal=' + d.fatal +
+          (d.error ? ' ' + d.error.message : ''), d.fatal ? 'bad' : 'warn');
+    });
+    hls.loadSource(URL);
+    hls.attachMedia(v);
+    setTimeout(function () { stats('8s'); }, 8000);
+  }
+
+  function grabFrame() {
+    try {
+      var c = document.createElement('canvas');
+      c.width = v.videoWidth || 320;
+      c.height = v.videoHeight || 180;
+      var g = c.getContext('2d');
+      g.drawImage(v, 0, 0, c.width, c.height);
+      var d = g.getImageData(0, 0, c.width, c.height).data;
+      var green = 0, black = 0, white = 0, other = 0;
+      for (var i = 0; i < d.length; i += 4) {
+        var r = d[i], gg = d[i+1], b = d[i+2];
+        if (r < 25 && gg < 25 && b < 25) black++;
+        else if (r > 230 && gg > 230 && b > 230) white++;
+        else if (gg > r + 25 && gg > b + 25) green++;
+        else other++;
+      }
+      var n = d.length / 4;
+      log('抓帧 ' + c.width + 'x' + c.height +
+          ' → 黑 ' + (black/n*100).toFixed(1) + '%' +
+          ' / 绿 ' + (green/n*100).toFixed(1) + '%' +
+          ' / 白 ' + (white/n*100).toFixed(1) + '%' +
+          ' / 其他 ' + (other/n*100).toFixed(1) + '%',
+          green/n > 0.5 ? 'bad' : (black/n > 0.9 ? 'warn' : 'ok'));
+      if (green/n > 0.5) log('→ 绿色占比过高：解码/合成异常', 'bad');
+      if (black/n > 0.9) log('→ 几乎全黑：可能没拿到帧', 'warn');
+    } catch (e) {
+      log('抓帧失败（画布被跨域污染，属正常）：' + e.message, 'dim');
+    }
+  }
+
+  document.getElementById('bNative').onclick = function () {
+    document.getElementById('bNative').classList.add('on');
+    document.getElementById('bHls').classList.remove('on');
+    startNative();
+  };
+  document.getElementById('bHls').onclick = function () {
+    document.getElementById('bHls').classList.add('on');
+    document.getElementById('bNative').classList.remove('on');
+    startHls();
+  };
+  document.getElementById('bFrame').onclick = grabFrame;
+
+  log('浏览器: ' + navigator.userAgent);
+  log('H264 mp4 = "' + v.canPlayType('video/mp4; codecs="avc1.42E01E"') + '"');
+  startNative();
+})();
+</script>
+</body>
+</html>

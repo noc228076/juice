@@ -5341,7 +5341,7 @@
       easy: { key: 'easy', name: '简单', desc: '警戒线固定不动，适合休闲热手' },
       hard: { key: 'hard', name: '挑战', desc: '警戒线步步紧逼，全服榜主战场' }
     };
-    var dif = MODES.easy;
+    var dif = MODES.hard;   /* 默认挑战模式：警戒线上移，更符合“泡泡龙”的难度预期 */
     var EMPTY = 0, RAINBOW = 7;
 
     /* 糖果 6 色（与素材总览一致）：[暗边, 亮部, 主色] */

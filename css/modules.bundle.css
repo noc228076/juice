@@ -15417,3 +15417,30 @@ html[data-theme="dark"] .films-cat.status.active {
   border-color: #51cf66;
   color: #69db7c;
 }
+
+/* 下载页/跳转页：与普通影视站区分 */
+.films-badge.dl {
+  background: rgba(255, 212, 59, 0.16);
+  color: #f08c00;
+}
+html[data-theme="dark"] .films-badge.dl {
+  background: rgba(255, 212, 59, 0.2);
+  color: #ffd43b;
+}
+.films-card.is-download {
+  border-style: dashed;
+}
+.films-kindnote {
+  font-size: 11.5px;
+  line-height: 1.5;
+  opacity: 0.55;
+  padding: 5px 8px;
+  border-radius: 7px;
+  background: rgba(255, 212, 59, 0.08);
+}
+.films-open.alt {
+  background: #8a6d1f;
+}
+html[data-theme="light"] .films-open.alt {
+  background: #b8860b;
+}

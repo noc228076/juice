@@ -31,6 +31,20 @@
     return { cls: '', text: '未检测' };
   }
 
+  /* 链接类型判定：
+     - b.zhuiju.me 等是项目方的「下载页/跳转页」（WordPress 站点，BunnyCDN），
+       国内经常访问不了，需要明确标注，避免用户以为是影视站打不开；
+     - 其余按普通站点处理。 */
+  const REDIRECT_HOSTS = ['b.zhuiju.me', 'zhuiju.me'];
+  function linkKind(url) {
+    if (!url) return 'site';
+    try {
+      const h = new URL(url).hostname.replace(/^www\./, '');
+      if (REDIRECT_HOSTS.indexOf(h) >= 0) return 'download';
+    } catch (e) {}
+    return 'site';
+  }
+
   function countStatus(st) {
     if (!filmsData) return 0;
     return filmsData.resources.filter(function (r) { return r.status === st; }).length;
@@ -100,9 +114,16 @@
       const risk = r.riskCopyright === 'high'
         ? '<span class="films-badge risk">版权风险</span>' : '';
       const feat = r.featured ? '<span class="films-badge feat">精选</span>' : '';
-      return '<div class="films-card" data-id="' + r.id + '">' +
+      const kind = linkKind(r.url);
+      const kindBadge = kind === 'download'
+        ? '<span class="films-badge dl">下载页</span>' : '';
+      const openLabel = kind === 'download' ? '去下载页' : '打开';
+      const note = kind === 'download'
+        ? '<div class="films-kindnote">这是项目方的下载/介绍页，不是影视站点；国内网络可能打不开</div>'
+        : '';
+      return '<div class="films-card' + (kind === 'download' ? ' is-download' : '') + '" data-id="' + r.id + '">' +
         '<div class="films-card-top">' +
-          '<div class="films-name">' + escapeHtml(r.name) + feat + risk + '</div>' +
+          '<div class="films-name">' + escapeHtml(r.name) + feat + kindBadge + risk + '</div>' +
           '<button class="films-fav' + (fav ? ' on' : '') + '" data-fav="' + r.id + '" ' +
             'aria-label="' + (fav ? '取消收藏' : '收藏') + '">' + (fav ? '★' : '☆') + '</button>' +
         '</div>' +
@@ -112,8 +133,9 @@
           '<span class="films-status ' + st.cls + '">' + st.text + '</span>' +
           (r.checkedAt ? '<span class="films-date">' + r.checkedAt + '</span>' : '') +
         '</div>' +
+        note +
         '<div class="films-actions">' +
-          '<a class="films-open" href="' + escapeHtml(r.url) + '" target="_blank" rel="noopener noreferrer">打开</a>' +
+          '<a class="films-open' + (kind === 'download' ? ' alt' : '') + '" href="' + escapeHtml(r.url) + '" target="_blank" rel="noopener noreferrer">' + openLabel + '</a>' +
           '<button class="films-copy" data-url="' + escapeHtml(r.url) + '">复制地址</button>' +
         '</div>' +
       '</div>';

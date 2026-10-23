@@ -56,19 +56,44 @@
   }
 
   /* ---------- 引擎选择 ---------- */
-  /* 引擎选择：优先原生，hls.js 只做兜底。
-     实测这些 IPTV CDN 不返回 Access-Control-Allow-Origin，
-     hls.js 走 XHR 拉流会被 CORS 拦死；而原生 <video> 的媒体加载
-     不受 CORS 约束，能正常出画面（Chromium 的 canPlayType 返回 maybe
-     但实际可播）。所以顺序是：原生能播就用原生，播不了再试 hls.js。 */
+  /* 引擎选择：hls.js 优先，原生兜底。
+     实测（真实浏览器日志）：
+     - 原生 HLS 能解析、时间也在走，但画面是绿色乱码（平台解码路径异常）；
+     - hls.js 本来因 codec 字符串 avc1.64011e 被 MSE 拒收而黑屏，
+       打上 constraint 字节归零的补丁后可以正常出画面（readyState=4）。
+     所以只要 MSE 可用就走 hls.js；只有它不可用（iOS 16 及以下）才退回原生。 */
+  function pickEngine(v) {
+    if (window.Hls && window.Hls.isSupported()) return 'hlsjs';
+    if (v.canPlayType('application/vnd.apple.mpegurl') !== '') return 'native';
+    return 'unsupported';
+  }
+
   function canNativeHls(v) {
     return v.canPlayType('application/vnd.apple.mpegurl') !== '';
   }
 
-  function pickEngine(v) {
-    if (canNativeHls(v)) return 'native';
-    if (window.Hls && window.Hls.isSupported()) return 'hlsjs';
-    return 'unsupported';
+  /* hls.js 从 SPS 推导 codec 时会把 constraint flags 写进字符串
+     （这些源给的是 avc1.64011e），但多数浏览器的 MSE 只认 constraint=00
+     的写法（avc1.64001e），于是 addSourceBuffer 直接抛
+     「The type provided is unsupported」，整条流黑屏。
+     在 MSE 层把 constraint 字节归零，是唯一可靠的修正点：
+     改 hls.levels[i].videoCodec 已经太晚（attachMedia 时 SourceBuffer 就建好了）。 */
+  const AVC_CONSTRAINT_RE = /avc1\.([0-9a-fA-F]{2})[0-9a-fA-F]{2}([0-9a-fA-F]{2})/g;
+  function normalizeAvcCodec(type) {
+    return String(type).replace(AVC_CONSTRAINT_RE, function (m, profile, level) {
+      return 'avc1.' + profile + '00' + level;
+    });
+  }
+
+  let msePatched = false;
+  function patchMseCodec() {
+    if (msePatched || !window.MediaSource || !MediaSource.prototype.addSourceBuffer) return;
+    const orig = MediaSource.prototype.addSourceBuffer;
+    MediaSource.prototype.addSourceBuffer = function (type) {
+      const fixed = normalizeAvcCodec(type);
+      return orig.call(this, fixed);
+    };
+    msePatched = true;
   }
 
   function liveConfig() {
@@ -215,22 +240,31 @@
       }
     };
 
-    /* 原生 HLS 优先：这些 IPTV 源普遍不带 CORS 头，
-       hls.js 的 XHR 拉流会被浏览器拦截，原生 <video> 不受此限制。 */
-    if (canNativeHls(video)) {
-      start();
+    /* hls.js 优先（能修正 codec 字符串，原生路径会出绿色花屏）。
+       仅当 MSE 完全不可用（iOS 16 及以下）时才退回原生。 */
+    const mseOk = !!(window.MediaSource && window.MediaSource.isTypeSupported &&
+      window.MediaSource.isTypeSupported('video/mp4; codecs="avc1.42E01E"'));
+    if (!mseOk && canNativeHls(video)) {
+      start();          // iOS 老版本：只能原生
       return;
     }
-    // 原生不支持（部分 Android WebView / 旧内核）才加载 hls.js
     loadHls().then(start).catch(function () {
       if (gen !== generation) return;
-      setStatus('播放组件加载失败，检查网络后重试', 'err');
+      // hls.js 拉不到时，原生能播就退回原生（可能花屏，但至少不是黑屏）
+      if (canNativeHls(video)) {
+        video.src = url;
+        video.play().catch(function () {});
+        afterStart();
+      } else {
+        setStatus('播放组件加载失败，检查网络后重试', 'err');
+      }
     });
   }
 
   function startHls(url, gen) {
     const Hls = window.Hls;
     if (!Hls || gen !== generation) return;
+    patchMseCodec();   // 修正 avc1.xxxxxx 的 constraint 字节，否则 MSE 拒收
     if (hls) { try { hls.destroy(); } catch (e) {} hls = null; }  // 避免双实例
     if (video) video.onerror = null;                              // 切断原生错误链
     hls = new Hls(liveConfig());

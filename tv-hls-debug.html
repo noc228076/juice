@@ -96,7 +96,34 @@
   hls.attachMedia(v);
   v.play().catch(function (e) { log('play() rejected: ' + e.name, 'bad'); });
 
+  /* 自动抓帧判色：每 4 秒判断画面是否正常 */
+  var frameChecked = 0;
+  function checkFrame() {
+    if (!v.videoWidth) return;
+    try {
+      var c = document.createElement('canvas');
+      c.width = 160; c.height = Math.round(160 * v.videoHeight / v.videoWidth) || 90;
+      var g = c.getContext('2d');
+      g.drawImage(v, 0, 0, c.width, c.height);
+      var d = g.getImageData(0, 0, c.width, c.height).data;
+      var green = 0, black = 0, other = 0, n = d.length / 4;
+      for (var i = 0; i < d.length; i += 4) {
+        var r = d[i], gg = d[i+1], b = d[i+2];
+        if (r < 25 && gg < 25 && b < 25) black++;
+        else if (gg > r + 30 && gg > b + 30) green++;
+        else other++;
+      }
+      var gp = green/n*100, bp = black/n*100;
+      log('★ 抓帧：绿 ' + gp.toFixed(1) + '% / 黑 ' + bp.toFixed(1) + '% / 其他 ' + (other/n*100).toFixed(1) + '%  → ' +
+          (gp > 50 ? '❌ 绿色花屏' : bp > 90 ? '⚠ 黑屏' : '✅ 画面正常'),
+          gp > 50 ? 'bad' : bp > 90 ? 'warn' : 'ok');
+    } catch (e) {
+      log('★ 抓帧受限（跨域污染）: ' + e.message, 'dim');
+    }
+  }
+
   setInterval(function () {
+    if (frameChecked++ % 2 === 0) checkFrame();
     log('状态 rs=' + v.readyState + ' ' + v.videoWidth + 'x' + v.videoHeight +
         ' t=' + v.currentTime.toFixed(2) +
         ' buf=' + (v.buffered.length ? v.buffered.end(0).toFixed(1) : 0) +

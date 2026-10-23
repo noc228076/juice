@@ -1,4 +1,4 @@
-window.__APP_VERSION__ = '228';
+window.__APP_VERSION__ = '230';
 /* === js/core-drink.js === */
 /* 人格研究所 — 题库与档案数据 */
 'use strict';
@@ -8461,6 +8461,11 @@ if ('serviceWorker' in navigator) {
     if (!prev || prev.mod !== state.mod) {
       if (window.AppManual && typeof window.AppManual.stopActiveGame === 'function') {
         window.AppManual.stopActiveGame();
+      }
+      /* 离开任意模块时给模块一次收尾机会（背单词用它落盘学习时长） */
+      if (prev && prev.mod && window.AppVocab && prev.mod === 'vocab'
+          && typeof window.AppVocab.destroy === 'function') {
+        try { window.AppVocab.destroy(); } catch (e) {}
       }
     } else if (prev.mod === state.mod && prev.view === 'game' && state.view !== 'game') {
       // 同模块内离开 game 视图（典型：游戏页按浏览器后退到目录）——

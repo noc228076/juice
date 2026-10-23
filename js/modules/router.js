@@ -432,6 +432,11 @@
       if (window.AppManual && typeof window.AppManual.stopActiveGame === 'function') {
         window.AppManual.stopActiveGame();
       }
+      /* 离开任意模块时给模块一次收尾机会（背单词用它落盘学习时长） */
+      if (prev && prev.mod && window.AppVocab && prev.mod === 'vocab'
+          && typeof window.AppVocab.destroy === 'function') {
+        try { window.AppVocab.destroy(); } catch (e) {}
+      }
     } else if (prev.mod === state.mod && prev.view === 'game' && state.view !== 'game') {
       // 同模块内离开 game 视图（典型：游戏页按浏览器后退到目录）——
       // 也必须暂停游戏，否则计时器/键盘监听在目录页仍然活着。

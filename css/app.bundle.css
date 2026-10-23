@@ -11558,15 +11558,13 @@ html[data-theme="light"] .ck-cfg-item select option {
 .ck-bottom-actions {
   display: flex;
   gap: 10px;
-  /* 按钮只占右半边，左半边留白，避免整条横幅式的按钮压住页面重心 */
-  justify-content: flex-end;
-  padding-left: 50%;
-  box-sizing: border-box;
+  /* 放在右栏底部：右栏被 grid 拉伸后，auto margin 吃掉剩余空间，
+     按钮沉底；间距由外层 .ck-col-side 的 gap:14px 负责 */
+  margin-top: auto;
 }
 
 .ck-btn-poster {
-  flex: 1;
-  min-width: 0;
+  width: 100%;
   padding: 12px 20px;
   border-radius: 999px;
   background: var(--ck-gold);
@@ -12122,6 +12120,13 @@ body.zen-screensaver-active::-webkit-scrollbar {
 }
 
 @media (min-width: 1025px) {
+  /* 右栏拉伸到 grid 行高：这样 .ck-bottom-actions 的 margin-top:auto
+     才有剩余空间可分配，按钮才能真正沉到右栏底部。
+     左栏保持 align-items:start（工资卡不该被拉高）。 */
+  .ck-col-side {
+    align-self: stretch;
+  }
+
   .ck-wrap {
     /* 1366 屏上 1280 只剩 43px 边距，收到 1200 更透气 */
     max-width: 1200px;

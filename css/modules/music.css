@@ -63,7 +63,9 @@
 }
 .mu-player-title i { font-style: normal; font-weight: 600; color: var(--tx-dim); font-size: 13px; }
 
-.mu-bar { display: flex; align-items: center; gap: 8px; margin: 6px 0 10px; }
+/* 必须 relative：透明 的 .mu-seek 绝对定位覆盖在进度条上，
+   没有它滑块会相对整个模块定位，透明盖住全页吞掉所有点击 */
+.mu-bar { display: flex; align-items: center; gap: 8px; margin: 6px 0 10px; position: relative; }
 .mu-time { font-size: 11px; color: var(--tx-faint); font-variant-numeric: tabular-nums; width: 36px; flex: none; }
 .mu-time-dur { text-align: right; }
 .mu-bar-progress {

@@ -13544,10 +13544,12 @@ html[data-theme="light"] .daily-hot-notice {
    桌面并排后，两栏各自独立滚动，首屏即可对照阅读。
    1024px 及以下退回单列，DOM 顺序不变。
    ========================================================= */
-@media (min-width: 1025px) {
-  .daily-container {
-    /* 双栏比原来的 1040px 单列更宽 */
-    max-width: 1240px;
+@media (min-width: 1024px) {
+  /* 带 #mod-daily 提升特异性：基础规则 #mod-daily .daily-container 是 ID 级，
+     纯类选择器压不过它（此前 1240 一直是死规则，容器始终 1040） */
+  #mod-daily .daily-container {
+    /* 宽屏放开到 1680，两侧不再大片留白 */
+    max-width: 1680px;
   }
 
   /* 必须带上 .active：这个选择器特异性高于 .daily-section{display:none}，
@@ -13629,9 +13631,9 @@ html[data-theme="light"] .daily-hot-notice {
   #dlSec-movie .daily-card {
     min-width: 0;
   }
-  /* 十条榜单全部直接铺开：紧凑卡片 2 列 × 5 行一屏放得下，不再内部滚动 */
+  /* 十条榜单全部直接铺开：紧凑卡片自适应多列（宽屏 3~4 列更矮），不再内部滚动 */
   #dlSec-movie .daily-movie-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
     gap: 10px;
   }
   #dlSec-movie .daily-movie-card {
@@ -13679,9 +13681,52 @@ html[data-theme="light"] .daily-hot-notice {
   }
 }
 
-/* 桌面端底距收窄：Hero 已压缩，64px 底部留白纯属浪费 */
-@media (min-width: 1025px) {
+/* 桌面端底距收窄：Hero 已压缩，64px 底部留白纯属浪费（与分栏断点 1024 对齐） */
+@media (min-width: 1024px) {
   #mod-daily { padding-bottom: 24px; }
+}
+
+/* =========================================================
+   板块 3 左右分栏：今日大壁纸 | 近 6 日画廊 3 行 × 2 列
+   ---------------------------------------------------------
+   原本上下堆叠：大壁纸(16:9 全宽 ~700px) + 画廊卡片，
+   一屏根本放不下。桌面并排后两栏各 ~490px，一屏直出。
+   1024 以下退回单列，DOM 顺序不变。
+   ========================================================= */
+@media (min-width: 1024px) {
+  .daily-section#dlSec-wallpaper.active {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 360px;
+    gap: 20px;
+    align-items: start;
+  }
+  #dlSec-wallpaper .daily-wp-stage,
+  #dlSec-wallpaper .daily-card {
+    margin-bottom: 0;
+  }
+  #dlSec-wallpaper .daily-card {
+    min-width: 0;
+    padding: 12px;
+    box-sizing: border-box;
+  }
+  #dlSec-wallpaper .daily-wp-gallery-title {
+    font-size: 13.5px;
+    margin-bottom: 10px;
+    gap: 6px;
+  }
+  #dlSec-wallpaper .daily-wp-gallery-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  /* 大图高度锁到一屏内：165(顶部) + 图高 + 24(底距) ≤ 视口 */
+  #dlSec-wallpaper .daily-wp-preview-wrap {
+    aspect-ratio: auto;
+    height: calc(100vh - 200px);
+    min-height: 320px;
+  }
+  #dlSec-wallpaper .daily-wp-thumb-meta { padding: 5px 7px; }
+  #dlSec-wallpaper .daily-wp-thumb-title { font-size: 11px; }
+  #dlSec-wallpaper .daily-wp-thumb-date { font-size: 10px; }
 }
 
 

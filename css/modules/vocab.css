@@ -1246,3 +1246,35 @@
   padding: 9px 12px;
 }
 .vc-input:focus { outline: none; border-color: var(--mod-ac); }
+/* ---------- morphicons / lucide 试点 ---------- */
+.vc-rate-ico {
+  width: 17px;
+  height: 17px;
+  flex: none;
+  display: inline-block;
+  vertical-align: -3px;
+  margin-right: 5px;
+}
+.vc-btn-ico {
+  width: 16px;
+  height: 16px;
+  display: inline-block;
+  vertical-align: -3px;
+  margin-left: 2px;
+}
+/* ---------- morphicons / lucide 试点 ---------- */
+.vc-rate-ico {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  display: inline-block;
+  vertical-align: -3px;
+  margin-right: 5px;
+}
+.vc-btn-ico {
+  width: 15px;
+  height: 15px;
+  display: inline-block;
+  vertical-align: -3px;
+  margin-left: 2px;
+}

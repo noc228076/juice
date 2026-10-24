@@ -538,6 +538,7 @@
       '<div class="vc-note">词库 KyleBing/english-vocabulary（BSD-3-Clause）· 进度只存本机</div>' +
       '</div>';
 
+    paintLucide(el);
     bindSubnav();
     if (tab === 'today') bindToday();
     if (tab === 'words') bindWords();
@@ -572,7 +573,8 @@
           '<p class="vc-hero-sub">待复习 <b>' + dueN + '</b> · 新词 <b>' + newN + '</b> · 共 <b>' + total + '</b> 题</p>' +
           '<div class="vc-bar"><i style="width:' + Math.min(100, Math.round(bs().doneToday / Math.max(total, 1) * 100)) + '%"></i></div>' +
           '<div class="vc-actions">' +
-            '<button class="vc-btn primary" id="vcStart" type="button">开始背 →</button>' +
+            '<button class="vc-btn primary" id="vcStart" type="button">开始背 ' +
+              '<svg class="vc-btn-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="ArrowRight"/></svg></button>' +
             '<button class="vc-btn ghost" id="vcToSettings" type="button">调设置</button>' +
           '</div>' +
         '</div>' +
@@ -1163,6 +1165,16 @@
     return q;
   }
 
+  /* 把容器里带 data-lucide 的静态 path 填上图标数据（轻量，无依赖） */
+  function paintLucide(root) {
+    if (!window.LUCIDE_ICONS || !root) return;
+    root.querySelectorAll('path[data-lucide]').forEach(function (p) {
+      var icon = window.LUCIDE_ICONS[p.getAttribute('data-lucide')];
+      if (icon && icon[0] && icon[0][1] && icon[0][1].d) p.setAttribute('d', icon[0][1].d);
+      p.removeAttribute('data-lucide');
+    });
+  }
+
   function renderQuestion() {
     if (!el || !current) return;
     var w = current;
@@ -1210,9 +1222,12 @@
           (canSpeak ? '<button class="vc-speak" type="button" id="vcSpeak" aria-label="朗读">🔊</button>' : '') +
         '</div>' +
         '<div class="vc-rate" id="vcRate">' +
-          '<button type="button" class="vc-rate-btn know" data-rate="know">认识</button>' +
-          '<button type="button" class="vc-rate-btn vague" data-rate="vague">模糊</button>' +
-          '<button type="button" class="vc-rate-btn unknown" data-rate="unknown">不认识</button>' +
+          '<button type="button" class="vc-rate-btn know" data-rate="know">' +
+            '<svg class="vc-rate-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>认识</button>' +
+          '<button type="button" class="vc-rate-btn vague" data-rate="vague">' +
+            '<svg class="vc-rate-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>模糊</button>' +
+          '<button type="button" class="vc-rate-btn unknown" data-rate="unknown">' +
+            '<svg class="vc-rate-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>不认识</button>' +
         '</div>' +
         '<div class="vc-reveal" id="vcReveal"></div>';
     }
@@ -1387,6 +1402,19 @@
       b.disabled = true;
       if (b.getAttribute('data-rate') === w.rated) b.classList.add('picked');
     });
+    /* morphicons 试点：被选中的自评按钮图标形变为结果图标（Check=记住了 / Zap=有点印象 / RotateCcw=重学） */
+    if (window.MorphDOM && window.LUCIDE_ICONS) {
+      var RATED_ICON = { know: 'Check', vague: 'Zap', unknown: 'RotateCcw' };
+      var rateBtn = el.querySelector('.vc-rate-btn.' + w.rated);
+      var ratePath = rateBtn && rateBtn.querySelector('.vc-rate-ico path');
+      var target = window.LUCIDE_ICONS[RATED_ICON[w.rated]];
+      if (ratePath && target) {
+        try {
+          if (!ratePath._morph) ratePath._morph = window.MorphDOM.createMorph(ratePath, window.LUCIDE_ICONS.Smile, {});
+          ratePath._morph.set(target);
+        } catch (e) { /* 形变失败不影响功能 */ }
+      }
+    }
 
     var box = el.querySelector('#vcReveal');
     if (!box) return;
@@ -1867,6 +1895,7 @@
       answered = false;
       current = null;
       renderHome();
+      paintLucide(el);
       /* 背面数据后台预热，答题时不用等 */
       ensureExtra();
     }).catch(function () { renderLoadError(); });

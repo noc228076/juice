@@ -132,6 +132,45 @@
     return shuffle(opts);
   }
 
+  /* 中选英：给中文释义，从四个英文单词里挑。
+     —— 干扰项同样按词性取，长度接近，避免一眼看出 */
+  function makeWordOptions(words, byPos, idx) {
+    var row = words[idx];
+    var answer = row[0];
+    var p = posOf(row[2]);
+    var pool = (p && byPos[p] && byPos[p].length > 4) ? byPos[p] : null;
+    var picked = [];
+    var seen = Object.create(null);
+    seen[answer.toLowerCase()] = 1;
+    /* 释义完全相同的词也不能进选项，否则两个选项都对 */
+    seen[row[2]] = 1;
+
+    function tryPick(from, want) {
+      var guard = 0;
+      while (picked.length < want && guard++ < 600) {
+        var j = from[Math.floor(Math.random() * from.length)];
+        if (j === idx) continue;
+        var w = words[j][0];
+        var m = words[j][2];
+        if (seen[w.toLowerCase()] || seen[m]) continue;
+        if (Math.abs(w.length - answer.length) > 5 && Math.random() < 0.8) continue;
+        seen[w.toLowerCase()] = 1;
+        picked.push(w);
+      }
+    }
+
+    if (pool) tryPick(pool, 3);
+    if (picked.length < 3) {
+      var all = [];
+      for (var k = 0; k < words.length; k++) all.push(k);
+      tryPick(all, 3);
+    }
+
+    var opts = [{ text: answer, ok: true }];
+    for (var i = 0; i < picked.length; i++) opts.push({ text: picked[i], ok: false });
+    return shuffle(opts);
+  }
+
   /* 把例句里的目标词替换成空格。大小写与词形变化都尽量兜住：
      先试原词，再试首字母大写，最后试词干前缀（-s/-ed/-ing 等）。 */
   function blankOut(sentence, word) {
@@ -199,6 +238,7 @@
     loadExam: function (level) { return loadJson(level + '_exam'); },
     makeOptions: makeOptions,
     makeClozeOptions: makeClozeOptions,
+    makeWordOptions: makeWordOptions,
     blankOut: blankOut,
     posOf: posOf,
     shuffle: shuffle,

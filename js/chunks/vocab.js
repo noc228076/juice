@@ -133,6 +133,45 @@
     return shuffle(opts);
   }
 
+  /* 中选英：给中文释义，从四个英文单词里挑。
+     —— 干扰项同样按词性取，长度接近，避免一眼看出 */
+  function makeWordOptions(words, byPos, idx) {
+    var row = words[idx];
+    var answer = row[0];
+    var p = posOf(row[2]);
+    var pool = (p && byPos[p] && byPos[p].length > 4) ? byPos[p] : null;
+    var picked = [];
+    var seen = Object.create(null);
+    seen[answer.toLowerCase()] = 1;
+    /* 释义完全相同的词也不能进选项，否则两个选项都对 */
+    seen[row[2]] = 1;
+
+    function tryPick(from, want) {
+      var guard = 0;
+      while (picked.length < want && guard++ < 600) {
+        var j = from[Math.floor(Math.random() * from.length)];
+        if (j === idx) continue;
+        var w = words[j][0];
+        var m = words[j][2];
+        if (seen[w.toLowerCase()] || seen[m]) continue;
+        if (Math.abs(w.length - answer.length) > 5 && Math.random() < 0.8) continue;
+        seen[w.toLowerCase()] = 1;
+        picked.push(w);
+      }
+    }
+
+    if (pool) tryPick(pool, 3);
+    if (picked.length < 3) {
+      var all = [];
+      for (var k = 0; k < words.length; k++) all.push(k);
+      tryPick(all, 3);
+    }
+
+    var opts = [{ text: answer, ok: true }];
+    for (var i = 0; i < picked.length; i++) opts.push({ text: picked[i], ok: false });
+    return shuffle(opts);
+  }
+
   /* 把例句里的目标词替换成空格。大小写与词形变化都尽量兜住：
      先试原词，再试首字母大写，最后试词干前缀（-s/-ed/-ing 等）。 */
   function blankOut(sentence, word) {
@@ -200,6 +239,7 @@
     loadExam: function (level) { return loadJson(level + '_exam'); },
     makeOptions: makeOptions,
     makeClozeOptions: makeClozeOptions,
+    makeWordOptions: makeWordOptions,
     blankOut: blankOut,
     posOf: posOf,
     shuffle: shuffle,
@@ -249,6 +289,10 @@
       seq: 0,
       dailyNew: 15,
       order: 'seq',
+      /* 选择题方向：en2cn = 英选中（给单词挑释义）；cn2en = 中选英（给释义挑单词） */
+      dir: 'en2cn',
+      /* 题型开关：关掉的题型不参与轮转，自动落到剩下的 */
+      kinds: { recall: true, spell: true, cloze: false },
       totalMs: 0,
       totalAnswered: 0,
       totalRight: 0,
@@ -281,6 +325,10 @@
       if (typeof s.newLeft === 'number' && typeof s.newDoneToday !== 'number') {
         state.newDoneToday = Math.max(0, (state.dailyNew || 15) - s.newLeft);
       }
+      if (!state.kinds || typeof state.kinds !== 'object') {
+        state.kinds = { recall: true, spell: true, cloze: false };
+      }
+      if (state.dir !== 'cn2en') state.dir = 'en2cn';
     } catch (e) {
       state = emptyState();
     }
@@ -702,6 +750,26 @@
       '</div>' +
 
       '<div class="vc-field">' +
+        '<div class="vc-field-h">选择题方向</div>' +
+        '<div class="vc-field-d">英选中：看单词挑中文释义。中选英：看中文释义挑英文单词（更难，建议先过一遍英选中）。</div>' +
+        '<div class="vc-chips">' +
+          '<button type="button" class="vc-chip' + (state.dir !== 'cn2en' ? ' active' : '') + '" data-dir="en2cn">英选中</button>' +
+          '<button type="button" class="vc-chip' + (state.dir === 'cn2en' ? ' active' : '') + '" data-dir="cn2en">中选英</button>' +
+        '</div>' +
+      '</div>' +
+
+      '<div class="vc-field">' +
+        '<div class="vc-field-h">题型</div>' +
+        '<div class="vc-field-d">关掉的题型不参与轮转，会退到还开着的那几种。填空题需要例句数据，默认关闭。</div>' +
+        '<div class="vc-chips">' +
+          '<button type="button" class="vc-chip kind' + (state.kinds.recall ? ' active' : '') + '" data-kind="recall">选择题</button>' +
+          '<button type="button" class="vc-chip kind' + (state.kinds.spell ? ' active' : '') + '" data-kind="spell">拼写</button>' +
+          '<button type="button" class="vc-chip kind' + (state.kinds.cloze ? ' active' : '') + '" data-kind="cloze">填空</button>' +
+        '</div>' +
+        '<div class="vc-field-tip" id="vcKindTip"></div>' +
+      '</div>' +
+
+      '<div class="vc-field">' +
         '<div class="vc-field-h">词库</div>' +
         '<div class="vc-field-d">切换词库会清空当前词库的学习记录，两个词库各自独立。</div>' +
         '<div class="vc-chips">' +
@@ -741,6 +809,41 @@
         renderHome();
       };
     });
+    el.querySelectorAll('[data-dir]').forEach(function (b) {
+      b.onclick = function () {
+        var d = b.getAttribute('data-dir');
+        if (d === state.dir) return;
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        state.dir = d;
+        saveState();
+        renderHome();
+      };
+    });
+    el.querySelectorAll('[data-kind]').forEach(function (b) {
+      b.onclick = function () {
+        var k = b.getAttribute('data-kind');
+        var next = Object.assign({}, state.kinds);
+        next[k] = !next[k];
+        /* 全关会让出题无路可走，至少留一个 */
+        if (!next.recall && !next.spell && !next.cloze) {
+          next[k] = true;
+          return;
+        }
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        state.kinds = next;
+        saveState();
+        renderHome();
+      };
+    });
+    var tip = el.querySelector('#vcKindTip');
+    if (tip) {
+      var on = [];
+      if (state.kinds.recall) on.push('选择题');
+      if (state.kinds.spell) on.push('拼写');
+      if (state.kinds.cloze) on.push('填空');
+      tip.textContent = '当前启用：' + on.join(' / ');
+    }
+
     el.querySelectorAll('[data-book]').forEach(function (b) {
       b.onclick = function () {
         var bk = b.getAttribute('data-book');
@@ -784,16 +887,32 @@
 
   /* ---------- 题型 ---------- */
   /* 按记忆档位选题型：新学用认词，中档用拼写，高档用填空 */
+  /* 按记忆档位选题型，再按开关回落：
+     关掉的题型不出现，退到该词最合适的那个还开着的题型。
+     —— 三个都关掉时兜底成认词，否则玩家会卡在空屏。 */
   function kindOf(rec) {
-    if (!rec) return 'recall';
-    var box = rec.box || 0;
-    if (box >= 4) return 'cloze';
-    if (box >= 2) return 'spell';
+    var k = state.kinds || {};
+    var box = rec ? (rec.box || 0) : 0;
+    var want = box >= 4 ? 'cloze' : box >= 2 ? 'spell' : 'recall';
+    if (k[want]) return want;
+    /* 先往低档退（更简单、不需要额外数据），再往高档试 */
+    if (want === 'cloze') {
+      if (k.spell) return 'spell';
+      if (k.recall) return 'recall';
+    } else if (want === 'spell') {
+      if (k.recall) return 'recall';
+      if (k.cloze) return 'cloze';
+    } else {
+      if (k.spell) return 'spell';
+      if (k.cloze) return 'cloze';
+    }
     return 'recall';
   }
 
-  function kindLabel(k) {
-    return k === 'cloze' ? '填空' : k === 'spell' ? '拼写' : '认词';
+  function kindLabel(k, dir) {
+    if (k === 'cloze') return '填空';
+    if (k === 'spell') return '拼写';
+    return dir === 'cn2en' ? '中选英' : '英选中';
   }
 
   /* ---------- 答题屏 ---------- */
@@ -830,7 +949,12 @@
     };
 
     if (kind === 'recall') {
-      q.options = window.AppVocabData.makeOptions(book.words, book.byPos, idx);
+      /* 选择题两个方向：英选中给单词挑释义，中选英给释义挑单词 */
+      if (state.dir === 'cn2en') {
+        q.options = window.AppVocabData.makeWordOptions(book.words, book.byPos, idx);
+      } else {
+        q.options = window.AppVocabData.makeOptions(book.words, book.byPos, idx);
+      }
     } else if (kind === 'spell') {
       q.hint = w[0].charAt(0);
       q.answer = w[0];
@@ -846,9 +970,11 @@
       }
       var blanked = window.AppVocabData.blankOut(raw, w[0]);
       if (!blanked) {
-        /* 没有可用例句：退回认词，不让玩家卡住 */
+        /* 没有可用例句：退回选择题，不让玩家卡住 */
         q.kind = 'recall';
-        q.options = window.AppVocabData.makeOptions(book.words, book.byPos, idx);
+        q.options = state.dir === 'cn2en'
+          ? window.AppVocabData.makeWordOptions(book.words, book.byPos, idx)
+          : window.AppVocabData.makeOptions(book.words, book.byPos, idx);
       } else {
         q.sentence = blanked;
         q.sentenceCn = cn;
@@ -870,16 +996,28 @@
     var inner = '';
 
     if (w.kind === 'recall') {
-      inner =
-        '<div class="vc-word">' + esc(w.word) + '</div>' +
-        '<div class="vc-phon">' + esc(w.phonetic || '') +
-          (canSpeak ? '<button class="vc-speak" type="button" id="vcSpeak" aria-label="朗读">🔊</button>' : '') +
-        '</div>' +
-        '<div class="vc-opts" id="vcOpts">' +
-          w.options.map(function (o, i) {
-            return '<button class="vc-opt" type="button" data-i="' + i + '">' + esc(o.text) + '</button>';
-          }).join('') +
-        '</div>';
+      if (state.dir === 'cn2en') {
+        /* 中选英：正面给中文释义，选项是英文单词。不显示音标——
+           音标会把答案的读音漏出去 */
+        inner =
+          '<div class="vc-word cn">' + esc(w.meaning) + '</div>' +
+          '<div class="vc-opts word-opts" id="vcOpts">' +
+            w.options.map(function (o, i) {
+              return '<button class="vc-opt word-opt" type="button" data-i="' + i + '">' + esc(o.text) + '</button>';
+            }).join('') +
+          '</div>';
+      } else {
+        inner =
+          '<div class="vc-word">' + esc(w.word) + '</div>' +
+          '<div class="vc-phon">' + esc(w.phonetic || '') +
+            (canSpeak ? '<button class="vc-speak" type="button" id="vcSpeak" aria-label="朗读">🔊</button>' : '') +
+          '</div>' +
+          '<div class="vc-opts" id="vcOpts">' +
+            w.options.map(function (o, i) {
+              return '<button class="vc-opt" type="button" data-i="' + i + '">' + esc(o.text) + '</button>';
+            }).join('') +
+          '</div>';
+      }
     } else if (w.kind === 'spell') {
       inner =
         '<div class="vc-word small">' + esc(w.meaning) + '</div>' +
@@ -907,7 +1045,7 @@
       '<div class="vc-wrap vc-play">' +
         '<div class="vc-top">' +
           '<button class="vc-back" id="vcBack" type="button" aria-label="返回今日">← 返回</button>' +
-          '<span class="vc-kind">' + (w.retry ? '再来一次 · ' : '') + kindLabel(w.kind) + '</span>' +
+          '<span class="vc-kind">' + (w.retry ? '再来一次 · ' : '') + kindLabel(w.kind, state.dir) + '</span>' +
           '<span class="vc-count">' + n + ' / ' + queue.length + '</span>' +
         '</div>' +
         '<div class="vc-bar thin"><i style="width:' + pct + '%"></i></div>' +

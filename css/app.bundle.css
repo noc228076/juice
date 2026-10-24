@@ -18483,3 +18483,37 @@ html[data-theme="light"] .films-open.alt {
   .vc-wordrow { flex-direction: column; gap: 8px; }
   .vc-wordrow-meta { align-self: flex-end; }
 }
+
+/* ---------- 中选英：正面中文释义，选项英文 ---------- */
+.vc-word.cn {
+  font-size: 27px;
+  font-weight: 800;
+  line-height: 1.45;
+  letter-spacing: 0;
+  /* 中文释义可能较长，行高放宽、不再用单词那种紧排 */
+}
+.vc-opts.word-opts { margin-top: 24px; }
+.vc-opt.word-opt {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  font-family: "Segoe UI", -apple-system, system-ui, sans-serif;
+}
+
+/* ---------- 设置里的题型提示 ---------- */
+.vc-field-tip {
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--mod-ac);
+  opacity: 0.85;
+}
+.vc-chip.kind.active {
+  background: var(--mod-ac);
+  border-color: var(--mod-ac);
+  color: var(--mod-ac-ink);
+}
+
+@media (max-width: 620px) {
+  .vc-word.cn { font-size: 22px; }
+  .vc-opt.word-opt { font-size: 16px; }
+}

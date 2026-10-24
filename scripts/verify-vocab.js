@@ -54,7 +54,7 @@ function check(name, ok, detail) {
   await page.click('#vcStart');
   await page.waitForTimeout(600);
   const k1 = await page.evaluate(() => document.querySelector('.vc-kind').textContent);
-  check('新词用「认词」题型', k1.includes('认词'), k1);
+  check('新词出选择题（默认英选中）', k1.includes('英选中') || k1.includes('中选英'), k1);
   await page.screenshot({ path: path.join(OUT, 'p2-2-recall.png') });
 
   // 背面：拆词 / 词族 / 真题 至少要有块
@@ -131,12 +131,13 @@ function check(name, ok, detail) {
   const spellRight = await page.evaluate(() => document.getElementById('vcFb').className);
   check('拼写正确判对', spellRight.includes('ok'), { answer, cls: spellRight });
 
-  // 填空：box5
+  // 填空：box5（填空默认关闭，先打开）
   await page.evaluate(() => {
     const s = JSON.parse(localStorage.getItem('juice_vocab_v1') || '{}');
     const k = Object.keys(s.words)[0];
     s.words[k].box = 5; s.words[k].due = 0;
     s.newDoneToday = s.dailyNew; s.doneToday = 0;
+    s.kinds = { recall: true, spell: true, cloze: true };
     localStorage.setItem('juice_vocab_v1', JSON.stringify(s));
   });
   await fresh('/vocab');
@@ -152,6 +153,10 @@ function check(name, ok, detail) {
   check('填空句里有空格', (k3.cloze || '').includes('______'), k3.cloze);
   check('填空标注来源', !!k3.src, k3.src);
   await page.screenshot({ path: path.join(OUT, 'p2-5-cloze.png') });
+
+  // 离开答题屏，后面要操作子导航
+  await page.evaluate(() => { const b = document.getElementById('vcBack'); if (b) b.click(); });
+  await page.waitForTimeout(500);
 
   // ========== C. 生词本 ==========
   // 直接造两条记录（前面的流程只产生过 1 个词，靠它凑不出 2 条）
@@ -189,7 +194,153 @@ function check(name, ok, detail) {
   check('生词本能移除条目', wl2.rows === 1 && !wl2.words.includes(firstWord),
     { removed: firstWord, left: wl2 });
 
+  // ========== C2. 选择题方向 + 题型开关 ==========
+  // 前面的用例改过 kinds/dir，这里先归位到默认再断言
+  await page.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem('juice_vocab_v1') || '{}');
+    s.kinds = { recall: true, spell: true, cloze: false };
+    s.dir = 'en2cn';
+    localStorage.setItem('juice_vocab_v1', JSON.stringify(s));
+  });
+  await fresh('/vocab');
+  await page.click('.vc-tab[data-tab="settings"]');
+  await page.waitForTimeout(400);
+  const dirChips = await page.evaluate(() =>
+    [...document.querySelectorAll('[data-dir]')].map(b => b.textContent));
+  check('设置里有选择题方向', dirChips.length === 2 && dirChips.join('').includes('中选英'), dirChips);
+
+  const kindChips = await page.evaluate(() =>
+    [...document.querySelectorAll('[data-kind]')].map(b => ({
+      k: b.getAttribute('data-kind'), on: b.classList.contains('active')
+    })));
+  check('设置里有三个题型开关', kindChips.length === 3, kindChips);
+  check('填空题默认关闭', kindChips.find(c => c.k === 'cloze').on === false, kindChips);
+
+  // 打开填空
+  await page.click('[data-kind="cloze"]');
+  await page.waitForTimeout(400);
+  const afterClozeOn = await saved();
+  check('能打开填空题', afterClozeOn.kinds.cloze === true, afterClozeOn.kinds);
+
+  // 关掉选择题和拼写，只留填空 → box0 的新词也应出填空
+  await page.click('[data-kind="recall"]');
+  await page.waitForTimeout(250);
+  await page.click('[data-kind="spell"]');
+  await page.waitForTimeout(350);
+  const onlyCloze = await saved();
+  check('只剩填空题时启用状态正确', onlyCloze.kinds.cloze && !onlyCloze.kinds.recall && !onlyCloze.kinds.spell, onlyCloze.kinds);
+
+  // 全部关掉要拦住（至少留一个）
+  await page.click('[data-kind="cloze"]');
+  await page.waitForTimeout(350);
+  const allOff = await saved();
+  check('不允许三个题型全关', allOff.kinds.cloze === true, allOff.kinds);
+
+  // 恢复：选择题 + 拼写开，填空关
+  await page.click('[data-kind="cloze"]');   // 关填空
+  await page.waitForTimeout(200);
+  await page.click('[data-kind="recall"]');  // 开选择题
+  await page.waitForTimeout(200);
+  await page.click('[data-kind="spell"]');   // 开拼写
+  await page.waitForTimeout(300);
+
+  // 中选英：正面应是中文释义、选项是英文
+  await page.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem('juice_vocab_v1') || '{}');
+    s.words = {}; s.seq = 0; s.newDoneToday = 0; s.doneToday = 0;
+    s.dir = 'cn2en';
+    s.kinds = { recall: true, spell: false, cloze: false };
+    localStorage.setItem('juice_vocab_v1', JSON.stringify(s));
+  });
+  await fresh('/vocab');
+  await page.click('#vcStart');
+  await page.waitForTimeout(700);
+  const cn2en = await page.evaluate(() => ({
+    kind: document.querySelector('.vc-kind')?.textContent,
+    front: document.querySelector('.vc-word')?.textContent,
+    isCn: !!document.querySelector('.vc-word.cn'),
+    opts: [...document.querySelectorAll('.vc-opt')].map(b => b.textContent),
+    hasPhon: !!document.querySelector('.vc-phon')
+  }));
+  check('中选英题型标签正确', cn2en.kind.includes('中选英'), cn2en.kind);
+  check('中选英正面是中文释义', cn2en.isCn && /[一-龥]/.test(cn2en.front || ''), cn2en.front);
+  check('中选英选项是英文单词', cn2en.opts.length === 4 &&
+    cn2en.opts.every(o => /^[a-zA-Z'\- ]+$/.test(o)), cn2en.opts);
+  check('中选英不显示音标（否则漏答案）', !cn2en.hasPhon);
+  await page.screenshot({ path: path.join(OUT, 'p3-1-cn2en.png') });
+
+  // 英选中
+  await page.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem('juice_vocab_v1') || '{}');
+    s.words = {}; s.seq = 0; s.newDoneToday = 0; s.doneToday = 0;
+    s.dir = 'en2cn';
+    s.kinds = { recall: true, spell: false, cloze: false };
+    localStorage.setItem('juice_vocab_v1', JSON.stringify(s));
+  });
+  await fresh('/vocab');
+  await page.click('#vcStart');
+  await page.waitForTimeout(700);
+  const en2cn = await page.evaluate(() => ({
+    kind: document.querySelector('.vc-kind')?.textContent,
+    front: document.querySelector('.vc-word')?.textContent,
+    isCn: !!document.querySelector('.vc-word.cn'),
+    opts: [...document.querySelectorAll('.vc-opt')].map(b => b.textContent)
+  }));
+  check('英选中题型标签正确', en2cn.kind.includes('英选中'), en2cn.kind);
+  check('英选中正面是英文单词', !en2cn.isCn && /^[a-zA-Z]/.test(en2cn.front || ''), en2cn.front);
+  check('英选中选项是中文释义', en2cn.opts.every(o => /[一-龥]/.test(o)), en2cn.opts);
+  await page.screenshot({ path: path.join(OUT, 'p3-2-en2cn.png') });
+
+  // 关掉拼写后，box2 的词应退回选择题
+  await page.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem('juice_vocab_v1') || '{}');
+    const today = Math.floor(Date.now() / 86400000);
+    s.words = { abruptly: { box: 2, due: today, seen: 3, wrong: 0 } };
+    s.newDoneToday = s.dailyNew || 15;
+    s.kinds = { recall: true, spell: false, cloze: false };
+    s.dir = 'en2cn';
+    localStorage.setItem('juice_vocab_v1', JSON.stringify(s));
+  });
+  await fresh('/vocab');
+  await page.click('#vcStart');
+  await page.waitForTimeout(700);
+  const fallback = await page.evaluate(() => ({
+    kind: document.querySelector('.vc-kind')?.textContent,
+    hasInput: !!document.getElementById('vcInput')
+  }));
+  check('关掉拼写后 box2 退回选择题', fallback.kind.includes('英选中') && !fallback.hasInput, fallback);
+
+  // 关掉填空后 box5 也应退回
+  await page.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem('juice_vocab_v1') || '{}');
+    const today = Math.floor(Date.now() / 86400000);
+    s.words = { abruptly: { box: 5, due: today, seen: 6, wrong: 0 } };
+    s.newDoneToday = s.dailyNew || 15;
+    s.kinds = { recall: true, spell: false, cloze: false };
+    localStorage.setItem('juice_vocab_v1', JSON.stringify(s));
+  });
+  await fresh('/vocab');
+  await page.click('#vcStart');
+  await page.waitForTimeout(700);
+  const fb2 = await page.evaluate(() => document.querySelector('.vc-kind')?.textContent);
+  check('关掉填空后 box5 退回选择题', fb2.includes('英选中'), fb2);
+
+  // 打开填空后 box5 应出填空
+  await page.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem('juice_vocab_v1') || '{}');
+    s.kinds = { recall: true, spell: true, cloze: true };
+    localStorage.setItem('juice_vocab_v1', JSON.stringify(s));
+  });
+  await fresh('/vocab');
+  await page.click('#vcStart');
+  await page.waitForTimeout(900);
+  const fb3 = await page.evaluate(() => document.querySelector('.vc-kind')?.textContent);
+  check('打开填空后 box5 出填空', fb3.includes('填空'), fb3);
+
   // ========== D. 90 天热力图 ==========
+  // 上一段停在答题屏，先回首页
+  await page.evaluate(() => { const b = document.getElementById('vcBack'); if (b) b.click(); });
+  await page.waitForTimeout(500);
   await page.click('.vc-tab[data-tab="stats"]');
   await page.waitForTimeout(500);
   const heat = await page.evaluate(() => ({

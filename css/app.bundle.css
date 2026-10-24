@@ -15814,30 +15814,7 @@ html[data-theme="light"] #mod-scratch::before {
   margin-bottom: 20px;
 }
 
-.scratch-hero-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 14px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 800;
-  background: rgba(245, 158, 11, 0.14);
-  color: var(--sc-gold);
-  border: 1px solid rgba(245, 158, 11, 0.32);
-  margin-bottom: 8px;
-  letter-spacing: 1px;
-}
-
-.scratch-hero-badge .badge-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--sc-gold);
-  box-shadow: 0 0 8px var(--sc-gold);
-  animation: scPulse 1.8s infinite;
-}
-
+/* 徽标与副标题已删（只留主标题），主标题直接接统计看板 */
 @keyframes scPulse {
   0%, 100% { opacity: 1; transform: scale(1); }
   50% { opacity: 0.4; transform: scale(0.8); }
@@ -15847,18 +15824,12 @@ html[data-theme="light"] #mod-scratch::before {
   font-size: clamp(22px, 5.2vw, 34px);
   font-weight: 900;
   letter-spacing: 1.5px;
-  margin: 0 0 6px;
+  /* 副标题删除后由主标题承担与统计看板的间距 */
+  margin: 0 0 16px;
   background: linear-gradient(135deg, var(--tx) 25%, var(--sc-gold) 85%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
-}
-
-.scratch-hero-sub {
-  font-size: 13px;
-  color: var(--tx-dim);
-  margin: 0 0 16px;
-  letter-spacing: 0.5px;
 }
 
 /* 战绩统计看板胶囊 */
@@ -16840,8 +16811,7 @@ html[data-theme="light"] .sc-security-box {
   /* hero 收成紧凑两行：badge 与副标题的间距减半 */
   .scratch-hero { margin-bottom: 12px; }
   .scratch-hero-badge { margin-bottom: 4px; }
-  .scratch-hero-title { margin-bottom: 3px; }
-  .scratch-hero-sub { margin-bottom: 8px; }
+  .scratch-hero-title { margin-bottom: 12px; }
 
   /* 主题栏与票面之间收紧 */
   .scratch-themes-scroll { padding-bottom: 10px; margin-bottom: 10px; }
@@ -16931,7 +16901,6 @@ html[data-theme="light"] .sc-security-box {
   #mod-scratch { padding-bottom: 8px; }
   .scratch-hero { margin-bottom: 8px; }
   .scratch-hero-title { font-size: 26px; }
-  .scratch-hero-sub { font-size: 12px; }
   .scratch-themes-scroll { padding-bottom: 6px; margin-bottom: 8px; }
   .sc-theme-btn { padding: 6px 8px; }
   .sc-tb-sub { display: none; }

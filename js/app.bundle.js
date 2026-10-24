@@ -1,4 +1,4 @@
-window.__APP_VERSION__="265",(function(){"use strict";function h(I){return String(I??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;")}function q(I){const k=h(I);return/^\s*(javascript|vbscript|data):/i.test(String(I??""))?"#":k}window.escHtml=h,window.escUrl=q})();const DRINK_SVGS={ESTP:`<svg viewBox="0 0 140 140" fill="none" xmlns="http://www.w3.org/2000/svg" class="drink-art-svg">
+window.__APP_VERSION__="266",(function(){"use strict";function h(I){return String(I??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;")}function q(I){const k=h(I);return/^\s*(javascript|vbscript|data):/i.test(String(I??""))?"#":k}window.escHtml=h,window.escUrl=q})();const DRINK_SVGS={ESTP:`<svg viewBox="0 0 140 140" fill="none" xmlns="http://www.w3.org/2000/svg" class="drink-art-svg">
     <defs>
       <linearGradient id="g_estp_liq" x1="70" y1="35" x2="70" y2="120" gradientUnits="userSpaceOnUse">
         <stop offset="0%" stop-color="#C0392B"/>

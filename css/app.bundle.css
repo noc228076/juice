@@ -18540,3 +18540,86 @@ html[data-theme="light"] .films-open.alt {
   font-style: normal;
   opacity: 0.5;
 }
+
+/* =========================================================
+   第三轮 · 自评（认识 / 模糊 / 不认识）
+   ========================================================= */
+.vc-rate {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 26px;
+}
+.vc-rate-btn {
+  appearance: none;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 800;
+  padding: 16px 10px;
+  border-radius: var(--r-sm);
+  border: 1.5px solid var(--line);
+  background: var(--btn-ghost-bg);
+  color: var(--tx-dim);
+  cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.16s ease, background 0.16s ease, color 0.16s ease;
+}
+.vc-rate-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  color: var(--tx);
+}
+.vc-rate-btn:active:not(:disabled) { transform: scale(0.97); }
+.vc-rate-btn:disabled { cursor: default; opacity: 0.55; }
+
+.vc-rate-btn.know:hover:not(:disabled) { border-color: var(--ok); background: rgba(123,229,139,0.10); }
+.vc-rate-btn.vague:hover:not(:disabled) { border-color: #FBBF24; background: rgba(251,191,36,0.10); }
+.vc-rate-btn.unknown:hover:not(:disabled) { border-color: var(--warn-c); background: rgba(255,122,107,0.10); }
+
+.vc-rate-btn.picked { opacity: 1; }
+.vc-rate-btn.know.picked {
+  border-color: var(--ok);
+  background: rgba(123,229,139,0.16);
+  color: var(--ok);
+}
+.vc-rate-btn.vague.picked {
+  border-color: #FBBF24;
+  background: rgba(251,191,36,0.16);
+  color: #FBBF24;
+}
+.vc-rate-btn.unknown.picked {
+  border-color: var(--warn-c);
+  background: rgba(255,122,107,0.16);
+  color: var(--warn-c);
+}
+
+/* 揭示区 */
+.vc-reveal:empty { display: none; }
+.vc-reveal {
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px dashed var(--line);
+}
+.vc-reveal-meaning {
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--tx);
+  font-weight: 600;
+  margin-bottom: 14px;
+}
+.vc-reveal-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.vc-reveal-tag {
+  font-size: 12.5px;
+  color: var(--tx-faint);
+  flex: 1 1 120px;
+}
+.vc-reveal-row .vc-btn.primary { margin-left: auto; }
+
+@media (max-width: 620px) {
+  .vc-rate { gap: 8px; }
+  .vc-rate-btn { font-size: 14px; padding: 14px 6px; }
+  .vc-reveal-meaning { font-size: 15.5px; }
+}

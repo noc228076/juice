@@ -41,38 +41,38 @@ function check(name, ok, detail) {
   check('今日屏有数据条', (await page.evaluate(() => document.querySelectorAll('.vc-stat').length)) === 4);
   await page.screenshot({ path: path.join(OUT, 'p2-1-home.png') });
 
-  // ========== B. 三种题型 ==========
-  // 造一个三档齐备的队列：新词(box0) / box2 / box5
+  // ========== B. 三轮题型 ==========
   await setState(() => {
     const s = { book:'cet4', day:'', newDoneToday:0, doneToday:0, streak:0, lastDone:'',
-      words:{}, seq:0, dailyNew:15, order:'seq', totalMs:0, totalAnswered:0, totalRight:0, days:{} };
+      words:{}, seq:0, dailyNew:4, order:'seq', totalMs:0, totalAnswered:0, totalRight:0, days:{} };
     localStorage.setItem('juice_vocab_v1', JSON.stringify(s));
   });
   await fresh('/vocab');
 
-  // 认词：新词默认 box0
   await page.click('#vcStart');
-  await page.waitForTimeout(600);
-  const k1 = await page.evaluate(() => document.querySelector('.vc-kind').textContent);
-  check('新词出选择题（默认英选中）', k1.includes('英选中') || k1.includes('中选英'), k1);
+  await page.waitForTimeout(700);
+  const k1 = await page.evaluate(() => ({
+    kind: document.querySelector('.vc-kind')?.textContent,
+    isCn: !!document.querySelector('.vc-word.cn'),
+    opts: document.querySelectorAll('.vc-opt').length
+  }));
+  check('第一轮是英选中（四选一）', k1.kind.includes('英选中') && !k1.isCn && k1.opts === 4, k1);
   await page.screenshot({ path: path.join(OUT, 'p2-2-recall.png') });
 
-  // 背面：拆词 / 词族 / 真题 至少要有块
+  // 答一题看反馈与背面
   await page.click('.vc-opt:nth-child(1)');
   await page.waitForTimeout(500);
   const bp = await page.evaluate(() => {
     const box = document.getElementById('vcBackPanel');
     return {
       has: !!box,
-      blocks: [...box.querySelectorAll('.vc-bp-h')].map(d => d.textContent.trim()),
-      fam: box.querySelectorAll('.vc-fam-word').length
+      blocks: box ? [...box.querySelectorAll('.vc-bp-h')].map(d => d.textContent.trim()) : [],
+      fam: box ? box.querySelectorAll('.vc-fam-word').length : 0
     };
   });
   check('答题后有卡片背面', bp.has && bp.blocks.length > 0, bp);
-  check('背面含拆词/词族/真题之一', bp.blocks.length >= 1, bp.blocks);
   await page.screenshot({ path: path.join(OUT, 'p2-3-back.png') });
 
-  // 词族可点击跳转
   if (bp.fam > 0) {
     const before = await page.evaluate(() => document.querySelector('.vc-word').textContent);
     await page.click('.vc-fam-word');
@@ -83,78 +83,37 @@ function check(name, ok, detail) {
     check('点词族能跳到派生词', true, '本词无词族数据，跳过');
   }
 
-  // 拼写：把当前词设成 box2 再开一局
+  // 三轮流程在 verify-3rounds.js 里详测，这里只确认能走到第二轮/第三轮
   await page.evaluate(() => {
     const s = JSON.parse(localStorage.getItem('juice_vocab_v1') || '{}');
-    const k = Object.keys(s.words)[0];
-    if (k) { s.words[k].box = 2; s.words[k].due = 0; }
-    s.newDoneToday = s.dailyNew;      // 只留复习词
+    s.words = {}; s.seq = 0; s.newDoneToday = 0; s.doneToday = 0; s.dailyNew = 2;
     localStorage.setItem('juice_vocab_v1', JSON.stringify(s));
   });
   await fresh('/vocab');
   await page.click('#vcStart');
   await page.waitForTimeout(600);
-  const k2 = await page.evaluate(() => ({
+  for (let i = 0; i < 2; i++) {
+    await page.evaluate(() => { const o = document.querySelectorAll('.vc-opt'); o[o.length - 1].click(); });
+    await page.waitForTimeout(260);
+    const nb = await page.$('#vcNext'); if (nb) { await nb.click(); await page.waitForTimeout(320); }
+  }
+  const r2kind = await page.evaluate(() => document.querySelector('.vc-kind')?.textContent);
+  check('第一轮错完进第二轮中选英', r2kind.includes('第二轮') && r2kind.includes('中选英'), r2kind);
+
+  for (let i = 0; i < 2; i++) {
+    await page.evaluate(() => { const o = document.querySelectorAll('.vc-opt'); o[o.length - 1].click(); });
+    await page.waitForTimeout(260);
+    const nb = await page.$('#vcNext'); if (nb) { await nb.click(); await page.waitForTimeout(320); }
+  }
+  const r3 = await page.evaluate(() => ({
     kind: document.querySelector('.vc-kind')?.textContent,
-    hasInput: !!document.getElementById('vcInput'),
-    hint: document.querySelector('.vc-spell-hint')?.textContent
-  }));
-  check('box2 用「拼写」题型', k2.kind.includes('拼写') && k2.hasInput, k2);
-  await page.screenshot({ path: path.join(OUT, 'p2-4-spell.png') });
-
-  // 拼错 → 判错
-  await page.fill('#vcInput', 'zzzzzz');
-  await page.click('#vcSubmit');
-  await page.waitForTimeout(400);
-  const spellWrong = await page.evaluate(() => document.getElementById('vcFb').className);
-  check('拼写错误判错', spellWrong.includes('bad'), spellWrong);
-
-  // 拼对 → 判对
-  await page.evaluate(() => {
-    const s = JSON.parse(localStorage.getItem('juice_vocab_v1') || '{}');
-    const k = Object.keys(s.words)[0];
-    s.words[k].box = 2; s.words[k].due = 0;
-    s.newDoneToday = s.dailyNew; s.doneToday = 0;
-    localStorage.setItem('juice_vocab_v1', JSON.stringify(s));
-  });
-  await fresh('/vocab');
-  await page.click('#vcStart');
-  await page.waitForTimeout(600);
-  const answer = await page.evaluate(() => {
-    // 从 localStorage 反查当前词的拼写（box2 的那个词）
-    const s = JSON.parse(localStorage.getItem('juice_vocab_v1') || '{}');
-    return Object.keys(s.words).find(k => s.words[k].box === 2) || '';
-  });
-  await page.fill('#vcInput', answer);
-  await page.click('#vcSubmit');
-  await page.waitForTimeout(400);
-  const spellRight = await page.evaluate(() => document.getElementById('vcFb').className);
-  check('拼写正确判对', spellRight.includes('ok'), { answer, cls: spellRight });
-
-  // 填空：box5（填空默认关闭，先打开）
-  await page.evaluate(() => {
-    const s = JSON.parse(localStorage.getItem('juice_vocab_v1') || '{}');
-    const k = Object.keys(s.words)[0];
-    s.words[k].box = 5; s.words[k].due = 0;
-    s.newDoneToday = s.dailyNew; s.doneToday = 0;
-    s.kinds = { recall: true, spell: true, cloze: true };
-    localStorage.setItem('juice_vocab_v1', JSON.stringify(s));
-  });
-  await fresh('/vocab');
-  await page.click('#vcStart');
-  await page.waitForTimeout(900);
-  const k3 = await page.evaluate(() => ({
-    kind: document.querySelector('.vc-kind')?.textContent,
-    cloze: document.querySelector('.vc-cloze')?.textContent,
-    src: document.querySelector('.vc-source')?.textContent,
+    rates: [...document.querySelectorAll('[data-rate]')].map(b => b.textContent),
     opts: document.querySelectorAll('.vc-opt').length
   }));
-  check('box5 用「填空」题型', k3.kind.includes('填空') && !!k3.cloze, k3);
-  check('填空句里有空格', (k3.cloze || '').includes('______'), k3.cloze);
-  check('填空标注来源', !!k3.src, k3.src);
+  check('第二轮错完进第三轮自评', r3.kind.includes('第三轮') && r3.kind.includes('自评'), r3.kind);
+  check('自评有三个按钮且无选项', r3.rates.join(',') === '认识,模糊,不认识' && r3.opts === 0, r3);
   await page.screenshot({ path: path.join(OUT, 'p2-5-cloze.png') });
 
-  // 离开答题屏，后面要操作子导航
   await page.evaluate(() => { const b = document.getElementById('vcBack'); if (b) b.click(); });
   await page.waitForTimeout(500);
 
@@ -214,40 +173,9 @@ function check(name, ok, detail) {
     flowInfo.hasFlow && flowInfo.steps.join('').includes('英选中') &&
     flowInfo.steps.join('').includes('中选英') && flowInfo.dirChips === 0, flowInfo);
 
-  const kindChips = await page.evaluate(() =>
-    [...document.querySelectorAll('[data-kind]')].map(b => ({
-      k: b.getAttribute('data-kind'), on: b.classList.contains('active')
-    })));
-  check('设置里有三个题型开关', kindChips.length === 3, kindChips);
-  check('填空题默认关闭', kindChips.find(c => c.k === 'cloze').on === false, kindChips);
-
-  // 打开填空
-  await page.click('[data-kind="cloze"]');
-  await page.waitForTimeout(400);
-  const afterClozeOn = await saved();
-  check('能打开填空题', afterClozeOn.kinds.cloze === true, afterClozeOn.kinds);
-
-  // 关掉选择题和拼写，只留填空 → box0 的新词也应出填空
-  await page.click('[data-kind="recall"]');
-  await page.waitForTimeout(250);
-  await page.click('[data-kind="spell"]');
-  await page.waitForTimeout(350);
-  const onlyCloze = await saved();
-  check('只剩填空题时启用状态正确', onlyCloze.kinds.cloze && !onlyCloze.kinds.recall && !onlyCloze.kinds.spell, onlyCloze.kinds);
-
-  // 全部关掉要拦住（至少留一个）
-  await page.click('[data-kind="cloze"]');
-  await page.waitForTimeout(350);
-  const allOff = await saved();
-  check('不允许三个题型全关', allOff.kinds.cloze === true, allOff.kinds);
-
-  // 恢复：选择题 + 拼写开，填空关
-  await page.click('[data-kind="cloze"]');   // 关填空
-  await page.waitForTimeout(200);
-  await page.click('[data-kind="recall"]');  // 开选择题
-  await page.waitForTimeout(200);
-  await page.click('[data-kind="spell"]');   // 开拼写
-  await page.waitForTimeout(300);
+  // 题型开关已移除（三轮固定题型），确认不再出现
+  const kindSwitches = await page.evaluate(() => document.querySelectorAll('[data-kind]').length);
+  check('题型开关已移除（三轮固定）', kindSwitches === 0, { switches: kindSwitches });
 
   // 第一轮固定英选中：正面英文、选项中文、有音标
   await page.evaluate(() => {
@@ -270,51 +198,24 @@ function check(name, ok, detail) {
   check('英选中选项是中文释义', en2cn.opts.every(o => /[一-龥]/.test(o)), en2cn.opts);
   await page.screenshot({ path: path.join(OUT, 'p3-2-en2cn.png') });
 
-  // 关掉拼写后，box2 的词应退回选择题
-  await page.evaluate(() => {
-    const s = JSON.parse(localStorage.getItem('juice_vocab_v1') || '{}');
-    const today = Math.floor(Date.now() / 86400000);
-    s.words = { abruptly: { box: 2, due: today, seen: 3, wrong: 0 } };
-    s.newDoneToday = s.dailyNew || 15;
-    s.kinds = { recall: true, spell: false, cloze: false };
-    s.dir = 'en2cn';
-    localStorage.setItem('juice_vocab_v1', JSON.stringify(s));
-  });
-  await fresh('/vocab');
-  await page.click('#vcStart');
-  await page.waitForTimeout(700);
-  const fallback = await page.evaluate(() => ({
-    kind: document.querySelector('.vc-kind')?.textContent,
-    hasInput: !!document.getElementById('vcInput')
-  }));
-  check('关掉拼写后 box2 退回选择题', fallback.kind.includes('英选中') && !fallback.hasInput, fallback);
-
-  // 关掉填空后 box5 也应退回
+  // 题型不再随记忆档位变化：无论 box 多少，第一轮都是英选中
   await page.evaluate(() => {
     const s = JSON.parse(localStorage.getItem('juice_vocab_v1') || '{}');
     const today = Math.floor(Date.now() / 86400000);
     s.words = { abruptly: { box: 5, due: today, seen: 6, wrong: 0 } };
     s.newDoneToday = s.dailyNew || 15;
-    s.kinds = { recall: true, spell: false, cloze: false };
     localStorage.setItem('juice_vocab_v1', JSON.stringify(s));
   });
   await fresh('/vocab');
   await page.click('#vcStart');
   await page.waitForTimeout(700);
-  const fb2 = await page.evaluate(() => document.querySelector('.vc-kind')?.textContent);
-  check('关掉填空后 box5 退回选择题', fb2.includes('英选中'), fb2);
-
-  // 打开填空后 box5 应出填空
-  await page.evaluate(() => {
-    const s = JSON.parse(localStorage.getItem('juice_vocab_v1') || '{}');
-    s.kinds = { recall: true, spell: true, cloze: true };
-    localStorage.setItem('juice_vocab_v1', JSON.stringify(s));
-  });
-  await fresh('/vocab');
-  await page.click('#vcStart');
-  await page.waitForTimeout(900);
-  const fb3 = await page.evaluate(() => document.querySelector('.vc-kind')?.textContent);
-  check('打开填空后 box5 出填空', fb3.includes('填空'), fb3);
+  const box5 = await page.evaluate(() => ({
+    kind: document.querySelector('.vc-kind')?.textContent,
+    hasInput: !!document.getElementById('vcInput'),
+    opts: document.querySelectorAll('.vc-opt').length
+  }));
+  check('box5 的词第一轮仍是英选中（题型不随档位变）',
+    box5.kind.includes('英选中') && !box5.hasInput && box5.opts === 4, box5);
 
   // ========== D. 90 天热力图 ==========
   // 上一段停在答题屏，先回首页
@@ -377,18 +278,20 @@ function check(name, ok, detail) {
     document.getElementById('vcStart').click();
     await sleep(300);
     for (let i = 0; i < 60; i++) {
-      const inp = document.getElementById('vcInput');
-      if (inp) { inp.value = 'zzz'; document.getElementById('vcSubmit').click(); }
-      else {
-        const o = document.querySelectorAll('.vc-opt');
-        if (!o.length) break;
+      const rate = document.querySelector('[data-rate="know"]');
+      const o = document.querySelectorAll('.vc-opt');
+      if (o.length) {
         o[0].click();
-      }
-      await sleep(40);
-      const nb = document.getElementById('vcNext');
-      if (!nb) break;
-      nb.click();
-      await sleep(40);
+        await sleep(40);
+        const nb = document.getElementById('vcNext');
+        if (nb) nb.click();
+      } else if (rate) {
+        rate.click();              // 自评：一律选「认识」，避免触发重走
+        await sleep(60);
+        const nb2 = document.getElementById('vcNext');
+        if (nb2) nb2.click();
+      } else break;
+      await sleep(60);
     }
   });
   await page.waitForTimeout(600);

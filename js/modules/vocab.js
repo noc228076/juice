@@ -215,6 +215,8 @@
        阶段 3 自评：本局全部词
      item = { idx, kind } */
   var keyBound = false;
+  var redoSet = [];       // 本阶段内答错的词，阶段末补一轮
+  var redoRound = 0;      // 本阶段已补过几轮（0/1）
   var stage = 0;          // 0..2
   var stageQueue = [];    // 当前阶段的题
   var sessionWords = [];  // 本局全部词（阶段 2/3 要重排一遍）
@@ -752,6 +754,8 @@
     if (!queue.length) { buildAndStart(); return; }
     sessionWords = queue.map(function (q) { return { idx: q.idx, rec: q.rec || null, isNew: q.isNew }; });
     stage = 0;
+    redoSet = [];
+    redoRound = 0;
     stageQueue = buildStage(0);
     qi = 0;
     answered = false;
@@ -1058,7 +1062,8 @@
     if (rate === 'unknown' || current.amended) {
       applySchedule(idx, false);
       /* 改判 / 不认识 → 三种题型排到队尾，从头再来一遍 */
-      startRedo(idx);
+      queueRedo(idx);
+      advanceStep();
       return;
     }
     if (rate === 'vague') {
@@ -1095,6 +1100,10 @@
     countAnswer();
 
     applySchedule(current.idx, ok);
+
+    /* 选择题答错：和自评「不认识」一样，把三种题型排到队尾重来一遍。
+       选错是客观证据，比自评更该立刻再见一次。 */
+    if (!ok) queueRedo(current.idx);
 
     var fb = el.querySelector('#vcFb');
     if (!fb) return;
@@ -1214,8 +1223,24 @@
       renderQuestion();
       return;
     }
+
+    /* 本阶段走完：先把阶段内答错的词按同一题型补一轮 */
+    if (redoSet.length) {
+      var kind = STEPS[Math.min(stage, STEPS.length - 1)];
+      stageQueue = redoSet.map(function (idx) {
+        return { idx: idx, rec: state.words[book.words[idx][0]] || null, kind: kind, isRedo: true };
+      });
+      redoSet = [];
+      redoRound++;      // 每阶段最多补一轮，防止一直答错导致无限循环
+      qi = 0;
+      current = makeQuestion(stageQueue[0]);
+      renderQuestion();
+      return;
+    }
+
     if (stage + 1 < STEPS.length) {
       stage++;
+      redoRound = 0;
       stageQueue = buildStage(stage);
       qi = 0;
       current = makeQuestion(stageQueue[0]);
@@ -1226,15 +1251,12 @@
   }
 
   /* 改判：这个词的三种题型依次插到队尾，从英选中重新完整走一遍 */
-  function startRedo(idx) {
-    answered = false;
-    STEPS.forEach(function (k) {
-      stageQueue.push({ idx: idx, rec: state.words[book.words[idx][0]] || null, kind: k, isRedo: true });
-    });
-    qi++;
-    if (qi >= stageQueue.length) { finishSession(); return; }
-    current = makeQuestion(stageQueue[qi]);
-    renderQuestion();
+  /* 答错 / 改判：记下这个词，本阶段末按同一题型再补一轮。
+     不能直接塞进 stageQueue——advanceStep 换阶段时会整表重建，
+     塞进去的题会被丢掉。 */
+  function queueRedo(idx) {
+    if (redoRound > 0) return;              // 本阶段已补过一轮，不再追加
+    if (redoSet.indexOf(idx) < 0) redoSet.push(idx);
   }
 
   function leaveSession() {
@@ -1288,6 +1310,8 @@
 
     bindSubnav();
     stage = 0;
+    redoSet = [];
+    redoRound = 0;
     stageQueue = [];
     var ab = el.querySelector('#vcAgain');
     if (ab) ab.onclick = function () { state.newDoneToday = 0; saveState(); buildAndStart(); };

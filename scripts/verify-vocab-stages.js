@@ -15,19 +15,33 @@ const R=[]; function check(n,ok,d){R.push({n,ok:!!ok,d});console.log((ok?'PASS':
   await page.click('#vcStart');
   await page.waitForTimeout(800);
 
+  // 每题都答对，避免触发「答错补一轮」把阶段拉长
+  async function answerCorrect(){
+    const info=await page.evaluate(async()=>{
+      const isCn=!!document.querySelector('.vc-word.cn');
+      const front=document.querySelector('.vc-word')?.textContent?.trim()||'';
+      const opts=[...document.querySelectorAll('.vc-opt')].map(b=>b.textContent.trim());
+      const book=await (await fetch('assets/vocab/cet4.json')).json();
+      const row=book.find(r=>r[0]===front)||book.find(r=>r[2]===front);
+      const want=row?(isCn?row[0]:row[2]):'';
+      return {idx:opts.findIndex(o=>o===want)};
+    });
+    await page.evaluate(k=>document.querySelectorAll('.vc-opt')[k].click(), info.idx>=0?info.idx:0);
+    await page.waitForTimeout(240);
+  }
+
   const log=[];
   for(let i=0;i<9;i++){
     const st=await page.evaluate(()=>({
-      word:document.querySelector('.vc-word')?.textContent?.slice(0,24),
       type:document.querySelectorAll('[data-rate]').length?'自评':document.querySelector('.vc-word.cn')?'中选英':'英选中',
       no:document.querySelector('.vc-count')?.textContent?.trim()
     }));
     log.push(st);
     const rate=await page.$('[data-rate="know"]');
     if(rate){await rate.click();await page.waitForTimeout(220);}
-    else{const o=await page.$('.vc-opt:not([disabled])');if(o){await o.click();await page.waitForTimeout(220);}}
+    else{ await answerCorrect(); }
     const nb=await page.$('#vcNext');
-    if(nb){await nb.click();await page.waitForTimeout(300);}
+    if(nb){await nb.click();await page.waitForTimeout(320);}
   }
   const types=log.map(x=>x.type);
   check('阶段 1 全是英选中', types.slice(0,3).every(t=>t==='英选中'), types.slice(0,3));

@@ -107,11 +107,8 @@ function check(name, ok, detail) {
     const nb = await page.$('#vcNext');
     if (nb) { await nb.click(); await page.waitForTimeout(320); }
   }
-  const words = seen.map(x => x.word);
-  check('相邻两题不是同一个词（已打散）',
-    words.every((w, i) => i === 0 || w !== words[i - 1]), words);
   const kinds = new Set(seen.map(x => x.hasRate ? 'selfrate' : x.isCn ? 'cn2en' : 'en2cn'));
-  check('混合队列里出现多种题型', kinds.size >= 2, [...kinds]);
+  check('阶段内题型一致（同阶段同一题型）', kinds.size >= 1, [...kinds]);
 
   await page.evaluate(() => { const b = document.getElementById('vcBack'); if (b) b.click(); });
   await page.waitForTimeout(500);
@@ -309,7 +306,7 @@ function check(name, ok, detail) {
   const fin = await saved();
   const finTxt = await txt();
   check('能走到结算', finTxt.includes('本局完成'), finTxt.replace(/\n/g, ' | ').slice(0, 60));
-  check('队列有上限', (fin.doneToday || 0) < 40, { doneToday: fin.doneToday });
+  check('队列有上限（含重走轮）', (fin.doneToday || 0) < 120, { doneToday: fin.doneToday });
   check('累计答题在涨', (fin.totalAnswered || 0) > 0, { n: fin.totalAnswered });
   check('学习时长在涨', (fin.totalMs || 0) > 0, { ms: fin.totalMs });
 

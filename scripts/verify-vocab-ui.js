@@ -66,7 +66,7 @@ function check(n, ok, d){ R.push({n,ok:!!ok,d}); console.log((ok?'PASS':'FAIL')+
 
   // 一路推进直到遇到自评题
   let sawRate = false;
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 40; i++) {
     const st = await page.evaluate(() => ({
       hasRate: document.querySelectorAll('[data-rate]').length > 0
     }));

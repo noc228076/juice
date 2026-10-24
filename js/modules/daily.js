@@ -229,11 +229,9 @@
     return r.data;
   }
 
-  // HTML 转义：接口返回的标题与链接直接插进 innerHTML，不转义会破坏属性甚至注入
+  // HTML 转义：统一委托 window.escHtml（js/esc.js，核心包）
   function esc(str) {
-    return String(str == null ? '' : str).replace(/[&<>"']/g, c =>
-      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])
-    );
+    return window.escHtml(str);
   }
 
   // ================= 加载态：骨架屏 =================
@@ -740,7 +738,7 @@
           const rating = m.rating ? `★ ${m.rating}` : '暂无评分';
           const tags = Array.isArray(m.tags) ? m.tags : [];
           return `
-          <a class="daily-movie-card" style="--i:${idx < 8 ? idx : 7}" href="${m.url || '#'}" target="_blank" rel="noopener noreferrer">
+          <a class="daily-movie-card" style="--i:${idx < 8 ? idx : 7}" href="${window.escUrl(m.url || '#')}" target="_blank" rel="noopener noreferrer">
             <img class="daily-mcard-poster" src="${poster}" alt="${esc(m.title)}" decoding="async" onerror="this.onerror=null;this.src='${LOCAL_POSTER}'" />
             <div class="daily-mcard-info">
               <div>
@@ -875,10 +873,10 @@
       !valid.length
         ? `
         <div class="daily-wp-thumb-card active">
-          <img class="daily-wp-thumb-img" src="${activeWp.cover}" />
+          <img class="daily-wp-thumb-img" src="${esc(activeWp.cover)}" />
           <div class="daily-wp-thumb-meta">
             <span class="daily-wp-thumb-date">今日</span>
-            <div class="daily-wp-thumb-title">${activeWp.title}</div>
+            <div class="daily-wp-thumb-title">${esc(activeWp.title)}</div>
           </div>
         </div>
       `

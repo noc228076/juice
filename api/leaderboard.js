@@ -96,7 +96,15 @@ const SNAKE_LEVELS = {
 
 const BOARD_CAP = 1000;          // 每个榜单只保留前 1000 名
 const RL_WINDOW = 60;            // 限流窗口（秒）
-const RL_MAX = 20;               // 窗口内最多提交次数
+const RL_MAX = 20;               // 窗口内最多提交次数（按 id）
+const RL_IP_MAX = 90;            // 窗口内最多提交次数（按 IP——id 可被脚本轮换，IP 维度兜底；放宽以照顾公司/校园 NAT）
+
+/* Vercel 函数拿客户端 IP 只能靠 x-forwarded-for（取第一跳） */
+function clientIp(req) {
+  const xff = (req.headers && req.headers['x-forwarded-for']) || '';
+  const first = String(xff).split(',')[0].trim();
+  return first || 'unknown';
+}
 
 /* ---------------- 存储适配层 ---------------- */
 
@@ -525,19 +533,25 @@ module.exports = async function handler(req, res) {
         return;
       }
 
-      // 限流：同一玩家同一游戏 60 秒内最多 20 次提交
-      let hits;
+      // 限流：双维度。同一玩家同一游戏 60 秒 RL_MAX 次；
+      // 同一 IP 60 秒 RL_IP_MAX 次（脚本每次随机换 id 也绕不过 IP 维度）。
+      let hits, ipHits;
       const rlKey = 'jrl:' + game + ':' + id;
+      const rlIpKey = 'jrl:lbip:' + clientIp(req);
       if (useMemory) {
         hits = memStore.incr(rlKey);
+        ipHits = memStore.incr(rlIpKey);
       } else {
         const out = await pipeline([
           ['INCR', rlKey],
-          ['EXPIRE', rlKey, String(RL_WINDOW)]
+          ['EXPIRE', rlKey, String(RL_WINDOW)],
+          ['INCR', rlIpKey],
+          ['EXPIRE', rlIpKey, String(RL_WINDOW)]
         ]);
         hits = out[0] || 0;
+        ipHits = out[2] || 0;
       }
-      if (hits > RL_MAX) {
+      if (hits > RL_MAX || ipHits > RL_IP_MAX) {
         res.status(429).json({ ok: false, error: '提交太频繁，请稍后再试' });
         return;
       }
@@ -654,6 +668,29 @@ module.exports = async function handler(req, res) {
       const name = clampText(body.name, 16) || '匿名玩家';
       const avatar = clampText(body.avatar, 8) || '🙂';
 
+      // PATCH 也要限流：此前只有 POST 有限流，PATCH 不传 game 会遍历
+      // 22 个榜单 × HGET/HSET（最多 44 条 Redis 命令），极易被刷爆命令配额。
+      let pHits, pIpHits;
+      const pRlKey = 'jrl:patch:' + id;
+      const pRlIpKey = 'jrl:patchip:' + clientIp(req);
+      if (useMemory) {
+        pHits = memStore.incr(pRlKey);
+        pIpHits = memStore.incr(pRlIpKey);
+      } else {
+        const out = await pipeline([
+          ['INCR', pRlKey],
+          ['EXPIRE', pRlKey, String(RL_WINDOW)],
+          ['INCR', pRlIpKey],
+          ['EXPIRE', pRlIpKey, String(RL_WINDOW)]
+        ]);
+        pHits = out[0] || 0;
+        pIpHits = out[2] || 0;
+      }
+      if (pHits > 10 || pIpHits > 30) {
+        res.status(429).json({ ok: false, error: '改名太频繁，请稍后再试' });
+        return;
+      }
+
       // 不传 game 就更新全部榜单：玩家只有一份身份，三个榜理应一致
       const games = body.game ? [resolveGame(body.game)] : Object.keys(GAMES);
       if (games.some((g) => !g)) {
@@ -698,7 +735,17 @@ module.exports = async function handler(req, res) {
         return;
       }
       const given = String((req.headers && (req.headers['x-admin-token'] || req.headers['X-Admin-Token'])) || '');
-      if (given.length !== expected.length || given !== expected) {
+      // 常数时间比较，防计时侧信道逐字节猜 token（与 api/wall.js 同款）
+      const eq = (() => {
+        const a = Buffer.from(given);
+        const b = Buffer.from(expected);
+        if (a.length !== b.length) {
+          require('crypto').timingSafeEqual(a, a);
+          return false;
+        }
+        return require('crypto').timingSafeEqual(a, b);
+      })();
+      if (!eq) {
         res.status(403).json({ ok: false, error: '无权限' });
         return;
       }

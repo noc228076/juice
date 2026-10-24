@@ -18,5 +18,9 @@
     "web-audio",
     "canvas"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "playwright": "^1.64.1"
+  }
 }

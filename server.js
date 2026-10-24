@@ -64,7 +64,14 @@ const server = http.createServer((req, res) => {
     runApi(req, res, reqPath);
     return;
   }
-  const filePath = path.join(__dirname, reqPath);
+  // 防路径穿越：decodeURI 会把 %2E 解码成 "."，拼出 ../ 逃出项目根。
+  // 解析成绝对路径后必须仍落在 __dirname 之内，否则一律 404。
+  const filePath = path.resolve(__dirname, '.' + reqPath.replace(/\\/g, '/'));
+  if (!filePath.startsWith(__dirname + path.sep) && filePath !== __dirname) {
+    res.writeHead(403);
+    res.end('403 Forbidden');
+    return;
+  }
   fs.readFile(filePath, (err, data) => {
     if (err) {
       res.writeHead(404);

@@ -1,5 +1,20 @@
 const fs = require('fs');
 const path = require('path');
+const esbuild = require('esbuild');
+
+/* 压缩：源码保持可读可注释，产物统一 minify。
+   JS 用 transform（保留语义）；CSS 走 esbuild 自带 css minifier。
+   压缩失败直接抛错终止构建——绝不产出半截文件。 */
+function minifyJs(code, label) {
+  const out = esbuild.transformSync(code, { minify: true, charset: 'utf8' });
+  if (!out.code) throw new Error('esbuild minify 失败: ' + label);
+  return out.code;
+}
+function minifyCss(code, label) {
+  const out = esbuild.transformSync(code, { loader: 'css', minify: true, charset: 'utf8' });
+  if (!out.code) throw new Error('esbuild css minify 失败: ' + label);
+  return out.code;
+}
 
 // 首屏核心 CSS：饮品封面、答题、结果页、全局顶栏与档案抽屉。
 // 其余模块样式按需加载，避免首页为 12 个未进入的模块付出传输成本。
@@ -30,6 +45,7 @@ const moduleCssFiles = [
 // 首屏核心：饮品封面、身份、榜单、历史、Daily 全局壁纸入口与路由本身。
 // 其余模块拆成按需 chunk，由 router 在首次进入时加载。
 const coreJsFiles = [
+  'js/esc.js',
   'js/core-drink.js',
   'js/sfx.js',
   'js/modules/daily.js',
@@ -90,13 +106,12 @@ function concatCss(files) {
     .join('\n\n');
 }
 
-const coreCssOut = concatCss(coreCssFiles);
-const moduleCssOut = concatCss(moduleCssFiles);
-const legacyCssOut = concatCss(coreCssFiles.concat(moduleCssFiles));
+const coreCssOut = minifyCss(concatCss(coreCssFiles), 'core css');
+const moduleCssOut = minifyCss(concatCss(moduleCssFiles), 'modules css');
 fs.writeFileSync(path.join(__dirname, 'css/core.bundle.css'), coreCssOut, 'utf8');
 fs.writeFileSync(path.join(__dirname, 'css/modules.bundle.css'), moduleCssOut, 'utf8');
-// 保留旧产物一个版本周期，避免仍持有 v96 index.html 的客户端在部署瞬间拿到 404。
-fs.writeFileSync(path.join(__dirname, 'css/app.bundle.css'), legacyCssOut, 'utf8');
+// legacy css/app.bundle.css（v96 时代兼容产物）已删除：距其退役已 160+ 个版本，
+// 仍持有旧 index.html 的客户端早已被 must-revalidate 拉到新版。
 
 const version = readVersion();
 if (!version) {
@@ -108,14 +123,14 @@ if (!version) {
 const versionBanner = version
   ? `window.__APP_VERSION__ = '${version}';\n`
   : '';
-const jsOut = versionBanner + concatJs(coreJsFiles);
+const jsOut = minifyJs(versionBanner + concatJs(coreJsFiles), 'app.bundle.js');
 fs.writeFileSync(path.join(__dirname, 'js/app.bundle.js'), jsOut, 'utf8');
 
 const chunkDir = path.join(__dirname, 'js/chunks');
 fs.mkdirSync(chunkDir, { recursive: true });
 const chunkSizes = [];
 Object.keys(chunks).forEach((name) => {
-  const out = concatJs(chunks[name]);
+  const out = minifyJs(concatJs(chunks[name]), 'chunk ' + name);
   fs.writeFileSync(path.join(chunkDir, `${name}.js`), out, 'utf8');
   chunkSizes.push(`${name} ${(Buffer.byteLength(out) / 1024).toFixed(1)} KB`);
 });
@@ -128,7 +143,6 @@ if (version) {
   const nextHtml = htmlSrc
     .replace(/core\.bundle\.css\?v=\d+/g, `core.bundle.css?v=${version}`)
     .replace(/modules\.bundle\.css\?v=\d+/g, `modules.bundle.css?v=${version}`)
-    .replace(/app\.bundle\.css\?v=\d+/g, `app.bundle.css?v=${version}`)
     .replace(/app\.bundle\.js\?v=\d+/g, `app.bundle.js?v=${version}`);
   if (nextHtml !== htmlSrc) fs.writeFileSync(htmlPath, nextHtml, 'utf8');
 

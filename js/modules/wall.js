@@ -23,10 +23,28 @@
   function profile() {
     const p = window.AppProfile ? window.AppProfile.get() : null;
     return {
-      id: (p && p.id) || '',
       name: (p && p.name) || '匿名玩家',
       avatar: (p && p.avatar) || '🙂'
     };
+  }
+
+  /* 弹幕墙身份用独立随机 id，与排行榜 profile id 解耦：
+     排行榜 GET 会明文返回玩家 id（前端算「我的排名」需要），
+     若弹幕墙沿用同一个 id，拿到别人 id 就能冒名删除其留言（IDOR）。
+     独立 id 从不离开本机与服务端留言数据，排行榜泄露也碰不到这里。
+     旧数据兼容：升级前发的留言 owner 是旧 profile id，不再可本人删除（仅管理员可删）。 */
+  const WALL_ID_KEY = 'juice_wall_id_v1';
+  function wallId() {
+    try {
+      let v = localStorage.getItem(WALL_ID_KEY) || '';
+      if (!/^[A-Za-z0-9_-]{8,64}$/.test(v)) {
+        v = ('w' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10)).slice(0, 24);
+        localStorage.setItem(WALL_ID_KEY, v);
+      }
+      return v;
+    } catch (e) {
+      return '';
+    }
   }
 
   /* ---------- 弹幕引擎 ---------- */
@@ -190,8 +208,7 @@
 
   /* ---------- 网络 ---------- */
   function fetchWall() {
-    const me = profile();
-    const url = API + '?limit=50' + (me.id ? '&id=' + encodeURIComponent(me.id) : '');
+    const url = API + '?limit=50' + (wallId() ? '&id=' + encodeURIComponent(wallId()) : '');
     return fetch(url, { headers: { Accept: 'application/json' } })
       .then(function (r) { return r.json(); })
       .then(function (d) {
@@ -238,7 +255,7 @@
     if (!text) { errEl.textContent = '写点内容再发吧'; return; }
 
     const p = profile();
-    if (!p.id) { errEl.textContent = '玩家身份未初始化，刷新页面再试'; return; }
+    if (!wallId()) { errEl.textContent = '玩家身份未初始化，刷新页面再试'; return; }
 
     const btn = document.getElementById('wlSend');
     if (btn) { btn.disabled = true; btn.textContent = '发送中'; }
@@ -246,7 +263,7 @@
     fetch(API, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({ id: p.id, name: p.name, avatar: p.avatar, text: text })
+      body: JSON.stringify({ id: wallId(), name: p.name, avatar: p.avatar, text: text })
     })
       .then(function (r) { return r.json(); })
       .then(function (d) {
@@ -271,13 +288,12 @@
 
   function deleteComment(at, btn) {
     const errEl = document.getElementById('wlErr');
-    const me = profile();
-    if (!me.id) return;
+    if (!wallId()) return;
     if (btn) { btn.disabled = true; btn.textContent = '…'; }
     fetch(API, {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      body: JSON.stringify({ at: at, id: me.id })
+      body: JSON.stringify({ at: at, id: wallId() })
     })
       .then(function (r) { return r.json(); })
       .then(function (d) {

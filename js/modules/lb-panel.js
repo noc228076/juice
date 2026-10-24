@@ -28,10 +28,9 @@
 
   var MAX_LOCAL = 12;
 
+  /* 统一委托 window.escHtml（js/esc.js，核心包），此处保留壳以维持 AppLbPanel.esc 既有调用方 */
   function esc(s) {
-    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-    });
+    return window.escHtml(s);
   }
 
   function fmtDay(ts) {

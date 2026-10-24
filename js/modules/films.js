@@ -121,17 +121,17 @@
       const note = kind === 'download'
         ? '<div class="films-kindnote">这是项目方的下载/介绍页，不是影视站点；国内网络可能打不开</div>'
         : '';
-      return '<div class="films-card' + (kind === 'download' ? ' is-download' : '') + '" data-id="' + r.id + '">' +
+      return '<div class="films-card' + (kind === 'download' ? ' is-download' : '') + '" data-id="' + escapeHtml(r.id) + '">' +
         '<div class="films-card-top">' +
           '<div class="films-name">' + escapeHtml(r.name) + feat + kindBadge + risk + '</div>' +
-          '<button class="films-fav' + (fav ? ' on' : '') + '" data-fav="' + r.id + '" ' +
+          '<button class="films-fav' + (fav ? ' on' : '') + '" data-fav="' + escapeHtml(r.id) + '" ' +
             'aria-label="' + (fav ? '取消收藏' : '收藏') + '">' + (fav ? '★' : '☆') + '</button>' +
         '</div>' +
         '<div class="films-sum">' + escapeHtml(r.summary || '暂无简介') + '</div>' +
         '<div class="films-meta">' +
           '<span class="films-score">摸鱼 ' + (r.score || '-') + '</span>' +
           '<span class="films-status ' + st.cls + '">' + st.text + '</span>' +
-          (r.checkedAt ? '<span class="films-date">' + r.checkedAt + '</span>' : '') +
+          (r.checkedAt ? '<span class="films-date">' + escapeHtml(r.checkedAt) + '</span>' : '') +
         '</div>' +
         note +
         '<div class="films-actions">' +
@@ -173,10 +173,9 @@
     });
   }
 
+  /* 统一委托 window.escHtml（js/esc.js，核心包） */
   function escapeHtml(str) {
-    return String(str || '').replace(/[&<>"']/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-    });
+    return window.escHtml(str);
   }
 
   function loadFilms(force) {

@@ -120,7 +120,7 @@ v97 相对 v96 三件套 Brotli 190,739 B 再减少约 **27.6%**，主要是 CSS
 
 | 目录 | 文件数 | 体积 | 说明 |
 |---|---|---|---|
-| `assets/tarot/` | 22 | 7,292 KB | 塔罗大阿卡纳立绘 |
+| `assets/tarot/` | 22 | 1,116 KB | 塔罗大阿卡纳立绘（v265 起 WebP 480px，原 JPG 7.2MB） |
 | `assets/sbti/` | 54 | 488 KB | SBTI 人格图，27 型 × png/webp，两种格式均在用 |
 | `assets/mbti/` | 32 | 628 KB | 16 个 `.webp` 在用，16 个同名 `.png` 无引用（历史遗留） |
 | `assets/milktea/` | 26 | 256 KB | 奶茶品牌 logo |
@@ -630,7 +630,7 @@ v99 修好后线上仍是旧 JS，因为 `?v=99` 被 Vercel 设为 immutable。
    头注释、`index.html` 顶栏 / 模块数注释也已同步。后续改结构时仍需顺手更新。
 9. **`index.html` 的静态说明书骨架（v95 已修）**：已改为空容器，
    目录由 `manual.js` 的 `renderHome()` 按 `SM_ORDER` 渲染（见教训 14）。
-10. **`assets/tarot/` 7.3 MB** 仍是最大的静态资源块。首屏只懒加载，
+10. **`assets/tarot/`**（v265 已压缩为 WebP，共 1.1 MB）。首屏只懒加载，
     但塔罗模块首次进入仍需拉取立绘，弱网下体验一般。
 11. **`switchModule(modKey)` 的第二参数已废弃**：v99 起只接受一个参数，
     旧调用 `switchModule(targetMod, true)` 不会报错，但第二个参数被忽略。

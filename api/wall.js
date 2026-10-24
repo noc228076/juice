@@ -11,7 +11,29 @@
 
 const BOARD_CAP = 300;
 const RL_WINDOW = 60;   // 限频窗口（秒）
-const RL_MAX = 10;      // 窗口内最多留言条数
+const RL_MAX = 10;      // 窗口内最多留言条数（按人）
+const RL_IP_MAX = 30;   // 窗口内最多留言条数（按 IP——id 可被脚本轮换，IP 维度兜底 NAT 场景放稍宽）
+
+/* Vercel 函数拿客户端 IP 只能靠 x-forwarded-for（取第一跳）。
+   本地 server.js 转发时也带上，内存模式可测。 */
+function clientIp(req) {
+  const xff = (req.headers && req.headers['x-forwarded-for']) || '';
+  const first = String(xff).split(',')[0].trim();
+  return first || 'unknown';
+}
+
+/* 常数时间比较，防理论上的计时侧信道逐字节猜 ADMIN_TOKEN */
+function safeEqual(given, expected) {
+  if (typeof given !== 'string' || typeof expected !== 'string') return false;
+  const a = Buffer.from(given);
+  const b = Buffer.from(expected);
+  if (a.length !== b.length) {
+    // 长度不同也要做一次比较，避免长度本身成为信号
+    require('crypto').timingSafeEqual(a, a);
+    return false;
+  }
+  return require('crypto').timingSafeEqual(a, b);
+}
 
 function restConfig() {
   let url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL || '';
@@ -162,19 +184,30 @@ module.exports = async function handler(req, res) {
         return;
       }
 
-      // 限频：同一人每分钟最多 RL_MAX 条
-      let hits;
+      // 限频：双维度。同一人每分钟 RL_MAX 条；同一 IP 每分钟 RL_IP_MAX 条。
+      // 只按 id 限频会被「每次随机换 id」的脚本绕过，IP 维度是兜底。
+      const ip = clientIp(req);
+      let hits, ipHits;
       if (useMemory) {
         const now = Date.now();
-        memRl[id] = (memRl[id] || []).filter(t => now - t < RL_WINDOW * 1000);
-        memRl[id].push(now);
-        hits = memRl[id].length;
+        const bump = (k) => {
+          memRl[k] = (memRl[k] || []).filter(t => now - t < RL_WINDOW * 1000);
+          memRl[k].push(now);
+          return memRl[k].length;
+        };
+        hits = bump('id:' + id);
+        ipHits = bump('ip:' + ip);
       } else {
         const rlKey = 'jrl:wall:' + id;
-        const out = await pipeline([['INCR', rlKey], ['EXPIRE', rlKey, String(RL_WINDOW)]]);
+        const rlIpKey = 'jrl:wallip:' + ip;
+        const out = await pipeline([
+          ['INCR', rlKey], ['EXPIRE', rlKey, String(RL_WINDOW)],
+          ['INCR', rlIpKey], ['EXPIRE', rlIpKey, String(RL_WINDOW)]
+        ]);
         hits = out[0] || 0;
+        ipHits = out[2] || 0;
       }
-      if (hits > RL_MAX) {
+      if (hits > RL_MAX || ipHits > RL_IP_MAX) {
         res.status(429).json({ ok: false, error: '发送太频繁啦，休息一下再发' });
         return;
       }
@@ -216,10 +249,28 @@ module.exports = async function handler(req, res) {
       if (at == null) { res.status(400).json({ ok: false, error: '缺少留言时间戳' }); return; }
 
       const token = req.headers['x-admin-token'];
-      const isAdmin = !!(process.env.ADMIN_TOKEN && token === process.env.ADMIN_TOKEN);
+      const isAdmin = !!(process.env.ADMIN_TOKEN && safeEqual(String(token || ''), process.env.ADMIN_TOKEN));
       const me = clampText(body && body.id, 64);
       if (!isAdmin && !me) {
         res.status(403).json({ ok: false, error: '只能删除自己的留言' });
+        return;
+      }
+
+      // 删除也限频：每次 DELETE 都要 ZRANGE 全表找目标，按 IP 限住防止脚本刷命令量
+      const delIp = clientIp(req);
+      let delHits;
+      if (useMemory) {
+        const now = Date.now();
+        memRl['del:' + delIp] = (memRl['del:' + delIp] || []).filter(t => now - t < RL_WINDOW * 1000);
+        memRl['del:' + delIp].push(now);
+        delHits = memRl['del:' + delIp].length;
+      } else {
+        const delKey = 'jrl:walldel:' + delIp;
+        const out = await pipeline([['INCR', delKey], ['EXPIRE', delKey, String(RL_WINDOW)]]);
+        delHits = out[0] || 0;
+      }
+      if (delHits > 20) {
+        res.status(429).json({ ok: false, error: '操作太频繁，稍后再试' });
         return;
       }
 

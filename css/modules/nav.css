@@ -647,6 +647,26 @@ html.cover-ready #bootSkeleton {
   max-width: 100%;
 }
 
+/* 窄屏（手机）子标签放不下一行时换行成两行流式条，
+   避免第 4 个标签（刮刮乐）溢出被裁掉；
+   极窄屏再隐藏「& 工资」等后缀，保证 2×2 也放得下 */
+@media (max-width: 568px) {
+  .subnav-pill-bar {
+    flex-wrap: wrap;
+    height: auto;
+    justify-content: center;
+  }
+  .subnav-pill-btn {
+    height: 32px;
+    flex: 1 1 44%;
+    justify-content: center;
+    padding: 0 8px;
+  }
+  .sub-pill-x {
+    display: none;
+  }
+}
+
 html[data-theme="light"] .subnav-pill-bar {
   background: rgba(0, 0, 0, 0.04);
 }
@@ -721,6 +741,13 @@ html[data-theme="light"] .subnav-pill-btn.active {
   border-color: rgba(245, 158, 11, 0.45);
 }
 
+/* 刮刮乐并入摸鱼解压后的子标签高亮，沿用其模块琥珀主色 */
+.subnav-pill-btn.active[data-sub-jump="scratch"] {
+  background: rgba(245, 158, 11, 0.18);
+  color: #F59E0B;
+  border-color: rgba(245, 158, 11, 0.45);
+}
+
 html[data-theme="light"] .subnav-pill-btn.active[data-sub-jump="drinks"] {
   background: rgba(22, 163, 74, 0.12);
   color: #15803D;
@@ -740,6 +767,12 @@ html[data-theme="light"] .subnav-pill-btn.active[data-sub-jump="clock"] {
 }
 
 html[data-theme="light"] .subnav-pill-btn.active[data-sub-jump="merit"] {
+  background: rgba(217, 119, 6, 0.12);
+  color: #B45309;
+  border-color: rgba(217, 119, 6, 0.35);
+}
+
+html[data-theme="light"] .subnav-pill-btn.active[data-sub-jump="scratch"] {
   background: rgba(217, 119, 6, 0.12);
   color: #B45309;
   border-color: rgba(217, 119, 6, 0.35);

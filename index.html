@@ -17,8 +17,8 @@
 <meta property="og:title" content="饮料人格研究所 · 测测你的精神状态与灵魂特调">
 <meta property="og:description" content="当代年轻人精神状态测试 (SBTI) / 经典 16 型人格 (MBTI) / 16 款灵魂饮料特调，测出你的独家出厂配方与精神病友。">
 <meta property="og:image" content="assets/icons/icon-512.png">
-  <link rel="stylesheet" href="css/core.bundle.css?v=252">
-  <script defer src="js/app.bundle.js?v=252" fetchpriority="high"></script>
+  <link rel="stylesheet" href="css/core.bundle.css?v=253">
+  <script defer src="js/app.bundle.js?v=253" fetchpriority="high"></script>
   <script>
     (function(){
       // 主题必须在首次绘制前定下来。以前只有 <html data-theme="dark"> 的硬编码默认值，
@@ -95,12 +95,6 @@
             <span class="tab-label-full">今日风向</span>
             <span class="tab-label-short">风向</span>
           </button>
-          <button class="nav-tab" data-mod="scratch">
-            <span class="tab-icon">🎟️</span>
-            <span class="tab-label-full">幸运刮刮乐</span>
-            <span class="tab-label-short">刮刮</span>
-          </button>
-
           <button class="nav-tab" data-mod="wall">
             <span class="tab-icon">💬</span>
             <span class="tab-label-full">弹幕墙</span>
@@ -1317,9 +1311,10 @@
       <div class="ck-wrap">
         <!-- 摸鱼解压子导航：时钟 vs 功德 -->
         <div class="subnav-pill-bar" style="margin: 0 auto 16px; position: relative; z-index: 5;">
-          <button type="button" class="subnav-pill-btn active" data-sub-jump="clock">⏰ 摸鱼时钟 & 工资</button>
-          <button type="button" class="subnav-pill-btn" data-sub-jump="merit">📿 功德木鱼 & 碎纸解压</button>
+          <button type="button" class="subnav-pill-btn active" data-sub-jump="clock">⏰ 摸鱼时钟<span class="sub-pill-x"> & 工资</span></button>
+          <button type="button" class="subnav-pill-btn" data-sub-jump="merit">📿 功德木鱼<span class="sub-pill-x"> & 碎纸解压</span></button>
           <button type="button" class="subnav-pill-btn" data-sub-jump="films">🎬 摸鱼片单</button>
+          <button type="button" class="subnav-pill-btn" data-sub-jump="scratch">🎟️ 幸运刮刮乐</button>
         </div>
         <!-- 顶部状态与快捷工具栏 -->
         <div class="ck-topbar">
@@ -1482,9 +1477,10 @@
       <div class="mr-wrap">
         <!-- 摸鱼解压子导航：时钟 vs 功德 -->
         <div class="subnav-pill-bar" style="margin: 0 auto 16px; position: relative; z-index: 5;">
-          <button type="button" class="subnav-pill-btn" data-sub-jump="clock">⏰ 摸鱼时钟 & 工资</button>
-          <button type="button" class="subnav-pill-btn active" data-sub-jump="merit">📿 功德木鱼 & 碎纸解压</button>
+          <button type="button" class="subnav-pill-btn" data-sub-jump="clock">⏰ 摸鱼时钟<span class="sub-pill-x"> & 工资</span></button>
+          <button type="button" class="subnav-pill-btn active" data-sub-jump="merit">📿 功德木鱼<span class="sub-pill-x"> & 碎纸解压</span></button>
           <button type="button" class="subnav-pill-btn" data-sub-jump="films">🎬 摸鱼片单</button>
+          <button type="button" class="subnav-pill-btn" data-sub-jump="scratch">🎟️ 幸运刮刮乐</button>
         </div>
         <header class="mr-header">
           <span class="mr-tag">MINDFUL MERIT & STRESS RELIEF · 静心解压所</span>
@@ -1627,9 +1623,10 @@
       <div class="fl-wrap">
         <!-- 摸鱼解压子导航：时钟 / 功德 / 片单 -->
         <div class="subnav-pill-bar" style="margin: 0 auto 16px; position: relative; z-index: 5;">
-          <button type="button" class="subnav-pill-btn" data-sub-jump="clock">⏰ 摸鱼时钟 & 工资</button>
-          <button type="button" class="subnav-pill-btn" data-sub-jump="merit">📿 功德木鱼 & 碎纸解压</button>
+          <button type="button" class="subnav-pill-btn" data-sub-jump="clock">⏰ 摸鱼时钟<span class="sub-pill-x"> & 工资</span></button>
+          <button type="button" class="subnav-pill-btn" data-sub-jump="merit">📿 功德木鱼<span class="sub-pill-x"> & 碎纸解压</span></button>
           <button type="button" class="subnav-pill-btn active" data-sub-jump="films">🎬 摸鱼片单</button>
+          <button type="button" class="subnav-pill-btn" data-sub-jump="scratch">🎟️ 幸运刮刮乐</button>
         </div>
         <header class="fl-header">
           <span class="fl-tag">SLACKING WATCHLIST · 追剧资源索引</span>
@@ -2123,6 +2120,13 @@
     <!-- 模块 11：幸运刮刮乐 (Lucky Scratch Lab) -->
     <section id="mod-scratch" class="app-module">
       <div class="scratch-container">
+        <!-- 摸鱼解压子导航：时钟 / 功德 / 片单 / 刮刮乐 -->
+        <div class="subnav-pill-bar" style="margin: 0 auto 16px; position: relative; z-index: 5;">
+          <button type="button" class="subnav-pill-btn" data-sub-jump="clock">⏰ 摸鱼时钟<span class="sub-pill-x"> & 工资</span></button>
+          <button type="button" class="subnav-pill-btn" data-sub-jump="merit">📿 功德木鱼<span class="sub-pill-x"> & 碎纸解压</span></button>
+          <button type="button" class="subnav-pill-btn" data-sub-jump="films">🎬 摸鱼片单</button>
+          <button type="button" class="subnav-pill-btn active" data-sub-jump="scratch">🎟️ 幸运刮刮乐</button>
+        </div>
         <!-- 头部 Hero -->
         <div class="scratch-hero">
           <div class="scratch-hero-badge">

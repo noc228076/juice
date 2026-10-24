@@ -53,6 +53,7 @@
     clock: 'clock',
     merit: 'clock',
     films: 'clock',
+    scratch: 'clock',
     lifeguide: 'manual'
   };
 
@@ -341,7 +342,7 @@
   function rememberModule(modKey) {
     if (modKey === 'drinks' || modKey === 'milktea') lastDrinkMod = modKey;
     if (modKey === 'tarot' || modKey === 'lingqian' || modKey === 'bazi' || modKey === 'fengshui') lastMysticMod = modKey;
-    if (modKey === 'clock' || modKey === 'merit' || modKey === 'films') lastRelaxMod = modKey;
+    if (modKey === 'clock' || modKey === 'merit' || modKey === 'films' || modKey === 'scratch') lastRelaxMod = modKey;
   }
 
   function layerApi(name) {
@@ -825,16 +826,16 @@
             '</div>' +
             '<div class="gp-body">' +
             '<p>一台专为年轻人打造的<b>工位摸鱼、解压娱乐与自我测评</b>纯前端工具箱。免登录、无广告，所有数据只存在你的设备本地。</p>' +
-            '<div class="gp-label">📌 10 大功能</div>' +
+            '<div class="gp-label">📌 9 大功能</div>' +
             '<div class="gp-func-list">' +
             '<div>🍹 <b>饮品测评</b> —— 测专属饮料 / 奶茶人格，支持当代 SBTI 发疯测试与 MBTI。</div>' +
             '<div>📖 <b>自我说明书</b> —— 15 关挑战：扫雷、俄罗斯方块、贪吃蛇、泡泡猫等 11 款小游戏 + 全服冲榜。</div>' +
             '<div>☯️ <b>东西玄学</b> —— 22 张塔罗大阿卡那、观音百签摇签、八字精准排盘、工位风水。</div>' +
             '<div>⏰ <b>摸鱼解压</b> —— 实时带薪秒薪时钟、全屏 Fliqlo 翻页屏保、电子木鱼、碎纸解压、' +
-            '<b>摸鱼片单</b>（124 个追剧站点索引，含老板键一键切换）。</div>' +
+            '<b>摸鱼片单</b>（124 个追剧站点索引，含老板键一键切换）、' +
+            '<b>幸运刮刮乐</b>（5 款拟真彩票，真实物理刮擦涂层与刮彩账本）。</div>' +
             '<div>🪙 <b>纠结拯救</b> —— 命运大轮盘、抛硬币、掷骰子、掷圣杯，治好选择困难症。</div>' +
             '<div>🗞️ <b>今日风向</b> —— 每天 60 秒早报速递、全网实时热搜榜、必应 4K 壁纸。</div>' +
-            '<div>🎟️ <b>幸运刮刮乐</b> —— 5 款经典拟真彩票，真实物理刮擦涂层与刮彩账本。</div>' +
             '<div>💬 <b>弹幕墙</b> —— 一人一句留言上墙，看看大家在聊什么。</div>' +
             '<div>📚 <b>背单词</b> —— 四六级词库 8500 词，间隔重复 + 四选一，进度存本机。</div>' +
             '</div>' +

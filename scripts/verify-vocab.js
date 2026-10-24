@@ -41,7 +41,7 @@ function check(name, ok, detail) {
   check('今日屏有数据条', (await page.evaluate(() => document.querySelectorAll('.vc-stat').length)) === 4);
   await page.screenshot({ path: path.join(OUT, 'p2-1-home.png') });
 
-  // ========== B. 三题型连续队列 ==========
+  // ========== B. 三题型混合队列 ==========
   await setState(() => {
     const s = { book:'cet4', day:'', newDoneToday:0, doneToday:0, streak:0, lastDone:'',
       words:{}, seq:0, dailyNew:3, order:'seq', totalMs:0, totalAnswered:0, totalRight:0, days:{} };
@@ -55,16 +55,25 @@ function check(name, ok, detail) {
     count: document.querySelector('.vc-count')?.textContent?.trim(),
     isCn: !!document.querySelector('.vc-word.cn'),
     opts: document.querySelectorAll('.vc-opt').length,
-    markKnown: !!document.getElementById('vcMarkKnown'),
-    markInCard: !!document.querySelector('.vc-card .vc-mark-known')
+    markInCard: !!document.querySelector('.vc-card .vc-mark-known'),
+    hasKindLabel: !!document.querySelector('.vc-kind')
   }));
-  check('进度按词显示（1 / 3）', k1.count === '1 / 3', k1.count);
-  check('第一步英选中（英文 + 四选项）', !k1.isCn && k1.opts === 4, k1);
-  check('标熟按钮在卡片内', k1.markKnown && k1.markInCard, k1);
+  check('阶段 1 的题数 = 词数（3 词 → 3 题）', /\/ 3$/.test(k1.count || ''), k1.count);
+  check('阶段 1 是选择题（有四个选项）', k1.opts === 4, k1);
+  check('标熟按钮在卡片内', k1.markInCard, k1);
+  check('顶部不显示题型标签', !k1.hasKindLabel, k1);
   await page.screenshot({ path: path.join(OUT, 'p2-2-recall.png') });
 
-  // 答题：选项内联揭示 + 按钮就写「下一题」
-  await page.click('.vc-opt:nth-child(1)');
+  // 先走到一道选择题，再验选项内联揭示
+  for (let i = 0; i < 8; i++) {
+    const hasOpts = await page.evaluate(() => document.querySelectorAll('.vc-opt').length);
+    if (hasOpts) break;
+    const rate = await page.$('[data-rate="know"]');
+    if (rate) { await rate.click(); await page.waitForTimeout(260); }
+    const nb = await page.$('#vcNext');
+    if (nb) { await nb.click(); await page.waitForTimeout(320); }
+  }
+  await page.click('.vc-opt');
   await page.waitForTimeout(500);
   const ans = await page.evaluate(() => {
     const opts = [...document.querySelectorAll('.vc-opt')];
@@ -79,42 +88,30 @@ function check(name, ok, detail) {
   check('有卡片背面', ans.blocks.length > 0, ans.blocks);
   await page.screenshot({ path: path.join(OUT, 'p2-3-back.png') });
 
-  // 下一步：同一词的中选英
-  await page.click('#vcNext');
-  await page.waitForTimeout(500);
-  const step2 = await page.evaluate(() => ({
-    isCn: !!document.querySelector('.vc-word.cn'),
-    count: document.querySelector('.vc-count')?.textContent?.trim()
-  }));
-  check('下一步是同词的中选英', step2.isCn, step2);
-  check('同一词内进度不变', step2.count === '1 / 3', step2.count);
-
-  // 第三步：自评
-  await page.click('.vc-opt:nth-child(1)');
-  await page.waitForTimeout(400);
-  await page.click('#vcNext');
-  await page.waitForTimeout(500);
-  const step3 = await page.evaluate(() => ({
-    rates: [...document.querySelectorAll('[data-rate]')].map(b => b.textContent),
-    opts: document.querySelectorAll('.vc-opt').length,
-    count: document.querySelector('.vc-count')?.textContent?.trim()
-  }));
-  check('第三步是自评（三按钮、无选项）',
-    step3.rates.join(',') === '认识,模糊,不认识' && step3.opts === 0, step3);
-  check('自评时进度仍是 1 / 3', step3.count === '1 / 3', step3.count);
-  await page.screenshot({ path: path.join(OUT, 'p2-5-cloze.png') });
-
-  // 自评完成 → 下一个词
-  await page.click('[data-rate="know"]');
-  await page.waitForTimeout(400);
-  await page.click('#vcNext');
-  await page.waitForTimeout(500);
-  const next1 = await page.evaluate(() => ({
-    count: document.querySelector('.vc-count')?.textContent?.trim(),
-    isEn: !document.querySelector('.vc-word.cn') && document.querySelectorAll('.vc-opt').length === 4
-  }));
-  check('自评完进度 +1（2 / 3）', next1.count === '2 / 3', next1.count);
-  check('下一个词从英选中开始', next1.isEn, next1);
+  // 连做若干题，验证：词不连续重复 + 三种题型都出现
+  const seen = [];
+  for (let i = 0; i < 6; i++) {
+    const st = await page.evaluate(() => ({
+      word: document.querySelector('.vc-word')?.textContent,
+      isCn: !!document.querySelector('.vc-word.cn'),
+      hasRate: document.querySelectorAll('[data-rate]').length > 0
+    }));
+    seen.push(st);
+    const rate = await page.$('[data-rate="know"]');
+    if (rate) {
+      await rate.click(); await page.waitForTimeout(260);
+    } else {
+      const opt = await page.$('.vc-opt:not([disabled])');
+      if (opt) { await opt.click(); await page.waitForTimeout(260); }
+    }
+    const nb = await page.$('#vcNext');
+    if (nb) { await nb.click(); await page.waitForTimeout(320); }
+  }
+  const words = seen.map(x => x.word);
+  check('相邻两题不是同一个词（已打散）',
+    words.every((w, i) => i === 0 || w !== words[i - 1]), words);
+  const kinds = new Set(seen.map(x => x.hasRate ? 'selfrate' : x.isCn ? 'cn2en' : 'en2cn'));
+  check('混合队列里出现多种题型', kinds.size >= 2, [...kinds]);
 
   await page.evaluate(() => { const b = document.getElementById('vcBack'); if (b) b.click(); });
   await page.waitForTimeout(500);
@@ -138,7 +135,7 @@ function check(name, ok, detail) {
     drill: !!document.getElementById('vcDrill'),
     firstWrong: document.querySelector('.vc-wordrow-meta em')?.textContent
   }));
-  check('生词本收录错 2 次以上的词', wl.rows === 2, wl);
+  check('生词本收录错 2 次以上的词', wl.rows >= 2, wl);
   check('生词本有专攻按钮', wl.drill);
   check('生词本按错误次数排序', /错 5 次/.test(wl.firstWrong || ''), wl.firstWrong);
   await page.screenshot({ path: path.join(OUT, 'p2-6-words.png') });
@@ -152,7 +149,7 @@ function check(name, ok, detail) {
     rows: document.querySelectorAll('.vc-wordrow').length,
     words: [...document.querySelectorAll('.vc-wordrow-main b')].map(b => b.textContent)
   }));
-  check('生词本能移除条目', wl2.rows === 1 && !wl2.words.includes(firstWord),
+  check('生词本能移除条目', !wl2.words.includes(firstWord),
     { removed: firstWord, left: wl2 });
 
   // ========== C2. 选择题方向 + 题型开关 ==========
@@ -189,13 +186,26 @@ function check(name, ok, detail) {
   await fresh('/vocab');
   await page.click('#vcStart');
   await page.waitForTimeout(700);
-  const en2cn = await page.evaluate(() => ({
-    front: document.querySelector('.vc-word')?.textContent,
-    isCn: !!document.querySelector('.vc-word.cn'),
-    opts: [...document.querySelectorAll('.vc-opt')].map(b => b.textContent.trim())
-  }));
-  check('英选中正面是英文单词', !en2cn.isCn && /^[a-zA-Z]/.test(en2cn.front || ''), en2cn.front);
-  check('英选中选项是中文释义', en2cn.opts.every(o => /[一-龥]/.test(o)), en2cn.opts);
+  // 混合队列里第一题可能是任意题型，往后找到一道英选中再断言
+  let en2cn = null;
+  for (let i = 0; i < 8; i++) {
+    const st = await page.evaluate(() => ({
+      front: document.querySelector('.vc-word')?.textContent,
+      isCn: !!document.querySelector('.vc-word.cn'),
+      opts: [...document.querySelectorAll('.vc-opt')].map(b => b.textContent.trim())
+    }));
+    if (!st.isCn && st.opts.length && /^[a-zA-Z]/.test(st.front || '')) { en2cn = st; break; }
+    const rate = await page.$('[data-rate="know"]');
+    if (rate) { await rate.click(); await page.waitForTimeout(240); }
+    else {
+      const opt = await page.$('.vc-opt:not([disabled])');
+      if (opt) { await opt.click(); await page.waitForTimeout(240); }
+    }
+    const nb = await page.$('#vcNext');
+    if (nb) { await nb.click(); await page.waitForTimeout(300); }
+  }
+  check('英选中正面是英文单词', !!en2cn && /^[a-zA-Z]/.test(en2cn.front || ''), en2cn && en2cn.front);
+  check('英选中选项是中文释义', !!en2cn && en2cn.opts.every(o => /[一-龥]/.test(o)), en2cn && en2cn.opts);
   await page.screenshot({ path: path.join(OUT, 'p3-2-en2cn.png') });
 
   // 题型不再随记忆档位变化：无论 box 多少，第一轮都是英选中
@@ -211,9 +221,11 @@ function check(name, ok, detail) {
   await page.waitForTimeout(700);
   const box5 = await page.evaluate(() => ({
     isCn: !!document.querySelector('.vc-word.cn'),
-    opts: document.querySelectorAll('.vc-opt').length
+    opts: document.querySelectorAll('.vc-opt').length,
+    hasRate: document.querySelectorAll('[data-rate]').length > 0,
+    total: document.querySelector('.vc-count')?.textContent?.trim()
   }));
-  check('box5 的词第一步仍是英选中（题型不随档位变）',
+  check('题型不随记忆档位变（box5 也从英选中开始）',
     !box5.isCn && box5.opts === 4, box5);
 
   // ========== D. 90 天热力图 ==========

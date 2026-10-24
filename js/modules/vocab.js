@@ -201,16 +201,18 @@
   var answered = false;
   var current = null;
   var sessionStats = { right: 0, wrong: 0 };
-  /* 单一连续队列：每个词连着做三种题型（英选中 → 中选英 → 自评），
-     全部做完再下一个词。进度按「词」算，不按题算。
-       词 i 的第 1 题 = 英选中
-       词 i 的第 2 题 = 中选英
-       词 i 的第 3 题 = 自评
-     自评改判「不认识」→ 这个词从英选中重新走一遍三种题型。 */
+  /* 混合队列：每个词都出三种题型（英选中 / 中选英 / 自评），
+     全部展开后打散，同一个词不会连着出现。进度按「题」算。
+     自评改判「不认识」→ 这个词的三种题型再排到队尾重来一遍。 */
   var STEPS = ['en2cn', 'cn2en', 'selfrate'];
-  var stepOf = 0;         // 当前词做到第几步（0..2）
-  var redoWord = null;    // 正在重走的词（改判后）
-  var redoStep = 0;
+  /* 三阶段，严格按顺序：
+       阶段 1 英选中：本局全部词
+       阶段 2 中选英：本局全部词
+       阶段 3 自评：本局全部词
+     item = { idx, kind } */
+  var stage = 0;          // 0..2
+  var stageQueue = [];    // 当前阶段的题
+  var sessionWords = [];  // 本局全部词（阶段 2/3 要重排一遍）
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -540,28 +542,37 @@
     }
     var boxLabels = ['新学', '1 档', '2 档', '3 档', '4 档', '熟练'];
 
+    /* 六个关键数字用紧凑网格（3 列 2 行），比原来的 2×3 省一半高度 */
+    var stats = [
+      { v: knownWords().length, k: '已标熟' },
+      { v: masteredCount(), k: '已掌握' },
+      { v: toughWords().length, k: '生词本' },
+      { v: state.totalAnswered || 0, k: '累计答题' },
+      { v: accuracy() + '%', k: '正确率' },
+      { v: fmtDuration(state.totalMs), k: '学习时长' }
+    ];
+
     return '<div class="vc-panel">' +
       '<h2 class="vc-h2">学习统计</h2>' +
-      '<div class="vc-kv"><span>累计学过</span><b>' + known + ' / ' + total + ' 词</b></div>' +
+
+      '<div class="vc-kv"><span>累计学过</span><b>' + known + ' / ' + total + ' 词 · ' + pct + '%</b></div>' +
       '<div class="vc-bar"><i style="width:' + pct + '%"></i></div>' +
-      '<div class="vc-kv small"><span>' + (state.book === 'cet6' ? 'CET-6' : 'CET-4') +
-        ' 词库完成度</span><b>' + pct + '%</b></div>' +
-      '<div class="vc-grid2">' +
-        '<div class="vc-cell"><b>' + knownWords().length + '</b><span>已标熟</span></div>' +
-        '<div class="vc-cell"><b>' + masteredCount() + '</b><span>已掌握（4 档以上）</span></div>' +
-        '<div class="vc-cell"><b>' + fmtDuration(state.totalMs) + '</b><span>累计学习时长</span></div>' +
-        '<div class="vc-cell"><b>' + (state.totalAnswered || 0) + '</b><span>累计答题</span></div>' +
-        '<div class="vc-cell"><b>' + accuracy() + '%</b><span>总正确率</span></div>' +
-        '<div class="vc-cell"><b>' + toughWords().length + '</b><span>生词本</span></div>' +
-      '</div>' +
-      '<div class="vc-h3">记忆档位分布</div>' +
+
+      '<div class="vc-statgrid">' + stats.map(function (it) {
+        return '<div class="vc-statcell"><b>' + esc(it.v) + '</b><span>' + it.k + '</span></div>';
+      }).join('') + '</div>' +
+
+      '<div class="vc-h3">记忆档位</div>' +
       '<div class="vc-boxes">' + boxes.map(function (n, i) {
         return '<div class="vc-boxrow"><span>' + boxLabels[i] + '</span>' +
           '<div class="vc-bar thin"><i style="width:' + (known ? Math.round(n / known * 100) : 0) + '%"></i></div>' +
           '<b>' + n + '</b></div>';
       }).join('') + '</div>' +
-      '<div class="vc-h3">最近 ' + HEAT_DAYS + ' 天</div>' + heatmap(HEAT_DAYS) +
-      '<div class="vc-heat-legend"><span>少</span><i class="lv0"></i><i class="lv1"></i><i class="lv2"></i><i class="lv3"></i><span>多</span></div>' +
+
+      '<div class="vc-h3">最近 ' + HEAT_DAYS + ' 天' +
+        '<span class="vc-heat-legend"><i class="lv0"></i><i class="lv1"></i><i class="lv2"></i><i class="lv3"></i></span>' +
+      '</div>' +
+      heatmap(HEAT_DAYS) +
       '</div>';
   }
 
@@ -706,8 +717,21 @@
   /* 按记忆档位选题型，再按开关回落：
      关掉的题型不出现，退到该词最合适的那个还开着的题型。
      —— 三个都关掉时兜底成认词，否则玩家会卡在空屏。 */
-  function kindOf() {
-    return STEPS[Math.min(stepOf, STEPS.length - 1)];
+  function kindOf(item) {
+    return (item && item.kind) || STEPS[Math.min(stage, STEPS.length - 1)];
+  }
+
+  /* 某一阶段的题：本局全部词，统一一种题型 */
+  function buildStage(n) {
+    var kind = STEPS[Math.min(n, STEPS.length - 1)];
+    return sessionWords.map(function (it) {
+      return {
+        idx: it.idx,
+        rec: state.words[book.words[it.idx][0]] || it.rec || null,
+        isNew: it.isNew,
+        kind: kind
+      };
+    });
   }
 
   function kindLabel(k) {
@@ -717,22 +741,19 @@
     return '英选中';
   }
 
-  function stepLabel() {
-    return kindLabel(kindOf()) + ' · 第 ' + (Math.min(stepOf, 2) + 1) + '/3';
-  }
 
   /* ---------- 答题屏 ---------- */
   function startSession() {
     if (!queue.length) { buildAndStart(); return; }
+    sessionWords = queue.map(function (q) { return { idx: q.idx, rec: q.rec || null, isNew: q.isNew }; });
+    stage = 0;
+    stageQueue = buildStage(0);
     qi = 0;
-    stepOf = 0;
     answered = false;
-    redoWord = null;
-    redoStep = 0;
     sessionStats = { right: 0, wrong: 0 };
     tickStart();
     ensureExtra().then(function () {
-      current = makeQuestion(queue[0]);
+      current = makeQuestion(stageQueue[0]);
       renderQuestion();
     });
   }
@@ -740,7 +761,7 @@
   function makeQuestion(item) {
     var idx = item.idx;
     var w = book.words[idx];
-    var kind = item.forceKind || kindOf();
+    var kind = kindOf(item);
 
     var q = {
       idx: idx,
@@ -750,8 +771,7 @@
       meaning: w[2],
       options: null,
       rated: null,
-      revealed: false,
-      isRedo: !!item.isRedo
+      revealed: false
     };
 
     if (kind === 'en2cn') {
@@ -766,9 +786,9 @@
     if (!el || !current) return;
     var w = current;
     var canSpeak = window.AppVocabData.canSpeak();
-    /* 进度按「词」算：当前第几个词 / 共几个词 */
-    var wordNo = qi + 1;
-    var pct = queue.length ? Math.round(qi / queue.length * 100) : 0;
+    /* 进度按「题」算：混合队列里每道题独立推进 */
+    var qNo = qi + 1;
+    var pct = stageQueue.length ? Math.round(qi / stageQueue.length * 100) : 0;
 
     var inner = '';
 
@@ -815,7 +835,7 @@
       '<div class="vc-wrap vc-play">' +
         '<div class="vc-top">' +
           '<button class="vc-back" id="vcBack" type="button" aria-label="返回今日">← 返回</button>' +
-          '<span class="vc-count">' + wordNo + ' / ' + queue.length + '</span>' +
+          '<span class="vc-count">' + qNo + ' / ' + stageQueue.length + '</span>' +
         '</div>' +
         '<div class="vc-bar thin"><i style="width:' + pct + '%"></i></div>' +
         '<div class="vc-card">' +
@@ -870,7 +890,7 @@
     rec.due = dayNum(todayKey()) + 3650;
     state.words[key] = rec;
     saveState();
-    nextWord();
+    advanceStep();
   }
 
   /* 四选一：点选之后判对错，同时把每个选项的意思都揭开（就地显示） */
@@ -930,7 +950,7 @@
           (w.rated !== 'unknown'
             ? '<button class="vc-btn small ghost" id="vcMarkWrong" type="button">其实不认识，改判</button>'
             : '') +
-          '<button class="vc-btn primary" id="vcNext" type="button">下一个</button>' +
+          '<button class="vc-btn primary vc-next-btn" id="vcNext" type="button">' + nextBtnLabel() + '</button>' +
         '</div>' +
       '</div>';
 
@@ -974,12 +994,12 @@
 
     if (rate === 'unknown' || current.amended) {
       applySchedule(idx, false);
-      /* 改判 / 不认识 → 这个词从英选中重走一遍三种题型 */
+      /* 改判 / 不认识 → 三种题型排到队尾，从头再来一遍 */
       startRedo(idx);
       return;
     }
     applySchedule(idx, ok);
-    nextWord();
+    advanceStep();
   }
 
   /* 统计落盘（三种题型共用） */
@@ -1027,46 +1047,28 @@
     renderBackPanel();
   }
 
-  /* 按钮文案保持最简：还有下一步就「下一题」，本局走完才「看结果」 */
-  function nextBtnLabel() {
-    var moreSteps = stepOf + 1 < STEPS.length;
-    if (moreSteps) return '下一题';
-    return qi + 1 >= queue.length ? '看结果' : '下一题';
-  }
+  /* 落调度：答对升档、答错归零；已标熟的词不再改动 */
+  function applySchedule(idx, ok) {
+    var words = book.words;
+    var key = words[idx][0];
+    var rec = state.words[key] || { box: 0, due: 0, seen: 0, wrong: 0 };
+    if (rec.known) return;
+    rec.seen++;
+    var today = dayNum(todayKey());
 
-  /* 同一个词的下一题型，或下一个词 */
-  function advanceStep() {
-    answered = false;
-    if (stepOf + 1 < STEPS.length) {
-      stepOf++;
-      current = makeQuestion(queue[qi]);
-      renderQuestion();
-      return;
+    if (ok) {
+      rec.box = Math.min(MAX_BOX, rec.box + 1);
+      rec.due = today + INTERVALS[rec.box];
+    } else {
+      rec.box = 0;
+      rec.wrong++;
+      rec.due = today;
     }
-    nextWord();
+    state.words[key] = rec;
+    saveState();
   }
 
-  function nextWord() {
-    answered = false;
-    stepOf = 0;
-    qi++;
-    if (redoWord) { redoWord = null; }
-    if (qi >= queue.length) { finishSession(); return; }
-    current = makeQuestion(queue[qi]);
-    renderQuestion();
-  }
-
-  /* 改判：这个词插到当前位置后面，从英选中重新走一遍三种题型 */
-  function startRedo(idx) {
-    answered = false;
-    stepOf = 0;
-    queue.splice(qi + 1, 0, { idx: idx, rec: state.words[book.words[idx][0]] || null, isNew: false, isRedo: true });
-    current = makeQuestion(queue[qi + 1]);
-    qi++;
-    redoWord = idx;
-    renderQuestion();
-  }
-
+  /* 卡片背面：拆词 / 词族 / 真题，有数据才渲染 */
   function renderBackPanel() {
     var box = el.querySelector('#vcBackPanel');
     if (!box) return;
@@ -1107,39 +1109,55 @@
     box.querySelectorAll('[data-jump]').forEach(function (b) {
       b.onclick = function () {
         var j = +b.getAttribute('data-jump');
-        queue.splice(qi + 1, 0, { idx: j, rec: state.words[book.words[j][0]] || null, isNew: false });
-        nextWord();
+        stageQueue.splice(qi + 1, 0, { idx: j, rec: state.words[book.words[j][0]] || null, kind: 'en2cn' });
+        advanceStep();
       };
     });
   }
 
-  /* 落调度。ok=false 时记一次错，box 归 0、今天再排。 */
-  /* 落调度。连续队列没有轮次概念，每次作答独立记档。 */
-  function applySchedule(idx, ok) {
-    var words = book.words;
-    var key = words[idx][0];
-    var rec = state.words[key] || { box: 0, due: 0, seen: 0, wrong: 0 };
-    if (rec.known) return;      // 已标熟的词不再改动
-    rec.seen++;
-    var today = dayNum(todayKey());
+  function nextBtnLabel() {
+    var lastOfStage = qi + 1 >= stageQueue.length;
+    var lastStage = stage + 1 >= STEPS.length;
+    return lastOfStage && lastStage ? '看结果' : '下一题';
+  }
 
-    if (ok) {
-      rec.box = Math.min(MAX_BOX, rec.box + 1);
-      rec.due = today + INTERVALS[rec.box];
-    } else {
-      rec.box = 0;
-      rec.wrong++;
-      rec.due = today;
+  /* 下一题：当前阶段走完就进下一阶段，三个阶段都走完才结算 */
+  function advanceStep() {
+    answered = false;
+    qi++;
+    if (qi < stageQueue.length) {
+      current = makeQuestion(stageQueue[qi]);
+      renderQuestion();
+      return;
     }
-    state.words[key] = rec;
-    saveState();
+    if (stage + 1 < STEPS.length) {
+      stage++;
+      stageQueue = buildStage(stage);
+      qi = 0;
+      current = makeQuestion(stageQueue[0]);
+      renderQuestion();
+      return;
+    }
+    finishSession();
+  }
+
+  /* 改判：这个词的三种题型依次插到队尾，从英选中重新完整走一遍 */
+  function startRedo(idx) {
+    answered = false;
+    STEPS.forEach(function (k) {
+      stageQueue.push({ idx: idx, rec: state.words[book.words[idx][0]] || null, kind: k, isRedo: true });
+    });
+    qi++;
+    if (qi >= stageQueue.length) { finishSession(); return; }
+    current = makeQuestion(stageQueue[qi]);
+    renderQuestion();
   }
 
   function leaveSession() {
     if (window.SFX && window.SFX.back) window.SFX.back();
     tickFlush();
     saveState();
-    queue = [];
+    stageQueue = [];
     qi = 0;
     answered = false;
     current = null;
@@ -1158,9 +1176,11 @@
       state.lastDone = todayKey();
       state.streak = (state.streak || 0) + 1;
     }
-    var usedNew = 0, maxNewIdx = -1;
+    /* 新词额度按「本局出现过的新词」去重统计（混合队列里同一词有多条） */
+    var usedNew = 0, maxNewIdx = -1, seenNew = {};
     queue.forEach(function (q) {
-      if (!q.isNew) return;
+      if (!q.isNew || seenNew[q.idx]) return;
+      seenNew[q.idx] = 1;
       usedNew++;
       if (q.idx > maxNewIdx) maxNewIdx = q.idx;
     });
@@ -1174,7 +1194,7 @@
       '<div class="vc-wrap">' + subnav() +
       '<div class="vc-panel vc-done">' + owl(pose) +
       '<h2>本局完成</h2>' +
-      '<p>三轮走完 · 答对 <b>' + right + '</b> · 答错 <b>' + wrong +
+      '<p>本局答对 <b>' + right + '</b> · 答错 <b>' + wrong +
         '</b> · 正确率 <b>' + acc + '%</b></p>' +
       '<p class="vc-dim">连续打卡 ' + state.streak + ' 天 · 累计 ' + fmtDuration(state.totalMs) + '</p>' +
       '<div class="vc-actions">' +
@@ -1183,8 +1203,8 @@
       '</div></div></div>';
 
     bindSubnav();
-    stepOf = 0;
-    redoWord = null;
+    stage = 0;
+    stageQueue = [];
     var ab = el.querySelector('#vcAgain');
     if (ab) ab.onclick = function () { state.newDoneToday = 0; saveState(); buildAndStart(); };
     var hb = el.querySelector('#vcHome');

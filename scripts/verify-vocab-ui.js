@@ -23,11 +23,20 @@ function check(n, ok, d){ R.push({n,ok:!!ok,d}); console.log((ok?'PASS':'FAIL')+
     kind: document.querySelector('.vc-kind')?.textContent,
     count: document.querySelector('.vc-count')?.textContent
   }));
-  check('进度显示为「1 / 5」而不是 1/1', /^1 \/ 5$/.test((t1.count||'').trim()), t1.count);
+  check('进度显示为「N / 总题数」（词数×3）', /^1 \/ \d+$/.test((t1.count||'').trim()), t1.count);
   check('顶部不再显示题型与步骤', !t1.kind, { kind: t1.kind });
 
   // 1/2: 答完选项内联揭示 + 下一题按钮醒目
-  await page.click('.vc-opt:nth-child(1)');
+  // 混合队列第一题可能是自评，先推进到一道选择题
+  for (let i = 0; i < 10; i++) {
+    const hasOpts = await page.evaluate(() => document.querySelectorAll('.vc-opt').length);
+    if (hasOpts) break;
+    const rate = await page.$('[data-rate="know"]');
+    if (rate) { await rate.click(); await page.waitForTimeout(240); }
+    const nb0 = await page.$('#vcNext');
+    if (nb0) { await nb0.click(); await page.waitForTimeout(300); }
+  }
+  await page.click('.vc-opt');
   await page.waitForTimeout(400);
   const t2 = await page.evaluate(() => {
     const opts = [...document.querySelectorAll('.vc-opt')];
@@ -44,42 +53,43 @@ function check(n, ok, d){ R.push({n,ok:!!ok,d}); console.log((ok?'PASS':'FAIL')+
   check('下一题按钮就是「下一题」', (t2.nextLabel||'').trim() === '下一题', t2.nextLabel);
   check('下一题按钮占满整行（够醒目）', t2.nextWidth > t2.cardWidth * 0.8, t2);
 
-  // 点下一题 → 同词进中选英（不是下一个词）
+  // 点下一题 → 队列往前走（混合队列，下一题可能是任意词/任意题型）
   await page.click('#vcNext');
   await page.waitForTimeout(500);
   const t3 = await page.evaluate(() => ({
-    kind: document.querySelector('.vc-kind')?.textContent,
-    count: document.querySelector('.vc-count')?.textContent,
-    isCn: !!document.querySelector('.vc-word.cn')
+    count: document.querySelector('.vc-count')?.textContent?.trim(),
+    hasRate: document.querySelectorAll('[data-rate]').length > 0,
+    opts: document.querySelectorAll('.vc-opt').length
   }));
-  check('下一题先进同一词的中选英（给中文）', t3.isCn, t3);
-  check('进度仍是 1 / 5（同一词内推进）', /^1 \/ 5$/.test((t3.count||'').trim()), t3.count);
+  check('下一题推进到第 2 题', /^2 \/ /.test(t3.count || ''), t3.count);
+  check('第 2 题是三种题型之一', t3.opts === 4 || t3.hasRate, t3);
 
-  // 做完中选英 → 自评（第 3 步）
-  await page.click('.vc-opt:nth-child(1)');
-  await page.waitForTimeout(400);
-  const midLabel = await page.evaluate(() => document.getElementById('vcNext')?.textContent);
-  await page.click('#vcNext');
-  await page.waitForTimeout(500);
-  const t4 = await page.evaluate(() => ({
-    kind: document.querySelector('.vc-kind')?.textContent,
-    rates: document.querySelectorAll('[data-rate]').length,
-    count: document.querySelector('.vc-count')?.textContent
-  }));
-  check('第三步是自评（三个按钮）', t4.rates === 3, t4);
-  check('中选英之后按钮仍是「下一题」', (midLabel||'').trim() === '下一题', midLabel);
+  // 一路推进直到遇到自评题
+  let sawRate = false;
+  for (let i = 0; i < 10; i++) {
+    const st = await page.evaluate(() => ({
+      hasRate: document.querySelectorAll('[data-rate]').length > 0
+    }));
+    if (st.hasRate) { sawRate = true; break; }
+    const opt = await page.$('.vc-opt:not([disabled])');
+    if (opt) { await opt.click(); await page.waitForTimeout(240); }
+    const nb = await page.$('#vcNext');
+    if (nb) { await nb.click(); await page.waitForTimeout(300); }
+  }
+  check('队列里会遇到自评题', sawRate);
+  if (sawRate) {
+    const midLabel = await page.evaluate(() => document.getElementById('vcNext')?.textContent);
+    await page.click('[data-rate="know"]');
+    await page.waitForTimeout(300);
+    const nbLabel = await page.evaluate(() => document.getElementById('vcNext')?.textContent?.trim());
+    check('自评后的按钮也是「下一题」', nbLabel === '下一题', nbLabel);
+    const beforeNo = await page.evaluate(() => parseInt(document.querySelector('.vc-count')?.textContent || '0', 10));
+    await page.click('#vcNext');
+    await page.waitForTimeout(400);
+    const afterNo = await page.evaluate(() => parseInt(document.querySelector('.vc-count')?.textContent || '0', 10));
+    check('自评完成后进度继续推进', afterNo > beforeNo, { beforeNo, afterNo });
+  }
 
-  // 自评完 → 进度 +1（下一个词）
-  await page.click('[data-rate="know"]');
-  await page.waitForTimeout(400);
-  await page.click('#vcNext');
-  await page.waitForTimeout(500);
-  const t5 = await page.evaluate(() => ({
-    count: document.querySelector('.vc-count')?.textContent,
-    isEn: !!document.querySelector('.vc-word:not(.cn)') && document.querySelectorAll('.vc-opt').length === 4
-  }));
-  check('自评完成后进度 +1（2 / 5）', /^2 \/ 5$/.test((t5.count||'').trim()), t5.count);
-  check('新词回到英选中（给单词 + 选项）', t5.isEn === true, { isEn: t5.isEn });
 
   // 6: 标熟
   const before = await page.evaluate(() => JSON.parse(localStorage.getItem('juice_vocab_v1')).words);
@@ -91,7 +101,8 @@ function check(n, ok, d){ R.push({n,ok:!!ok,d}); console.log((ok?'PASS':'FAIL')+
   }));
   const knownKey = Object.keys(after.words).find(k => after.words[k].known);
   check('标熟后该词标记 known', !!knownKey, { knownKey });
-  check('标熟后跳到下一个词', /^[23] \/ 5$/.test((after.count||'').trim()), after.count);
+  check('标熟后继续推进到下一题', /^\d+ \/ \d+$/.test((after.count||'').trim()) &&
+    parseInt(after.count, 10) > 1, after.count);
 
   // 标熟的词不再进队列
   const queueInfo = await page.evaluate(() => {

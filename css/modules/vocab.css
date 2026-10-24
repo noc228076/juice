@@ -1057,3 +1057,78 @@
 
 /* 已标熟标签 */
 .vc-wordrow-meta em.ok { color: var(--ok); }
+
+/* =========================================================
+   统计页紧凑化：3 列数字 + 矮热力图
+   ========================================================= */
+.vc-statgrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 14px;
+}
+.vc-statcell {
+  background: var(--btn-ghost-bg);
+  border-radius: 10px;
+  padding: 10px 8px;
+  text-align: center;
+}
+.vc-statcell b {
+  display: block;
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--tx);
+  line-height: 1.25;
+}
+.vc-statcell span {
+  display: block;
+  margin-top: 2px;
+  font-size: 10.5px;
+  color: var(--tx-faint);
+}
+
+/* 90 天热力图：18 列 × 5 行，高度砍一半 */
+.vc-heat {
+  display: grid;
+  grid-template-columns: repeat(18, 1fr);
+  gap: 4px;
+}
+.vc-heat i {
+  display: block;
+  aspect-ratio: 1;
+  border-radius: 2px;
+  background: var(--btn-ghost-bg);
+}
+
+/* 图例挪到小标题右侧 */
+.vc-h3 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.vc-heat-legend {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  margin: 0;
+}
+.vc-heat-legend i {
+  display: block;
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+  background: var(--btn-ghost-bg);
+}
+
+/* 档位条也收一收 */
+.vc-boxes { gap: 5px; }
+.vc-boxrow {
+  grid-template-columns: 40px 1fr 34px;
+  font-size: 11.5px;
+}
+
+@media (max-width: 620px) {
+  .vc-statgrid { grid-template-columns: repeat(2, 1fr); }
+  .vc-heat { grid-template-columns: repeat(10, 1fr); }
+}

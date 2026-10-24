@@ -76,12 +76,50 @@
     return n;
   }
 
+  /* 日/周榜回填：历史上只记了每天的答题数（days），没记词数。
+     每个词至少过 英选中+中选英+自评 三题，按 ⌊题数/3⌋ 保守折算词数；
+     时长按「终身平均每题耗时」折算，正确率按终身正确率折算。
+     只在迁移时执行一次，估算值取 max 防止低于已精确计数的部分。 */
+  function backfillDayWeek() {
+    var qOf = function (d) { return state.days[d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate()] || 0; };
+    var now = new Date();
+    var qDay = qOf(now);
+    var qWeek = 0;
+    var mon = new Date(now.getFullYear(), now.getMonth(), now.getDate() - ((now.getDay() + 6) % 7));
+    for (var i = 0; i < 7; i++) {
+      var d = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + i);
+      if (d > now) break;
+      qWeek += qOf(d);
+    }
+    var qAll = state.totalAnswered || 0;
+    var accAll = qAll ? (state.totalRight || 0) / qAll : 0;
+    var msPerQ = qAll ? (state.totalMs || 0) / qAll : 0;
+    var seed = function (q) {
+      return {
+        n: Math.floor(q / 3),
+        ms: Math.round(q * msPerQ),
+        a: q,
+        r: Math.round(q * accAll)
+      };
+    };
+    return { day: seed(qDay), week: seed(qWeek) };
+  }
+
+  function applyBackfill(target, est) {
+    target.n = Math.max(target.n || 0, est.n);
+    target.ms = Math.max(target.ms || 0, est.ms);
+    target.a = Math.max(target.a || 0, est.a);
+    target.r = Math.max(target.r || 0, est.r);
+  }
+
   /* 读取并归一化周期计数：跨日/跨周自动清零，上报水位同步复位 */
   function bw() {
     if (!state.bw || typeof state.bw !== 'object') {
-      /* 首次迁移：排行榜上线前的历史进度一次性并入总榜 */
+      /* 首次迁移：排行榜上线前的历史进度一次性并入总榜 + 日/周榜 */
+      var bf = backfillDayWeek();
       state.bw = {
-        day: {}, week: {},
+        day: { k: dayKey8(), n: bf.day.n, ms: bf.day.ms, a: bf.day.a, r: bf.day.r },
+        week: { k: weekKey6(), n: bf.week.n, ms: bf.week.ms, a: bf.week.a, r: bf.week.r },
         all: {
           n: learnedWordCount(),
           ms: state.totalMs || 0,
@@ -93,15 +131,24 @@
       saveState();
     } else if (!state.bw.mig) {
       /* v268 上线后已经产生过 bw 的老进度：用权威累计值覆盖总榜口径，
-         并清空已上报水位强制重报（避免历史词数永久丢失） */
+         日/周榜补上历史折算值，并清空已上报水位强制重报（避免历史词数永久丢失） */
+      var bf2 = backfillDayWeek();
       state.bw.all = {
         n: learnedWordCount(),
         ms: state.totalMs || 0,
         a: state.totalAnswered || 0,
         r: state.totalRight || 0
       };
+      state.bw.day = state.bw.day || { k: dayKey8() };
+      state.bw.day.k = dayKey8();
+      applyBackfill(state.bw.day, bf2.day);
+      state.bw.week = state.bw.week || { k: weekKey6() };
+      state.bw.week.k = weekKey6();
+      applyBackfill(state.bw.week, bf2.week);
       if (!state.bw.posted) state.bw.posted = {};
       state.bw.posted.all = 0;
+      state.bw.posted.day = 0;
+      state.bw.posted.week = 0;
       state.bw.mig = 1;
       saveState();
     }

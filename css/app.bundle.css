@@ -16969,11 +16969,13 @@ html[data-theme="light"] .sc-security-box {
     display: grid;
     grid-template-columns: minmax(0, 1fr) 380px;
     grid-template-areas:
+      "nav nav"
       "hero hero"
       "main hist";
-    /* 第二行锁到 1fr：行高由容器高度决定，而不是由账本内容决定。
-       配合下面的 max-height，账本再长也不会把页面撑出滚动条。 */
-    grid-template-rows: auto minmax(0, 1fr);
+    /* 第三行锁到 1fr：行高由容器高度决定，而不是由账本内容决定。
+       配合下面的 max-height，账本再长也不会把页面撑出滚动条。
+       nav 行是并入摸鱼解压后的子导航条（auto 高，窄屏换行时自动变高）。 */
+    grid-template-rows: auto auto minmax(0, 1fr);
     column-gap: 24px;
     align-items: start;
     /* 用 height 而非 max-height：只有确定高度才能让 1fr 真正
@@ -16981,6 +16983,8 @@ html[data-theme="light"] .sc-security-box {
        96 = nav 52 + 模块上下 padding 36 + 8 余量。 */
     height: calc(100vh - 90px);
   }
+  /* 没有显式 area，子导航会被 grid 自动摆进隐式行、掉到页面最底下 */
+  #mod-scratch .subnav-pill-bar { grid-area: nav; }
   .scratch-hero { grid-area: hero; }
   .scratch-main-col { grid-area: main; }
   /* grid 子项默认 min-height:auto，会被内容撑破固定行高 */

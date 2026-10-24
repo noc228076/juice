@@ -13,7 +13,7 @@
 
   var LS_KEY = 'juice_music_v1';
   var el = null;
-  var tab = 'local';
+  var tab = 'search';
   var inited = false;
 
   /* ---------------- 持久化状态 ---------------- */
@@ -68,6 +68,7 @@
   var cur = null;
   var historyStack = [];       // 随机模式下已播过的
   var objUrls = [];            // 本会话创建的 objectURL，destroy 时不必回收（切歌复用）
+  var failStreak = 0;          // 搜索结果连续播放失败计数（下架曲自动跳过用）
 
   function ensureAudio() {
     if (audio) return audio;
@@ -79,8 +80,16 @@
     audio.addEventListener('timeupdate', onProgress);
     audio.addEventListener('ended', onEnded);
     audio.addEventListener('play', function () { syncPlayUI(true); });
+    audio.addEventListener('playing', function () { failStreak = 0; });
     audio.addEventListener('pause', function () { syncPlayUI(false); });
     audio.addEventListener('error', function () {
+      /* 搜索结果里相当比例是已下架曲（接口 403/404），点中时自动跳下一首 */
+      if (qName === '搜索结果' && queue.length > 1 && failStreak < 8) {
+        failStreak++;
+        toast('「' + (cur ? cur.title : '') + '」已下架，自动跳下一首');
+        nextTrack(true);
+        return;
+      }
       if (cur) toast('「' + cur.title + '」播放失败（链接失效或格式不支持）');
       syncPlayUI(false);
     });
@@ -370,7 +379,7 @@
           if (!list.length) { audiusNode = node; return []; }
           audiusNode = node;
           return list
-            .filter(function (t) { return t.streamable !== false && t.duration > 0; })
+            .filter(function (t) { return t.streamable !== false && t.duration > 0 && !t.is_delete; })
             .map(function (t) {
               return {
                 kind: 'search', id: 'au_' + t.id,
@@ -528,7 +537,39 @@
     '  }\n' +
     '};';
 
-  function sourceHtml() {
+  function searchHtml() {
+    var BUILTIN_CHIPS = [
+      { k: 'audius', label: ' Audius', tip: '去中心化音乐平台 · 免 Key · 全曲播放' },
+      { k: 'jamendo', label: ' Jamendo', tip: '55 万+ CC 协议曲库 · 需免费 Client ID' },
+      { k: 'custom', label: ' 自定义脚本', tip: '在「音源脚本」页粘贴脚本后在此搜索' }
+    ];
+    var cur = state.src.builtin;
+    var chipsHtml = '<div class="mu-src-chips">' + BUILTIN_CHIPS.map(function (c) {
+      return '<button type="button" class="mu-src-chip' + (cur === c.k ? ' active' : '') +
+        '" data-builtin="' + c.k + '" title="' + esc(c.tip) + '">' + c.label + '</button>';
+    }).join('') + '</div>';
+    return '<div class="mu-panel">' +
+      '<h3 class="mu-h3">📡 选择曲库</h3>' +
+      '<p class="mu-note">内置两个开源曲库，浏览器直连、无需登录。' +
+        '默认 Audius——直接在下面搜歌名 / 歌手 / 风格，点结果即播。</p>' +
+      chipsHtml +
+      (cur === 'jamendo'
+        ? '<div class="mu-keyrow"><input class="mu-input" id="muJmKey" placeholder="Jamendo Client ID" value="' + esc(state.src.jamendoKey || '') + '">' +
+          '<button class="mu-btn" id="muJmKeySave">保存</button></div>' +
+          '<p class="mu-note">到 devportal.jamendo.com 免费注册一个应用即可拿到 Client ID（一分钟）。' +
+            'Internet Archive / Openverse 等国内直连不通，可用「音源脚本」自接。</p>'
+        : '') +
+      '<div class="mu-searchbar">' +
+        '<input class="mu-input" id="muSearchKw" placeholder="输入歌名 / 歌手 / 风格，回车或点搜索…">' +
+        '<button class="mu-btn primary" id="muSearchBtn">🔍 搜索</button>' +
+      '</div>' +
+      (searchResults.length
+        ? '<div class="mu-list">' + searchResults.map(function (t, i) { return listRowHtml(t, i, '搜索结果'); }).join('') + '</div>'
+        : '<div class="mu-empty">默认用 Audius（免登录、全曲播放）——想听什么直接搜</div>') +
+    '</div>';
+  }
+
+  function scriptHtml() {
     var srcRows = (state.sources || []).map(function (s, i) {
       var on = activeSource && activeSource.name === s.name;
       return '<div class="mu-src' + (on ? ' on' : '') + '" data-src="' + i + '">' +
@@ -538,51 +579,17 @@
           '<button class="mu-btn mini danger" data-src-del="' + i + '">删除</button>' +
         '</span></div>';
     }).join('');
-    var BUILTIN_CHIPS = [
-      { k: 'audius', label: ' Audius', tip: '去中心化音乐平台 · 免 Key · 全曲播放' },
-      { k: 'jamendo', label: ' Jamendo', tip: '55 万+ CC 协议曲库 · 需免费 Client ID' },
-      { k: 'custom', label: ' 自定义脚本', tip: '粘贴你自己写的 MusicSource 脚本' }
-    ];
-    var cur = state.src.builtin;
-    var chipsHtml = '<div class="mu-src-chips">' + BUILTIN_CHIPS.map(function (c) {
-      return '<button type="button" class="mu-src-chip' + (cur === c.k ? ' active' : '') +
-        '" data-builtin="' + c.k + '" title="' + esc(c.tip) + '">' + c.label + '</button>';
-    }).join('') + '</div>';
-    var builtinHtml = '<div class="mu-builtin">' +
-      '<h3 class="mu-h3">📡 开源音源</h3>' +
-      '<p class="mu-note">内置两个合法开源曲库（浏览器直连，无第三方服务器中转）。' +
-        '其他开源库（Internet Archive / Openverse 等）国内直连不通，需要时走下方自定义脚本。</p>' +
-      chipsHtml +
-      (cur === 'jamendo'
-        ? '<div class="mu-keyrow"><input class="mu-input" id="muJmKey" placeholder="Jamendo Client ID" value="' + esc(state.src.jamendoKey || '') + '">' +
-          '<button class="mu-btn" id="muJmKeySave">保存</button></div>' +
-          '<p class="mu-note">到 devportal.jamendo.com 免费注册一个应用即可拿到 Client ID（一分钟）。</p>'
-        : '') +
-      '</div>';
-    return '<div class="mu-panel">' + builtinHtml +
-      '<h3 class="mu-h3" style="margin-top:14px">🧩 自定义音源脚本</h3>' +
-      (cur === 'custom'
-        ? '<p class="mu-note">粘贴你自己写的音源脚本（定义 MusicSource 对象，实现 search(keyword)）。脚本只保存在本机浏览器，本站仓库与服务器不经手任何脚本内容。</p>' +
-          '<textarea class="mu-textarea mono" id="muSrcCode" rows="8" placeholder="// 粘贴音源脚本…"></textarea>' +
-          '<div class="mu-btns">' +
-            '<button class="mu-btn primary" id="muSrcAdd">保存并加载</button>' +
-            '<button class="mu-btn" id="muSrcExample">填入模板</button>' +
-          '</div>' +
-          (srcRows ? '<div class="mu-src-list">' + srcRows + '</div>' : '')
-        : '<p class="mu-note">切到「自定义脚本」标签后在此粘贴脚本。</p>') +
+    return '<div class="mu-panel">' +
+      '<h3 class="mu-h3">🧩 自定义音源脚本</h3>' +
+      '<p class="mu-note">粘贴你自己写的音源脚本（定义 MusicSource 对象，实现 search(keyword)）。' +
+        '脚本只保存在本机浏览器，本站仓库与服务器不经手任何脚本内容。' +
+        '保存加载后，回到「在线搜歌」页并把曲库切到「自定义脚本」再搜索。</p>' +
       '<textarea class="mu-textarea mono" id="muSrcCode" rows="8" placeholder="// 粘贴音源脚本…"></textarea>' +
       '<div class="mu-btns">' +
         '<button class="mu-btn primary" id="muSrcAdd">保存并加载</button>' +
         '<button class="mu-btn" id="muSrcExample">填入模板</button>' +
       '</div>' +
-      (srcRows ? '<div class="mu-src-list">' + srcRows + '</div>' : '') +
-      '<div class="mu-searchbar">' +
-        '<input class="mu-input" id="muSearchKw" placeholder="加载音源后，搜歌名 / 歌手…">' +
-        '<button class="mu-btn primary" id="muSearchBtn">🔍 搜索</button>' +
-      '</div>' +
-      (searchResults.length
-        ? '<div class="mu-list">' + searchResults.map(function (t, i) { return listRowHtml(t, i, '搜索结果'); }).join('') + '</div>'
-        : '<div class="mu-empty">搜索结果会出现在这里</div>') +
+      (srcRows ? '<div class="mu-src-list">' + srcRows + '</div>' : '<div class="mu-empty">还没有保存过脚本</div>') +
     '</div>';
   }
 
@@ -615,12 +622,20 @@
   }
 
   function homeHtml() {
-    var tabs = [['local', '📁 本机音乐'], ['links', '🔗 直链歌单'], ['source', '🧩 音源脚本']];
+    var tabs = [
+      ['search', '🔍 在线搜歌'],
+      ['local', '📁 本机音乐'],
+      ['links', '🔗 直链歌单'],
+      ['script', '🧩 音源脚本']
+    ];
     return playerBarHtml() +
       '<div class="mu-tabs">' + tabs.map(function (t) {
         return '<button class="mu-tab' + (tab === t[0] ? ' active' : '') + '" data-mu-tab="' + t[0] + '">' + t[1] + '</button>';
       }).join('') + '</div>' +
-      (tab === 'local' ? localHtml() : tab === 'links' ? linksHtml() : sourceHtml());
+      (tab === 'search' ? searchHtml()
+        : tab === 'local' ? localHtml()
+        : tab === 'links' ? linksHtml()
+        : scriptHtml());
   }
 
   function renderIfActive() {

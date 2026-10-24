@@ -1045,10 +1045,10 @@ html[data-theme="light"] .daily-hot-notice {
    1024px 及以下退回单列，DOM 顺序不变。
    ========================================================= */
 @media (min-width: 1024px) {
-  /* 带 #mod-daily 提升特异性：基础规则 #mod-daily .daily-container 是 ID 级，
-     纯类选择器压不过它（此前 1240 一直是死规则，容器始终 1040） */
-  #mod-daily .daily-container {
-    /* 宽屏放开到 1680，两侧不再大片留白 */
+  /* 只有壁纸板块吃宽屏（大图 + 画廊需要横向空间）；
+     早报/影视保持 1040 经典栏宽，长文列表拉伸到 1680 只会难读。
+     :has 按当前激活板块切换容器宽度，Chromium/Safari/FF 现代版均支持。 */
+  #mod-daily .daily-container:has(#dlSec-wallpaper.active) {
     max-width: 1680px;
   }
 

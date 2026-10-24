@@ -331,7 +331,8 @@
       if (!state.words || typeof state.words !== 'object') state.words = {};
       if (!state.days || typeof state.days !== 'object') state.days = {};
       if (typeof s.newLeft === 'number' && typeof s.newDoneToday !== 'number') {
-        state.newDoneToday = Math.max(0, (state.dailyNew || 15) - s.newLeft);
+        var q0 = typeof state.dailyNew === 'number' ? state.dailyNew : 15;
+        state.newDoneToday = Math.max(0, q0 - s.newLeft);
       }
       if (!state.kinds || typeof state.kinds !== 'object') {
         state.kinds = { recall: true, spell: true, cloze: false };
@@ -358,7 +359,10 @@
   }
 
   function newLeftToday() {
-    return Math.max(0, (state.dailyNew || 15) - (state.newDoneToday || 0));
+    /* 不能写 (state.dailyNew || 15)：0 会被 || 当成假值变成 15，
+       导致「今天不背新词」这个合法设置失效 */
+    var quota = typeof state.dailyNew === 'number' ? state.dailyNew : 15;
+    return Math.max(0, quota - (state.newDoneToday || 0));
   }
 
   /* ---------- 学习时长 ---------- */
@@ -470,6 +474,7 @@
        阶段 2 中选英：本局全部词
        阶段 3 自评：本局全部词
      item = { idx, kind } */
+  var keyBound = false;
   var stage = 0;          // 0..2
   var stageQueue = [];    // 当前阶段的题
   var sessionWords = [];  // 本局全部词（阶段 2/3 要重排一遍）
@@ -1139,6 +1144,59 @@
     });
   }
 
+  /* ---------- 键盘快捷键 ----------
+     1-4  选选项
+     1/2/3 自评（认识/模糊/不认识）
+     空格 / Enter  下一题
+     s  朗读    k  标熟    Esc  返回
+     只在答题屏生效，且不抢输入框的键。 */
+  function onKeyDown(e) {
+    if (!el || !current) return;
+    if (!document.getElementById('mod-vocab') ||
+        !document.getElementById('mod-vocab').classList.contains('active')) return;
+    var tag = (e.target && e.target.tagName) || '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+
+    var k = e.key;
+
+    if (k === 'Escape') { e.preventDefault(); leaveSession(); return; }
+    if (k === 's' || k === 'S') {
+      e.preventDefault();
+      window.AppVocabData.speak(current.word);
+      return;
+    }
+    if (k === 'k' || k === 'K') { e.preventDefault(); markKnown(); return; }
+
+    /* 已作答：空格/回车进入下一题 */
+    if (answered) {
+      if (k === ' ' || k === 'Enter') {
+        e.preventDefault();
+        var nb = document.getElementById('vcNext');
+        if (nb) nb.click();
+      }
+      return;
+    }
+
+    /* 未作答：数字键选择 */
+    var n = parseInt(k, 10);
+    if (!n || n < 1) return;
+
+    if (current.kind === 'selfrate') {
+      var rates = ['know', 'vague', 'unknown'];
+      if (n <= 3) {
+        e.preventDefault();
+        onRate(rates[n - 1]);
+      }
+      return;
+    }
+
+    var opts = el.querySelectorAll('.vc-opt');
+    if (n <= opts.length) {
+      e.preventDefault();
+      opts[n - 1].click();
+    }
+  }
+
   /* 标熟：这个词以后不再出现在任何队列里 */
   function markKnown() {
     if (window.SFX && window.SFX.select) window.SFX.select();
@@ -1192,6 +1250,8 @@
   function revealSelfRate() {
     var w = current;
     w.revealed = true;
+    /* 自评点完就算「已作答」，否则键盘的空格会被当成选选项而失效 */
+    answered = true;
 
     el.querySelectorAll('[data-rate]').forEach(function (b) {
       b.disabled = true;
@@ -1205,6 +1265,7 @@
     box.innerHTML =
       '<div class="vc-reveal-inner">' +
         '<div class="vc-reveal-meaning">' + esc(w.meaning) + '</div>' +
+        '<div class="vc-back-panel" id="vcBackPanel"></div>' +
         '<div class="vc-reveal-row">' +
           '<span class="vc-reveal-tag">你选了「' + label + '」</span>' +
           (w.rated !== 'unknown'
@@ -1218,6 +1279,9 @@
     if (mk) mk.onclick = markWrong;
     var nx = box.querySelector('#vcNext');
     if (nx) nx.onclick = function () { commitRate(w.rated); };
+
+    /* 自评也要能看到拆词 / 词族 / 真题 */
+    renderBackPanel();
   }
 
   function markWrong() {
@@ -1243,8 +1307,7 @@
   }
 
   function commitRate(rate) {
-    if (answered) return;
-    answered = true;
+    /* answered 在 revealSelfRate 里已经置 true，这里不能再拦 */
 
     var ok = rate === 'know';
     var idx = current.idx;
@@ -1256,6 +1319,13 @@
       applySchedule(idx, false);
       /* 改判 / 不认识 → 三种题型排到队尾，从头再来一遍 */
       startRedo(idx);
+      return;
+    }
+    if (rate === 'vague') {
+      /* 模糊：有印象但没记牢，降一档（不归零），明天再见。
+         归零会让用户不敢诚实选「模糊」，反而害了他自己。 */
+      applyVague(idx);
+      advanceStep();
       return;
     }
     applySchedule(idx, ok);
@@ -1324,6 +1394,20 @@
       rec.wrong++;
       rec.due = today;
     }
+    state.words[key] = rec;
+    saveState();
+  }
+
+  /* 模糊：box 降一档（不归零），按新档位的间隔安排复习 */
+  function applyVague(idx) {
+    var words = book.words;
+    var key = words[idx][0];
+    var rec = state.words[key] || { box: 0, due: 0, seen: 0, wrong: 0 };
+    if (rec.known) return;
+    rec.seen++;
+    var today = dayNum(todayKey());
+    rec.box = Math.max(0, (rec.box || 0) - 1);
+    rec.due = today + INTERVALS[rec.box];
     state.words[key] = rec;
     saveState();
   }
@@ -1511,6 +1595,11 @@
     el = document.getElementById('mod-vocab');
     if (!el) return;
     rollDay();
+    /* 防止重复挂载：init 可能被 router 多次调用 */
+    if (!keyBound) {
+      window.addEventListener('keydown', onKeyDown);
+      keyBound = true;
+    }
     boot();
   }
 
@@ -1528,6 +1617,8 @@
     destroy: function () {
       tickFlush();
       saveState();
+      window.removeEventListener('keydown', onKeyDown);
+      keyBound = false;
     }
   };
 })();

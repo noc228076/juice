@@ -4641,7 +4641,7 @@ html[data-theme="light"] #mod-tarot .tr-rv-guide-hint {
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 12px;
 }
 
 /* 档案文牒顶栏 Banner */
@@ -4649,12 +4649,12 @@ html[data-theme="light"] #mod-tarot .tr-rv-guide-hint {
   background: var(--card);
   border: 1.5px solid var(--tr-line);
   border-radius: 20px;
-  padding: 18px 22px;
+  padding: 8px 16px;
   box-sizing: border-box;
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.22), inset 0 0 24px rgba(232, 201, 106, 0.05);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 7px;
   position: relative;
   overflow: hidden;
 }
@@ -4734,9 +4734,9 @@ html[data-theme="light"] #mod-tarot .tr-dossier-banner {
   align-items: baseline;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 10px;
   border-top: 1px solid var(--line);
-  padding-top: 10px;
+  padding-top: 6px;
 }
 #mod-tarot .tr-dossier-title-main {
   display: flex;
@@ -4746,13 +4746,13 @@ html[data-theme="light"] #mod-tarot .tr-dossier-banner {
 }
 #mod-tarot .tr-dossier-roman {
   font-family: Georgia, "Times New Roman", serif;
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 900;
   color: var(--tr-gold);
   letter-spacing: 2px;
 }
 #mod-tarot .tr-dossier-name {
-  font-size: 28px;
+  font-size: 21px;
   font-weight: 900;
   letter-spacing: 2.5px;
   color: var(--tx);
@@ -4760,16 +4760,71 @@ html[data-theme="light"] #mod-tarot .tr-dossier-banner {
 }
 #mod-tarot .tr-dossier-en {
   font-family: Georgia, "Times New Roman", serif;
-  font-size: 14.5px;
+  font-size: 12px;
   color: var(--tx-dim);
   font-style: italic;
   letter-spacing: 1px;
 }
 #mod-tarot .tr-dossier-pillar {
-  font-size: 13.5px;
+  font-size: 12px;
   font-weight: 800;
   color: var(--tr-gold);
   letter-spacing: 1px;
+}
+
+/* 报告页按钮行与顶栏的间距收紧（结果页专属，不影响首页） */
+#sc-tr-result .tr-result-actions { margin-top: 10px !important; }
+#sc-tr-result .topbar { margin-bottom: 8px !important; }
+
+/* 结果页上下留白比其他屏窄一档：报告是密集阅读页，不需要 24px 呼吸边 */
+@media (min-width: 900px) {
+  #mod-tarot #sc-tr-result { padding-top: 12px; padding-bottom: 14px; }
+}
+
+/* 报告页一屏化：档案展台里的圣牌只在此处缩小（翻牌页的 bigcard 不受影响）。
+   200×300 → 168×252，展台从 ~477px 收到 ~300px */
+#mod-tarot .tr-dossier-card-stage .bigcard {
+  width: 156px;
+  height: 234px;
+}
+#mod-tarot .tr-dossier-card-stage .tr-card-flip-hint {
+  font-size: 11px;
+  margin-top: 6px;
+}
+
+/* 矮屏（≤880 高）再收一档；768 高笔记本把圣牌与提示再压 */
+@media (min-width: 900px) and (max-height: 880px) {
+  #mod-tarot .tr-dossier-card-stage .bigcard { width: 148px; height: 222px; }
+  #mod-tarot .tr-dossier-card-stage { padding: 10px 10px 8px; }
+}
+@media (min-width: 900px) and (max-height: 800px) {
+  /* 矮屏专属：右栏 2×2 田字格，整页高度近乎减半 */
+  #mod-tarot .tr-dossier-banner-top { display: none; }
+  #mod-tarot .tr-dossier-card-stage .bigcard { width: 120px; height: 180px; }
+  #mod-tarot .tr-dossier-card-stage { padding: 8px 8px 6px; }
+  #mod-tarot .tr-dossier-content-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    align-items: start;
+  }
+  #mod-tarot .tr-dossier-content-col > * { flex: none; justify-content: flex-start; }
+  #mod-tarot .tr-dossier-card-stage .tr-card-flip-hint { display: none; }
+  #mod-tarot .tr-dossier-card-stage .bigcard { width: 132px; height: 198px; }
+  #mod-tarot .tr-dossier-report { gap: 8px; }
+  #mod-tarot .tr-dossier-grid { gap: 14px; }
+  #mod-tarot .tr-dossier-sec { padding: 8px 13px; gap: 5px; }
+  #mod-tarot .tr-dossier-main-txt,
+  #mod-tarot .tr-dossier-domain-txt { font-size: 12.5px; line-height: 1.45; }
+}
+
+/* 1024 宽 × 768 高这一档（iPad 横屏）：2×2 格子更窄、文字换行更多，再收一档字距 */
+@media (min-width: 900px) and (max-width: 1100px) and (max-height: 800px) {
+  #mod-tarot .tr-dossier-main-txt,
+  #mod-tarot .tr-dossier-domain-txt { font-size: 12px; line-height: 1.4; }
+  #mod-tarot .tr-dab-txt { font-size: 12px; line-height: 1.4; }
+  #mod-tarot .tr-dossier-sec { padding: 7px 11px; gap: 4px; }
+  #mod-tarot .tr-dossier-name { font-size: 19px; }
 }
 
 /* 双栏网格排版 */
@@ -4784,8 +4839,8 @@ html[data-theme="light"] #mod-tarot .tr-dossier-banner {
     display: grid;
     /* 左栏承载卡牌与「四大元素能量流」等长文本块，固定 290px 会把正文挤成竖条，
        故随容器宽度伸缩并设上下限；1fr 交给右栏自适应 */
-    grid-template-columns: clamp(296px, 34%, 372px) minmax(0, 1fr);
-    gap: 26px;
+    grid-template-columns: clamp(250px, 28%, 320px) minmax(0, 1fr);
+    gap: 18px;
     /* 两栏等高：右栏各块按自身比例吸收多余高度并把内容垂直居中，
        相当于给每张解读卡增加留白，比 space-between 拉开块间距更自然，
        也不会出现单个畸形巨块 */
@@ -4803,7 +4858,7 @@ html[data-theme="light"] #mod-tarot .tr-dossier-banner {
 #mod-tarot .tr-dossier-card-col {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 10px;
   width: 100%;
   min-width: 0;
 }
@@ -4813,7 +4868,7 @@ html[data-theme="light"] #mod-tarot .tr-dossier-banner {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 24px 16px 16px;
+  padding: 14px 12px 10px;
   background: var(--card);
   border: 1.5px solid var(--tr-line);
   border-radius: 20px;
@@ -4828,7 +4883,7 @@ html[data-theme="light"] #mod-tarot .tr-dossier-card-stage {
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: 16px;
-  padding: 12px 14px;
+  padding: 7px 10px;
   text-align: center;
 }
 html[data-theme="light"] #mod-tarot .tr-dossier-kw-matrix {
@@ -4839,18 +4894,18 @@ html[data-theme="light"] #mod-tarot .tr-dossier-kw-matrix {
   font-weight: 800;
   letter-spacing: 2px;
   color: var(--tr-gold);
-  margin-bottom: 8px;
+  margin-bottom: 5px;
 }
 #mod-tarot .tr-dossier-elem-box {
   background: var(--card);
   border: 1.5px solid var(--tr-line);
   border-radius: 18px;
-  padding: 16px;
+  padding: 8px 11px;
   box-sizing: border-box;
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 5px;
 }
 html[data-theme="light"] #mod-tarot .tr-dossier-elem-box {
   background: rgba(255, 255, 255, 0.85);
@@ -4863,15 +4918,15 @@ html[data-theme="light"] #mod-tarot .tr-dossier-elem-box {
   letter-spacing: 1px;
 }
 #mod-tarot .tr-elem-dyn-flow {
-  font-size: 12.5px;
-  line-height: 1.7;
+  font-size: 11.5px;
+  line-height: 1.45;
   color: var(--tx);
 }
 #mod-tarot .tr-elem-dyn-balance {
-  font-size: 12px;
-  line-height: 1.6;
+  font-size: 11.5px;
+  line-height: 1.45;
   color: var(--tx-dim);
-  padding-top: 6px;
+  padding-top: 4px;
   border-top: 1px dashed var(--line);
 }
 #mod-tarot .tr-elem-dyn-balance strong {
@@ -4882,7 +4937,7 @@ html[data-theme="light"] #mod-tarot .tr-dossier-elem-box {
 #mod-tarot .tr-dossier-content-col {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 10px;
   width: 100%;
   min-width: 0;
 }
@@ -4900,12 +4955,12 @@ html[data-theme="light"] #mod-tarot .tr-dossier-elem-box {
   background: var(--card);
   border: 1.5px solid var(--tr-line);
   border-radius: 18px;
-  padding: 16px 20px;
+  padding: 10px 15px;
   box-sizing: border-box;
   box-shadow: 0 6px 22px rgba(0, 0, 0, 0.16);
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 7px;
 }
 html[data-theme="light"] #mod-tarot .tr-dossier-sec {
   background: rgba(255, 255, 255, 0.85);
@@ -4917,7 +4972,7 @@ html[data-theme="light"] #mod-tarot .tr-dossier-sec {
   align-items: center;
   justify-content: space-between;
   border-bottom: 1px solid var(--line);
-  padding-bottom: 8px;
+  padding-bottom: 5px;
 }
 #mod-tarot .tr-dsh-left {
   display: flex;
@@ -4942,8 +4997,8 @@ html[data-theme="light"] #mod-tarot .tr-dossier-sec {
 }
 #mod-tarot .tr-dossier-main-txt,
 #mod-tarot .tr-dossier-domain-txt {
-  font-size: 14px;
-  line-height: 1.8;
+  font-size: 12.5px;
+  line-height: 1.5;
   color: var(--tx);
   margin: 0;
   text-align: justify;
@@ -4956,15 +5011,15 @@ html[data-theme="light"] #mod-tarot .tr-dossier-sec {
 @media (min-width: 600px) {
   #mod-tarot .tr-dossier-action-dual {
     grid-template-columns: 1fr 1fr;
-    gap: 14px;
+    gap: 10px;
   }
 }
 #mod-tarot .tr-dual-action-box {
   border-radius: 14px;
-  padding: 12px 14px;
+  padding: 8px 12px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
   border: 1px solid var(--line);
 }
 #mod-tarot .tr-dual-action-box.do {
@@ -5004,8 +5059,8 @@ html[data-theme="light"] #mod-tarot .tr-dual-action-box.dont {
   opacity: 0.65;
 }
 #mod-tarot .tr-dab-txt {
-  font-size: 13px;
-  line-height: 1.65;
+  font-size: 12.5px;
+  line-height: 1.5;
   color: var(--tx);
 }
 
@@ -5020,7 +5075,7 @@ html[data-theme="light"] #mod-tarot .tr-dossier-sec.mantra {
 }
 #mod-tarot .tr-dossier-mantra-box {
   position: relative;
-  padding: 10px 14px 6px 36px;
+  padding: 4px 12px 2px 32px;
 }
 #mod-tarot .tr-mantra-quote-mark {
   position: absolute;
@@ -5126,8 +5181,8 @@ html[data-theme="light"] #mod-tarot .tr-card-frame {
 }
 
 #mod-tarot .tr-card-frame.sm {
-  max-width: 220px;
-  padding: 8px;
+  max-width: 158px;
+  padding: 6px;
   border-radius: 14px;
 }
 
@@ -5222,6 +5277,7 @@ html[data-theme="light"] #mod-tarot .tr-card-inner {
 #mod-tarot .tr-card-art {
   width: 72%;
   flex: 1;
+  min-height: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -5239,11 +5295,11 @@ html[data-theme="light"] #mod-tarot .tr-card-inner {
 #mod-tarot .tr-card-foot {
   text-align: center;
   width: 100%;
-  padding-top: 4px;
+  padding-top: 3px;
   border-top: 1px dashed rgba(232, 201, 106, 0.25);
 }
 #mod-tarot .tr-card-name {
-  font-size: 17px;
+  font-size: 15px;
   font-weight: 800;
   letter-spacing: 3px;
   color: var(--tr-gold);
@@ -5325,11 +5381,11 @@ html[data-theme="light"] #mod-tarot .result-list.is-single .tr-single-hero {
   background: var(--card);
   border: 1.5px solid var(--tr-line);
   border-radius: 20px;
-  padding: 20px 18px;
+  padding: 12px 12px;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 10px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
   transition: transform 0.2s ease, border-color 0.2s ease;
 }
@@ -5343,10 +5399,10 @@ html[data-theme="light"] #mod-tarot .result-list.is-single .tr-single-hero {
   justify-content: center;
 }
 #mod-tarot .tr-time-tag {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: 1.5px;
-  padding: 5px 14px;
+  padding: 3px 12px;
   border-radius: 999px;
   background: rgba(232, 201, 106, 0.12);
   color: var(--tr-gold);
@@ -5370,7 +5426,7 @@ html[data-theme="light"] #mod-tarot .result-list.is-single .tr-single-hero {
 #mod-tarot .tr-trio-body {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 7px;
 }
 #mod-tarot .tr-trio-title-row {
   display: flex;
@@ -5378,22 +5434,22 @@ html[data-theme="light"] #mod-tarot .result-list.is-single .tr-single-hero {
   gap: 8px;
 }
 #mod-tarot .tr-trio-title-row h4 {
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 800;
   color: var(--tx);
   margin: 0;
 }
 #mod-tarot .tr-trio-kw {
-  font-size: 12.5px;
+  font-size: 12px;
   color: var(--tr-gold);
   font-weight: 700;
   background: rgba(232, 201, 106, 0.08);
-  padding: 6px 10px;
+  padding: 4px 8px;
   border-radius: 8px;
 }
 #mod-tarot .tr-trio-desc {
-  font-size: 13.5px;
-  line-height: 1.75;
+  font-size: 12.5px;
+  line-height: 1.5;
   color: var(--tx-dim);
 }
 
@@ -5851,6 +5907,50 @@ html[data-theme="light"] #mod-tarot .result-list.is-single .tr-single-hero {
   #mod-tarot .tr-result-actions {
     max-width: 1240px !important;
   }
+}
+
+/* 矮屏收起元素能量盒：必须放在 .tr-dossier-elem-box 基础规则之后，
+   同特异度靠源码顺序取胜（此处之前误放在基础规则之前被 display:flex 盖回） */
+@media (min-width: 900px) and (max-height: 800px) {
+  #mod-tarot .tr-dossier-elem-box { display: none; }
+}
+
+/* 三牌全景报告：基础档就把牌框压扁（正方比例改为宽扁牌） */
+@media (min-width: 900px) {
+  #mod-tarot .result-list.is-three .tr-card-frame.sm {
+    max-width: 140px;
+  }
+  #mod-tarot .result-list.is-three .tr-card-art { max-height: 96px; }
+  #mod-tarot .result-list.is-three .tr-card-frame.sm .tr-card-art svg { max-height: 96px !important; }
+  #mod-tarot .result-list.is-three .tr-trio-desc[style] { padding-top: 4px !important; margin-top: 2px !important; }
+  #mod-tarot .result-list.is-three .tr-trio-card { padding: 10px 10px; gap: 8px; }
+  #mod-tarot .result-list.is-three .tr-trio-body { gap: 5px; }
+  #mod-tarot .result-list.is-three .tr-trio-desc { font-size: 12px; line-height: 1.45; }
+}
+
+/* 三牌全景报告矮屏档：更小牌面 + 更紧行距 */
+@media (min-width: 900px) and (max-height: 800px) {
+  #mod-tarot .tr-card-frame.sm { max-width: 128px; }
+  #mod-tarot .tr-trio-card { padding: 8px 10px; gap: 7px; }
+  #mod-tarot .tr-trio-desc { font-size: 12px; line-height: 1.4; }
+  #mod-tarot .tr-trio-body { gap: 4px; }
+  #mod-tarot .result-list.is-three .tr-card-frame.sm { max-width: 116px; }
+  #mod-tarot .result-list.is-three .tr-card-art { max-height: 80px; }
+  #mod-tarot .result-list.is-three .tr-card-frame.sm .tr-card-art svg { max-height: 80px !important; }
+  #mod-tarot .result-list.is-three .tr-card-en { display: none; }
+  #mod-tarot .result-list.is-three .tr-trio-desc { font-size: 11.5px; line-height: 1.35; }
+  #mod-tarot .result-list.is-three .tr-trio-title-row h4 { font-size: 14px; }
+}
+
+/* 768 高档的最后余量：结果页上下留白与按钮行再各收几像素 */
+@media (min-width: 900px) and (max-height: 800px) {
+  #mod-tarot #sc-tr-result { padding-top: 10px; padding-bottom: 10px; }
+  #sc-tr-result .tr-result-actions { margin-top: 6px !important; }
+  #sc-tr-result .topbar { margin-bottom: 6px !important; }
+  #mod-tarot .result-list.is-three .tr-trio-kw { padding: 2px 8px; font-size: 11.5px; }
+  #mod-tarot .result-list.is-three .tr-time-tag { padding: 2px 10px; }
+  #mod-tarot .tr-dossier-sec-head { padding-bottom: 3px; }
+  #mod-tarot .tr-dossier-kw-matrix { padding: 5px 8px; }
 }
 
 

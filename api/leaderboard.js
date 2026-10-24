@@ -18,6 +18,11 @@
    higher=false：数值越小越好（反应毫秒 / 扫雷与舒尔特用时），用 ZRANGE / ZRANK。 */
 const GAMES = {
   '2048': { z: 'j2048:z', p: 'j2048:p', higher: true },
+  // 背单词三榜：按「背完的单词数」排名，detail 里带学习时长 ms。
+  // 日/周榜的 zset 键带客户端本地的周期号（见 vocabCfg），过期自动清理。
+  'vocab_day': { vocab: 'day', higher: true },
+  'vocab_week': { vocab: 'week', higher: true },
+  'vocab_all': { vocab: 'all', z: 'jvocab:a:z', p: 'jvocab:a:p', higher: true },
   reaction: { z: 'jreaction:z', p: 'jreaction:p', higher: false },
   // 反应速度擂台拆成三关各排各的：
   // 第二关 = 选择反应平均时，第三关 = Go 反应中位数（都是毫秒，越低越好）
@@ -241,6 +246,30 @@ function resolveGame(raw) {
   return GAMES[key] ? key : null;
 }
 
+/* 背单词榜的周期键。period 由客户端按本地时间生成（避免服务器时区错位）：
+   日榜 YYYYMMDD（8 位）、周榜 YYYYWW（6 位，ISO 周一到周日）。
+   日/周键带 TTL，过期周期自动清理，防止键无限累积。 */
+function vocabCfg(game, period) {
+  if (game === 'vocab_all') return { z: 'jvocab:a:z', p: 'jvocab:a:p', higher: true, ttl: 0 };
+  const raw = String(period || '');
+  if (game === 'vocab_day') {
+    if (!/^\d{8}$/.test(raw)) return null;
+    return { z: 'jvocab:d:' + raw + ':z', p: 'jvocab:d:' + raw + ':p', higher: true, ttl: 9 * 86400 };
+  }
+  if (game === 'vocab_week') {
+    if (!/^\d{6}$/.test(raw)) return null;
+    return { z: 'jvocab:w:' + raw + ':z', p: 'jvocab:w:' + raw + ':p', higher: true, ttl: 74 * 86400 };
+  }
+  return null;
+}
+
+/* 每个榜的单词数上限（防刷：一天不可能背超 2000 词） */
+function vocabCountCap(game) {
+  if (game === 'vocab_day') return 2000;
+  if (game === 'vocab_week') return 14000;
+  return 500000;
+}
+
 /* 每个游戏返回 { score, extra }，score 是参与排名的指标。
    三个游戏统一用 body.score 传排名值，差异只在合法区间与附加字段。 */
 function parseRun(game, body) {
@@ -404,8 +433,8 @@ function parseRun(game, body) {
 
 /* ---------------- 读榜 ---------------- */
 
-async function readBoard(game, limit) {
-  const cfgGame = GAMES[game];
+async function readBoard(game, limit, cfgOverride) {
+  const cfgGame = cfgOverride || GAMES[game];
   let flat;
   let total;
 
@@ -442,6 +471,7 @@ async function readBoard(game, limit) {
     if (d && d.sec != null) extra.sec = d.sec;
     if (d && d.lv != null) extra.lv = d.lv;
     if (d && d.err != null) extra.err = d.err;
+    if (d && d.ms != null) extra.ms = d.ms;   // 背单词榜：学习时长
     return {
       id,
       name: (d && d.n) || '匿名玩家',
@@ -499,6 +529,14 @@ module.exports = async function handler(req, res) {
         return;
       }
       const limit = Math.min(100, Math.max(1, parseInt(q.limit, 10) || 50));
+      if (GAMES[game].vocab) {
+        const cfg = vocabCfg(game, q.period);
+        if (!cfg) { res.status(400).json({ ok: false, error: '周期参数不合法' }); return; }
+        const dynKey = game + ':' + (q.period || 'all');
+        const { board, total } = await readBoard(dynKey, limit, cfg);
+        res.status(200).json({ ok: true, game, board, total, online: !useMemory });
+        return;
+      }
       const { board, total } = await readBoard(game, limit);
       res.status(200).json({ ok: true, game, board, total, online: !useMemory });
       return;
@@ -524,6 +562,88 @@ module.exports = async function handler(req, res) {
       const id = clampText(body.id, 64);
       if (!/^[A-Za-z0-9_-]{8,64}$/.test(id)) {
         res.status(400).json({ ok: false, error: '玩家标识不合法' });
+        return;
+      }
+
+      /* ---- 背单词榜：语义是「周期内累计背完的单词数」，取历史最大值 ----
+         客户端每个周期维护单调递增的绝对计数（日/周重置），重复提交
+         更大值才覆盖，天然幂等；detail 附带累计学习时长。 */
+      if (GAMES[game].vocab) {
+        const cfg = vocabCfg(game, body.period);
+        if (!cfg) { res.status(400).json({ ok: false, error: '周期参数不合法' }); return; }
+        const count = intIn(body.count, 1, vocabCountCap(game));
+        if (count == null) { res.status(400).json({ ok: false, error: '单词数不合法' }); return; }
+        const ms = intIn(body.ms, 0, 366 * 86400000);
+        if (ms == null) { res.status(400).json({ ok: false, error: '时长不合法' }); return; }
+
+        // 与普通游戏同款双维度限流
+        const dynKey = game + ':' + (body.period || 'all');
+        let vHits, vIpHits;
+        const vRlKey = 'jrl:' + game + ':' + id;
+        const vRlIpKey = 'jrl:' + game + 'ip:' + clientIp(req);
+        if (useMemory) {
+          vHits = memStore.incr(vRlKey);
+          vIpHits = memStore.incr(vRlIpKey);
+        } else {
+          const out = await pipeline([
+            ['INCR', vRlKey], ['EXPIRE', vRlKey, String(RL_WINDOW)],
+            ['INCR', vRlIpKey], ['EXPIRE', vRlIpKey, String(RL_WINDOW)]
+          ]);
+          vHits = out[0] || 0;
+          vIpHits = out[2] || 0;
+        }
+        if (vHits > RL_MAX || vIpHits > RL_IP_MAX) {
+          res.status(429).json({ ok: false, error: '提交太频繁，请稍后再试' });
+          return;
+        }
+
+        const stamp = Date.now();
+        const name = clampText(body.name, 16) || '匿名玩家';
+        const avatar = clampText(body.avatar, 8) || '🙂';
+
+        let prev = null, prevDetail = null;
+        if (useMemory) {
+          prev = memStore.zscore(dynKey, id);
+          prevDetail = memStore.hget(dynKey, id);
+        } else {
+          const out = await pipeline([
+            ['ZSCORE', cfg.z, id],
+            ['HGET', cfg.p, id]
+          ]);
+          prev = out[0] == null ? null : Number(out[0]);
+          prevDetail = out[1];
+        }
+        try { prevDetail = prevDetail ? JSON.parse(prevDetail) : null; } catch (e) { prevDetail = null; }
+
+        const isBest = prev == null || count > prev;
+        const detail = { n: name, a: avatar };
+        if (isBest) {
+          detail.at = stamp;
+          detail.ms = ms;
+        } else if (prevDetail) {
+          if (prevDetail.at != null) detail.at = prevDetail.at;
+          if (prevDetail.ms != null) detail.ms = prevDetail.ms;
+        }
+        if (detail.at == null) detail.at = stamp;
+        const payload = JSON.stringify(detail);
+
+        if (useMemory) {
+          if (isBest) memStore.zadd(dynKey, id, count);
+          memStore.hset(dynKey, id, payload);
+        } else {
+          const cmds = [];
+          if (isBest) {
+            cmds.push(['ZADD', cfg.z, String(count), id]);
+            cmds.push(['ZREMRANGEBYRANK', cfg.z, '0', String(-(BOARD_CAP + 1))]);
+          }
+          cmds.push(['HSET', cfg.p, id, payload]);
+          if (cfg.ttl) {
+            cmds.push(['EXPIRE', cfg.z, String(cfg.ttl)]);
+            cmds.push(['EXPIRE', cfg.p, String(cfg.ttl)]);
+          }
+          await pipeline(cmds);
+        }
+        res.status(200).json({ ok: true, game, online: !useMemory, isBest });
         return;
       }
 

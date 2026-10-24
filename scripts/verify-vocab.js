@@ -37,7 +37,7 @@ function check(name, ok, detail) {
   // ========== A. 四屏导航 ==========
   const tabs = await page.evaluate(() =>
     [...document.querySelectorAll('.vc-tab')].map(b => b.textContent));
-  check('四屏子导航（今日/生词本/统计/设置）', tabs.length === 4, tabs);
+  check('五屏子导航（今日/生词本/统计/排行/设置）', tabs.length === 5, tabs);
   check('今日屏有数据条', (await page.evaluate(() => document.querySelectorAll('.vc-stat').length)) === 4);
   await page.screenshot({ path: path.join(OUT, 'p2-1-home.png') });
 

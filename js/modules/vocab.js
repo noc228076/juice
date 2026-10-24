@@ -44,8 +44,67 @@
       totalMs: 0,
       totalAnswered: 0,
       totalRight: 0,
-      days: {}
+      days: {},
+      /* 全服榜计数：背完的单词数与学习时长，按日/周/总三个周期分开 */
+      bw: null
     };
+  }
+
+  /* ---------- 全服榜周期计数 ---------- */
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+  function dayKey8() {
+    var d = new Date();
+    return d.getFullYear() + pad2(d.getMonth() + 1) + pad2(d.getDate());
+  }
+  function weekKey6() {
+    /* ISO 周（周一为一周之始）：以本周四所在的年份为周所属年 */
+    var d = new Date();
+    var mon = new Date(d.getFullYear(), d.getMonth(), d.getDate() - ((d.getDay() + 6) % 7));
+    var thu = new Date(mon.getFullYear(), mon.getMonth(), mon.getDate() + 3);
+    var jan1 = new Date(thu.getFullYear(), 0, 1);
+    var week = Math.floor((thu - jan1) / 604800000) + 1;
+    return thu.getFullYear() + pad2(week);
+  }
+  /* 读取并归一化周期计数：跨日/跨周自动清零，上报水位同步复位 */
+  function bw() {
+    if (!state.bw || typeof state.bw !== 'object') {
+      state.bw = { day: {}, week: {}, all: { n: 0, ms: 0 }, posted: {} };
+    }
+    var b = state.bw;
+    var dk = dayKey8(), wk = weekKey6();
+    if (b.day.k !== dk) { b.day = { k: dk, n: 0, ms: 0 }; b.posted.day = 0; }
+    if (b.week.k !== wk) { b.week = { k: wk, n: 0, ms: 0 }; b.posted.week = 0; }
+    if (!b.all) b.all = { n: 0, ms: 0 };
+    if (!b.posted) b.posted = {};
+    if (b.posted.all == null) b.posted.all = 0;
+    return b;
+  }
+  var countedWords = {};   // 本局已计数（背完自评）的词，防重复
+  /* 上报三榜：绝对计数取历史最大，重复上报幂等，无增量就跳过 */
+  function submitBoards() {
+    var prof = window.AppProfile ? window.AppProfile.get() : null;
+    if (!prof || !prof.id) return;
+    var b = bw();
+    [
+      { game: 'vocab_day', period: b.day.k, count: b.day.n, ms: b.day.ms, pk: 'day' },
+      { game: 'vocab_week', period: b.week.k, count: b.week.n, ms: b.week.ms, pk: 'week' },
+      { game: 'vocab_all', period: '', count: b.all.n, ms: b.all.ms, pk: 'all' }
+    ].forEach(function (j) {
+      if (!j.count || j.count <= (b.posted[j.pk] || 0)) return;
+      b.posted[j.pk] = j.count;
+      try {
+        fetch('/api/leaderboard', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            game: j.game, period: j.period, id: prof.id,
+            name: prof.name, avatar: prof.avatar,
+            count: j.count, ms: Math.round(j.ms || 0)
+          })
+        }).catch(function () {});
+      } catch (e) {}
+    });
+    saveState();
   }
 
   var state = emptyState();
@@ -113,7 +172,13 @@
     var now = Date.now();
     var d = now - tickAt;
     tickAt = now;
-    if (d > 0 && d < IDLE_CAP_MS) state.totalMs = (state.totalMs || 0) + d;
+    if (d > 0 && d < IDLE_CAP_MS) {
+      state.totalMs = (state.totalMs || 0) + d;
+      var b = bw();
+      b.day.ms = (b.day.ms || 0) + d;
+      b.week.ms = (b.week.ms || 0) + d;
+      b.all.ms = (b.all.ms || 0) + d;
+    }
   }
   function fmtDuration(ms) {
     var min = Math.floor((ms || 0) / 60000);
@@ -233,6 +298,7 @@
     { k: 'today', label: '今日' },
     { k: 'words', label: '生词本' },
     { k: 'stats', label: '统计' },
+    { k: 'rank', label: '🏆 排行' },
     { k: 'settings', label: '设置' }
   ];
 
@@ -303,6 +369,7 @@
     if (tab === 'today') body = todayHtml();
     else if (tab === 'words') body = wordsHtml();
     else if (tab === 'stats') body = statsHtml();
+    else if (tab === 'rank') body = rankHtml();
     else body = settingsHtml();
 
     el.innerHTML = head + body +
@@ -313,6 +380,7 @@
     if (tab === 'today') bindToday();
     if (tab === 'words') bindWords();
     if (tab === 'stats') bindStats();
+    if (tab === 'rank') bindRank();
     if (tab === 'settings') bindSettings();
   }
 
@@ -760,6 +828,7 @@
     qi = 0;
     answered = false;
     sessionStats = { right: 0, wrong: 0 };
+    countedWords = {};
     tickStart();
     ensureExtra().then(function () {
       current = makeQuestion(stageQueue[0]);
@@ -994,6 +1063,15 @@
   function revealSelfRate() {
     var w = current;
     w.revealed = true;
+    /* 背完一个词 = 走到自评并揭示。每局每词只计一次（改判不重复计） */
+    if (w && w.idx != null && !countedWords[w.idx]) {
+      countedWords[w.idx] = 1;
+      var b = bw();
+      b.day.n = (b.day.n || 0) + 1;
+      b.week.n = (b.week.n || 0) + 1;
+      b.all.n = (b.all.n || 0) + 1;
+      saveState();
+    }
     /* 自评点完就算「已作答」，否则键盘的空格会被当成选选项而失效 */
     answered = true;
 
@@ -1272,6 +1350,105 @@
     renderHome();
   }
 
+  /* ---------- 全服排行（日/周/总，按背完单词数排名，附学习时长） ---------- */
+  var RANK_BOARDS = [
+    { k: 'vocab_day', label: '日榜' },
+    { k: 'vocab_week', label: '周榜' },
+    { k: 'vocab_all', label: '总榜' }
+  ];
+  var rankBoard = 'vocab_day';
+  var rankCache = {};   // game → { at, html }
+  var RANK_TTL = 60 * 1000;
+
+  function rankPeriod(game) {
+    if (game === 'vocab_day') return dayKey8();
+    if (game === 'vocab_week') return weekKey6();
+    return '';
+  }
+
+  function fmtMs(ms) {
+    var min = Math.round((ms || 0) / 60000);
+    if (min < 1) return '1 分钟内';
+    if (min < 60) return min + ' 分钟';
+    var h = Math.floor(min / 60);
+    var m = min % 60;
+    return h + ' 小时' + (m ? ' ' + m + ' 分' : '');
+  }
+
+  function rankRowsHTML(board, me) {
+    if (!board || !board.length) {
+      return '<div class="vc-lb-empty">这个榜还没有人上榜，背完一局你就是第一名</div>';
+    }
+    var b = bw();
+    var mine = { vocab_day: b.day, vocab_week: b.week, vocab_all: b.all }[rankBoard];
+    return board.map(function (r, i) {
+      var isMe = !!(me && r.id === me.id);
+      var rank = i + 1;
+      var medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
+      return '<div class="vc-lb-row' + (isMe ? ' me' : '') + '">' +
+        '<span class="vc-lb-rank">' + medal + '</span>' +
+        '<span class="vc-lb-ava">' + esc(r.avatar || '🙂') + '</span>' +
+        '<span class="vc-lb-name">' + esc(r.name || '匿名玩家') + (isMe ? '（我）' : '') + '</span>' +
+        '<span class="vc-lb-score"><b>' + r.score + '</b> 词</span>' +
+        '<span class="vc-lb-ms">⏱ ' + fmtMs(r.extra && r.extra.ms) + '</span>' +
+      '</div>';
+    }).join('') +
+    (me && !board.some(function (r) { return r.id === me.id; }) && mine && mine.n
+      ? '<div class="vc-lb-row me tail"><span class="vc-lb-rank">…</span>' +
+        '<span class="vc-lb-ava">' + esc(me.avatar) + '</span>' +
+        '<span class="vc-lb-name">' + esc(me.name) + '（我）</span>' +
+        '<span class="vc-lb-score"><b>' + mine.n + '</b> 词</span>' +
+        '<span class="vc-lb-ms">⏱ ' + fmtMs(mine.ms) + '</span></div>'
+      : '');
+  }
+
+  function rankHtml() {
+    var me = window.AppProfile ? window.AppProfile.get() : null;
+    var cached = rankCache[rankBoard];
+    var body = cached ? cached.html : '<div class="vc-lb-empty">正在加载榜单…</div>';
+    var tabs = '<div class="vc-lb-tabs">' + RANK_BOARDS.map(function (b) {
+      return '<button type="button" class="vc-lb-tab' + (rankBoard === b.k ? ' active' : '') +
+        '" data-rank="' + b.k + '">' + b.label + '</button>';
+    }).join('') + '</div>';
+    return '<div class="vc-panel"><h2 class="vc-h2">🏆 全服排行 · 按背完的单词数</h2>' +
+      '<p class="vc-field-d">日榜每天零点重新开始，周榜按自然周（周一），总榜累计历史。排名后附学习时长。</p>' +
+      tabs + '<div class="vc-lb" id="vcLb">' + body + '</div></div>';
+  }
+
+  function fetchRank(force) {
+    var game = rankBoard;
+    var cached = rankCache[game];
+    if (!force && cached && Date.now() - cached.at < RANK_TTL) return;
+    var period = rankPeriod(game);
+    var url = '/api/leaderboard?game=' + game + '&limit=50' + (period ? '&period=' + period : '');
+    fetch(url).then(function (r) { return r.json(); }).then(function (data) {
+      if (!data || !data.ok) throw new Error('bad');
+      var me = window.AppProfile ? window.AppProfile.get() : null;
+      rankCache[game] = { at: Date.now(), html: rankRowsHTML(data.board, me) };
+      if (tab === 'rank' && rankBoard === game) {
+        var host = el.querySelector('#vcLb');
+        if (host) host.innerHTML = rankCache[game].html;
+      }
+    }).catch(function () {
+      if (tab === 'rank' && rankBoard === game) {
+        var host = el.querySelector('#vcLb');
+        if (host) host.innerHTML = '<div class="vc-lb-empty">榜单加载失败，稍后再试</div>';
+      }
+    });
+  }
+
+  function bindRank() {
+    el.querySelectorAll('[data-rank]').forEach(function (b) {
+      b.onclick = function () {
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        rankBoard = b.getAttribute('data-rank');
+        renderHome();
+        fetchRank(false);
+      };
+    });
+    fetchRank(false);
+  }
+
   function finishSession() {
     tickFlush();
     var right = sessionStats.right, wrong = sessionStats.wrong;
@@ -1295,6 +1472,7 @@
       state.seq = Math.max(state.seq, maxNewIdx + 1);
     }
     saveState();
+    submitBoards();
 
     el.innerHTML =
       '<div class="vc-wrap">' + subnav() +
@@ -1381,6 +1559,7 @@
     destroy: function () {
       tickFlush();
       saveState();
+      submitBoards();
       window.removeEventListener('keydown', onKeyDown);
       keyBound = false;
     }

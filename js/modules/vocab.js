@@ -119,32 +119,35 @@
   }
   var countedWords = {};   // 本局已计数（背完自评）的词，防重复
   /* 上报三榜：绝对计数取历史最大，重复上报幂等，无增量就跳过 */
-  function submitBoards() {
+  function submitBoards(after) {
     var prof = window.AppProfile ? window.AppProfile.get() : null;
-    if (!prof || !prof.id) return;
+    if (!prof || !prof.id) { if (after) after(false); return; }
     var b = bw();
     var accOf = function (o) { return o && o.a ? Math.round(o.r / o.a * 100) : null; };
-    [
+    var jobs = [
       { game: 'vocab_day', period: b.day.k, count: b.day.n, ms: b.day.ms, acc: accOf(b.day), pk: 'day' },
       { game: 'vocab_week', period: b.week.k, count: b.week.n, ms: b.week.ms, acc: accOf(b.week), pk: 'week' },
       { game: 'vocab_all', period: '', count: b.all.n, ms: b.all.ms, acc: accOf(b.all), pk: 'all' }
-    ].forEach(function (j) {
-      if (!j.count || j.count <= (b.posted[j.pk] || 0)) return;
+    ].filter(function (j) {
+      return j.count && j.count > (b.posted[j.pk] || 0);
+    });
+    jobs.forEach(function (j) {
       b.posted[j.pk] = j.count;
-      try {
-        fetch('/api/leaderboard', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            game: j.game, period: j.period, id: prof.id,
-            name: prof.name, avatar: prof.avatar,
-            count: j.count, ms: Math.round(j.ms || 0),
-            acc: j.acc == null ? undefined : j.acc
-          })
-        }).catch(function () {});
-      } catch (e) {}
     });
     saveState();
+    if (!jobs.length) { if (after) after(false); return; }
+    Promise.all(jobs.map(function (j) {
+      return fetch('/api/leaderboard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          game: j.game, period: j.period, id: prof.id,
+          name: prof.name, avatar: prof.avatar,
+          count: j.count, ms: Math.round(j.ms || 0),
+          acc: j.acc == null ? undefined : j.acc
+        })
+      }).catch(function () {});
+    })).then(function () { if (after) after(true); }, function () { if (after) after(true); });
   }
 
   var state = emptyState();
@@ -1403,6 +1406,7 @@
   ];
   var rankBoard = 'vocab_day';
   var rankCache = {};   // game → { at, html }
+  var rankLoading = false;
   var RANK_TTL = 60 * 1000;
 
   function rankPeriod(game) {
@@ -1457,7 +1461,10 @@
     var tabs = '<div class="vc-lb-tabs">' + RANK_BOARDS.map(function (b) {
       return '<button type="button" class="vc-lb-tab' + (rankBoard === b.k ? ' active' : '') +
         '" data-rank="' + b.k + '">' + b.label + '</button>';
-    }).join('') + '</div>';
+    }).join('') +
+      '<button type="button" class="vc-lb-refresh' + (rankLoading ? ' spin' : '') + '"' +
+      (rankLoading ? ' disabled' : '') + ' data-rank-refresh title="刷新榜单" aria-label="刷新榜单">↻</button>' +
+      '</div>';
     return '<div class="vc-panel"><h2 class="vc-h2">🏆 全服排行 · 按背完的单词数</h2>' +
       '<p class="vc-field-d">日榜每天零点重新开始，周榜按自然周（周一），总榜累计历史。排名后附学习时长。</p>' +
       tabs + '<div class="vc-lb" id="vcLb">' + body + '</div></div>';
@@ -1469,6 +1476,9 @@
     if (!force && cached && Date.now() - cached.at < RANK_TTL) return;
     var period = rankPeriod(game);
     var url = '/api/leaderboard?game=' + game + '&limit=50' + (period ? '&period=' + period : '');
+    rankLoading = true;
+    var spinBtn = el.querySelector('[data-rank-refresh]');
+    if (spinBtn) { spinBtn.classList.add('spin'); spinBtn.disabled = true; }
     fetch(url).then(function (r) { return r.json(); }).then(function (data) {
       if (!data || !data.ok) throw new Error('bad');
       var me = window.AppProfile ? window.AppProfile.get() : null;
@@ -1482,6 +1492,10 @@
         var host = el.querySelector('#vcLb');
         if (host) host.innerHTML = '<div class="vc-lb-empty">榜单加载失败，稍后再试</div>';
       }
+    }).then(function () {
+      rankLoading = false;
+      var b2 = el.querySelector('[data-rank-refresh]');
+      if (b2) { b2.classList.remove('spin'); b2.disabled = false; }
     });
   }
 
@@ -1493,6 +1507,17 @@
         renderHome();
         fetchRank(false);
       };
+    });
+    var refresh = el.querySelector('[data-rank-refresh]');
+    if (refresh) refresh.onclick = function () {
+      if (window.SFX && window.SFX.tap) window.SFX.tap();
+      if (rankLoading) return;
+      fetchRank(true);
+    };
+    /* 打开排行页先补报（含排行榜上线前的历史迁移），落定后再拉榜，
+       保证「看的时候自己的记录已经上榜」 */
+    submitBoards(function (posted) {
+      if (posted && tab === 'rank') fetchRank(true);
     });
     fetchRank(false);
   }

@@ -1208,3 +1208,12 @@
   .vc-lb-ms { width: 74px; font-size: 11px; }
   .vc-lb-row { padding: 7px 10px; gap: 8px; }
 }
+.vc-lb-acc {
+  flex: none;
+  width: 56px;
+  text-align: right;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--tx-dim);
+}
+.vc-lb-row.me .vc-lb-acc { color: var(--mod-ac); }

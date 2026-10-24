@@ -65,16 +65,54 @@
     var week = Math.floor((thu - jan1) / 604800000) + 1;
     return thu.getFullYear() + pad2(week);
   }
+  /* 历史学习量统计（排行榜上线前就在学的进度不能丢）：
+     学过词数 = 词汇表里有进度记录的词；时长/答题对错直接取累计字段 */
+  function learnedWordCount() {
+    var n = 0;
+    for (var k in state.words) {
+      var r = state.words[k];
+      if (r && (r.seen != null || r.box != null || r.wrong != null)) n++;
+    }
+    return n;
+  }
+
   /* 读取并归一化周期计数：跨日/跨周自动清零，上报水位同步复位 */
   function bw() {
     if (!state.bw || typeof state.bw !== 'object') {
-      state.bw = { day: {}, week: {}, all: { n: 0, ms: 0 }, posted: {} };
+      /* 首次迁移：排行榜上线前的历史进度一次性并入总榜 */
+      state.bw = {
+        day: {}, week: {},
+        all: {
+          n: learnedWordCount(),
+          ms: state.totalMs || 0,
+          a: state.totalAnswered || 0,
+          r: state.totalRight || 0
+        },
+        posted: {}, mig: 1
+      };
+      saveState();
+    } else if (!state.bw.mig) {
+      /* v268 上线后已经产生过 bw 的老进度：用权威累计值覆盖总榜口径，
+         并清空已上报水位强制重报（避免历史词数永久丢失） */
+      state.bw.all = {
+        n: learnedWordCount(),
+        ms: state.totalMs || 0,
+        a: state.totalAnswered || 0,
+        r: state.totalRight || 0
+      };
+      if (!state.bw.posted) state.bw.posted = {};
+      state.bw.posted.all = 0;
+      state.bw.mig = 1;
+      saveState();
     }
     var b = state.bw;
     var dk = dayKey8(), wk = weekKey6();
-    if (b.day.k !== dk) { b.day = { k: dk, n: 0, ms: 0 }; b.posted.day = 0; }
-    if (b.week.k !== wk) { b.week = { k: wk, n: 0, ms: 0 }; b.posted.week = 0; }
-    if (!b.all) b.all = { n: 0, ms: 0 };
+    if (b.day.k !== dk) { b.day = { k: dk, n: 0, ms: 0, a: 0, r: 0 }; b.posted.day = 0; }
+    if (b.week.k !== wk) { b.week = { k: wk, n: 0, ms: 0, a: 0, r: 0 }; b.posted.week = 0; }
+    if (!b.all) b.all = { n: 0, ms: 0, a: 0, r: 0 };
+    if (b.day.a == null) { b.day.a = 0; b.day.r = 0; }
+    if (b.week.a == null) { b.week.a = 0; b.week.r = 0; }
+    if (b.all.a == null) { b.all.a = 0; b.all.r = 0; }
     if (!b.posted) b.posted = {};
     if (b.posted.all == null) b.posted.all = 0;
     return b;
@@ -85,10 +123,11 @@
     var prof = window.AppProfile ? window.AppProfile.get() : null;
     if (!prof || !prof.id) return;
     var b = bw();
+    var accOf = function (o) { return o && o.a ? Math.round(o.r / o.a * 100) : null; };
     [
-      { game: 'vocab_day', period: b.day.k, count: b.day.n, ms: b.day.ms, pk: 'day' },
-      { game: 'vocab_week', period: b.week.k, count: b.week.n, ms: b.week.ms, pk: 'week' },
-      { game: 'vocab_all', period: '', count: b.all.n, ms: b.all.ms, pk: 'all' }
+      { game: 'vocab_day', period: b.day.k, count: b.day.n, ms: b.day.ms, acc: accOf(b.day), pk: 'day' },
+      { game: 'vocab_week', period: b.week.k, count: b.week.n, ms: b.week.ms, acc: accOf(b.week), pk: 'week' },
+      { game: 'vocab_all', period: '', count: b.all.n, ms: b.all.ms, acc: accOf(b.all), pk: 'all' }
     ].forEach(function (j) {
       if (!j.count || j.count <= (b.posted[j.pk] || 0)) return;
       b.posted[j.pk] = j.count;
@@ -99,7 +138,8 @@
           body: JSON.stringify({
             game: j.game, period: j.period, id: prof.id,
             name: prof.name, avatar: prof.avatar,
-            count: j.count, ms: Math.round(j.ms || 0)
+            count: j.count, ms: Math.round(j.ms || 0),
+            acc: j.acc == null ? undefined : j.acc
           })
         }).catch(function () {});
       } catch (e) {}
@@ -1175,6 +1215,11 @@
     } else {
       sessionStats.wrong++;
     }
+    {
+      var bAcc = bw();
+      bAcc.day.a++; bAcc.week.a++; bAcc.all.a++;
+      if (ok) { bAcc.day.r++; bAcc.week.r++; bAcc.all.r++; }
+    }
     countAnswer();
 
     applySchedule(current.idx, ok);
@@ -1385,11 +1430,13 @@
       var isMe = !!(me && r.id === me.id);
       var rank = i + 1;
       var medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : rank;
+      var acc = r.extra && r.extra.acc;
       return '<div class="vc-lb-row' + (isMe ? ' me' : '') + '">' +
         '<span class="vc-lb-rank">' + medal + '</span>' +
         '<span class="vc-lb-ava">' + esc(r.avatar || '🙂') + '</span>' +
         '<span class="vc-lb-name">' + esc(r.name || '匿名玩家') + (isMe ? '（我）' : '') + '</span>' +
         '<span class="vc-lb-score"><b>' + r.score + '</b> 词</span>' +
+        '<span class="vc-lb-acc">' + (acc == null ? '—' : '✔ ' + acc + '%') + '</span>' +
         '<span class="vc-lb-ms">⏱ ' + fmtMs(r.extra && r.extra.ms) + '</span>' +
       '</div>';
     }).join('') +
@@ -1398,6 +1445,7 @@
         '<span class="vc-lb-ava">' + esc(me.avatar) + '</span>' +
         '<span class="vc-lb-name">' + esc(me.name) + '（我）</span>' +
         '<span class="vc-lb-score"><b>' + mine.n + '</b> 词</span>' +
+        '<span class="vc-lb-acc">' + (mine.a ? '✔ ' + Math.round(mine.r / mine.a * 100) + '%' : '—') + '</span>' +
         '<span class="vc-lb-ms">⏱ ' + fmtMs(mine.ms) + '</span></div>'
       : '');
   }

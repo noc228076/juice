@@ -575,6 +575,8 @@ module.exports = async function handler(req, res) {
         if (count == null) { res.status(400).json({ ok: false, error: '单词数不合法' }); return; }
         const ms = intIn(body.ms, 0, 366 * 86400000);
         if (ms == null) { res.status(400).json({ ok: false, error: '时长不合法' }); return; }
+        const acc = body.acc == null ? null : intIn(body.acc, 0, 100);
+        if (acc == null && body.acc != null) { res.status(400).json({ ok: false, error: '正确率不合法' }); return; }
 
         // 与普通游戏同款双维度限流
         const dynKey = game + ':' + (body.period || 'all');
@@ -625,6 +627,9 @@ module.exports = async function handler(req, res) {
           if (prevDetail.ms != null) detail.ms = prevDetail.ms;
         }
         if (detail.at == null) detail.at = stamp;
+        /* 正确率不参与排名，始终存最新一份（词数没破纪录时正确率也在变） */
+        if (acc != null) detail.acc = acc;
+        else if (prevDetail && prevDetail.acc != null) detail.acc = prevDetail.acc;
         const payload = JSON.stringify(detail);
 
         if (useMemory) {

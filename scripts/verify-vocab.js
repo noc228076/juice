@@ -27,7 +27,12 @@ function check(name, ok, detail) {
     await page.waitForTimeout(2400);
   };
   const txt = () => page.evaluate(() => document.getElementById('mod-vocab').innerText);
-  const saved = () => page.evaluate(() => JSON.parse(localStorage.getItem('juice_vocab_v1') || '{}'));
+  // v2 分库存档：读取当前词库那份进度（v1 兼容直取）
+  const saved = () => page.evaluate(() => {
+    const s = JSON.parse(localStorage.getItem('juice_vocab_v1') || '{}');
+    return (s.books && s.books[s.book || 'cet4']) || s;
+  });
+  const savedAll = () => page.evaluate(() => JSON.parse(localStorage.getItem('juice_vocab_v1') || '{}'));
   const setState = (mut) => page.evaluate(mut);
 
   await fresh('/vocab');
@@ -117,11 +122,12 @@ function check(name, ok, detail) {
   // 直接造两条记录（前面的流程只产生过 1 个词，靠它凑不出 2 条）
   await page.evaluate(() => {
     const s = JSON.parse(localStorage.getItem('juice_vocab_v1') || '{}');
+    const bk = (s.books && (s.books[s.book || 'cet4'] = s.books[s.book || 'cet4'] || {})) || s;
     const today = Math.floor(Date.now() / 86400000);
-    s.words = s.words || {};
-    s.words['abruptly'] = { box: 0, due: today, seen: 6, wrong: 5 };
-    s.words['absorb'] = { box: 1, due: today, seen: 3, wrong: 2 };
-    s.newDoneToday = s.dailyNew;
+    bk.words = bk.words || {};
+    bk.words['abruptly'] = { box: 0, due: today, seen: 6, wrong: 5 };
+    bk.words['absorb'] = { box: 1, due: today, seen: 3, wrong: 2 };
+    bk.newDoneToday = s.dailyNew || bk.newDoneToday || 3;
     localStorage.setItem('juice_vocab_v1', JSON.stringify(s));
   });
   await fresh('/vocab');
@@ -268,15 +274,16 @@ function check(name, ok, detail) {
   await page.waitForTimeout(300);
   await page.click('[data-daily="25"]');
   await page.waitForTimeout(400);
-  check('每天词量可选', (await saved()).dailyNew === 25);
+  check('每天词量可选', (await savedAll()).dailyNew === 25);
   await page.click('[data-order="random"]');
   await page.waitForTimeout(400);
-  check('顺序/乱序可切', (await saved()).order === 'random');
+  check('顺序/乱序可切', (await savedAll()).order === 'random');
 
   // 跑一整局，验证调度与统计
   await page.evaluate(() => {
     const s = JSON.parse(localStorage.getItem('juice_vocab_v1') || '{}');
-    s.words = {}; s.seq = 0; s.newDoneToday = 0; s.doneToday = 0;
+    const bk = (s.books && (s.books[s.book || 'cet4'] = s.books[s.book || 'cet4'] || {})) || s;
+    bk.words = {}; bk.seq = 0; bk.newDoneToday = 0; bk.doneToday = 0;
     s.order = 'seq'; s.dailyNew = 10;
     localStorage.setItem('juice_vocab_v1', JSON.stringify(s));
   });
@@ -313,9 +320,10 @@ function check(name, ok, detail) {
   // 跨天
   await page.evaluate(() => {
     const s = JSON.parse(localStorage.getItem('juice_vocab_v1') || '{}');
+    const bk = (s.books && s.books[s.book || 'cet4']) || s;
     const y = new Date(Date.now() - 86400000);
     const key = d => d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
-    s.day = key(y); s.newDoneToday = s.dailyNew; s.doneToday = 20;
+    bk.day = key(y); bk.newDoneToday = s.dailyNew || s.book && 3 || 3; bk.doneToday = 20;
     localStorage.setItem('juice_vocab_v1', JSON.stringify(s));
   });
   await fresh('/vocab');

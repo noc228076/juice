@@ -30,7 +30,7 @@ const R=[]; function check(n,ok,d){R.push({n,ok:!!ok,d});console.log((ok?'PASS':
   await page.waitForTimeout(350);
   const fb = await page.evaluate(()=>document.getElementById('vcFb')?.classList.contains('bad'));
   check('第 1 题判错', fb, {word: wrongWord});
-  const wrong = await page.evaluate(()=>JSON.parse(localStorage.getItem('juice_vocab_v1')).words);
+  const wrong = await page.evaluate(()=>{const s0=JSON.parse(localStorage.getItem('juice_vocab_v1'));return ((s0.books||{cet4:s0}).cet4).words||{};});
   const wk = Object.keys(wrong).find(k=>wrong[k].wrong>0);
   check('答错的词 wrong+1', !!wk, {wrongWord: wk, wrong: wk && wrong[wk].wrong});
 

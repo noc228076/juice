@@ -92,11 +92,11 @@ function check(n, ok, d){ R.push({n,ok:!!ok,d}); console.log((ok?'PASS':'FAIL')+
 
 
   // 6: 标熟
-  const before = await page.evaluate(() => JSON.parse(localStorage.getItem('juice_vocab_v1')).words);
+  const before = await page.evaluate(() => (JSON.parse(localStorage.getItem('juice_vocab_v1')).books||{cet4:JSON.parse(localStorage.getItem('juice_vocab_v1'))}).cet4.words);
   await page.click('#vcMarkKnown');
   await page.waitForTimeout(500);
   const after = await page.evaluate(() => ({
-    words: JSON.parse(localStorage.getItem('juice_vocab_v1')).words,
+    words: (JSON.parse(localStorage.getItem('juice_vocab_v1')).books||{cet4:JSON.parse(localStorage.getItem('juice_vocab_v1'))}).cet4.words,
     count: document.querySelector('.vc-count')?.textContent
   }));
   const knownKey = Object.keys(after.words).find(k => after.words[k].known);
@@ -106,8 +106,9 @@ function check(n, ok, d){ R.push({n,ok:!!ok,d}); console.log((ok?'PASS':'FAIL')+
 
   // 标熟的词不再进队列
   const queueInfo = await page.evaluate(() => {
-    const s = JSON.parse(localStorage.getItem('juice_vocab_v1'));
-    return Object.keys(s.words).filter(k => s.words[k].known);
+    const s0 = JSON.parse(localStorage.getItem('juice_vocab_v1'));
+    const s = (s0.books && s0.books[s0.book || 'cet4']) || s0;
+    return Object.keys(s.words || {}).filter(k => s.words[k].known);
   });
   check('标熟词被记录', queueInfo.length === 1, queueInfo);
 
@@ -131,8 +132,9 @@ function check(n, ok, d){ R.push({n,ok:!!ok,d}); console.log((ok?'PASS':'FAIL')+
   await page.click('[data-unknow]');
   await page.waitForTimeout(500);
   const afterUn = await page.evaluate(() => {
-    const s = JSON.parse(localStorage.getItem('juice_vocab_v1'));
-    return Object.keys(s.words).filter(k => s.words[k].known).length;
+    const s0 = JSON.parse(localStorage.getItem('juice_vocab_v1'));
+    const s = (s0.books && s0.books[s0.book || 'cet4']) || s0;
+    return Object.keys(s.words || {}).filter(k => s.words[k].known).length;
   });
   check('取消标熟生效', afterUn === 0, { known: afterUn });
 

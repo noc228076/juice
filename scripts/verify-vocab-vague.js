@@ -21,7 +21,7 @@ const R=[]; function check(n,ok,d){R.push({n,ok:!!ok,d});console.log((ok?'PASS':
   await page.waitForTimeout(2500);
 
   const start = await page.evaluate(()=>{
-    const r=JSON.parse(localStorage.getItem('juice_vocab_v1')).words.abruptly;
+    const r=(JSON.parse(localStorage.getItem('juice_vocab_v1')).books||{cet4:JSON.parse(localStorage.getItem('juice_vocab_v1'))}).cet4.words.abruptly;
     return {box:r.box, due:r.due};
   });
   check('起始 box=2', start.box===2, start);
@@ -63,7 +63,7 @@ const R=[]; function check(n,ok,d){R.push({n,ok:!!ok,d});console.log((ok?'PASS':
   const atRate = await page.evaluate(()=>document.querySelectorAll('[data-rate]').length);
   check('推进到自评阶段', atRate===3, {rates:atRate});
 
-  const beforeBox = await page.evaluate(()=>JSON.parse(localStorage.getItem('juice_vocab_v1')).words.abruptly.box);
+  const beforeBox = await page.evaluate(()=>(JSON.parse(localStorage.getItem('juice_vocab_v1')).books||{cet4:JSON.parse(localStorage.getItem('juice_vocab_v1'))}).cet4.words.abruptly.box);
   await page.keyboard.press('2');   // 模糊
   await page.waitForTimeout(350);
   const back = await page.evaluate(()=>!!document.querySelector('.vc-back-panel .vc-bp-h'));
@@ -72,7 +72,7 @@ const R=[]; function check(n,ok,d){R.push({n,ok:!!ok,d});console.log((ok?'PASS':
   await page.waitForTimeout(500);
 
   const after = await page.evaluate(()=>{
-    const r=JSON.parse(localStorage.getItem('juice_vocab_v1')).words.abruptly;
+    const r=(JSON.parse(localStorage.getItem('juice_vocab_v1')).books||{cet4:JSON.parse(localStorage.getItem('juice_vocab_v1'))}).cet4.words.abruptly;
     const today=Math.floor(Date.now()/86400000);
     return {box:r.box, due:r.due, today, seen:r.seen, wrong:r.wrong};
   });

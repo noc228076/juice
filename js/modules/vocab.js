@@ -25,9 +25,8 @@
   var HEAT_DAYS = 90;
 
   /* ---------- 状态 ---------- */
-  function emptyState() {
+  function emptyBook() {
     return {
-      book: 'cet4',
       day: '',
       newDoneToday: 0,
       doneToday: 0,
@@ -35,20 +34,39 @@
       lastDone: '',
       words: {},         // 词 → { box, due, seen, wrong }
       seq: 0,
-      dailyNew: 15,
-      order: 'seq',
-      /* 选择题方向：en2cn = 英选中（给单词挑释义）；cn2en = 中选英（给释义挑单词） */
-      dir: 'en2cn',
-      /* 题型开关：关掉的题型不参与轮转，自动落到剩下的 */
-      kinds: { recall: true, spell: true, cloze: false },
       totalMs: 0,
       totalAnswered: 0,
       totalRight: 0,
-      days: {},
-      /* 全服榜计数：背完的单词数与学习时长，按日/周/总三个周期分开 */
-      bw: null
+      days: {}
     };
   }
+
+  function emptyState() {
+    return {
+      ver: 2,
+      book: 'cet4',
+      dailyNew: 15,
+      order: 'seq',
+      /* 选择题方向：en2cn = 英选中；cn2en = 中选英 */
+      dir: 'en2cn',
+      /* 题型开关：关掉的题型不参与轮转 */
+      kinds: { recall: true, spell: true, cloze: false },
+      /* 自动朗读：英选中出题时自动读一遍单词（s 键随时手动读） */
+      autoSpeak: false,
+      /* 全服榜计数（跨词库累计） */
+      bw: null,
+      /* 每个词库一份独立进度，切换词库不再清空 */
+      books: { cet4: emptyBook(), cet6: emptyBook() }
+    };
+  }
+
+  /* 当前词库的进度记录（state.book 指向的那份） */
+  function bs() {
+    if (!state.books || typeof state.books !== 'object') state.books = {};
+    if (!state.books[state.book]) state.books[state.book] = emptyBook();
+    return state.books[state.book];
+  }
+
 
   /* ---------- 全服榜周期计数 ---------- */
   function pad2(n) { return (n < 10 ? '0' : '') + n; }
@@ -69,8 +87,8 @@
      学过词数 = 词汇表里有进度记录的词；时长/答题对错直接取累计字段 */
   function learnedWordCount() {
     var n = 0;
-    for (var k in state.words) {
-      var r = state.words[k];
+    for (var k in bs().words) {
+      var r = bs().words[k];
       if (r && (r.seen != null || r.box != null || r.wrong != null)) n++;
     }
     return n;
@@ -81,7 +99,7 @@
      时长按「终身平均每题耗时」折算，正确率按终身正确率折算。
      只在迁移时执行一次，估算值取 max 防止低于已精确计数的部分。 */
   function backfillDayWeek() {
-    var qOf = function (d) { return state.days[d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate()] || 0; };
+    var qOf = function (d) { return bs().days[d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate()] || 0; };
     var now = new Date();
     var qDay = qOf(now);
     var qWeek = 0;
@@ -91,9 +109,9 @@
       if (d > now) break;
       qWeek += qOf(d);
     }
-    var qAll = state.totalAnswered || 0;
-    var accAll = qAll ? (state.totalRight || 0) / qAll : 0;
-    var msPerQ = qAll ? (state.totalMs || 0) / qAll : 0;
+    var qAll = bs().totalAnswered || 0;
+    var accAll = qAll ? (bs().totalRight || 0) / qAll : 0;
+    var msPerQ = qAll ? (bs().totalMs || 0) / qAll : 0;
     var seed = function (q) {
       return {
         n: Math.floor(q / 3),
@@ -122,9 +140,9 @@
         week: { k: weekKey6(), n: bf.week.n, ms: bf.week.ms, a: bf.week.a, r: bf.week.r },
         all: {
           n: learnedWordCount(),
-          ms: state.totalMs || 0,
-          a: state.totalAnswered || 0,
-          r: state.totalRight || 0
+          ms: bs().totalMs || 0,
+          a: bs().totalAnswered || 0,
+          r: bs().totalRight || 0
         },
         posted: {}, mig: 1, mig2: 1
       };
@@ -135,9 +153,9 @@
       var bf2 = backfillDayWeek();
       state.bw.all = {
         n: learnedWordCount(),
-        ms: state.totalMs || 0,
-        a: state.totalAnswered || 0,
-        r: state.totalRight || 0
+        ms: bs().totalMs || 0,
+        a: bs().totalAnswered || 0,
+        r: bs().totalRight || 0
       };
       state.bw.day = state.bw.day || { k: dayKey8() };
       state.bw.day.k = dayKey8();
@@ -225,23 +243,62 @@
     return Math.floor(Date.UTC(+p[0], +p[1] - 1, +p[2]) / 86400000);
   }
 
+
+  var state = emptyState();
+
+  function todayKey() {
+    var d = new Date();
+    return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+  }
+
+  function dayNum(key) {
+    if (!key) return 0;
+    var p = key.split('-');
+    return Math.floor(Date.UTC(+p[0], +p[1] - 1, +p[2]) / 86400000);
+  }
+
   function loadState() {
     var raw = null;
     try { raw = localStorage.getItem(SAVE_KEY); } catch (e) {}
-    if (!raw) { state = emptyState(); state.day = todayKey(); return; }
+    if (!raw) { state = emptyState(); bs().day = todayKey(); return; }
     try {
       var s = JSON.parse(raw) || {};
-      state = Object.assign(emptyState(), s);
-      if (!state.words || typeof state.words !== 'object') state.words = {};
-      if (!state.days || typeof state.days !== 'object') state.days = {};
-      if (typeof s.newLeft === 'number' && typeof s.newDoneToday !== 'number') {
-        var q0 = typeof state.dailyNew === 'number' ? state.dailyNew : 15;
-        state.newDoneToday = Math.max(0, q0 - s.newLeft);
+      if (!s.books) {
+        /* v1 → v2：老存档只有一份进度，归入当时所选词库，另一个词库从零开始 */
+        var bk1 = s.book === 'cet6' ? 'cet6' : 'cet4';
+        var old1 = emptyBook();
+        old1.day = s.day || '';
+        old1.newDoneToday = s.newDoneToday || 0;
+        if (typeof s.newLeft === 'number' && typeof s.newDoneToday !== 'number') {
+          var q1 = typeof s.dailyNew === 'number' ? s.dailyNew : 15;
+          old1.newDoneToday = Math.max(0, q1 - s.newLeft);
+        }
+        old1.doneToday = s.doneToday || 0;
+        old1.streak = s.streak || 0;
+        old1.lastDone = s.lastDone || '';
+        old1.words = (s.words && typeof s.words === 'object') ? s.words : {};
+        old1.seq = s.seq || 0;
+        old1.totalMs = s.totalMs || 0;
+        old1.totalAnswered = s.totalAnswered || 0;
+        old1.totalRight = s.totalRight || 0;
+        old1.days = (s.days && typeof s.days === 'object') ? s.days : {};
+        state = emptyState();
+        state.book = bk1;
+        state.dailyNew = typeof s.dailyNew === 'number' ? s.dailyNew : 15;
+        state.order = s.order === 'random' ? 'random' : 'seq';
+        state.bw = s.bw || null;
+        state.books[bk1] = old1;
+        saveState();
+        return;
       }
+      state = Object.assign(emptyState(), s);
+      if (!state.books || typeof state.books !== 'object') state.books = {};
+      if (state.book !== 'cet6') state.book = 'cet4';
       if (!state.kinds || typeof state.kinds !== 'object') {
         state.kinds = { recall: true, spell: true, cloze: false };
       }
       if (state.dir !== 'cn2en') state.dir = 'en2cn';
+      bs();
     } catch (e) {
       state = emptyState();
     }
@@ -254,10 +311,10 @@
 
   function rollDay() {
     var today = todayKey();
-    if (state.day === today) return false;
-    state.day = today;
-    state.newDoneToday = 0;
-    state.doneToday = 0;
+    if (bs().day === today) return false;
+    bs().day = today;
+    bs().newDoneToday = 0;
+    bs().doneToday = 0;
     saveState();
     return true;
   }
@@ -266,7 +323,7 @@
     /* 不能写 (state.dailyNew || 15)：0 会被 || 当成假值变成 15，
        导致「今天不背新词」这个合法设置失效 */
     var quota = typeof state.dailyNew === 'number' ? state.dailyNew : 15;
-    return Math.max(0, quota - (state.newDoneToday || 0));
+    return Math.max(0, quota - (bs().newDoneToday || 0));
   }
 
   /* ---------- 学习时长 ---------- */
@@ -278,7 +335,7 @@
     var d = now - tickAt;
     tickAt = now;
     if (d > 0 && d < IDLE_CAP_MS) {
-      state.totalMs = (state.totalMs || 0) + d;
+      bs().totalMs = (bs().totalMs || 0) + d;
       var b = bw();
       b.day.ms = (b.day.ms || 0) + d;
       b.week.ms = (b.week.ms || 0) + d;
@@ -331,7 +388,7 @@
     var due = [];
 
     for (var i = 0; i < words.length; i++) {
-      var rec = state.words[words[i][0]];
+      var rec = bs().words[words[i][0]];
       if (!rec || rec.known) continue;   // 已标熟的不再轮回
       if (rec.due <= today) due.push({ idx: i, rec: rec, isNew: false });
     }
@@ -349,7 +406,7 @@
     if (state.order === 'random') {
       var pool = [];
       for (var i = 0; i < words.length; i++) {
-        var r0 = state.words[words[i][0]];
+        var r0 = bs().words[words[i][0]];
         if (!r0 || !r0.known) pool.push(i);
       }
       window.AppVocabData.shuffle(pool);
@@ -359,8 +416,8 @@
       return out;
     }
 
-    for (var j = state.seq; j < words.length && out.length < count; j++) {
-      if (state.words[words[j][0]]) continue;   // 学过的（含已标熟）不再当新词
+    for (var j = bs().seq; j < words.length && out.length < count; j++) {
+      if (bs().words[words[j][0]]) continue;   // 学过的（含已标熟）不再当新词
       out.push({ idx: j, rec: null, isNew: true });
     }
     return out;
@@ -426,27 +483,27 @@
     });
   }
 
-  function knownCount() { return Object.keys(state.words).length; }
+  function knownCount() { return Object.keys(bs().words).length; }
 
   function masteredCount() {
     var n = 0;
-    for (var k in state.words) {
-      if (state.words[k].known) continue;   // 已标熟单独统计
-      if (state.words[k].box >= 4) n++;
+    for (var k in bs().words) {
+      if (bs().words[k].known) continue;   // 已标熟单独统计
+      if (bs().words[k].box >= 4) n++;
     }
     return n;
   }
 
   function accuracy() {
-    var a = state.totalAnswered || 0;
-    return a ? Math.round((state.totalRight || 0) / a * 100) : 0;
+    var a = bs().totalAnswered || 0;
+    return a ? Math.round((bs().totalRight || 0) / a * 100) : 0;
   }
 
   /* 生词本：答错过 2 次以上的词 */
   function toughWords() {
     var out = [];
-    for (var k in state.words) {
-      var r = state.words[k];
+    for (var k in bs().words) {
+      var r = bs().words[k];
       if (r.known) continue;
       if ((r.wrong || 0) >= 2) out.push({ word: k, rec: r });
     }
@@ -498,7 +555,7 @@
     if (!total) {
       return '<div class="vc-panel vc-done">' + owl('sleep') +
         '<h2>今天的任务清空了</h2>' +
-        '<p>已答 <b>' + state.doneToday + '</b> 题 · 连续打卡 <b>' + state.streak + '</b> 天</p>' +
+        '<p>已答 <b>' + bs().doneToday + '</b> 题 · 连续打卡 <b>' + bs().streak + '</b> 天</p>' +
         '<p class="vc-dim">明天到期复习会自动排好；也可以现在多背一组。</p>' +
         '<div class="vc-actions">' +
           '<button class="vc-btn primary" id="vcExtra" type="button">再来一组新词</button>' +
@@ -510,10 +567,10 @@
         '<div class="vc-hero-art">' + owl('think') + '</div>' +
         '<div class="vc-hero-main">' +
           '<div class="vc-hero-tag">' + (state.book === 'cet6' ? 'CET-6' : 'CET-4') +
-            ' · 第 ' + (state.streak + 1) + ' 天 · ' + (state.order === 'random' ? '乱序' : '顺序') + '</div>' +
+            ' · 第 ' + (bs().streak + 1) + ' 天 · ' + (state.order === 'random' ? '乱序' : '顺序') + '</div>' +
           '<h1 class="vc-hero-title">今日摸鱼局</h1>' +
           '<p class="vc-hero-sub">待复习 <b>' + dueN + '</b> · 新词 <b>' + newN + '</b> · 共 <b>' + total + '</b> 题</p>' +
-          '<div class="vc-bar"><i style="width:' + Math.min(100, Math.round(state.doneToday / Math.max(total, 1) * 100)) + '%"></i></div>' +
+          '<div class="vc-bar"><i style="width:' + Math.min(100, Math.round(bs().doneToday / Math.max(total, 1) * 100)) + '%"></i></div>' +
           '<div class="vc-actions">' +
             '<button class="vc-btn primary" id="vcStart" type="button">开始背 →</button>' +
             '<button class="vc-btn ghost" id="vcToSettings" type="button">调设置</button>' +
@@ -529,7 +586,7 @@
     var tb = el.querySelector('#vcToSettings');
     if (tb) tb.onclick = function () { tab = 'settings'; renderHome(); };
     var eb = el.querySelector('#vcExtra');
-    if (eb) eb.onclick = function () { state.newDoneToday = 0; saveState(); buildAndStart(); };
+    if (eb) eb.onclick = function () { bs().newDoneToday = 0; saveState(); buildAndStart(); };
     var gs = el.querySelector('#vcGoStats');
     if (gs) gs.onclick = function () { tab = 'stats'; renderHome(); };
   }
@@ -538,8 +595,8 @@
     var items = [
       { k: '累计学过', v: knownCount(), u: '词' },
       { k: '已标熟', v: knownWords().length, u: '词' },
-      { k: '连续打卡', v: state.streak, u: '天' },
-      { k: '学习时长', v: fmtDuration(state.totalMs), u: '' }
+      { k: '连续打卡', v: bs().streak, u: '天' },
+      { k: '学习时长', v: fmtDuration(bs().totalMs), u: '' }
     ];
     return '<div class="vc-strip">' + items.map(function (it) {
       return '<div class="vc-stat"><b>' + esc(it.v) + '</b>' +
@@ -555,7 +612,7 @@
     for (var i = 6; i >= 0; i--) {
       var d = new Date(now.getTime() - i * 86400000);
       var key = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
-      var n = state.days[key] || 0;
+      var n = bs().days[key] || 0;
       sum += n;
       var lvl = n === 0 ? 0 : n < 10 ? 1 : n < 25 ? 2 : 3;
       var today = i === 0;
@@ -574,8 +631,8 @@
   /* 已标熟的词（按标熟先后，最近的在前） */
   function knownWords() {
     var out = [];
-    for (var k in state.words) {
-      if (state.words[k].known) out.push({ word: k, rec: state.words[k] });
+    for (var k in bs().words) {
+      if (bs().words[k].known) out.push({ word: k, rec: bs().words[k] });
     }
     out.sort(function (a, b) { return (b.rec.knownAt || 0) - (a.rec.knownAt || 0); });
     return out;
@@ -664,7 +721,7 @@
     if (db) db.onclick = function () {
       var items = list.map(function (it) {
         var idx = idxOfWord(it.word);
-        return idx >= 0 ? { idx: idx, rec: state.words[it.word], isNew: false } : null;
+        return idx >= 0 ? { idx: idx, rec: bs().words[it.word], isNew: false } : null;
       }).filter(Boolean);
       if (!items.length) return;
       queue = items;
@@ -674,7 +731,7 @@
     el.querySelectorAll('[data-remove]').forEach(function (b) {
       b.onclick = function () {
         var w = b.getAttribute('data-remove');
-        if (state.words[w]) { state.words[w].wrong = 0; saveState(); }
+        if (bs().words[w]) { bs().words[w].wrong = 0; saveState(); }
         renderHome();
       };
     });
@@ -682,11 +739,11 @@
     el.querySelectorAll('[data-know]').forEach(function (b) {
       b.onclick = function () {
         var w = b.getAttribute('data-know');
-        if (state.words[w]) {
-          state.words[w].known = true;
-          state.words[w].knownAt = Date.now();
-          state.words[w].box = MAX_BOX;
-          state.words[w].due = dayNum(todayKey()) + 3650;
+        if (bs().words[w]) {
+          bs().words[w].known = true;
+          bs().words[w].knownAt = Date.now();
+          bs().words[w].box = MAX_BOX;
+          bs().words[w].due = dayNum(todayKey()) + 3650;
           saveState();
         }
         renderHome();
@@ -696,11 +753,11 @@
     el.querySelectorAll('[data-unknow]').forEach(function (b) {
       b.onclick = function () {
         var w = b.getAttribute('data-unknow');
-        if (state.words[w]) {
-          state.words[w].known = false;
-          state.words[w].knownAt = 0;
-          state.words[w].box = 0;
-          state.words[w].due = dayNum(todayKey());
+        if (bs().words[w]) {
+          bs().words[w].known = false;
+          bs().words[w].knownAt = 0;
+          bs().words[w].box = 0;
+          bs().words[w].due = dayNum(todayKey());
           saveState();
         }
         renderHome();
@@ -714,8 +771,8 @@
     var total = book ? book.words.length : 0;
     var pct = total ? Math.round(known / total * 100) : 0;
     var boxes = [0, 0, 0, 0, 0, 0];
-    for (var k in state.words) {
-      var b = state.words[k].box || 0;
+    for (var k in bs().words) {
+      var b = bs().words[k].box || 0;
       boxes[Math.min(MAX_BOX, b)]++;
     }
     var boxLabels = ['新学', '1 档', '2 档', '3 档', '4 档', '熟练'];
@@ -725,9 +782,9 @@
       { v: knownWords().length, k: '已标熟' },
       { v: masteredCount(), k: '已掌握' },
       { v: toughWords().length, k: '生词本' },
-      { v: state.totalAnswered || 0, k: '累计答题' },
+      { v: bs().totalAnswered || 0, k: '累计答题' },
       { v: accuracy() + '%', k: '正确率' },
-      { v: fmtDuration(state.totalMs), k: '学习时长' }
+      { v: fmtDuration(bs().totalMs), k: '学习时长' }
     ];
 
     return '<div class="vc-panel">' +
@@ -760,7 +817,7 @@
     for (var i = days - 1; i >= 0; i--) {
       var d = new Date(now.getTime() - i * 86400000);
       var key = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
-      var n = state.days[key] || 0;
+      var n = bs().days[key] || 0;
       var lvl = n === 0 ? 0 : n < 10 ? 1 : n < 25 ? 2 : 3;
       cells.push('<i class="lv' + lvl + '" title="' + key + '：' + n + ' 题"></i>');
     }
@@ -812,8 +869,17 @@
       '</div>' +
 
       '<div class="vc-field">' +
+        '<div class="vc-field-h">自动朗读</div>' +
+        '<div class="vc-field-d">开启后，英选中出题时自动读一遍单词（按 s 随时手动读）。</div>' +
+        '<div class="vc-chips">' +
+          '<button type="button" class="vc-chip' + (state.autoSpeak ? ' active' : '') + '" data-speak="on">开启</button>' +
+          '<button type="button" class="vc-chip' + (!state.autoSpeak ? ' active' : '') + '" data-speak="off">关闭</button>' +
+        '</div>' +
+      '</div>' +
+
+      '<div class="vc-field">' +
         '<div class="vc-field-h">词库</div>' +
-        '<div class="vc-field-d">切换词库会清空当前词库的学习记录，两个词库各自独立。</div>' +
+        '<div class="vc-field-d">两个词库的进度各自独立保存，随时切换、互不清空。</div>' +
         '<div class="vc-chips">' +
           '<button type="button" class="vc-chip' + (state.book === 'cet4' ? ' active' : '') + '" data-book="cet4">CET-4 · 4544 词</button>' +
           '<button type="button" class="vc-chip' + (state.book === 'cet6' ? ' active' : '') + '" data-book="cet6">CET-6 · 3991 词</button>' +
@@ -851,6 +917,13 @@
         renderHome();
       };
     });
+    el.querySelectorAll('[data-speak]').forEach(function (b) {
+      b.onclick = function () {
+        state.autoSpeak = b.getAttribute('data-speak') === 'on';
+        saveState();
+        renderHome();
+      };
+    });
     el.querySelectorAll('[data-book]').forEach(function (b) {
       b.onclick = function () {
         var bk = b.getAttribute('data-book');
@@ -863,7 +936,7 @@
     if (rb) rb.onclick = function () {
       if (!window.confirm('清空本机所有背单词记录？此操作不可恢复。')) return;
       state = emptyState();
-      state.day = todayKey();
+      bs().day = todayKey();
       saveState();
       book = null; loading = null; loadErr = '';
       queue = [];
@@ -873,15 +946,9 @@
   }
 
   function switchBook(bk) {
+    /* v2 起两库进度各自独立保存，切换只换指针，不再清空 */
     state.book = bk;
-    state.seq = 0;
-    state.words = {};
-    state.days = {};
-    state.newDoneToday = 0;
-    state.doneToday = 0;
-    state.totalMs = 0;
-    state.totalAnswered = 0;
-    state.totalRight = 0;
+    bs();   // 确保该词库的进度对象存在
     saveState();
     queue = [];
     qi = 0;
@@ -907,7 +974,7 @@
     return sessionWords.map(function (it) {
       return {
         idx: it.idx,
-        rec: state.words[book.words[it.idx][0]] || it.rec || null,
+        rec: bs().words[book.words[it.idx][0]] || it.rec || null,
         isNew: it.isNew,
         kind: kind
       };
@@ -973,6 +1040,11 @@
     var qNo = qi + 1;
     var pct = stageQueue.length ? Math.round(qi / stageQueue.length * 100) : 0;
 
+    /* 自动朗读：仅英选中（看词听音），中选英要靠拼写记忆不出声 */
+    if (state.autoSpeak && w.kind === 'en2cn' && canSpeak) {
+      window.AppVocabData.speak(w.word);
+    }
+
     var inner = '';
 
     if (w.kind === 'en2cn') {
@@ -1029,7 +1101,7 @@
         '<div class="vc-playfoot">' +
           '<div class="vc-playfoot-stats">' +
             '<span>本轮 <b>' + sessionStats.right + '</b> 对 / <b>' + sessionStats.wrong + '</b> 错</span>' +
-            '<span>今日累计 <b>' + state.doneToday + '</b> 题</span>' +
+            '<span>今日累计 <b>' + bs().doneToday + '</b> 题</span>' +
           '</div>' +
           owl('think') +
         '</div>' +
@@ -1119,12 +1191,12 @@
   function markKnown() {
     if (window.SFX && window.SFX.select) window.SFX.select();
     var key = book.words[current.idx][0];
-    var rec = state.words[key] || { box: 0, due: 0, seen: 0, wrong: 0 };
+    var rec = bs().words[key] || { box: 0, due: 0, seen: 0, wrong: 0 };
     rec.known = true;
     rec.knownAt = Date.now();
     rec.box = MAX_BOX;
     rec.due = dayNum(todayKey()) + 3650;
-    state.words[key] = rec;
+    bs().words[key] = rec;
     saveState();
     advanceStep();
   }
@@ -1263,10 +1335,10 @@
   /* 统计落盘（三种题型共用） */
   function countAnswer() {
     tickFlush();
-    state.totalAnswered = (state.totalAnswered || 0) + 1;
-    state.doneToday = (state.doneToday || 0) + 1;
+    bs().totalAnswered = (bs().totalAnswered || 0) + 1;
+    bs().doneToday = (bs().doneToday || 0) + 1;
     var dk = todayKey();
-    state.days[dk] = (state.days[dk] || 0) + 1;
+    bs().days[dk] = (bs().days[dk] || 0) + 1;
     saveState();
   }
 
@@ -1276,7 +1348,7 @@
 
     if (ok) {
       sessionStats.right++;
-      state.totalRight = (state.totalRight || 0) + 1;
+      bs().totalRight = (bs().totalRight || 0) + 1;
     } else {
       sessionStats.wrong++;
     }
@@ -1318,7 +1390,7 @@
   function applySchedule(idx, ok) {
     var words = book.words;
     var key = words[idx][0];
-    var rec = state.words[key] || { box: 0, due: 0, seen: 0, wrong: 0 };
+    var rec = bs().words[key] || { box: 0, due: 0, seen: 0, wrong: 0 };
     if (rec.known) return;
     rec.seen++;
     var today = dayNum(todayKey());
@@ -1331,7 +1403,7 @@
       rec.wrong++;
       rec.due = today;
     }
-    state.words[key] = rec;
+    bs().words[key] = rec;
     saveState();
   }
 
@@ -1339,13 +1411,13 @@
   function applyVague(idx) {
     var words = book.words;
     var key = words[idx][0];
-    var rec = state.words[key] || { box: 0, due: 0, seen: 0, wrong: 0 };
+    var rec = bs().words[key] || { box: 0, due: 0, seen: 0, wrong: 0 };
     if (rec.known) return;
     rec.seen++;
     var today = dayNum(todayKey());
     rec.box = Math.max(0, (rec.box || 0) - 1);
     rec.due = today + INTERVALS[rec.box];
-    state.words[key] = rec;
+    bs().words[key] = rec;
     saveState();
   }
 
@@ -1390,7 +1462,7 @@
     box.querySelectorAll('[data-jump]').forEach(function (b) {
       b.onclick = function () {
         var j = +b.getAttribute('data-jump');
-        stageQueue.splice(qi + 1, 0, { idx: j, rec: state.words[book.words[j][0]] || null, kind: 'en2cn' });
+        stageQueue.splice(qi + 1, 0, { idx: j, rec: bs().words[book.words[j][0]] || null, kind: 'en2cn' });
         advanceStep();
       };
     });
@@ -1416,7 +1488,7 @@
     if (redoSet.length) {
       var kind = STEPS[Math.min(stage, STEPS.length - 1)];
       stageQueue = redoSet.map(function (idx) {
-        return { idx: idx, rec: state.words[book.words[idx][0]] || null, kind: kind, isRedo: true };
+        return { idx: idx, rec: bs().words[book.words[idx][0]] || null, kind: kind, isRedo: true };
       });
       redoSet = [];
       redoRound++;      // 每阶段最多补一轮，防止一直答错导致无限循环
@@ -1590,9 +1662,9 @@
     var acc = right + wrong ? Math.round(right / (right + wrong) * 100) : 0;
     var pose = acc >= 80 ? 'cheer' : acc >= 60 ? 'happy' : 'sad';
 
-    if (state.lastDone !== todayKey()) {
-      state.lastDone = todayKey();
-      state.streak = (state.streak || 0) + 1;
+    if (bs().lastDone !== todayKey()) {
+      bs().lastDone = todayKey();
+      bs().streak = (bs().streak || 0) + 1;
     }
     /* 新词额度按「本局出现过的新词」去重统计（混合队列里同一词有多条） */
     var usedNew = 0, maxNewIdx = -1, seenNew = {};
@@ -1602,9 +1674,9 @@
       usedNew++;
       if (q.idx > maxNewIdx) maxNewIdx = q.idx;
     });
-    state.newDoneToday = (state.newDoneToday || 0) + usedNew;
+    bs().newDoneToday = (bs().newDoneToday || 0) + usedNew;
     if (state.order !== 'random' && maxNewIdx >= 0) {
-      state.seq = Math.max(state.seq, maxNewIdx + 1);
+      bs().seq = Math.max(bs().seq, maxNewIdx + 1);
     }
     saveState();
     submitBoards();
@@ -1615,7 +1687,7 @@
       '<h2>本局完成</h2>' +
       '<p>本局答对 <b>' + right + '</b> · 答错 <b>' + wrong +
         '</b> · 正确率 <b>' + acc + '%</b></p>' +
-      '<p class="vc-dim">连续打卡 ' + state.streak + ' 天 · 累计 ' + fmtDuration(state.totalMs) + '</p>' +
+      '<p class="vc-dim">连续打卡 ' + bs().streak + ' 天 · 累计 ' + fmtDuration(bs().totalMs) + '</p>' +
       '<div class="vc-actions">' +
         '<button class="vc-btn primary" id="vcAgain" type="button">再来一组</button>' +
         '<button class="vc-btn ghost" id="vcHome" type="button">回到今日</button>' +
@@ -1627,7 +1699,7 @@
     redoRound = 0;
     stageQueue = [];
     var ab = el.querySelector('#vcAgain');
-    if (ab) ab.onclick = function () { state.newDoneToday = 0; saveState(); buildAndStart(); };
+    if (ab) ab.onclick = function () { bs().newDoneToday = 0; saveState(); buildAndStart(); };
     var hb = el.querySelector('#vcHome');
     if (hb) hb.onclick = function () {
       queue = buildQueue();

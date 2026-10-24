@@ -80,7 +80,7 @@
         if (seen[t]) continue;
         if (Math.abs(t.length - answer.length) > 12 && Math.random() < 0.75) continue;
         seen[t] = 1;
-        picked.push(t);
+        picked.push(j);
       }
     }
 
@@ -91,8 +91,11 @@
       tryPick(all, 3);
     }
 
-    var opts = [{ text: answer, ok: true }];
-    for (var i = 0; i < picked.length; i++) opts.push({ text: picked[i], ok: false });
+    var opts = [{ text: answer, ok: true, word: row[0], meaning: answer }];
+    for (var i = 0; i < picked.length; i++) {
+      var j = picked[i];
+      opts.push({ text: words[j][2], ok: false, word: words[j][0], meaning: words[j][2] });
+    }
     return shuffle(opts);
   }
 
@@ -166,8 +169,13 @@
       tryPick(all, 3);
     }
 
-    var opts = [{ text: answer, ok: true }];
-    for (var i = 0; i < picked.length; i++) opts.push({ text: picked[i], ok: false });
+    var opts = [{ text: answer, ok: true, word: answer, meaning: row[2] }];
+    for (var i = 0; i < picked.length; i++) {
+      var w2 = picked[i];
+      var j2 = -1;
+      for (var m = 0; m < words.length; m++) { if (words[m][0] === w2) { j2 = m; break; } }
+      opts.push({ text: w2, ok: false, word: w2, meaning: j2 >= 0 ? words[j2][2] : '' });
+    }
     return shuffle(opts);
   }
 

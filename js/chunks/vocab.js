@@ -81,7 +81,7 @@
         if (seen[t]) continue;
         if (Math.abs(t.length - answer.length) > 12 && Math.random() < 0.75) continue;
         seen[t] = 1;
-        picked.push(t);
+        picked.push(j);
       }
     }
 
@@ -92,8 +92,11 @@
       tryPick(all, 3);
     }
 
-    var opts = [{ text: answer, ok: true }];
-    for (var i = 0; i < picked.length; i++) opts.push({ text: picked[i], ok: false });
+    var opts = [{ text: answer, ok: true, word: row[0], meaning: answer }];
+    for (var i = 0; i < picked.length; i++) {
+      var j = picked[i];
+      opts.push({ text: words[j][2], ok: false, word: words[j][0], meaning: words[j][2] });
+    }
     return shuffle(opts);
   }
 
@@ -167,8 +170,13 @@
       tryPick(all, 3);
     }
 
-    var opts = [{ text: answer, ok: true }];
-    for (var i = 0; i < picked.length; i++) opts.push({ text: picked[i], ok: false });
+    var opts = [{ text: answer, ok: true, word: answer, meaning: row[2] }];
+    for (var i = 0; i < picked.length; i++) {
+      var w2 = picked[i];
+      var j2 = -1;
+      for (var m = 0; m < words.length; m++) { if (words[m][0] === w2) { j2 = m; break; } }
+      opts.push({ text: w2, ok: false, word: w2, meaning: j2 >= 0 ? words[j2][2] : '' });
+    }
     return shuffle(opts);
   }
 
@@ -410,7 +418,7 @@
 
     for (var i = 0; i < words.length; i++) {
       var rec = state.words[words[i][0]];
-      if (!rec) continue;
+      if (!rec || rec.known) continue;   // 已标熟的不再轮回
       if (rec.due <= today) due.push({ idx: i, rec: rec, isNew: false });
     }
     due.sort(function (a, b) { return a.rec.due - b.rec.due; });
@@ -427,7 +435,8 @@
     if (state.order === 'random') {
       var pool = [];
       for (var i = 0; i < words.length; i++) {
-        if (!state.words[words[i][0]]) pool.push(i);
+        var r0 = state.words[words[i][0]];
+        if (!r0 || !r0.known) pool.push(i);
       }
       window.AppVocabData.shuffle(pool);
       for (var k = 0; k < pool.length && out.length < count; k++) {
@@ -437,7 +446,7 @@
     }
 
     for (var j = state.seq; j < words.length && out.length < count; j++) {
-      if (state.words[words[j][0]]) continue;
+      if (state.words[words[j][0]]) continue;   // 学过的（含已标熟）不再当新词
       out.push({ idx: j, rec: null, isNew: true });
     }
     return out;
@@ -446,25 +455,22 @@
   /* ---------- 渲染状态 ---------- */
   var el = null;
   var tab = 'today';      // today | words | stats | settings
+  var wordsTab = 'tough'; // tough | known
   var queue = [];
   var qi = 0;
   var answered = false;
   var current = null;
   var sessionStats = { right: 0, wrong: 0 };
-  /* 三轮制（参考不背单词）：
-       第一轮 英选中（四选一）
-       第二轮 中选英（四选一）
-       第三轮 自评（认识 / 模糊 / 不认识 → 揭示答案）
-     每轮都把上一轮做错的词按出错顺序再过一遍；第三轮全部词都要过。
-     第三轮里改判「不认识」的词，从英选中重新完整走一遍三种题型。 */
-  var round = 1;
-  var ROUND_MAX = 3;
-  var roundWrong = [];    // 本轮做错的词（按出错顺序），进下一轮
-  var roundTotal = 0;     // 本轮题数（进度显示用）
-  var prevRoundSize = 0;  // 上一轮错词数 = 本轮题数（结算文案用）
-  var redoQueue = [];     // 自评改判「不认识」后要重走的词
-  var sessionWords = [];  // 本局完整词表（第三轮自评要全部过一遍）
-  var pendingRest = [];   // 改判重走期间暂存的剩余题目
+  /* 单一连续队列：每个词连着做三种题型（英选中 → 中选英 → 自评），
+     全部做完再下一个词。进度按「词」算，不按题算。
+       词 i 的第 1 题 = 英选中
+       词 i 的第 2 题 = 中选英
+       词 i 的第 3 题 = 自评
+     自评改判「不认识」→ 这个词从英选中重新走一遍三种题型。 */
+  var STEPS = ['en2cn', 'cn2en', 'selfrate'];
+  var stepOf = 0;         // 当前词做到第几步（0..2）
+  var redoWord = null;    // 正在重走的词（改判后）
+  var redoStep = 0;
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -506,7 +512,10 @@
 
   function masteredCount() {
     var n = 0;
-    for (var k in state.words) if (state.words[k].box >= 4) n++;
+    for (var k in state.words) {
+      if (state.words[k].known) continue;   // 已标熟单独统计
+      if (state.words[k].box >= 4) n++;
+    }
     return n;
   }
 
@@ -520,6 +529,7 @@
     var out = [];
     for (var k in state.words) {
       var r = state.words[k];
+      if (r.known) continue;
       if ((r.wrong || 0) >= 2) out.push({ word: k, rec: r });
     }
     out.sort(function (a, b) {
@@ -607,7 +617,7 @@
   function statStrip() {
     var items = [
       { k: '累计学过', v: knownCount(), u: '词' },
-      { k: '已掌握', v: masteredCount(), u: '词' },
+      { k: '已标熟', v: knownWords().length, u: '词' },
       { k: '连续打卡', v: state.streak, u: '天' },
       { k: '学习时长', v: fmtDuration(state.totalMs), u: '' }
     ];
@@ -621,34 +631,88 @@
   function weekStrip() {
     var out = [];
     var now = new Date();
+    var sum = 0;
     for (var i = 6; i >= 0; i--) {
       var d = new Date(now.getTime() - i * 86400000);
       var key = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
       var n = state.days[key] || 0;
+      sum += n;
       var lvl = n === 0 ? 0 : n < 10 ? 1 : n < 25 ? 2 : 3;
-      out.push('<div class="vc-day lv' + lvl + '" title="' + key + '：' + n + ' 题">' +
-        '<span>' + (d.getMonth() + 1) + '/' + d.getDate() + '</span></div>');
+      var today = i === 0;
+      out.push(
+        '<div class="vc-day lv' + lvl + (today ? ' today' : '') + '" title="' + key + '：' + n + ' 题">' +
+          '<span class="vc-day-d">' + (today ? '今天' : (d.getMonth() + 1) + '/' + d.getDate()) + '</span>' +
+          '<b class="vc-day-n">' + n + '</b>' +
+        '</div>');
     }
-    return '<div class="vc-week"><div class="vc-week-h">最近 7 天</div>' +
+    return '<div class="vc-week">' +
+      '<div class="vc-week-h">最近 7 天答题数<span>合计 ' + sum + ' 题</span></div>' +
       '<div class="vc-week-grid">' + out.join('') + '</div></div>';
   }
 
   /* ---------- 生词本 ---------- */
+  /* 已标熟的词（按标熟先后，最近的在前） */
+  function knownWords() {
+    var out = [];
+    for (var k in state.words) {
+      if (state.words[k].known) out.push({ word: k, rec: state.words[k] });
+    }
+    out.sort(function (a, b) { return (b.rec.knownAt || 0) - (a.rec.knownAt || 0); });
+    return out;
+  }
+
   function wordsHtml() {
     var list = toughWords();
+    var known = knownWords();
+    var sub = wordsTab === 'known' ? 'known' : 'tough';
+
+    var tabs =
+      '<div class="vc-chips" style="margin-bottom:16px">' +
+        '<button type="button" class="vc-chip' + (sub === 'tough' ? ' active' : '') + '" data-wtab="tough">生词本 ' + list.length + '</button>' +
+        '<button type="button" class="vc-chip' + (sub === 'known' ? ' active' : '') + '" data-wtab="known">已标熟 ' + known.length + '</button>' +
+      '</div>';
+
+    if (sub === 'known') {
+      if (!known.length) {
+        return '<div class="vc-panel">' +
+          '<h2 class="vc-h2">已标熟</h2>' + tabs +
+          '<p class="vc-field-d">还没有标熟的词。答题时点「标熟 · 不再出现」，这个词就不会再进任何队列。</p>' +
+          '</div>';
+      }
+      return '<div class="vc-panel">' +
+        '<h2 class="vc-h2">已标熟</h2>' + tabs +
+        '<p class="vc-field-d">这些词不会再出现在复习队列里。想重新背，点「取消标熟」。</p>' +
+        '<div class="vc-wordlist">' + known.map(function (it) {
+          var idx = idxOfWord(it.word);
+          var m = idx >= 0 ? book.words[idx][2] : '';
+          var ph = idx >= 0 ? book.words[idx][1] : '';
+          return '<div class="vc-wordrow">' +
+            '<div class="vc-wordrow-main">' +
+              '<b>' + esc(it.word) + '</b>' +
+              (ph ? '<i>' + esc(ph) + '</i>' : '') +
+              '<span>' + esc(m) + '</span>' +
+            '</div>' +
+            '<div class="vc-wordrow-meta">' +
+              '<em class="ok">已标熟</em>' +
+              '<button class="vc-mini" type="button" data-unknow="' + esc(it.word) + '">取消标熟</button>' +
+            '</div>' +
+          '</div>';
+        }).join('') + '</div></div>';
+    }
+
     if (!list.length) {
-      return '<div class="vc-panel vc-done">' + owl('happy') +
-        '<h2>生词本还是空的</h2>' +
-        '<p class="vc-dim">同一个词答错 2 次就会自动进来，方便集中攻克。</p>' +
+      return '<div class="vc-panel">' +
+        '<h2 class="vc-h2">生词本</h2>' + tabs +
+        '<p class="vc-field-d">同一个词答错 2 次就会自动进来，方便集中攻克。</p>' +
         '</div>';
     }
     return '<div class="vc-panel">' +
-      '<h2 class="vc-h2">生词本</h2>' +
+      '<h2 class="vc-h2">生词本</h2>' + tabs +
       '<p class="vc-field-d">答错 2 次以上的词自动收录，按错误次数排序。</p>' +
       '<div class="vc-actions" style="margin-bottom:14px">' +
         '<button class="vc-btn primary" id="vcDrill" type="button">专攻这 ' + list.length + ' 个词</button>' +
       '</div>' +
-      '<div class="vc-wordlist">' + list.map(function (it, i) {
+      '<div class="vc-wordlist">' + list.map(function (it) {
         var idx = idxOfWord(it.word);
         var m = idx >= 0 ? book.words[idx][2] : '';
         var ph = idx >= 0 ? book.words[idx][1] : '';
@@ -660,6 +724,7 @@
           '</div>' +
           '<div class="vc-wordrow-meta">' +
             '<em>错 ' + it.rec.wrong + ' 次</em>' +
+            '<button class="vc-mini" type="button" data-know="' + esc(it.word) + '">标熟</button>' +
             '<button class="vc-mini" type="button" data-remove="' + esc(it.word) + '">移除</button>' +
           '</div>' +
         '</div>';
@@ -667,6 +732,13 @@
   }
 
   function bindWords() {
+    el.querySelectorAll('[data-wtab]').forEach(function (b) {
+      b.onclick = function () {
+        wordsTab = b.getAttribute('data-wtab');
+        renderHome();
+      };
+    });
+
     var list = toughWords();
     var db = el.querySelector('#vcDrill');
     if (db) db.onclick = function () {
@@ -678,11 +750,37 @@
       queue = items;
       startSession();
     };
+
     el.querySelectorAll('[data-remove]').forEach(function (b) {
       b.onclick = function () {
         var w = b.getAttribute('data-remove');
+        if (state.words[w]) { state.words[w].wrong = 0; saveState(); }
+        renderHome();
+      };
+    });
+
+    el.querySelectorAll('[data-know]').forEach(function (b) {
+      b.onclick = function () {
+        var w = b.getAttribute('data-know');
         if (state.words[w]) {
-          state.words[w].wrong = 0;
+          state.words[w].known = true;
+          state.words[w].knownAt = Date.now();
+          state.words[w].box = MAX_BOX;
+          state.words[w].due = dayNum(todayKey()) + 3650;
+          saveState();
+        }
+        renderHome();
+      };
+    });
+
+    el.querySelectorAll('[data-unknow]').forEach(function (b) {
+      b.onclick = function () {
+        var w = b.getAttribute('data-unknow');
+        if (state.words[w]) {
+          state.words[w].known = false;
+          state.words[w].knownAt = 0;
+          state.words[w].box = 0;
+          state.words[w].due = dayNum(todayKey());
           saveState();
         }
         renderHome();
@@ -709,10 +807,12 @@
       '<div class="vc-kv small"><span>' + (state.book === 'cet6' ? 'CET-6' : 'CET-4') +
         ' 词库完成度</span><b>' + pct + '%</b></div>' +
       '<div class="vc-grid2">' +
+        '<div class="vc-cell"><b>' + knownWords().length + '</b><span>已标熟</span></div>' +
         '<div class="vc-cell"><b>' + masteredCount() + '</b><span>已掌握（4 档以上）</span></div>' +
         '<div class="vc-cell"><b>' + fmtDuration(state.totalMs) + '</b><span>累计学习时长</span></div>' +
         '<div class="vc-cell"><b>' + (state.totalAnswered || 0) + '</b><span>累计答题</span></div>' +
         '<div class="vc-cell"><b>' + accuracy() + '%</b><span>总正确率</span></div>' +
+        '<div class="vc-cell"><b>' + toughWords().length + '</b><span>生词本</span></div>' +
       '</div>' +
       '<div class="vc-h3">记忆档位分布</div>' +
       '<div class="vc-boxes">' + boxes.map(function (n, i) {
@@ -866,41 +966,30 @@
   /* 按记忆档位选题型，再按开关回落：
      关掉的题型不出现，退到该词最合适的那个还开着的题型。
      —— 三个都关掉时兜底成认词，否则玩家会卡在空屏。 */
-  /* 轮次直接决定题型，不再看记忆档位 */
   function kindOf() {
-    if (round === 1) return 'en2cn';
-    if (round === 2) return 'cn2en';
-    return 'selfrate';
+    return STEPS[Math.min(stepOf, STEPS.length - 1)];
   }
 
   function kindLabel(k) {
     if (k === 'en2cn') return '英选中';
     if (k === 'cn2en') return '中选英';
     if (k === 'selfrate') return '自评';
-    if (k === 'cloze') return '填空';
-    if (k === 'spell') return '拼写';
     return '英选中';
   }
 
-  function roundLabel() {
-    if (round === 1) return '第一轮 · 英选中';
-    if (round === 2) return '第二轮 · 中选英';
-    return '第三轮 · 自评';
+  function stepLabel() {
+    return kindLabel(kindOf()) + ' · 第 ' + (Math.min(stepOf, 2) + 1) + '/3';
   }
 
   /* ---------- 答题屏 ---------- */
   function startSession() {
     if (!queue.length) { buildAndStart(); return; }
     qi = 0;
+    stepOf = 0;
     answered = false;
+    redoWord = null;
+    redoStep = 0;
     sessionStats = { right: 0, wrong: 0 };
-    round = 1;
-    roundWrong = [];
-    roundTotal = queue.length;
-    prevRoundSize = 0;
-    redoQueue = [];
-    pendingRest = [];
-    sessionWords = queue.slice();
     tickStart();
     ensureExtra().then(function () {
       current = makeQuestion(queue[0]);
@@ -915,15 +1004,14 @@
 
     var q = {
       idx: idx,
-      retry: !!item.retry,
       kind: kind,
       word: w[0],
       phonetic: w[1],
       meaning: w[2],
       options: null,
-      /* 自评题：选完之后揭示答案，此时还能改判 */
-      rated: null,        // 'know' | 'vague' | 'unknown'
-      revealed: false
+      rated: null,
+      revealed: false,
+      isRedo: !!item.isRedo
     };
 
     if (kind === 'en2cn') {
@@ -931,18 +1019,16 @@
     } else if (kind === 'cn2en') {
       q.options = window.AppVocabData.makeWordOptions(book.words, book.byPos, idx);
     }
-    /* selfrate 不需要选项 */
     return q;
   }
 
   function renderQuestion() {
     if (!el || !current) return;
     var w = current;
-    var n = qi + 1;
     var canSpeak = window.AppVocabData.canSpeak();
-    /* 进度条按「本轮题数」算；三轮各自独立 */
+    /* 进度按「词」算：当前第几个词 / 共几个词 */
+    var wordNo = qi + 1;
     var pct = queue.length ? Math.round(qi / queue.length * 100) : 0;
-    var leftN = Math.max(0, queue.length - qi - 1);
 
     var inner = '';
 
@@ -954,7 +1040,10 @@
         '</div>' +
         '<div class="vc-opts" id="vcOpts">' +
           w.options.map(function (o, i) {
-            return '<button class="vc-opt" type="button" data-i="' + i + '">' + esc(o.text) + '</button>';
+            return '<button class="vc-opt" type="button" data-i="' + i + '">' +
+              '<span class="vc-opt-txt">' + esc(o.text) + '</span>' +
+              '<span class="vc-opt-more"></span>' +
+            '</button>';
           }).join('') +
         '</div>';
     } else if (w.kind === 'cn2en') {
@@ -962,11 +1051,13 @@
         '<div class="vc-word cn">' + esc(w.meaning) + '</div>' +
         '<div class="vc-opts word-opts" id="vcOpts">' +
           w.options.map(function (o, i) {
-            return '<button class="vc-opt word-opt" type="button" data-i="' + i + '">' + esc(o.text) + '</button>';
+            return '<button class="vc-opt word-opt" type="button" data-i="' + i + '">' +
+              '<span class="vc-opt-txt">' + esc(o.text) + '</span>' +
+              '<span class="vc-opt-more"></span>' +
+            '</button>';
           }).join('') +
         '</div>';
     } else {
-      /* 自评：给单词，三个按钮；点完揭示答案，还能改判 */
       inner =
         '<div class="vc-word">' + esc(w.word) + '</div>' +
         '<div class="vc-phon">' + esc(w.phonetic || '') +
@@ -984,17 +1075,17 @@
       '<div class="vc-wrap vc-play">' +
         '<div class="vc-top">' +
           '<button class="vc-back" id="vcBack" type="button" aria-label="返回今日">← 返回</button>' +
-          '<span class="vc-kind">' + roundLabel() + '</span>' +
-          '<span class="vc-count">' + n + ' / ' + queue.length + '</span>' +
+          '<span class="vc-count">' + wordNo + ' / ' + queue.length + '</span>' +
         '</div>' +
         '<div class="vc-bar thin"><i style="width:' + pct + '%"></i></div>' +
-        '<div class="vc-card">' + inner +
+        '<div class="vc-card">' +
+          '<button class="vc-mark-known" id="vcMarkKnown" type="button" title="标熟后不再出现">标熟</button>' +
+          inner +
           '<div class="vc-feedback" id="vcFb"></div>' +
         '</div>' +
         '<div class="vc-playfoot">' +
           '<div class="vc-playfoot-stats">' +
             '<span>本轮 <b>' + sessionStats.right + '</b> 对 / <b>' + sessionStats.wrong + '</b> 错</span>' +
-            '<span>还剩 <b>' + leftN + '</b> 题</span>' +
             '<span>今日累计 <b>' + state.doneToday + '</b> 题</span>' +
           '</div>' +
           owl('think') +
@@ -1014,17 +1105,35 @@
       window.AppVocabData.speak(current.word);
     };
 
+    var mk = el.querySelector('#vcMarkKnown');
+    if (mk) mk.onclick = markKnown;
+
     var opts = el.querySelectorAll('.vc-opt');
     for (var i = 0; i < opts.length; i++) opts[i].onclick = onPick;
 
     el.querySelectorAll('[data-rate]').forEach(function (b) {
       b.onclick = function () {
-        if (current.revealed) return;   // 已揭示就别再点自评按钮
+        if (current.revealed) return;
         onRate(b.getAttribute('data-rate'));
       };
     });
   }
 
+  /* 标熟：这个词以后不再出现在任何队列里 */
+  function markKnown() {
+    if (window.SFX && window.SFX.select) window.SFX.select();
+    var key = book.words[current.idx][0];
+    var rec = state.words[key] || { box: 0, due: 0, seen: 0, wrong: 0 };
+    rec.known = true;
+    rec.knownAt = Date.now();
+    rec.box = MAX_BOX;
+    rec.due = dayNum(todayKey()) + 3650;
+    state.words[key] = rec;
+    saveState();
+    nextWord();
+  }
+
+  /* 四选一：点选之后判对错，同时把每个选项的意思都揭开（就地显示） */
   function onPick(e) {
     if (answered) return;
     answered = true;
@@ -1035,16 +1144,25 @@
 
     var all = el.querySelectorAll('.vc-opt');
     for (var k = 0; k < all.length; k++) {
+      var o = current.options[+all[k].getAttribute('data-i')];
       all[k].disabled = true;
-      if (current.options[+all[k].getAttribute('data-i')].ok) all[k].classList.add('right');
+      if (o.ok) all[k].classList.add('right');
+      /* 每个选项都在自己框里补上「词 + 释义」，答对答错都展开 */
+      var more = all[k].querySelector('.vc-opt-more');
+      if (more) {
+        if (current.kind === 'cn2en') {
+          more.textContent = o.meaning || '';
+        } else {
+          more.textContent = o.word && o.word !== o.meaning ? o.word : '';
+        }
+        more.classList.add('show');
+      }
     }
     if (!ok) btn.classList.add('wrong');
     finishAnswer(ok, opt.text);
   }
 
   /* ---------- 自评题型 ---------- */
-  /* 点「认识/模糊/不认识」→ 揭示答案。
-     揭示后还能改判：点「不认识」把刚才的「认识」推翻。 */
   function onRate(rate) {
     if (window.SFX && window.SFX.tap) window.SFX.tap();
     current.rated = rate;
@@ -1055,7 +1173,6 @@
     var w = current;
     w.revealed = true;
 
-    /* 自评按钮定住，标出选中的那个 */
     el.querySelectorAll('[data-rate]').forEach(function (b) {
       b.disabled = true;
       if (b.getAttribute('data-rate') === w.rated) b.classList.add('picked');
@@ -1073,21 +1190,16 @@
           (w.rated !== 'unknown'
             ? '<button class="vc-btn small ghost" id="vcMarkWrong" type="button">其实不认识，改判</button>'
             : '') +
-          '<button class="vc-btn small primary" id="vcNext" type="button">' +
-            (qi + 1 >= queue.length ? '看结果' : '下一个') + '</button>' +
+          '<button class="vc-btn primary" id="vcNext" type="button">下一个</button>' +
         '</div>' +
       '</div>';
 
     var mk = box.querySelector('#vcMarkWrong');
-    if (mk) mk.onclick = function () { markWrong(); };
+    if (mk) mk.onclick = markWrong;
     var nx = box.querySelector('#vcNext');
     if (nx) nx.onclick = function () { commitRate(w.rated); };
-
-    /* 自评也要计入统计和调度（点「下一个」时提交；改判会覆盖） */
-    w.pendingCommit = true;
   }
 
-  /* 改判：把刚才的自评改成「不认识」，这个词要从英选中重新完整走一遍 */
   function markWrong() {
     if (!current || !current.revealed) return;
     if (current.rated === 'unknown') return;
@@ -1110,65 +1222,49 @@
     }
   }
 
-  /* 自评提交：按评级落调度，并决定是否要重走 */
   function commitRate(rate) {
     if (answered) return;
     answered = true;
 
     var ok = rate === 'know';
     var idx = current.idx;
-    var needRedo = (rate === 'unknown' || current.amended);
-
-    if (needRedo) {
-      applySchedule(idx, false, true);
-    } else if (rate === 'vague') {
-      applySchedule(idx, false, true);   // 模糊：不进错词池，但今天还要再见
-    } else {
-      applySchedule(idx, true, true);
-    }
 
     if (ok) sessionStats.right++; else sessionStats.wrong++;
+    countAnswer();
 
-    /* 改判 / 不认识 → 立刻把这个词拎出来，从英选中重新完整走一遍三种题型。
-       其余词先攒在 pendingRest 里，等这个词重走完再接回去。 */
-    if (needRedo) {
-      var rest = queue.slice(qi + 1);
-      queue = [{ idx: idx, rec: state.words[book.words[idx][0]] || null, isNew: false }];
-      pendingRest = rest;
-      round = 1;
-      roundWrong = [];
-      roundTotal = queue.length;
-      prevRoundSize = 0;
-      qi = 0;
-      answered = false;
-      current = makeQuestion(queue[0]);
-      renderQuestion();
+    if (rate === 'unknown' || current.amended) {
+      applySchedule(idx, false);
+      /* 改判 / 不认识 → 这个词从英选中重走一遍三种题型 */
+      startRedo(idx);
       return;
     }
-
-    nextQuestion();
+    applySchedule(idx, ok);
+    nextWord();
   }
 
-  /* 四选一题型的结算 */
-  function finishAnswer(ok, shown) {
-    if (window.SFX && window.SFX.tap) window.SFX.tap();
+  /* 统计落盘（三种题型共用） */
+  function countAnswer() {
     tickFlush();
-
     state.totalAnswered = (state.totalAnswered || 0) + 1;
-    if (ok) state.totalRight = (state.totalRight || 0) + 1;
     state.doneToday = (state.doneToday || 0) + 1;
     var dk = todayKey();
     state.days[dk] = (state.days[dk] || 0) + 1;
+    saveState();
+  }
 
-    if (ok) sessionStats.right++;
-    else sessionStats.wrong++;
+  /* 四选一题型的结算：揭示全部选项意思 + 背面 */
+  function finishAnswer(ok, shown) {
+    if (window.SFX && window.SFX.tap) window.SFX.tap();
 
-    applySchedule(current.idx, ok, false);
-
-    if (window.SFX) {
-      if (ok && window.SFX.select) window.SFX.select();
-      else if (!ok && window.SFX.wrong) window.SFX.wrong();
+    if (ok) {
+      sessionStats.right++;
+      state.totalRight = (state.totalRight || 0) + 1;
+    } else {
+      sessionStats.wrong++;
     }
+    countAnswer();
+
+    applySchedule(current.idx, ok);
 
     var fb = el.querySelector('#vcFb');
     if (!fb) return;
@@ -1177,16 +1273,60 @@
       '<div class="vc-fb-head"><b>' + (ok ? '答对了' : '答错了') + '</b>' +
       '<span class="vc-fb-ans">' + esc(current.word) + ' · ' + esc(current.meaning) + '</span></div>' +
       '<div class="vc-back-panel" id="vcBackPanel"></div>' +
-      '<button class="vc-btn small" id="vcNext" type="button">' +
-        (qi + 1 >= queue.length ? '看结果' : '下一题') + '</button>';
+      '<button class="vc-btn primary vc-next-btn" id="vcNext" type="button">' +
+        nextBtnLabel() + '</button>';
 
     var nb = fb.querySelector('#vcNext');
-    if (nb) nb.onclick = nextQuestion;
+    if (nb) nb.onclick = advanceStep;
+
+    if (window.SFX) {
+      if (ok && window.SFX.select) window.SFX.select();
+      else if (!ok && window.SFX.wrong) window.SFX.wrong();
+    }
 
     renderBackPanel();
   }
 
-  /* 卡片背面：拆词 / 词族 / 真题，有数据才渲染 */
+  /* 按钮文案保持最简：还有下一步就「下一题」，本局走完才「看结果」 */
+  function nextBtnLabel() {
+    var moreSteps = stepOf + 1 < STEPS.length;
+    if (moreSteps) return '下一题';
+    return qi + 1 >= queue.length ? '看结果' : '下一题';
+  }
+
+  /* 同一个词的下一题型，或下一个词 */
+  function advanceStep() {
+    answered = false;
+    if (stepOf + 1 < STEPS.length) {
+      stepOf++;
+      current = makeQuestion(queue[qi]);
+      renderQuestion();
+      return;
+    }
+    nextWord();
+  }
+
+  function nextWord() {
+    answered = false;
+    stepOf = 0;
+    qi++;
+    if (redoWord) { redoWord = null; }
+    if (qi >= queue.length) { finishSession(); return; }
+    current = makeQuestion(queue[qi]);
+    renderQuestion();
+  }
+
+  /* 改判：这个词插到当前位置后面，从英选中重新走一遍三种题型 */
+  function startRedo(idx) {
+    answered = false;
+    stepOf = 0;
+    queue.splice(qi + 1, 0, { idx: idx, rec: state.words[book.words[idx][0]] || null, isNew: false, isRedo: true });
+    current = makeQuestion(queue[qi + 1]);
+    qi++;
+    redoWord = idx;
+    renderQuestion();
+  }
+
   function renderBackPanel() {
     var box = el.querySelector('#vcBackPanel');
     if (!box) return;
@@ -1227,18 +1367,19 @@
     box.querySelectorAll('[data-jump]').forEach(function (b) {
       b.onclick = function () {
         var j = +b.getAttribute('data-jump');
-        queue.splice(qi + 1, 0, { idx: j, rec: state.words[book.words[j][0]] || null, isNew: false, forceKind: 'en2cn' });
-        nextQuestion();
+        queue.splice(qi + 1, 0, { idx: j, rec: state.words[book.words[j][0]] || null, isNew: false });
+        nextWord();
       };
     });
   }
 
-  /* 落调度。rate=true 表示这题来自自评（不进四选一的错词池逻辑）。
-     ok=false 时记一次错，box 归 0、今天再排。 */
-  function applySchedule(idx, ok, fromRate) {
+  /* 落调度。ok=false 时记一次错，box 归 0、今天再排。 */
+  /* 落调度。连续队列没有轮次概念，每次作答独立记档。 */
+  function applySchedule(idx, ok) {
     var words = book.words;
     var key = words[idx][0];
     var rec = state.words[key] || { box: 0, due: 0, seen: 0, wrong: 0 };
+    if (rec.known) return;      // 已标熟的词不再改动
     rec.seen++;
     var today = dayNum(todayKey());
 
@@ -1249,70 +1390,9 @@
       rec.box = 0;
       rec.wrong++;
       rec.due = today;
-      /* 前两轮做错的词攒起来，进下一轮；第三轮（自评）不再往轮次里塞，
-         改判的词走 redoQueue 单独重跑 */
-      if (!fromRate && round < ROUND_MAX) {
-        var dup = roundWrong.some(function (w) { return w.idx === idx; });
-        if (!dup) roundWrong.push({ idx: idx, rec: rec });
-      }
     }
     state.words[key] = rec;
     saveState();
-  }
-
-  function nextQuestion() {
-    qi++;
-    answered = false;
-    if (qi < queue.length) {
-      current = makeQuestion(queue[qi]);
-      renderQuestion();
-      return;
-    }
-    /* 本轮走完：先看有没有要重跑的词，再决定进下一轮还是结算 */
-    advanceRound();
-  }
-
-  function advanceRound() {
-    /* 改判重走的词走完了 → 接回原来的队列，继续原来的轮次 */
-    if (pendingRest.length) {
-      queue = pendingRest.slice();
-      pendingRest = [];
-      round = ROUND_MAX;      // 改判只会发生在第三轮自评
-      roundWrong = [];
-      roundTotal = queue.length;
-      qi = 0;
-      answered = false;
-      if (!queue.length) { finishSession(); return; }
-      current = makeQuestion(queue[0]);
-      renderQuestion();
-      return;
-    }
-
-    if (round < ROUND_MAX) {
-      /* 第一轮 → 第二轮：只过第一轮做错的词
-         第二轮 → 第三轮：全部词都过一遍自评 */
-      var nextItems;
-      if (round === 1) {
-        nextItems = roundWrong.slice();
-      } else {
-        nextItems = sessionWords.map(function (q) {
-          return { idx: q.idx, rec: state.words[book.words[q.idx][0]] || q.rec || null, isNew: false };
-        });
-      }
-      if (nextItems.length) {
-        prevRoundSize = roundWrong.length;
-        queue = nextItems;
-        round++;
-        roundWrong = [];
-        roundTotal = queue.length;
-        qi = 0;
-        answered = false;
-        current = makeQuestion(queue[0]);
-        renderQuestion();
-        return;
-      }
-    }
-    finishSession();
   }
 
   function leaveSession() {
@@ -1363,12 +1443,8 @@
       '</div></div></div>';
 
     bindSubnav();
-    round = 1;
-    roundWrong = [];
-    redoQueue = [];
-    sessionWords = [];
-    pendingRest = [];
-    prevRoundSize = 0;
+    stepOf = 0;
+    redoWord = null;
     var ab = el.querySelector('#vcAgain');
     if (ab) ab.onclick = function () { state.newDoneToday = 0; saveState(); buildAndStart(); };
     var hb = el.querySelector('#vcHome');

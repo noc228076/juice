@@ -41,10 +41,10 @@ function check(name, ok, detail) {
   check('今日屏有数据条', (await page.evaluate(() => document.querySelectorAll('.vc-stat').length)) === 4);
   await page.screenshot({ path: path.join(OUT, 'p2-1-home.png') });
 
-  // ========== B. 三轮题型 ==========
+  // ========== B. 三题型连续队列 ==========
   await setState(() => {
     const s = { book:'cet4', day:'', newDoneToday:0, doneToday:0, streak:0, lastDone:'',
-      words:{}, seq:0, dailyNew:4, order:'seq', totalMs:0, totalAnswered:0, totalRight:0, days:{} };
+      words:{}, seq:0, dailyNew:3, order:'seq', totalMs:0, totalAnswered:0, totalRight:0, days:{} };
     localStorage.setItem('juice_vocab_v1', JSON.stringify(s));
   });
   await fresh('/vocab');
@@ -52,67 +52,69 @@ function check(name, ok, detail) {
   await page.click('#vcStart');
   await page.waitForTimeout(700);
   const k1 = await page.evaluate(() => ({
-    kind: document.querySelector('.vc-kind')?.textContent,
+    count: document.querySelector('.vc-count')?.textContent?.trim(),
     isCn: !!document.querySelector('.vc-word.cn'),
-    opts: document.querySelectorAll('.vc-opt').length
+    opts: document.querySelectorAll('.vc-opt').length,
+    markKnown: !!document.getElementById('vcMarkKnown'),
+    markInCard: !!document.querySelector('.vc-card .vc-mark-known')
   }));
-  check('第一轮是英选中（四选一）', k1.kind.includes('英选中') && !k1.isCn && k1.opts === 4, k1);
+  check('进度按词显示（1 / 3）', k1.count === '1 / 3', k1.count);
+  check('第一步英选中（英文 + 四选项）', !k1.isCn && k1.opts === 4, k1);
+  check('标熟按钮在卡片内', k1.markKnown && k1.markInCard, k1);
   await page.screenshot({ path: path.join(OUT, 'p2-2-recall.png') });
 
-  // 答一题看反馈与背面
+  // 答题：选项内联揭示 + 按钮就写「下一题」
   await page.click('.vc-opt:nth-child(1)');
   await page.waitForTimeout(500);
-  const bp = await page.evaluate(() => {
-    const box = document.getElementById('vcBackPanel');
+  const ans = await page.evaluate(() => {
+    const opts = [...document.querySelectorAll('.vc-opt')];
     return {
-      has: !!box,
-      blocks: box ? [...box.querySelectorAll('.vc-bp-h')].map(d => d.textContent.trim()) : [],
-      fam: box ? box.querySelectorAll('.vc-fam-word').length : 0
+      moreShown: opts.filter(o => o.querySelector('.vc-opt-more')?.classList.contains('show')).length,
+      nextLabel: document.getElementById('vcNext')?.textContent?.trim(),
+      blocks: [...document.querySelectorAll('.vc-bp-h')].map(d => d.textContent.trim())
     };
   });
-  check('答题后有卡片背面', bp.has && bp.blocks.length > 0, bp);
+  check('答完四个选项都揭示对应内容', ans.moreShown === 4, ans);
+  check('按钮文案就是「下一题」', ans.nextLabel === '下一题', ans.nextLabel);
+  check('有卡片背面', ans.blocks.length > 0, ans.blocks);
   await page.screenshot({ path: path.join(OUT, 'p2-3-back.png') });
 
-  if (bp.fam > 0) {
-    const before = await page.evaluate(() => document.querySelector('.vc-word').textContent);
-    await page.click('.vc-fam-word');
-    await page.waitForTimeout(400);
-    const after = await page.evaluate(() => document.querySelector('.vc-word').textContent);
-    check('点词族能跳到派生词', after !== before, { before, after });
-  } else {
-    check('点词族能跳到派生词', true, '本词无词族数据，跳过');
-  }
-
-  // 三轮流程在 verify-3rounds.js 里详测，这里只确认能走到第二轮/第三轮
-  await page.evaluate(() => {
-    const s = JSON.parse(localStorage.getItem('juice_vocab_v1') || '{}');
-    s.words = {}; s.seq = 0; s.newDoneToday = 0; s.doneToday = 0; s.dailyNew = 2;
-    localStorage.setItem('juice_vocab_v1', JSON.stringify(s));
-  });
-  await fresh('/vocab');
-  await page.click('#vcStart');
-  await page.waitForTimeout(600);
-  for (let i = 0; i < 2; i++) {
-    await page.evaluate(() => { const o = document.querySelectorAll('.vc-opt'); o[o.length - 1].click(); });
-    await page.waitForTimeout(260);
-    const nb = await page.$('#vcNext'); if (nb) { await nb.click(); await page.waitForTimeout(320); }
-  }
-  const r2kind = await page.evaluate(() => document.querySelector('.vc-kind')?.textContent);
-  check('第一轮错完进第二轮中选英', r2kind.includes('第二轮') && r2kind.includes('中选英'), r2kind);
-
-  for (let i = 0; i < 2; i++) {
-    await page.evaluate(() => { const o = document.querySelectorAll('.vc-opt'); o[o.length - 1].click(); });
-    await page.waitForTimeout(260);
-    const nb = await page.$('#vcNext'); if (nb) { await nb.click(); await page.waitForTimeout(320); }
-  }
-  const r3 = await page.evaluate(() => ({
-    kind: document.querySelector('.vc-kind')?.textContent,
-    rates: [...document.querySelectorAll('[data-rate]')].map(b => b.textContent),
-    opts: document.querySelectorAll('.vc-opt').length
+  // 下一步：同一词的中选英
+  await page.click('#vcNext');
+  await page.waitForTimeout(500);
+  const step2 = await page.evaluate(() => ({
+    isCn: !!document.querySelector('.vc-word.cn'),
+    count: document.querySelector('.vc-count')?.textContent?.trim()
   }));
-  check('第二轮错完进第三轮自评', r3.kind.includes('第三轮') && r3.kind.includes('自评'), r3.kind);
-  check('自评有三个按钮且无选项', r3.rates.join(',') === '认识,模糊,不认识' && r3.opts === 0, r3);
+  check('下一步是同词的中选英', step2.isCn, step2);
+  check('同一词内进度不变', step2.count === '1 / 3', step2.count);
+
+  // 第三步：自评
+  await page.click('.vc-opt:nth-child(1)');
+  await page.waitForTimeout(400);
+  await page.click('#vcNext');
+  await page.waitForTimeout(500);
+  const step3 = await page.evaluate(() => ({
+    rates: [...document.querySelectorAll('[data-rate]')].map(b => b.textContent),
+    opts: document.querySelectorAll('.vc-opt').length,
+    count: document.querySelector('.vc-count')?.textContent?.trim()
+  }));
+  check('第三步是自评（三按钮、无选项）',
+    step3.rates.join(',') === '认识,模糊,不认识' && step3.opts === 0, step3);
+  check('自评时进度仍是 1 / 3', step3.count === '1 / 3', step3.count);
   await page.screenshot({ path: path.join(OUT, 'p2-5-cloze.png') });
+
+  // 自评完成 → 下一个词
+  await page.click('[data-rate="know"]');
+  await page.waitForTimeout(400);
+  await page.click('#vcNext');
+  await page.waitForTimeout(500);
+  const next1 = await page.evaluate(() => ({
+    count: document.querySelector('.vc-count')?.textContent?.trim(),
+    isEn: !document.querySelector('.vc-word.cn') && document.querySelectorAll('.vc-opt').length === 4
+  }));
+  check('自评完进度 +1（2 / 3）', next1.count === '2 / 3', next1.count);
+  check('下一个词从英选中开始', next1.isEn, next1);
 
   await page.evaluate(() => { const b = document.getElementById('vcBack'); if (b) b.click(); });
   await page.waitForTimeout(500);
@@ -188,12 +190,10 @@ function check(name, ok, detail) {
   await page.click('#vcStart');
   await page.waitForTimeout(700);
   const en2cn = await page.evaluate(() => ({
-    kind: document.querySelector('.vc-kind')?.textContent,
     front: document.querySelector('.vc-word')?.textContent,
     isCn: !!document.querySelector('.vc-word.cn'),
-    opts: [...document.querySelectorAll('.vc-opt')].map(b => b.textContent)
+    opts: [...document.querySelectorAll('.vc-opt')].map(b => b.textContent.trim())
   }));
-  check('第一轮是英选中', en2cn.kind.includes('英选中'), en2cn.kind);
   check('英选中正面是英文单词', !en2cn.isCn && /^[a-zA-Z]/.test(en2cn.front || ''), en2cn.front);
   check('英选中选项是中文释义', en2cn.opts.every(o => /[一-龥]/.test(o)), en2cn.opts);
   await page.screenshot({ path: path.join(OUT, 'p3-2-en2cn.png') });
@@ -210,12 +210,11 @@ function check(name, ok, detail) {
   await page.click('#vcStart');
   await page.waitForTimeout(700);
   const box5 = await page.evaluate(() => ({
-    kind: document.querySelector('.vc-kind')?.textContent,
-    hasInput: !!document.getElementById('vcInput'),
+    isCn: !!document.querySelector('.vc-word.cn'),
     opts: document.querySelectorAll('.vc-opt').length
   }));
-  check('box5 的词第一轮仍是英选中（题型不随档位变）',
-    box5.kind.includes('英选中') && !box5.hasInput && box5.opts === 4, box5);
+  check('box5 的词第一步仍是英选中（题型不随档位变）',
+    !box5.isCn && box5.opts === 4, box5);
 
   // ========== D. 90 天热力图 ==========
   // 上一段停在答题屏，先回首页

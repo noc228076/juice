@@ -115,6 +115,20 @@
   grid-template-columns: repeat(4, 1fr);
   gap: 10px;
   margin-top: 14px;
+  /* taste-skill app-screen：数字卡是排版不是瓷砖——整体一块面板，内部 1px 分隔 */
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 14px 8px;
+}
+.vc-strip .vc-stat {
+  border: none;
+  background: none;
+  box-shadow: none;
+}
+.vc-strip .vc-stat + .vc-stat {
+  border-left: 1px solid var(--line);
+  border-radius: 0;
 }
 .vc-stat {
   background: var(--card);
@@ -167,14 +181,18 @@
 .vc-week-grid {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 8px;
-}
-.vc-day {
+  border: 1px solid var(--line);
   border-radius: 10px;
+  overflow: hidden;
+}
+.vc-day:last-child { border-right: none; }
+.vc-day {
+  border-radius: 0;
   padding: 8px 0 7px;
   text-align: center;
   background: var(--btn-ghost-bg);
-  border: 1px solid transparent;
+  border: none;
+  border-right: 1px solid var(--line);
   transition: background 0.2s ease;
   /* 浅色主题下 --mod-ac-ink 是白色，直接用作文字会白字配浅底看不见。
      这里统一用 --tx / --tx-faint，只靠底色深浅表达强度。 */
@@ -204,8 +222,7 @@
 .vc-day.lv3 .vc-day-n { color: var(--mod-ac); font-weight: 900; }
 .vc-day.lv3 .vc-day-d { color: var(--tx-dim); }
 .vc-day.today {
-  border-color: var(--mod-ac);
-  box-shadow: inset 0 0 0 1px var(--mod-ac);
+  background: var(--mod-ambient);
 }
 .vc-day.today .vc-day-d { color: var(--tx-dim); font-weight: 700; }
 

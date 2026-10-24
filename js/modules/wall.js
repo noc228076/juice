@@ -142,6 +142,11 @@
   /* 冷启动：墙上还没有弹幕时先投放几条，否则「飞出→补一条」的循环永远不启动 */
   function primeStage() {
     if (!wall.length) return;
+    /* 已有留言：空态引导换回常态提示 */
+    var hintEl = document.getElementById('wlStageHint');
+    if (hintEl && hintEl.querySelector('.wl-hint-main')) {
+      hintEl.innerHTML = '最新留言会从这里飞过 →';
+    }
     const live = engine.items.length;
     if (live > 0) return;
     /* 冷启动：只从队列里取前几条，且取完就推进 qi，
@@ -324,7 +329,7 @@
     el.innerHTML =
       '<div class="wl-main">' +
         '<div class="wl-left">' +
-          '<div class="wl-stage" id="wlStage"><div class="wl-hint" id="wlStageHint">最新留言会从这里飞过 →</div></div>' +
+          '<div class="wl-stage" id="wlStage"><div class="wl-hint" id="wlStageHint"><span class="wl-hint-arrow">↙</span><span class="wl-hint-main">第一发弹幕由你开启</span><span>写下这句话，它会从墙上飞过 →</span></div></div>' +
           '<div class="wl-inputbar">' +
             '<span class="wl-me-avatar" id="wlMeAvatar">🙂</span>' +
             '<div class="wl-me-col"><span class="wl-me-name" id="wlMeName">匿名玩家</span>' +

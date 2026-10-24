@@ -28,7 +28,15 @@
 }
 /* 显示全部留言：不再限制高度做内部滚动（之前 max-height 462px 会把
    第 9 条之后的留言裁掉，看起来像「挤掉其他留言」） */
-.wl-right .wl-list {
+.wl-right .wl-list .wl-empty {
+  padding: 26px 14px;
+  text-align: center;
+  color: var(--tx-faint);
+  font-size: 12.5px;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+}
+.wl-list {
   min-height: 0;
 }
 @media (max-width: 860px) {
@@ -70,20 +78,32 @@
   height: 380px;
   border-radius: 16px;
   overflow: hidden;
-  background: linear-gradient(180deg, #1b1930 0%, #232031 60%, #2a2338 100%);
-  border: 1px solid var(--line-strong);
-  box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.35);
+  /* taste-skill 审查：紫渐变面板是 tell，改为纯色阶深底 */
+  background: #14161d;
+  border: 1px solid var(--line);
 }
 .wl-hint {
   position: absolute;
-  inset: 0;
+  inset: 12px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 10px;
   font-size: 13px;
-  color: rgba(255, 255, 255, 0.35);
+  color: rgba(255, 255, 255, 0.45);
   pointer-events: none;
+  border: 1.5px dashed rgba(255, 255, 255, 0.14);
+  border-radius: 12px;
+  text-align: center;
 }
+.wl-hint .wl-hint-arrow {
+  font-size: 22px;
+  line-height: 1;
+  transform: rotate(38deg) translateX(-46px);
+  opacity: 0.6;
+}
+.wl-hint .wl-hint-main { font-size: 14px; color: rgba(255,255,255,0.62); font-weight: 600; }
 .wl-dm {
   position: absolute;
   left: 0;

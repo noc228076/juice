@@ -41,7 +41,9 @@ html[data-theme="light"] #mod-merit {
 #mod-merit .mr-wrap {
   max-width: 680px;
   margin: 0 auto;
-  padding: 20px 18px 56px;
+  /* 顶距与 ck-wrap/fl-wrap 同为 --screen-pad-block，
+     切摸鱼解压四个子标签时子导航条不再上下跳 */
+  padding: var(--screen-pad-block) 18px 56px;
   display: flex;
   flex-direction: column;
 }

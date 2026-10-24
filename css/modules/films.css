@@ -5,6 +5,8 @@
 .fl-wrap {
   max-width: 1440px;
   margin: 0 auto;
+  /* 对齐 ck-wrap/mr-wrap 的顶部留白，四子页子导航条同高不下跳 */
+  padding-top: var(--screen-pad-block);
 }
 .fl-header {
   text-align: center;

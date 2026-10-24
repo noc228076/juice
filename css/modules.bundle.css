@@ -10019,7 +10019,9 @@ html[data-theme="light"] #mod-merit {
 #mod-merit .mr-wrap {
   max-width: 680px;
   margin: 0 auto;
-  padding: 20px 18px 56px;
+  /* 顶距与 ck-wrap/fl-wrap 同为 --screen-pad-block，
+     切摸鱼解压四个子标签时子导航条不再上下跳 */
+  padding: var(--screen-pad-block) 18px 56px;
   display: flex;
   flex-direction: column;
 }
@@ -13529,7 +13531,8 @@ html[data-theme="light"] .daily-hot-notice {
   --sc-emerald: #10B981;
   --sc-purple: #A855F7;
   --sc-silver: #94A3B8;
-  padding: 16px 12px 64px;
+  /* 顶距统一为 --screen-pad-block（与 ck-wrap/mr-wrap/fl-wrap 一致），四子页不跳 */
+  padding: var(--screen-pad-block) 12px 64px;
   box-sizing: border-box;
   position: relative;
 }
@@ -14539,7 +14542,7 @@ html[data-theme="light"] .sc-security-box {
 /* 移动端响应式适配 (< 600px) */
 @media (max-width: 600px) {
   #mod-scratch {
-    padding: 12px 8px 60px;
+    padding: var(--screen-pad-block) 8px 60px;
   }
   .scratch-card-outer {
     padding: 16px 12px 14px;
@@ -14685,8 +14688,8 @@ html[data-theme="light"] .sc-security-box {
    1366×768 / 1280×720 这类笔记本屏，票面还能再扁一点：
    号码格保持 44px 以上点击高度，只收内边距与行距。 */
 @media (min-width: 1025px) and (max-height: 800px) {
-  /* 矮屏底部不留白，省下最后一截 */
-  #mod-scratch { padding-top: 10px; padding-bottom: 8px; }
+  /* 矮屏底部不留白；顶部保持与其他子页对齐（不再单独收 padding-top） */
+  #mod-scratch { padding-bottom: 8px; }
   .scratch-hero { margin-bottom: 8px; }
   .scratch-hero-title { font-size: 26px; }
   .scratch-hero-sub { font-size: 12px; }
@@ -15132,6 +15135,8 @@ html[data-theme="light"] .sc-security-box {
 .fl-wrap {
   max-width: 1440px;
   margin: 0 auto;
+  /* 对齐 ck-wrap/mr-wrap 的顶部留白，四子页子导航条同高不下跳 */
+  padding-top: var(--screen-pad-block);
 }
 .fl-header {
   text-align: center;

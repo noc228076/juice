@@ -1235,3 +1235,14 @@
 .vc-lb-refresh:hover { color: var(--mod-ac); border-color: var(--mod-ac); }
 .vc-lb-refresh.spin { animation: vcLbSpin 0.9s linear infinite; }
 @keyframes vcLbSpin { to { transform: rotate(360deg); } }
+.vc-input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--tx);
+  font-size: 13px;
+  padding: 9px 12px;
+}
+.vc-input:focus { outline: none; border-color: var(--mod-ac); }

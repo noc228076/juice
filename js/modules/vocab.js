@@ -260,7 +260,7 @@
   function loadState() {
     var raw = null;
     try { raw = localStorage.getItem(SAVE_KEY); } catch (e) {}
-    if (!raw) { state = emptyState(); bs().day = todayKey(); return; }
+    if (!raw) { state = emptyState(); bs().day = todayKey(); saveState(); return; }
     try {
       var s = JSON.parse(raw) || {};
       if (!s.books) {
@@ -638,6 +638,46 @@
     return out;
   }
 
+  var wordsFilter = 'all';    // all | recent | hard
+  var wordsKw = '';
+  var WEEK_MS = 7 * 86400000;
+
+  function filteredTough() {
+    var list = toughWords();
+    var kw = wordsKw.trim().toLowerCase();
+    if (wordsFilter === 'recent') {
+      list = list.filter(function (it) { return it.rec.wrongAt && Date.now() - it.rec.wrongAt < WEEK_MS; });
+    } else if (wordsFilter === 'hard') {
+      list = list.filter(function (it) { return (it.rec.wrong || 0) >= 3; });
+    }
+    if (kw) {
+      list = list.filter(function (it) {
+        var idx = idxOfWord(it.word);
+        var m = idx >= 0 ? book.words[idx][2] : '';
+        return it.word.toLowerCase().indexOf(kw) >= 0 || String(m).toLowerCase().indexOf(kw) >= 0;
+      });
+    }
+    return list;
+  }
+
+  function toughRowHtml(it) {
+    var idx = idxOfWord(it.word);
+    var m = idx >= 0 ? book.words[idx][2] : '';
+    var ph = idx >= 0 ? book.words[idx][1] : '';
+    return '<div class="vc-wordrow">' +
+      '<div class="vc-wordrow-main">' +
+        '<b>' + esc(it.word) + '</b>' +
+        (ph ? '<i>' + esc(ph) + '</i>' : '') +
+        '<span>' + esc(m) + '</span>' +
+      '</div>' +
+      '<div class="vc-wordrow-meta">' +
+        '<em>错 ' + it.rec.wrong + ' 次</em>' +
+        '<button class="vc-mini" type="button" data-know="' + esc(it.word) + '">标熟</button>' +
+        '<button class="vc-mini" type="button" data-remove="' + esc(it.word) + '">移除</button>' +
+      '</div>' +
+    '</div>';
+  }
+
   function wordsHtml() {
     var list = toughWords();
     var known = knownWords();
@@ -683,29 +723,50 @@
         '<p class="vc-field-d">同一个词答错 2 次就会自动进来，方便集中攻克。</p>' +
         '</div>';
     }
+    var nRecent = list.filter(function (it) { return it.rec.wrongAt && Date.now() - it.rec.wrongAt < WEEK_MS; }).length;
+    var nHard = list.filter(function (it) { return (it.rec.wrong || 0) >= 3; }).length;
+    var shown = filteredTough();
+    var chips =
+      '<div class="vc-chips" style="margin-bottom:12px">' +
+        '<button type="button" class="vc-chip' + (wordsFilter === 'all' ? ' active' : '') + '" data-wfilter="all">全部 ' + list.length + '</button>' +
+        '<button type="button" class="vc-chip' + (wordsFilter === 'recent' ? ' active' : '') + '" data-wfilter="recent">近 7 天 ' + nRecent + '</button>' +
+        '<button type="button" class="vc-chip' + (wordsFilter === 'hard' ? ' active' : '') + '" data-wfilter="hard">错 3 次+ ' + nHard + '</button>' +
+      '</div>' +
+      '<input class="vc-input" id="vcWordSearch" placeholder="在生词本里搜词 / 释义…" value="' + esc(wordsKw) + '" style="margin-bottom:12px">';
     return '<div class="vc-panel">' +
       '<h2 class="vc-h2">生词本</h2>' + tabs +
-      '<p class="vc-field-d">答错 2 次以上的词自动收录，按错误次数排序。</p>' +
+      '<p class="vc-field-d">答错 2 次以上的词自动收录，按错误次数排序。</p>' + chips +
       '<div class="vc-actions" style="margin-bottom:14px">' +
-        '<button class="vc-btn primary" id="vcDrill" type="button">专攻这 ' + list.length + ' 个词</button>' +
+        '<button class="vc-btn primary" id="vcDrill" type="button">专攻这 ' + shown.length + ' 个词</button>' +
       '</div>' +
-      '<div class="vc-wordlist">' + list.map(function (it) {
-        var idx = idxOfWord(it.word);
-        var m = idx >= 0 ? book.words[idx][2] : '';
-        var ph = idx >= 0 ? book.words[idx][1] : '';
-        return '<div class="vc-wordrow">' +
-          '<div class="vc-wordrow-main">' +
-            '<b>' + esc(it.word) + '</b>' +
-            (ph ? '<i>' + esc(ph) + '</i>' : '') +
-            '<span>' + esc(m) + '</span>' +
-          '</div>' +
-          '<div class="vc-wordrow-meta">' +
-            '<em>错 ' + it.rec.wrong + ' 次</em>' +
-            '<button class="vc-mini" type="button" data-know="' + esc(it.word) + '">标熟</button>' +
-            '<button class="vc-mini" type="button" data-remove="' + esc(it.word) + '">移除</button>' +
-          '</div>' +
-        '</div>';
-      }).join('') + '</div></div>';
+      (shown.length
+        ? '<div class="vc-wordlist" id="vcWordList">' + shown.map(toughRowHtml).join('') + '</div>'
+        : '<p class="vc-field-d">当前筛选下没有词。</p>') +
+    '</div>';
+  }
+
+  function bindWordRows(scope) {
+    /* 局部重绘（搜索过滤）时重绑行按钮；整页路径由下方原有绑定覆盖，这里只兜重复无害 */
+    (scope || el).querySelectorAll('[data-remove]').forEach(function (b) {
+      b.onclick = function () {
+        var w = b.getAttribute('data-remove');
+        if (bs().words[w]) { bs().words[w].wrong = 0; saveState(); }
+        renderHome();
+      };
+    });
+    (scope || el).querySelectorAll('[data-know]').forEach(function (b) {
+      b.onclick = function () {
+        var w = b.getAttribute('data-know');
+        if (bs().words[w]) {
+          bs().words[w].known = true;
+          bs().words[w].knownAt = Date.now();
+          bs().words[w].box = MAX_BOX;
+          bs().words[w].due = dayNum(todayKey()) + 3650;
+          saveState();
+        }
+        renderHome();
+      };
+    });
   }
 
   function bindWords() {
@@ -715,8 +776,32 @@
         renderHome();
       };
     });
+    el.querySelectorAll('[data-wfilter]').forEach(function (b) {
+      b.onclick = function () {
+        wordsFilter = b.getAttribute('data-wfilter');
+        renderHome();
+      };
+    });
+    var search = el.querySelector('#vcWordSearch');
+    if (search) {
+      search.oninput = function () {
+        wordsKw = search.value;
+        var host = el.querySelector('#vcWordList');
+        var shown = filteredTough();
+        var drill = el.querySelector('#vcDrill');
+        if (drill) drill.textContent = '专攻这 ' + shown.length + ' 个词';
+        if (!shown.length) {
+          if (host) host.innerHTML = '';
+          return;
+        }
+        if (host) {
+          host.innerHTML = shown.map(toughRowHtml).join('');
+          bindWordRows(host);
+        }
+      };
+    }
 
-    var list = toughWords();
+    var list = filteredTough();
     var db = el.querySelector('#vcDrill');
     if (db) db.onclick = function () {
       var items = list.map(function (it) {
@@ -889,8 +974,12 @@
       '<div class="vc-field">' +
         '<div class="vc-field-h">数据</div>' +
         '<div class="vc-field-d">所有进度只存在这台设备的浏览器里，不上传。</div>' +
+        '<button type="button" class="vc-btn ghost" id="vcExport">📤 导出备份</button>' +
+        '<button type="button" class="vc-btn ghost" id="vcImport">📥 导入备份</button>' +
+        '<input type="file" id="vcImportFile" accept="application/json,.json" style="display:none">' +
         '<button type="button" class="vc-btn ghost danger" id="vcReset">清空学习记录</button>' +
       '</div>' +
+      '<div class="vc-field-d">备份是完整学习记录（两个词库 + 打卡 + 排行计数）的 JSON 文件，换浏览器 / 重装前导出一份，之后可导入恢复。</div>' +
       '</div>';
   }
 
@@ -932,6 +1021,48 @@
         switchBook(bk);
       };
     });
+    var ex = el.querySelector('#vcExport');
+    if (ex) ex.onclick = function () {
+      try {
+        var d = new Date();
+        var name = 'vocab-backup-' + d.getFullYear() + (d.getMonth() + 1 < 10 ? '0' : '') + (d.getMonth() + 1) + (d.getDate() < 10 ? '0' : '') + d.getDate() + '.json';
+        var blob = new Blob([JSON.stringify(state)], { type: 'application/json' });
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = name;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+      } catch (e) { alert('导出失败：' + e.message); }
+    };
+    var im = el.querySelector('#vcImport');
+    var imf = el.querySelector('#vcImportFile');
+    if (im && imf) {
+      im.onclick = function () { imf.click(); };
+      imf.onchange = function () {
+        var f = imf.files && imf.files[0];
+        if (!f) return;
+        var reader = new FileReader();
+        reader.onload = function () {
+          try {
+            var d = JSON.parse(reader.result);
+            if (!d || typeof d !== 'object' || !d.books || typeof d.books !== 'object') {
+              alert('这不是有效的背单词备份文件');
+              return;
+            }
+            if (!window.confirm('导入会覆盖当前全部学习记录（词库进度 / 打卡 / 排行计数），确定？')) return;
+            localStorage.setItem(SAVE_KEY, JSON.stringify(d));
+            location.reload();
+          } catch (e) {
+            alert('导入失败：' + e.message);
+          }
+        };
+        reader.readAsText(f, 'utf-8');
+        imf.value = '';
+      };
+    }
     var rb = el.querySelector('#vcReset');
     if (rb) rb.onclick = function () {
       if (!window.confirm('清空本机所有背单词记录？此操作不可恢复。')) return;
@@ -1401,6 +1532,7 @@
     } else {
       rec.box = 0;
       rec.wrong++;
+      rec.wrongAt = Date.now();   // 最近一次答错时间（生词本「近 7 天」筛选用）
       rec.due = today;
     }
     bs().words[key] = rec;

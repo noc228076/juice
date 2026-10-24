@@ -14789,62 +14789,32 @@ html[data-theme="light"] #mod-daily::before {
 }
 
 /* ============ 顶部 Hero 导航与时间看板 ============ */
+/* 顶部 Hero：标题 + 日期同一行（徽章/副标题/引言卡三行装饰已删） */
 .daily-hero {
-  text-align: center;
-  margin-bottom: 20px;
+  margin-bottom: 14px;
 }
 
-.daily-hero-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 14px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  background: rgba(59, 130, 246, 0.12);
-  color: var(--dl-ac);
-  border: 1px solid rgba(59, 130, 246, 0.28);
+.daily-hero-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 6px 12px;
   margin-bottom: 10px;
 }
 
 .daily-hero h2 {
-  font-size: 24px;
+  font-size: 19px;
   font-weight: 900;
   letter-spacing: 1.5px;
-  margin: 0 0 6px;
+  margin: 0;
   color: var(--tx);
 }
 
-.daily-hero-sub {
-  font-size: 13px;
+.daily-hero-date {
+  font-size: 12px;
   color: var(--tx-dim);
-  margin: 0 0 12px;
-}
-
-.daily-date-bar {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 10px;
-  padding: 8px 16px;
-  border-radius: 16px;
-  background: var(--card);
-  border: 1px solid var(--line);
-  font-size: 12.5px;
-  color: var(--tx-dim);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
-  max-width: 620px;
-  margin: 0 auto 18px;
-}
-.daily-date-bar b {
-  color: var(--tx);
-}
-.daily-date-bar .daily-quote-tip {
-  color: var(--dl-gold);
-  font-weight: 600;
+  letter-spacing: 0.5px;
 }
 
 /* 三合一主 Tab 切换 */
@@ -15773,7 +15743,7 @@ html[data-theme="light"] .daily-hot-notice {
     padding: 12px 8px 60px;
   }
   .daily-hero h2 {
-    font-size: 20px;
+    font-size: 17px;
   }
   .daily-nav-btn {
     padding: 8px 8px;
@@ -15836,7 +15806,8 @@ html[data-theme="light"] .daily-hot-notice {
     height: 100%;
     display: flex;
     flex-direction: column;
-    max-height: calc(100vh - 380px);
+    /* Hero 压缩后板块顶部起点约 180px（原 380 是高 Hero 时代的值） */
+    max-height: calc(100vh - 200px);
   }
 
   /* 60s 列表在卡片内部滚，标题栏固定 */
@@ -15898,8 +15869,8 @@ html[data-theme="light"] .daily-hot-notice {
     min-width: 0;
     display: flex;
     flex-direction: column;
-    /* 板块顶部起点 + 容器底 padding 约 374px，榜单卡片内部滚 */
-    max-height: calc(100vh - 374px);
+    /* 165(顶部) + 24(容器底距) + 余量 → 卡片内部滚 */
+    max-height: calc(100vh - 200px);
     min-height: 360px;
   }
   #dlSec-movie .daily-movie-grid {
@@ -15928,6 +15899,11 @@ html[data-theme="light"] .daily-hot-notice {
   .daily-hot-card .daily-plat-pill {
     flex: 0 0 auto;
   }
+}
+
+/* 桌面端底距收窄：Hero 已压缩，64px 底部留白纯属浪费 */
+@media (min-width: 1025px) {
+  #mod-daily { padding-bottom: 24px; }
 }
 
 

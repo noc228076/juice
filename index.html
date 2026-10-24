@@ -17,8 +17,8 @@
 <meta property="og:title" content="饮料人格研究所 · 测测你的精神状态与灵魂特调">
 <meta property="og:description" content="当代年轻人精神状态测试 (SBTI) / 经典 16 型人格 (MBTI) / 16 款灵魂饮料特调，测出你的独家出厂配方与精神病友。">
 <meta property="og:image" content="assets/icons/icon-512.png">
-  <link rel="stylesheet" href="css/core.bundle.css?v=260">
-  <script defer src="js/app.bundle.js?v=260" fetchpriority="high"></script>
+  <link rel="stylesheet" href="css/core.bundle.css?v=261">
+  <script defer src="js/app.bundle.js?v=261" fetchpriority="high"></script>
   <script>
     (function(){
       // 主题必须在首次绘制前定下来。以前只有 <html data-theme="dark"> 的硬编码默认值，
@@ -1959,16 +1959,11 @@
     <!-- 模块 10：今日风向标 (每日灵感补给站) -->
     <section id="mod-daily" class="app-module">
       <div class="daily-container">
-        <!-- 顶部 Hero 导航与时间看板 -->
+        <!-- 顶部 Hero：标题 + 日期一行，接三合一 Tab（删掉徽章/副标题/引言三行装饰） -->
         <div class="daily-hero">
-          <div class="daily-hero-badge">🗞️ 每日灵感补给 · 全网风向标</div>
-          <h2>今日风向标 · 灵感补给站</h2>
-          <p class="daily-hero-sub">60秒读懂世界 · 全网热榜追踪 · 必应 4K 壁纸 · 豆瓣高分影视</p>
-
-          <div class="daily-date-bar">
-            <span>📅 <b id="dl60sDateBadge">今日</b></span>
-            <span>|</span>
-            <span class="daily-quote-tip" id="dl60sTip">“ 保持热爱，奔赴山海，生活总会在不经意处给你惊喜。 ”</span>
+          <div class="daily-hero-row">
+            <h2>今日风向标</h2>
+            <span class="daily-hero-date" id="dl60sDateBadge">今日</span>
           </div>
 
           <!-- 三合一主 Tab 切换 -->

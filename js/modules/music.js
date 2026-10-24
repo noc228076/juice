@@ -25,7 +25,9 @@
       direct: [],              // 直链歌单 [{id,title,artist,cover,url}]
       sources: [],             // [{id,name,code}]
       localMeta: [],           // 本机文件元数据 [{title,size}]（刷新后需重新关联）
-      folderName: ''
+      folderName: '',
+      /* 内置开源音源：audius（免 key）/ jamendo（免费 key）/ custom（自定义脚本） */
+      src: { builtin: 'audius', jamendoKey: '' }
     };
   }
   var state = defaultState();
@@ -37,6 +39,9 @@
       var d = JSON.parse(raw);
       if (d && typeof d === 'object') {
         state = Object.assign(defaultState(), d);
+        if (!state.src || !state.src.builtin) {
+          state.src = { builtin: 'audius', jamendoKey: (state.src && state.src.jamendoKey) || '' };
+        }
       }
     } catch (e) { state = defaultState(); }
   }
@@ -337,6 +342,82 @@
     renderIfActive();
   }
 
+  /* 3a. 内置开源音源（合法曲库，浏览器可直连）
+     Audius：去中心化音乐平台，开放 API 免 key；
+     Jamendo：55 万+ CC 协议独立音乐人作品，免注册听 30s 试听之外需免费 Client ID。
+     被墙的源（Internet Archive / Openverse 等）不内置——需要时用下方自定义脚本接口接。 */
+  var AUDIUS_NODES = [
+    'https://discoveryprovider.audius.co',
+    'https://discoveryprovider2.audius.co',
+    'https://discoveryprovider3.audius.co'
+  ];
+  var audiusNode = null;
+
+  function fetchJSON(url, ms) {
+    return Promise.race([
+      fetch(url).then(function (r) { return r.json(); }),
+      new Promise(function (_, rej) { setTimeout(function () { rej(new Error('超时')); }, ms || 9000); })
+    ]);
+  }
+
+  function searchAudius(kw) {
+    var tryNode = function (i) {
+      if (i >= AUDIUS_NODES.length) return Promise.reject(new Error('所有 Audius 节点不可达（可能被墙）'));
+      var node = AUDIUS_NODES[i];
+      return fetchJSON(node + '/v1/tracks/search?query=' + encodeURIComponent(kw) +
+        '&app_name=juice-persona&limit=30').then(function (d) {
+          var list = (d && d.data) || [];
+          if (!list.length) { audiusNode = node; return []; }
+          audiusNode = node;
+          return list
+            .filter(function (t) { return t.streamable !== false && t.duration > 0; })
+            .map(function (t) {
+              return {
+                kind: 'search', id: 'au_' + t.id,
+                title: t.title || '未命名',
+                artist: (t.user && t.user.name) || 'Audius',
+                cover: (t.artwork && (t.artwork['480x480'] || t.artwork['150x150'])) || '',
+                url: node + '/v1/tracks/' + t.id + '/stream?app_name=juice-persona',
+                durMs: (t.duration || 0) * 1000
+              };
+            });
+        }).catch(function () { return tryNode(i + 1); });
+    };
+    if (audiusNode) {
+      // 已知好节点先试，失败再轮询
+      var saved = audiusNode;
+      AUDIUS_NODES = [saved].concat(AUDIUS_NODES.filter(function (n) { return n !== saved; }));
+    }
+    return tryNode(0);
+  }
+
+  function searchJamendo(kw) {
+    var key = (state.src && state.src.jamendoKey) || '';
+    if (!key) return Promise.reject(new Error('请先填写 Jamendo 免费 Client ID'));
+    return fetchJSON('https://api.jamendo.com/v3.0/tracks/?client_id=' + encodeURIComponent(key) +
+      '&format=json&limit=30&search=' + encodeURIComponent(kw)).then(function (d) {
+        if (!d || d.headers && d.headers.status === 'failed') {
+          throw new Error((d && d.headers && d.headers.error_message) || 'Jamendo 返回失败（检查 Client ID）');
+        }
+        return (d.results || []).map(function (t) {
+          return {
+            kind: 'search', id: 'jm_' + t.id,
+            title: t.name || '未命名',
+            artist: t.artist_name || 'Jamendo',
+            cover: t.image || '',
+            url: t.audio,
+            durMs: (t.duration || 0) * 1000
+          };
+        });
+      });
+  }
+
+  function searchBuiltin(kw) {
+    var mode = state.src.builtin;
+    if (mode === 'jamendo') return searchJamendo(kw);
+    return searchAudius(kw);
+  }
+
   /* 3. 自定义音源脚本：代码只存本机 localStorage，仓库不含任何脚本 */
   var activeSource = null;     // 运行中的音源对象
 
@@ -360,6 +441,17 @@
   var searchResults = [];      // [{title,artist,cover,url}]
   function runSearch(kw) {
     if (!kw) return;
+    if (state.src.builtin !== 'custom') {
+      toast('搜索中…');
+      searchBuiltin(kw).then(function (items) {
+        searchResults = items.slice(0, 100);
+        renderIfActive();
+        if (!searchResults.length) toast('没有搜到结果');
+      }).catch(function (e) {
+        toast('搜索失败：' + (e && e.message ? e.message : 'unknown'));
+      });
+      return;
+    }
     if (!activeSource) { toast('先加载一个音源脚本'); return; }
     toast('搜索中…');
     Promise.resolve(activeSource.search(kw)).then(function (res) {
@@ -383,10 +475,12 @@
   /* ---------------- UI：主屏 ---------------- */
   function listRowHtml(t, i, listName) {
     var active = cur && cur.url === t.url && qName === listName;
+    var dur = t.durMs ? fmtTime(t.durMs / 1000) : '';
     return '<div class="mu-row' + (active ? ' active' : '') + '" data-play="' + listName + '" data-idx="' + i + '">' +
       '<span class="mu-row-ico">' + (active && audio && !audio.paused ? '▶' : '♪') + '</span>' +
       '<span class="mu-row-main"><b>' + esc(t.title) + '</b>' +
       (t.artist ? '<i>' + esc(t.artist) + '</i>' : '') + '</span>' +
+      (dur ? '<span class="mu-row-dur">' + dur + '</span>' : '') +
       '<span class="mu-row-go">播放</span>' +
       '</div>';
   }
@@ -444,9 +538,38 @@
           '<button class="mu-btn mini danger" data-src-del="' + i + '">删除</button>' +
         '</span></div>';
     }).join('');
-    return '<div class="mu-panel">' +
-      '<h3 class="mu-h3">🧩 自定义音源脚本</h3>' +
-      '<p class="mu-note">粘贴你自己写的音源脚本（定义 MusicSource 对象，实现 search(keyword)）。脚本只保存在本机浏览器，本站仓库与服务器不经手任何脚本内容。</p>' +
+    var BUILTIN_CHIPS = [
+      { k: 'audius', label: ' Audius', tip: '去中心化音乐平台 · 免 Key · 全曲播放' },
+      { k: 'jamendo', label: ' Jamendo', tip: '55 万+ CC 协议曲库 · 需免费 Client ID' },
+      { k: 'custom', label: ' 自定义脚本', tip: '粘贴你自己写的 MusicSource 脚本' }
+    ];
+    var cur = state.src.builtin;
+    var chipsHtml = '<div class="mu-src-chips">' + BUILTIN_CHIPS.map(function (c) {
+      return '<button type="button" class="mu-src-chip' + (cur === c.k ? ' active' : '') +
+        '" data-builtin="' + c.k + '" title="' + esc(c.tip) + '">' + c.label + '</button>';
+    }).join('') + '</div>';
+    var builtinHtml = '<div class="mu-builtin">' +
+      '<h3 class="mu-h3">📡 开源音源</h3>' +
+      '<p class="mu-note">内置两个合法开源曲库（浏览器直连，无第三方服务器中转）。' +
+        '其他开源库（Internet Archive / Openverse 等）国内直连不通，需要时走下方自定义脚本。</p>' +
+      chipsHtml +
+      (cur === 'jamendo'
+        ? '<div class="mu-keyrow"><input class="mu-input" id="muJmKey" placeholder="Jamendo Client ID" value="' + esc(state.src.jamendoKey || '') + '">' +
+          '<button class="mu-btn" id="muJmKeySave">保存</button></div>' +
+          '<p class="mu-note">到 devportal.jamendo.com 免费注册一个应用即可拿到 Client ID（一分钟）。</p>'
+        : '') +
+      '</div>';
+    return '<div class="mu-panel">' + builtinHtml +
+      '<h3 class="mu-h3" style="margin-top:14px">🧩 自定义音源脚本</h3>' +
+      (cur === 'custom'
+        ? '<p class="mu-note">粘贴你自己写的音源脚本（定义 MusicSource 对象，实现 search(keyword)）。脚本只保存在本机浏览器，本站仓库与服务器不经手任何脚本内容。</p>' +
+          '<textarea class="mu-textarea mono" id="muSrcCode" rows="8" placeholder="// 粘贴音源脚本…"></textarea>' +
+          '<div class="mu-btns">' +
+            '<button class="mu-btn primary" id="muSrcAdd">保存并加载</button>' +
+            '<button class="mu-btn" id="muSrcExample">填入模板</button>' +
+          '</div>' +
+          (srcRows ? '<div class="mu-src-list">' + srcRows + '</div>' : '')
+        : '<p class="mu-note">切到「自定义脚本」标签后在此粘贴脚本。</p>') +
       '<textarea class="mu-textarea mono" id="muSrcCode" rows="8" placeholder="// 粘贴音源脚本…"></textarea>' +
       '<div class="mu-btns">' +
         '<button class="mu-btn primary" id="muSrcAdd">保存并加载</button>' +
@@ -579,6 +702,22 @@
     };
 
     // 音源
+    el.querySelectorAll('[data-builtin]').forEach(function (c) {
+      c.onclick = function () {
+        state.src.builtin = c.getAttribute('data-builtin');
+        saveState();
+        renderHome();
+      };
+    });
+    var jmSave = el.querySelector('#muJmKeySave');
+    var jmKey = el.querySelector('#muJmKey');
+    if (jmSave && jmKey) {
+      jmSave.onclick = function () {
+        state.src.jamendoKey = jmKey.value.trim();
+        saveState();
+        toast(state.src.jamendoKey ? 'Client ID 已保存' : 'Client ID 已清空');
+      };
+    }
     var sadd = el.querySelector('#muSrcAdd');
     var scode = el.querySelector('#muSrcCode');
     if (sadd && scode) sadd.onclick = function () {

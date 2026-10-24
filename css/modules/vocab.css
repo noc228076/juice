@@ -840,3 +840,26 @@
   .vc-word.cn { font-size: 22px; }
   .vc-opt.word-opt { font-size: 16px; }
 }
+
+/* ---------- 设置里的两轮流程示意 ---------- */
+.vc-flow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+  font-size: 12.5px;
+  color: var(--tx-faint);
+}
+.vc-flow-step {
+  padding: 6px 14px;
+  border-radius: 999px;
+  background: var(--mod-ac-soft);
+  border: 1px solid var(--mod-ac-fade);
+  color: var(--mod-ac);
+  font-weight: 700;
+}
+.vc-flow i {
+  font-style: normal;
+  opacity: 0.5;
+}

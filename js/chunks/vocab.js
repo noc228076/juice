@@ -451,6 +451,13 @@
   var answered = false;
   var current = null;
   var sessionStats = { right: 0, wrong: 0 };
+  /* 两轮制（参考不背单词）：第一轮英选中，答对的过；
+     第一轮结束后，答错的按出错顺序进第二轮中选英。
+     round 1 = 英选中，2 = 中选英 */
+  var round = 1;
+  var round1Wrong = [];   // 第一轮答错的词（按出错顺序）
+  var round1Total = 0;    // 第一轮题数，用于进度显示
+  var round2Size = 0;     // 第二轮题数（进第二轮后 round1Wrong 会清空）
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -750,17 +757,22 @@
       '</div>' +
 
       '<div class="vc-field">' +
-        '<div class="vc-field-h">选择题方向</div>' +
-        '<div class="vc-field-d">英选中：看单词挑中文释义。中选英：看中文释义挑英文单词（更难，建议先过一遍英选中）。</div>' +
-        '<div class="vc-chips">' +
-          '<button type="button" class="vc-chip' + (state.dir !== 'cn2en' ? ' active' : '') + '" data-dir="en2cn">英选中</button>' +
-          '<button type="button" class="vc-chip' + (state.dir === 'cn2en' ? ' active' : '') + '" data-dir="cn2en">中选英</button>' +
+        '<div class="vc-field-h">答题流程</div>' +
+        '<div class="vc-field-d">第一轮英选中：看单词挑中文释义，答对的直接过。' +
+          '第一轮结束后，答错的词按出错顺序再走一轮中选英（看中文挑单词），巩固一遍。' +
+          '两轮都过完才算本局结束。</div>' +
+        '<div class="vc-flow">' +
+          '<span class="vc-flow-step">① 英选中</span>' +
+          '<i>→</i>' +
+          '<span class="vc-flow-step">错的进第二轮</span>' +
+          '<i>→</i>' +
+          '<span class="vc-flow-step">② 中选英</span>' +
         '</div>' +
       '</div>' +
 
       '<div class="vc-field">' +
         '<div class="vc-field-h">题型</div>' +
-        '<div class="vc-field-d">关掉的题型不参与轮转，会退到还开着的那几种。填空题需要例句数据，默认关闭。</div>' +
+        '<div class="vc-field-d">关掉的题型不参与第一轮轮转，会退到还开着的那几种。填空题需要例句数据，默认关闭。第二轮固定用中选英。</div>' +
         '<div class="vc-chips">' +
           '<button type="button" class="vc-chip kind' + (state.kinds.recall ? ' active' : '') + '" data-kind="recall">选择题</button>' +
           '<button type="button" class="vc-chip kind' + (state.kinds.spell ? ' active' : '') + '" data-kind="spell">拼写</button>' +
@@ -806,16 +818,6 @@
         state.order = o;
         saveState();
         queue = buildQueue();
-        renderHome();
-      };
-    });
-    el.querySelectorAll('[data-dir]').forEach(function (b) {
-      b.onclick = function () {
-        var d = b.getAttribute('data-dir');
-        if (d === state.dir) return;
-        if (window.SFX && window.SFX.tap) window.SFX.tap();
-        state.dir = d;
-        saveState();
         renderHome();
       };
     });
@@ -891,6 +893,8 @@
      关掉的题型不出现，退到该词最合适的那个还开着的题型。
      —— 三个都关掉时兜底成认词，否则玩家会卡在空屏。 */
   function kindOf(rec) {
+    /* 第二轮固定中选英，不受开关影响 */
+    if (round === 2) return 'recall';
     var k = state.kinds || {};
     var box = rec ? (rec.box || 0) : 0;
     var want = box >= 4 ? 'cloze' : box >= 2 ? 'spell' : 'recall';
@@ -921,8 +925,11 @@
     qi = 0;
     answered = false;
     sessionStats = { right: 0, wrong: 0 };
+    round = 1;
+    round1Wrong = [];
+    round1Total = queue.length;
     tickStart();
-    /* 填空题需要例句数据，先预取；失败也不影响认词/拼写 */
+    /* 填空题需要例句数据，先预取；失败也不影响选择题 */
     ensureExtra().then(function () {
       current = makeQuestion(queue[0]);
       renderQuestion();
@@ -950,7 +957,8 @@
 
     if (kind === 'recall') {
       /* 选择题两个方向：英选中给单词挑释义，中选英给释义挑单词 */
-      if (state.dir === 'cn2en') {
+      /* 方向由轮次决定：第一轮英选中，第二轮中选英 */
+      if (round === 2 || state.dir === 'cn2en') {
         q.options = window.AppVocabData.makeWordOptions(book.words, book.byPos, idx);
       } else {
         q.options = window.AppVocabData.makeOptions(book.words, book.byPos, idx);
@@ -992,11 +1000,16 @@
     var pct = queue.length ? Math.round(qi / queue.length * 100) : 0;
     var leftN = Math.max(0, queue.length - qi - 1);
     var canSpeak = window.AppVocabData.canSpeak();
+    /* 第二轮进度条按「第一轮总题数 + 第二轮剩余」算，让整体进度连续 */
+    if (round === 2) {
+      var totalAll = round1Total + queue.length;
+      pct = totalAll ? Math.round((round1Total + qi) / totalAll * 100) : 0;
+    }
 
     var inner = '';
 
     if (w.kind === 'recall') {
-      if (state.dir === 'cn2en') {
+      if (round === 2 || state.dir === 'cn2en') {
         /* 中选英：正面给中文释义，选项是英文单词。不显示音标——
            音标会把答案的读音漏出去 */
         inner =
@@ -1045,7 +1058,7 @@
       '<div class="vc-wrap vc-play">' +
         '<div class="vc-top">' +
           '<button class="vc-back" id="vcBack" type="button" aria-label="返回今日">← 返回</button>' +
-          '<span class="vc-kind">' + (w.retry ? '再来一次 · ' : '') + kindLabel(w.kind, state.dir) + '</span>' +
+          '<span class="vc-kind">' + (round === 2 ? '第二轮 · ' : '') + kindLabel(w.kind, (round === 2 || state.dir === 'cn2en') ? 'cn2en' : 'en2cn') + '</span>' +
           '<span class="vc-count">' + n + ' / ' + queue.length + '</span>' +
         '</div>' +
         '<div class="vc-bar thin"><i style="width:' + pct + '%"></i></div>' +
@@ -1054,7 +1067,9 @@
         '</div>' +
         '<div class="vc-playfoot">' +
           '<div class="vc-playfoot-stats">' +
-            '<span>本局 <b>' + sessionStats.right + '</b> 对 / <b>' + sessionStats.wrong + '</b> 错</span>' +
+            (round === 2
+              ? '<span>第一轮错 <b>' + round2Size + '</b> 个，正在巩固</span>'
+              : '<span>本局 <b>' + sessionStats.right + '</b> 对 / <b>' + sessionStats.wrong + '</b> 错</span>') +
             '<span>还剩 <b>' + leftN + '</b> 题</span>' +
             '<span>今日累计 <b>' + state.doneToday + '</b> 题</span>' +
           '</div>' +
@@ -1221,9 +1236,11 @@
       rec.box = 0;
       rec.wrong++;
       rec.due = today;
-      var inQueue = queue.slice(qi + 1).some(function (q) { return q.idx === idx; });
-      if (!inQueue && !current.retry) {
-        queue.push({ idx: idx, rec: rec, isNew: false, retry: true });
+      /* 两轮制：第一轮答错的不当场重排，攒起来进第二轮中选英。
+         第二轮再错就只记调度，不再追加题目（否则永远出不了结算）。 */
+      if (round === 1) {
+        var dup = round1Wrong.some(function (w) { return w.idx === idx; });
+        if (!dup) round1Wrong.push({ idx: idx, rec: rec });
       }
     }
     state.words[key] = rec;
@@ -1233,8 +1250,27 @@
   function nextQuestion() {
     qi++;
     answered = false;
-    if (qi >= queue.length) { finishSession(); return; }
+    if (qi >= queue.length) {
+      /* 第一轮走完且有待巩固的词 → 进第二轮中选英，顺序按第一轮出错先后 */
+      if (round === 1 && round1Wrong.length) { startRound2(); return; }
+      finishSession();
+      return;
+    }
     current = makeQuestion(queue[qi]);
+    renderQuestion();
+  }
+
+  /* 第二轮：只过第一轮答错的词，固定中选英，顺序就是出错顺序 */
+  function startRound2() {
+    round = 2;
+    queue = round1Wrong.map(function (w) {
+      return { idx: w.idx, rec: w.rec, isNew: false, forceKind: 'recall' };
+    });
+    round2Size = queue.length;
+    round1Wrong = [];
+    qi = 0;
+    answered = false;
+    current = makeQuestion(queue[0]);
     renderQuestion();
   }
 
@@ -1256,6 +1292,8 @@
     var right = sessionStats.right, wrong = sessionStats.wrong;
     var acc = right + wrong ? Math.round(right / (right + wrong) * 100) : 0;
     var pose = acc >= 80 ? 'cheer' : acc >= 60 ? 'happy' : 'sad';
+    /* 第二轮的成绩单独说：第一轮错、第二轮对，说明刚巩固住 */
+    var r2right = round === 2 ? sessionStats.right - (round1Total - round2Size) : 0;
 
     if (state.lastDone !== todayKey()) {
       state.lastDone = todayKey();
@@ -1277,7 +1315,10 @@
       '<div class="vc-wrap">' + subnav() +
       '<div class="vc-panel vc-done">' + owl(pose) +
       '<h2>本局完成</h2>' +
-      '<p>答对 <b>' + right + '</b> · 答错 <b>' + wrong + '</b> · 正确率 <b>' + acc + '%</b></p>' +
+      (round === 2
+        ? '<p>第一轮 <b>' + round1Total + '</b> 题，错了 <b>' + round2Size + '</b> 个；' +
+          '第二轮巩固答对 <b>' + r2right + '</b> / ' + round2Size + '</p>'
+        : '<p>答对 <b>' + right + '</b> · 答错 <b>' + wrong + '</b> · 正确率 <b>' + acc + '%</b></p>') +
       '<p class="vc-dim">连续打卡 ' + state.streak + ' 天 · 累计 ' + fmtDuration(state.totalMs) + '</p>' +
       '<div class="vc-actions">' +
         '<button class="vc-btn primary" id="vcAgain" type="button">再来一组</button>' +
@@ -1285,6 +1326,9 @@
       '</div></div></div>';
 
     bindSubnav();
+    round = 1;
+    round1Wrong = [];
+    round2Size = 0;
     var ab = el.querySelector('#vcAgain');
     if (ab) ab.onclick = function () { state.newDoneToday = 0; saveState(); buildAndStart(); };
     var hb = el.querySelector('#vcHome');

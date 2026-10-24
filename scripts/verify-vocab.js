@@ -205,9 +205,14 @@ function check(name, ok, detail) {
   await fresh('/vocab');
   await page.click('.vc-tab[data-tab="settings"]');
   await page.waitForTimeout(400);
-  const dirChips = await page.evaluate(() =>
-    [...document.querySelectorAll('[data-dir]')].map(b => b.textContent));
-  check('设置里有选择题方向', dirChips.length === 2 && dirChips.join('').includes('中选英'), dirChips);
+  const flowInfo = await page.evaluate(() => ({
+    hasFlow: !!document.querySelector('.vc-flow'),
+    steps: [...document.querySelectorAll('.vc-flow-step')].map(b => b.textContent),
+    dirChips: document.querySelectorAll('[data-dir]').length
+  }));
+  check('设置里说明两轮流程（方向由流程决定）',
+    flowInfo.hasFlow && flowInfo.steps.join('').includes('英选中') &&
+    flowInfo.steps.join('').includes('中选英') && flowInfo.dirChips === 0, flowInfo);
 
   const kindChips = await page.evaluate(() =>
     [...document.querySelectorAll('[data-kind]')].map(b => ({
@@ -244,36 +249,10 @@ function check(name, ok, detail) {
   await page.click('[data-kind="spell"]');   // 开拼写
   await page.waitForTimeout(300);
 
-  // 中选英：正面应是中文释义、选项是英文
+  // 第一轮固定英选中：正面英文、选项中文、有音标
   await page.evaluate(() => {
     const s = JSON.parse(localStorage.getItem('juice_vocab_v1') || '{}');
     s.words = {}; s.seq = 0; s.newDoneToday = 0; s.doneToday = 0;
-    s.dir = 'cn2en';
-    s.kinds = { recall: true, spell: false, cloze: false };
-    localStorage.setItem('juice_vocab_v1', JSON.stringify(s));
-  });
-  await fresh('/vocab');
-  await page.click('#vcStart');
-  await page.waitForTimeout(700);
-  const cn2en = await page.evaluate(() => ({
-    kind: document.querySelector('.vc-kind')?.textContent,
-    front: document.querySelector('.vc-word')?.textContent,
-    isCn: !!document.querySelector('.vc-word.cn'),
-    opts: [...document.querySelectorAll('.vc-opt')].map(b => b.textContent),
-    hasPhon: !!document.querySelector('.vc-phon')
-  }));
-  check('中选英题型标签正确', cn2en.kind.includes('中选英'), cn2en.kind);
-  check('中选英正面是中文释义', cn2en.isCn && /[一-龥]/.test(cn2en.front || ''), cn2en.front);
-  check('中选英选项是英文单词', cn2en.opts.length === 4 &&
-    cn2en.opts.every(o => /^[a-zA-Z'\- ]+$/.test(o)), cn2en.opts);
-  check('中选英不显示音标（否则漏答案）', !cn2en.hasPhon);
-  await page.screenshot({ path: path.join(OUT, 'p3-1-cn2en.png') });
-
-  // 英选中
-  await page.evaluate(() => {
-    const s = JSON.parse(localStorage.getItem('juice_vocab_v1') || '{}');
-    s.words = {}; s.seq = 0; s.newDoneToday = 0; s.doneToday = 0;
-    s.dir = 'en2cn';
     s.kinds = { recall: true, spell: false, cloze: false };
     localStorage.setItem('juice_vocab_v1', JSON.stringify(s));
   });
@@ -286,7 +265,7 @@ function check(name, ok, detail) {
     isCn: !!document.querySelector('.vc-word.cn'),
     opts: [...document.querySelectorAll('.vc-opt')].map(b => b.textContent)
   }));
-  check('英选中题型标签正确', en2cn.kind.includes('英选中'), en2cn.kind);
+  check('第一轮是英选中', en2cn.kind.includes('英选中'), en2cn.kind);
   check('英选中正面是英文单词', !en2cn.isCn && /^[a-zA-Z]/.test(en2cn.front || ''), en2cn.front);
   check('英选中选项是中文释义', en2cn.opts.every(o => /[一-龥]/.test(o)), en2cn.opts);
   await page.screenshot({ path: path.join(OUT, 'p3-2-en2cn.png') });

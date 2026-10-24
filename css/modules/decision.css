@@ -1601,3 +1601,11 @@ html[data-theme="light"] .rcpt-comment-box {
     max-width: 340px;
   }
 }
+/* morphicons 推广：纠结拯救主按钮矢量图标 */
+.dec-btn-ico {
+  width: 16px;
+  height: 16px;
+  display: inline-block;
+  vertical-align: -3px;
+  margin-right: 6px;
+}

@@ -1167,12 +1167,7 @@
 
   /* 把容器里带 data-lucide 的静态 path 填上图标数据（轻量，无依赖） */
   function paintLucide(root) {
-    if (!window.LUCIDE_ICONS || !root) return;
-    root.querySelectorAll('path[data-lucide]').forEach(function (p) {
-      var icon = window.LUCIDE_ICONS[p.getAttribute('data-lucide')];
-      if (icon && icon[0] && icon[0][1] && icon[0][1].d) p.setAttribute('d', icon[0][1].d);
-      p.removeAttribute('data-lucide');
-    });
+    window.paintLucideIcons(root);
   }
 
   function renderQuestion() {

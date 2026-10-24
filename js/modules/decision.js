@@ -1176,6 +1176,11 @@
     if (modeKey === 'wheel') {
       setTimeout(drawWheel, 20);
     }
+    /* 子模式切换后把按钮里的 lucide 图标画上（首次切换时 DOM 才可见） */
+    if (window.paintLucideIcons) {
+      var stage = document.getElementById('substage-' + modeKey);
+      if (stage) window.paintLucideIcons(stage);
+    }
   }
 
   // ================= 模块初始化 =================
@@ -1388,7 +1393,12 @@
   }
 
   // 全局暴露 API
-  window.AppDecision = {
+  /* init 完成后立刻画一次默认子模式的按钮图标 */
+setTimeout(function () {
+  if (window.paintLucideIcons) window.paintLucideIcons(document.getElementById('mod-decision'));
+}, 0);
+
+window.AppDecision = {
     init,
     restore,
     openReceiptLayer,

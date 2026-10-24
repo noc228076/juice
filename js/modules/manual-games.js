@@ -44,7 +44,25 @@
       var b = document.createElement('button');
       b.type = 'button';
       b.className = 'sm-restart';
-      b.textContent = '↻ 重开';
+      b.innerHTML = '<svg class="sm-restart-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>重开';
+      /* morphicons 试点推广：点击后图标转一圈回位（弹簧） */
+      var pathEl = b.querySelector('path');
+      var morphEl = null;
+      try {
+        if (window.MorphDOM && window.LUCIDE_ICONS) {
+          morphEl = window.MorphDOM.createMorph(pathEl, window.LUCIDE_ICONS.RotateCcw, {});
+        }
+      } catch (e) { morphEl = null; }
+      var oldOnclick = b.onclick;
+      b.onclick = function (e) {
+        if (morphEl) {
+          try {
+            morphEl.set(window.LUCIDE_ICONS.RefreshCw);
+            setTimeout(function () { morphEl.set(window.LUCIDE_ICONS.RotateCcw); }, 500);
+          } catch (err) {}
+        }
+        oldOnclick.call(this, e);
+      };
       b.onclick = function (e) {
         e.stopPropagation();
         if (window.SFX && window.SFX.tap) window.SFX.tap();

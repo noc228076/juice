@@ -24,6 +24,32 @@
     return s;
   }
 
+  /* 静态 lucide 图标渲染：把容器里 data-lucide 的占位 SVG 填成完整图标。
+     lucide 图标可能含 path/circle/rect/line/polygon 多种形状（如 Dices 首形状是 rect），
+     逐一创建对应元素并带上公共 stroke 属性。 */
+  var SVG_NS = 'http://www.w3.org/2000/svg';
+  function paintLucideIcons(root) {
+    if (!window.LUCIDE_ICONS || !root) return;
+    root.querySelectorAll('svg[data-lucide]').forEach(function (svg) {
+      var icon = window.LUCIDE_ICONS[svg.getAttribute('data-lucide')];
+      if (!icon || !icon.length) return;
+      while (svg.firstChild) svg.removeChild(svg.firstChild);
+      icon.forEach(function (shape) {
+        var el = document.createElementNS(SVG_NS, shape[0]);
+        var attrs = shape[1] || {};
+        for (var k in attrs) el.setAttribute(k, attrs[k]);
+        el.setAttribute('fill', 'none');
+        el.setAttribute('stroke', 'currentColor');
+        el.setAttribute('stroke-width', svg.getAttribute('data-stroke-width') || '2');
+        el.setAttribute('stroke-linecap', 'round');
+        el.setAttribute('stroke-linejoin', 'round');
+        svg.appendChild(el);
+      });
+      svg.removeAttribute('data-lucide');
+    });
+  }
+
   window.escHtml = escHtml;
   window.escUrl = escUrl;
+  window.paintLucideIcons = paintLucideIcons;
 })();

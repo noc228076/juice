@@ -16503,6 +16503,23 @@ html[data-theme="light"] .sc-security-box {
   animation: scFadeIn 0.3s ease-out;
 }
 
+/* ============ 结算态收起 ============
+   刮开后结算框（约 80px）会把操作台顶出一屏。
+   此时进度已 100%、票已作废，规则横幅与「一键刮开」也无意义——
+   一并收起，高度刚好互相抵掉，票面 + 战报 + 按钮仍是一屏。 */
+.scratch-card-workbench.is-settled .sc-progress-wrap,
+.scratch-card-workbench.is-settled .sc-rule-banner {
+  display: none;
+}
+
+.scratch-card-workbench.is-settled #scBtnQuickReveal {
+  display: none;
+}
+
+.scratch-card-workbench.is-settled .sc-settle-box {
+  margin-top: 10px;
+}
+
 @keyframes scFadeIn {
   from { opacity: 0; transform: translateY(-6px); }
   to { opacity: 1; transform: translateY(0); }

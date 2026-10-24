@@ -248,6 +248,9 @@
       settleBox.style.display = 'none';
       settleBox.innerHTML = '';
     }
+    // 撤销结算态收起（进度条 / 规则横幅 / 一键刮开按钮恢复）
+    const workbenchEl = document.querySelector('.scratch-card-workbench');
+    if (workbenchEl) workbenchEl.classList.remove('is-settled');
 
     // 重置进度条
     updateProgressUI(0);
@@ -880,6 +883,11 @@
   function settleTicket(isFromQuick) {
     if (isSettled || !curTicketData) return;
     isSettled = true;
+
+    // 结算态：收起进度条 / 规则横幅 / 一键刮开按钮，
+    // 抵掉结算框新增的高度，刮开后仍是一屏放得下
+    const workbenchEl = document.querySelector('.scratch-card-workbench');
+    if (workbenchEl) workbenchEl.classList.add('is-settled');
 
     // 中奖卡片点亮所有命中号码区块的高光动效
     if (curTicketData.isWin && ticketBlocks && ticketBlocks.myCells) {

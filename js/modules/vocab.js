@@ -126,7 +126,7 @@
           a: state.totalAnswered || 0,
           r: state.totalRight || 0
         },
-        posted: {}, mig: 1
+        posted: {}, mig: 1, mig2: 1
       };
       saveState();
     } else if (!state.bw.mig) {
@@ -150,6 +150,21 @@
       state.bw.posted.day = 0;
       state.bw.posted.week = 0;
       state.bw.mig = 1;
+      state.bw.mig2 = 1;
+      saveState();
+    } else if (!state.bw.mig2) {
+      /* v271 补充迁移：首轮迁移只回填了总榜，日/周榜在此补齐 */
+      var bf3 = backfillDayWeek();
+      state.bw.day = state.bw.day || { k: dayKey8() };
+      state.bw.day.k = dayKey8();
+      applyBackfill(state.bw.day, bf3.day);
+      state.bw.week = state.bw.week || { k: weekKey6() };
+      state.bw.week.k = weekKey6();
+      applyBackfill(state.bw.week, bf3.week);
+      if (!state.bw.posted) state.bw.posted = {};
+      state.bw.posted.day = 0;
+      state.bw.posted.week = 0;
+      state.bw.mig2 = 1;
       saveState();
     }
     var b = state.bw;

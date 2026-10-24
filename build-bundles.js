@@ -37,6 +37,7 @@ const moduleCssFiles = [
   'css/modules/bazi.css',
   'css/modules/daily.css',
   'css/modules/scratch.css',
+  'css/modules/music.css',
   'css/modules/wall.css',
   'css/modules/films.css',
   'css/modules/vocab.css'
@@ -81,6 +82,7 @@ const chunks = {
   ],
   decision: ['js/modules/decision.js'],
   scratch: ['js/modules/scratch.js'],
+  music: ['js/modules/music.js'],
   films: ['js/modules/films.js'],
   wall: ['js/modules/wall.js'],
   milktea: ['js/modules/milktea.js'],

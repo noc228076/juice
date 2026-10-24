@@ -10,7 +10,19 @@ const MIME = {
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
   '.svg': 'image/svg+xml',
-  '.ico': 'image/x-icon'
+  '.ico': 'image/x-icon',
+  '.webp': 'image/webp',
+  // 音频缺失类型会退化成 application/octet-stream，
+  // 实测部分浏览器（ORB 策略）会把它吞成 204 空响应，媒体完全无法播放
+  '.mp3': 'audio/mpeg',
+  '.wav': 'audio/wav',
+  '.m4a': 'audio/mp4',
+  '.aac': 'audio/aac',
+  '.flac': 'audio/flac',
+  '.ogg': 'audio/ogg',
+  '.opus': 'audio/ogg',
+  '.webm': 'video/webm',
+  '.txt': 'text/plain; charset=utf-8'
 };
 
 // 本地跑 Serverless 函数：把 Vercel 的 req.query / req.body / res.status().json()

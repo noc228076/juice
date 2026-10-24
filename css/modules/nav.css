@@ -81,6 +81,20 @@ html[data-active-module="scratch"] {
   --mod-ac-glow: rgba(245, 158, 11, 0.38);
   --mod-ambient: rgba(245, 158, 11, 0.07);
 }
+/* 音乐播放器：青绿。与所有模块色拉开距离（饮品黄绿/说明书天蓝/玄学紫/时钟黄） */
+html[data-active-module="music"] {
+  --mod-ac: #14B8A6;
+  --mod-ac-ink: #FFFFFF;
+  --mod-ac-glow: rgba(20, 184, 166, 0.35);
+  --mod-ambient: rgba(20, 184, 166, 0.06);
+}
+html[data-theme="light"][data-active-module="music"] {
+  --mod-ac: #0D9488;
+  --mod-ac-ink: #FFFFFF;
+  --mod-ac-glow: rgba(13, 148, 136, 0.32);
+  --mod-ambient: rgba(13, 148, 136, 0.06);
+}
+
 /* 背单词：靛蓝。与 daily 的蓝、tarot 的紫都拉开了距离，
    且与吉祥物猫头鹰的暖棕互补，冷色底更适合专注记忆的场景 */
 html[data-active-module="vocab"] {
@@ -741,6 +755,12 @@ html[data-theme="light"] .subnav-pill-btn.active {
   border-color: rgba(245, 158, 11, 0.45);
 }
 
+.subnav-pill-btn.active[data-sub-jump="music"] {
+  background: rgba(20, 184, 166, 0.18);
+  color: #2DD4BF;
+  border-color: rgba(20, 184, 166, 0.45);
+}
+
 /* 刮刮乐并入摸鱼解压后的子标签高亮，沿用其模块琥珀主色 */
 .subnav-pill-btn.active[data-sub-jump="scratch"] {
   background: rgba(245, 158, 11, 0.18);
@@ -770,6 +790,12 @@ html[data-theme="light"] .subnav-pill-btn.active[data-sub-jump="merit"] {
   background: rgba(217, 119, 6, 0.12);
   color: #B45309;
   border-color: rgba(217, 119, 6, 0.35);
+}
+
+html[data-theme="light"] .subnav-pill-btn.active[data-sub-jump="music"] {
+  background: rgba(13, 148, 136, 0.12);
+  color: #0F766E;
+  border-color: rgba(13, 148, 136, 0.35);
 }
 
 html[data-theme="light"] .subnav-pill-btn.active[data-sub-jump="scratch"] {

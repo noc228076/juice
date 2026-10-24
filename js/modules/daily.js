@@ -114,7 +114,7 @@
       score: 9.2,
       desc: '笑中带泪的顶级喜剧经典，专治精神内耗与生活焦虑，看完一身轻快。',
       drink: '🍹 推荐特调：【快乐暴击微气泡杨枝甘露】（多加脆啵啵，嚼碎烦恼）',
-      cover: LOCAL_POSTER
+      cover: 'https://img2.doubanio.com/view/photo/s_ratio_poster/public/p579729551.jpg'
     },
     brain: {
       label: '深度烧脑',
@@ -123,7 +123,7 @@
       score: 9.4,
       desc: '诺兰硬核科幻巅峰之作，关于爱、引力与时空的永恒交织，维度跳跃极致震撼。',
       drink: '☕ 推荐特调：【超光速冷萃冰美式】（双倍浓缩加冰，逻辑瞬间苏醒）',
-      cover: LOCAL_POSTER
+      cover: 'https://img3.doubanio.com/view/photo/s_ratio_poster/public/p2614988097.jpg'
     },
     heal: {
       label: '治愈温暖',
@@ -132,7 +132,7 @@
       score: 9.0,
       desc: '把四季晨昏与一蔬一饭过成诗，安静从容，抚平所有浮躁与焦虑。',
       drink: '🥛 推荐特调：【热白桃乌龙厚乳茶】（三分微糖，暖胃抚平一切褶皱）',
-      cover: LOCAL_POSTER
+      cover: 'https://img3.doubanio.com/view/photo/s_ratio_poster/public/p2232317770.jpg'
     },
     rush: {
       label: '热血刺激',
@@ -141,7 +141,7 @@
       score: 8.7,
       desc: '全程无尿点的纯粹重金属废土狂飙，引擎轰鸣，肾上腺素瞬间狂飙到顶。',
       drink: '🍋 推荐特调：【手打香水浓柠暴打苏打水】（满杯冰块，激情回血）',
-      cover: LOCAL_POSTER
+      cover: 'https://img3.doubanio.com/view/photo/s_ratio_poster/public/p2236181653.jpg'
     },
     work: {
       label: '社畜共鸣',
@@ -150,7 +150,7 @@
       score: 8.6,
       desc: '跳出格子间的平庸桎梏，去格陵兰跳海、去冰岛滑板，找回生命原本的旷野。',
       drink: '🧋 推荐特调：【焦糖海盐红茶拿铁五分甜】（生活微苦，焦糖自渡）',
-      cover: LOCAL_POSTER
+      cover: 'https://img3.doubanio.com/view/photo/s_ratio_poster/public/p2893896472.jpg'
     }
   };
 
@@ -765,7 +765,7 @@
     if (!resEl) return;
 
     resEl.innerHTML = `
-      <img class="daily-mood-res-img" src="${esc(data.cover)}" alt="${esc(data.title)}" onerror="this.src='${LOCAL_POSTER}'" />
+      <img class="daily-mood-res-img" src="${esc(posterSrc(data.cover))}" alt="${esc(data.title)}" loading="lazy" onerror="this.src='${LOCAL_POSTER}'" />
       <div class="daily-mood-res-info">
         <div class="daily-mood-res-title">${esc(data.title)}</div>
         <div class="daily-mood-res-score">★ ${data.score} 豆瓣高分经典</div>

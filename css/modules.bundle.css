@@ -13632,6 +13632,52 @@ html[data-theme="light"] .daily-hot-notice {
   }
 }
 
+/* =========================================================
+   板块 2 左右分栏：心情盲盒选片 | 豆瓣高口碑榜
+   ---------------------------------------------------------
+   原本上下堆叠：盲盒 282px + 榜单 740px，一屏要滚 580px。
+   桌面并排后榜单在卡片内部滚，与板块 1 同款模式。
+   1024px 及以下退回单列，DOM 顺序不变。
+   ========================================================= */
+@media (min-width: 1025px) {
+  /* 带 #dlSec-movie 的 id 特异性高于 .daily-section{display:none}，
+     必须同时限定 .active，否则切到早报/壁纸时本板块仍会占位 */
+  .daily-section#dlSec-movie.active {
+    display: grid;
+    grid-template-columns: minmax(320px, 380px) minmax(0, 1fr);
+    gap: 20px;
+    align-items: start;
+  }
+  #dlSec-movie .daily-movie-mood-box,
+  #dlSec-movie .daily-card {
+    margin-bottom: 0;
+  }
+  #dlSec-movie .daily-movie-mood-box {
+    min-width: 0;
+  }
+  #dlSec-movie .daily-card {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    /* 板块顶部起点 + 容器底 padding 约 374px，榜单卡片内部滚 */
+    max-height: calc(100vh - 374px);
+    min-height: 360px;
+  }
+  #dlSec-movie .daily-movie-grid {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    padding-right: 6px;
+  }
+  #dlSec-movie .daily-movie-grid::-webkit-scrollbar { width: 6px; }
+  #dlSec-movie .daily-movie-grid::-webkit-scrollbar-thumb {
+    background: var(--line-strong, rgba(255, 255, 255, 0.18));
+    border-radius: 3px;
+  }
+  #dlSec-movie .daily-movie-grid::-webkit-scrollbar-track { background: transparent; }
+}
+
 /* 平台胶囊在窄栏里换行显示，避免横向滚动把后几个平台藏起来 */
 @media (min-width: 1025px) {
   .daily-hot-card .daily-platform-bar {

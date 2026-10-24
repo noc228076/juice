@@ -64,19 +64,19 @@ function check(n, ok, d) { R.push({ n, ok: !!ok, d }); console.log((ok ? 'PASS' 
   check('直链时顶栏高亮 clock', direct.activeTab === 'clock');
   check('直链时子导航可见且 scratch active', direct.subnavVisible && direct.pillActive === 'scratch');
 
-  // 7) 关于弹窗：9 大功能，刮刮乐并入摸鱼解压行，无独立行
+  // 7) 关于弹窗：8 大功能（刮刮乐并入摸鱼解压后为 8 项），无独立行
   await page.evaluate(() => document.getElementById('globalBtnAbout').click());
   await page.waitForTimeout(900);
   const about = await page.evaluate(() => {
     const body = document.querySelector('.gp-body');
     const t = body ? body.textContent : '';
     return {
-      nine: t.includes('9 大功能') && !t.includes('10 大功能'),
+      eight: t.includes('8 大功能') && !t.includes('9 大功能') && !t.includes('10 大功能'),
       merged: /摸鱼解压[\s\S]*?幸运刮刮乐/.test(t),
       noStandaloneLine: ![...document.querySelectorAll('.gp-func-list > div')].some(d => d.textContent.trim().startsWith('🎟️'))
     };
   });
-  check('关于弹窗显示 9 大功能', about.nine);
+  check('关于弹窗显示 8 大功能', about.eight);
   check('刮刮乐并入摸鱼解压行', about.merged && about.noStandaloneLine);
 
   // 8) 无页面报错

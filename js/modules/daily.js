@@ -723,7 +723,7 @@
       const resp = await fetch('/api/douban?list=' + encodeURIComponent(collection), { headers: { Accept: 'application/json' } });
       const data = await resp.json();
       if (resp.ok && data && data.ok && Array.isArray(data.items) && data.items.length) {
-        list = data.items.map(normalizeMovieSeed);
+        list = data.items.slice(0, 10).map(normalizeMovieSeed);
       }
     } catch (e) { /* 走下面的种子兜底 */ }
 

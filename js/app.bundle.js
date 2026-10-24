@@ -1,4 +1,4 @@
-window.__APP_VERSION__ = '261';
+window.__APP_VERSION__ = '262';
 /* === js/core-drink.js === */
 /* 人格研究所 — 题库与档案数据 */
 'use strict';
@@ -6220,7 +6220,7 @@ if ('serviceWorker' in navigator) {
       const resp = await fetch('/api/douban?list=' + encodeURIComponent(collection), { headers: { Accept: 'application/json' } });
       const data = await resp.json();
       if (resp.ok && data && data.ok && Array.isArray(data.items) && data.items.length) {
-        list = data.items.map(normalizeMovieSeed);
+        list = data.items.slice(0, 10).map(normalizeMovieSeed);
       }
     } catch (e) { /* 走下面的种子兜底 */ }
 

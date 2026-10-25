@@ -208,8 +208,27 @@ taste-skill 明令禁止「glows, glass, backdrop blur」。但它的研究对�
 11. **沉浸页被 `scrollIntoView` 顶走**：`overflow:hidden` 仍是滚动容器，切行时底栏上下跳 44px。改 `overflow:clip`。
 12. **`--mod-ac-soft` 全站未定义**：manual / vocab / music 三处背景一直透明。在 `nav.css` 用 `color-mix` 定义。
 
+### 第二轮审核（v345）发现并修复
+
+第一轮修完后，同一个审核 agent 用实测复核了 16 条必修，确认全部生效，同时找出 9 条新缺陷：
+
+| # | 缺陷 | 根因 | 修法 |
+| --- | --- | --- | --- |
+| 1 | 沉浸页在别的模块关闭后，播放条永久留在那里 | `closeImmersive` 没重算显隐，而 hashchange / class 变化都已错过 | 末尾补 `syncBarVisibility()` |
+| 2 | 弹层被压成 193px（设计 360px） | `place-items:center` 让 grid 轨道变 shrink-to-fit，`width:100%` 退化成内容宽 | 显式 `grid-template-columns: minmax(0,1fr)` |
+| 3 | 弹层开着时离开模块，遮罩永久挡住整页 | `addTargetIndex` 只在切 tab 时重置 | `destroy` / `hashchange` / Esc 三处都清理 |
+| 4 | 每次渲染往 `document` 挂一次性监听，持续累积 | `{once:true}` 在未点击前不释放，闭包持有旧元素 | 提到 `init` 里只绑一次，改事件委托 |
+| 5 | 触屏下时长被常驻按钮盖住（重叠 48px） | 没有 hover 就没有「让出时长」 | `@media(hover:none)` 隐藏时长 + 标题留 72px |
+| 6 | 375px 下播放条标题偏离封面 55px | 旧 `@media(560px)` 的 `text-align:center` 被继承 | 新层显式 `text-align:start` |
+| 7 | 亮色主题下沉浸页文字对比度 1.09:1 | token 修好后背景变浅，硬编码白字失去对比 | 沉浸页固定深色（对比度恢复 19.81:1） |
+| 8 | 档案抽屉被播放条压住 | 抽屉在 `#modules-viewport`（z=1 自成层叠上下文）内，压不过 body 上 z=340 | `:has()` 让播放条在全局浮层打开时隐藏 |
+| 9 | 旧 `src.builtin` 迁移只改内存没落盘 | `saveState` 未被调用 | `loadState` 发现旧值时顺手落盘 |
+
+第 7 条特别值得记：**上一轮修好 token 作用域，反而把「硬编码白字」的对比问题暴露出来**——之前背景透明看起来还行，token 生效后背景变浅，白字就看不见了。修 A 会暴露 B，这类连锁反应只有实测才能发现。
+
 ### 已知未做
 
 - 沉浸页背景未取封面主色（当前用 `--mod-ambient` 径向渐变）
 - 播放条与沉浸页的封面在酷我搜索结果缺图时显示 ♪ 占位
-- 音频 seek 滑块在播放条上是整条透明热区（靠 hover 加粗进度条提示可拖）
+- 歌词字号用 `clamp(16px,1.7vw,20px)` / `clamp(18px,2.1vw,25px)`，越出「11/12.5/14/16/20」五档——歌词是展示型内容需要随视口缩放，属于合理例外
+- `localHtml()` / `linksHtml()` 是死代码（tab 只剩搜索/歌单/音源），`bindHome` 仍绑定已不存在的 `[data-builtin]` / `#muJmKey`

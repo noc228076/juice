@@ -816,9 +816,17 @@
   function attachBingFallback(img) {
     img.addEventListener('error', function onErr() {
       img.removeEventListener('error', onErr);
-      var alt = bingFallbackSrc(img.getAttribute('src') || '');
-      if (alt) {
+      var cur = img.getAttribute('src') || '';
+      /* 代理失败 → 回退 bing 直链（双域名轮流）；直链也失败则保持现状 */
+      if (cur.indexOf('/api/bing-img') === 0) {
+        var raw = decodeURIComponent((cur.split('u=')[1] || ''));
+        var alt = bingFallbackSrc(raw) || raw;
         img.setAttribute('src', alt);
+        img.addEventListener('error', function onErr2() {
+          img.removeEventListener('error', onErr2);
+          var alt2 = bingFallbackSrc(img.getAttribute('src') || '');
+          if (alt2 && alt2 !== img.getAttribute('src')) img.setAttribute('src', alt2);
+        });
       }
     });
   }

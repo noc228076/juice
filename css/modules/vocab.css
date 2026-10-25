@@ -1398,24 +1398,6 @@
   .vc-ring svg { width: 104px; height: 104px; }
   .vc-cal-d { min-height: 38px; }
 }
-/* ---------- 到期复习横幅 ---------- */
-.vc-due-banner {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  background: var(--card);
-  border: 1px solid var(--mod-ac-glow);
-  border-left: 3px solid var(--mod-ac);
-  border-radius: 14px;
-  padding: 10px 16px;
-  margin-bottom: 14px;
-  font-size: 13px;
-  color: var(--tx-dim);
-  white-space: nowrap;
-  overflow: hidden;
-}
-.vc-due-banner b { color: var(--mod-ac); font-size: 15px; }
-.vc-due-banner .vc-btn { margin-left: auto; flex: none; white-space: nowrap; }
 .vc-input {
   width: 100%;
   box-sizing: border-box;
@@ -1437,4 +1419,47 @@
   #mod-vocab .vc-cal-d em { display: none; }
   #mod-vocab .vc-heat i { height: 10px; }
   #mod-vocab .vc-boxrow { font-size: 11px; }
+}
+/* ---------- 今日页 hero 双区布局 ---------- */
+.vc-hero-due {
+  font-size: 12.5px;
+  color: var(--mod-ac);
+  margin: 0 0 4px;
+}
+.vc-hero-due b { font-size: 14px; }
+.vc-hero-side {
+  flex: 0 0 auto;
+  width: 240px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px 8px;
+  align-self: stretch;
+  align-content: center;
+  border-left: 1px solid var(--line);
+  padding-left: 18px;
+}
+.vc-hero-kpi {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+.vc-hero-kpi b { font-size: 19px; font-weight: 900; color: var(--tx); }
+.vc-hero-kpi span { font-size: 11px; color: var(--tx-faint); }
+.vc-hero-side .vc-bar { grid-column: 1 / -1; margin-top: 6px; height: 5px; }
+.vc-hero-done {
+  grid-column: 1 / -1;
+  text-align: center;
+  font-size: 11px;
+  color: var(--tx-faint);
+}
+@media (max-width: 720px) {
+  .vc-hero-side {
+    width: 100%;
+    border-left: none;
+    border-top: 1px solid var(--line);
+    padding-left: 0;
+    padding-top: 10px;
+  }
+  .vc-hero { flex-wrap: wrap; }
 }

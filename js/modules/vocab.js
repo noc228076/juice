@@ -572,24 +572,28 @@
         if (wr && !wr.known && wr.due <= td) dueAll++;
       }
     }
-    /* 到期提醒：只要今天有待复习词就常显（队列里自然排着，点按钮直接开背） */
-    var dueBanner = (dueAll > 0)
-      ? '<div class="vc-due-banner">📖 有 <b>' + dueAll + '</b> 个词今天到期复习——它们明天也会在，但今天最划算' +
-        '<button class="vc-btn small primary" id="vcStart2" type="button">开始复习</button></div>'
-      : '';
-    return dueBanner + '<div class="vc-hero">' +
+    var donePct = Math.min(100, Math.round(bs().doneToday / Math.max(total, 1) * 100));
+    return '<div class="vc-hero">' +
         '<div class="vc-hero-art">' + owl('think') + '</div>' +
         '<div class="vc-hero-main">' +
           '<div class="vc-hero-tag">' + (state.book === 'cet6' ? 'CET-6' : 'CET-4') +
             ' · 已连续 ' + bs().streak + ' 天 · ' + (state.order === 'random' ? '乱序' : '顺序') + '</div>' +
           '<h1 class="vc-hero-title">今天的单词任务</h1>' +
-          '<p class="vc-hero-sub">待复习 <b>' + dueN + '</b> · 新词 <b>' + newN + '</b> · 共 <b>' + total + '</b> 题</p>' +
-          '<div class="vc-bar"><i style="width:' + Math.min(100, Math.round(bs().doneToday / Math.max(total, 1) * 100)) + '%"></i></div>' +
+          (dueAll > 0
+            ? '<p class="vc-hero-due">📖 其中有 <b>' + dueAll + '</b> 个是到期复习——今天做掉最划算</p>'
+            : '') +
           '<div class="vc-actions">' +
             '<button class="vc-btn primary" id="vcStart" type="button">开始背 ' +
               '<svg class="vc-btn-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="ArrowRight"/></svg></button>' +
             '<button class="vc-btn ghost" id="vcToSettings" type="button">调设置</button>' +
           '</div>' +
+        '</div>' +
+        '<div class="vc-hero-side">' +
+          '<div class="vc-hero-kpi"><b>' + dueAll + '</b><span>待复习</span></div>' +
+          '<div class="vc-hero-kpi"><b>' + newN + '</b><span>新词</span></div>' +
+          '<div class="vc-hero-kpi"><b>' + (total - bs().doneToday < 0 ? 0 : total - bs().doneToday) + '</b><span>还剩</span></div>' +
+          '<div class="vc-bar"><i style="width:' + donePct + '%"></i></div>' +
+          '<span class="vc-hero-done">已答 ' + bs().doneToday + ' / ' + total + ' 题</span>' +
         '</div>' +
       '</div>' +
       statStrip() + weekStrip();
@@ -598,8 +602,7 @@
   function bindToday() {
     var sb = el.querySelector('#vcStart');
     if (sb) sb.onclick = function () { startSession(); };
-    var dueBtn = el.querySelector('#vcStart2');
-    if (dueBtn) dueBtn.onclick = function () { startSession(); };
+
     var tb = el.querySelector('#vcToSettings');
     if (tb) tb.onclick = function () { tab = 'settings'; renderHome(); };
     var eb = el.querySelector('#vcExtra');

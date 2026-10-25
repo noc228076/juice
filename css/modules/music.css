@@ -1018,8 +1018,9 @@ html[data-theme="light"] .mu-row:hover { background: rgba(20, 24, 18, 0.04); }
   align-items: center;
   gap: 2px;
   padding-left: 10px;
-  /* 盖住底下的时长数字，需要一层实底 */
-  background: linear-gradient(to right, transparent, var(--card-solid) 10px);
+  /* 盖住底下的时长数字，需要一层实底。
+     渐变从 0 开始而不是 10px，否则左缘会透出一点数字残影 */
+  background: linear-gradient(to right, var(--card-solid) 0, var(--card-solid) 100%);
   opacity: 0;
   pointer-events: none;
   transition: opacity var(--mu-t-fast) var(--mu-ease);
@@ -1031,9 +1032,16 @@ html[data-theme="light"] .mu-row:hover { background: rgba(20, 24, 18, 0.04); }
 }
 @media (hover: none) {
   .mu-row-ops { opacity: 1; pointer-events: auto; }
+  /* 触屏没有 hover，操作按钮常驻，必须主动给它们让位：
+     否则按钮的实底会盖住时长，长标题也会被裁在按钮下面 */
+  .mu-row-main { padding-right: 72px; }
+  .mu-row-dur { display: none; }
 }
 /* hover 时让出时长位置，避免数字从按钮缝里透出来 */
 .mu-row:hover .mu-row-dur { opacity: 0; }
+/* 操作按钮浮在行尾时，标题得给它留位置，否则长标题末尾几个字会压在 ♡ 上 */
+.mu-row:hover .mu-row-main { padding-right: 76px; }
+.mu-row-main { transition: padding-right var(--mu-t-fast) var(--mu-ease); }
 
 .mu-love,
 .mu-addlist {
@@ -1254,7 +1262,11 @@ html[data-theme="light"] .mu-row:hover { background: rgba(20, 24, 18, 0.04); }
   inset: 0;
   z-index: 500;
   display: grid;
-  place-items: center;
+  /* 必须显式给一条 1fr 轨道：place-items:center 让轨道变成
+     shrink-to-fit，弹层里的 width:100% 会退化成内容宽度（实测只有 193px） */
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+  align-items: center;
   padding: 20px;
   background: rgba(0, 0, 0, 0.55);
   backdrop-filter: blur(3px);
@@ -1262,6 +1274,7 @@ html[data-theme="light"] .mu-row:hover { background: rgba(20, 24, 18, 0.04); }
 }
 .mu-modal-box {
   width: min(360px, 100%);
+  box-sizing: border-box;
   background: var(--mu-glass-strong);
   backdrop-filter: blur(28px) saturate(160%);
   -webkit-backdrop-filter: blur(28px) saturate(160%);
@@ -1319,10 +1332,24 @@ html[data-theme="light"] .mu-row:hover { background: rgba(20, 24, 18, 0.04); }
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
   gap: 16px;
+  /* 旧 @media(560px) 给 .mu-player 设了 text-align:center，
+     会被标题继承，窄屏下歌名漂到中间脱离封面 */
+  text-align: start;
   background: var(--mu-glass);
   backdrop-filter: blur(28px) saturate(180%);
   -webkit-backdrop-filter: blur(28px) saturate(180%);
   border-top: 1px solid var(--line);
+}
+.mu-player-title { text-align: start; }
+
+/* 全局浮层（档案抽屉 / 玩家身份 / 关于）打开时让位。
+   它们都在 #modules-viewport 里（z-index:1 自成层叠上下文），
+   内部再高的 z-index 也压不过 body 上 z=340 的播放条，
+   所以只能由播放条主动隐藏。
+   需要 !important：显隐由 JS 的 inline style 控制 */
+body:has(.history-modal.open) .mu-player,
+body:has(.gp-modal.open) .mu-player {
+  display: none !important;
 }
 
 /* 进度条贴顶边缘：2px 轨道，滑块默认透明 */
@@ -1361,11 +1388,29 @@ html[data-theme="light"] .mu-player .mu-bar-progress { background: rgba(20, 24, 
   cursor: pointer;
 }
 .mu-player .mu-time { display: none; }
-/* hover 时进度条加粗，提示这里可以拖 */
+/* hover 时进度条加粗并露出圆点，提示这里可以拖 */
 .mu-player .mu-bar:hover .mu-bar-progress,
 .mu-player .mu-bar:hover .mu-bar-progress > i { height: 4px; }
 .mu-player .mu-bar-progress { transition: height var(--mu-t-fast) var(--mu-ease); }
-.mu-player .mu-bar-progress > i { transition: width 0.2s linear, height var(--mu-t-fast) var(--mu-ease); }
+.mu-player .mu-bar-progress > i {
+  position: relative;
+  transition: width 0.2s linear, height var(--mu-t-fast) var(--mu-ease);
+}
+.mu-player .mu-bar-progress > i::after {
+  content: "";
+  position: absolute;
+  right: -5px;
+  top: 50%;
+  width: 10px;
+  height: 10px;
+  margin-top: -5px;
+  border-radius: 50%;
+  background: var(--mod-ac);
+  box-shadow: 0 0 0 2px var(--mu-glass);
+  opacity: 0;
+  transition: opacity var(--mu-t-fast) var(--mu-ease);
+}
+.mu-player .mu-bar:hover .mu-bar-progress > i::after { opacity: 1; }
 
 /* 左侧：封面 + 标题/歌手 */
 .mu-disc {
@@ -1505,12 +1550,17 @@ html[data-theme="light"] .mu-player .mu-bar-progress { background: rgba(20, 24, 
      它内部的 grid 1fr 行才有确定高度可供歌词收缩 */
   align-items: stretch;
   justify-content: center;
-  background: var(--mu-glass-strong);
+  /* 沉浸页永远深色，不跟随亮色主题：
+     里面全是硬编码的白色文字，浅色底下对比度只有 1.09:1 完全看不清 */
+  background: rgba(8, 10, 14, 0.94);
   backdrop-filter: blur(28px) saturate(140%);
   -webkit-backdrop-filter: blur(28px) saturate(140%);
   /* clip 而不是 hidden：hidden 仍是滚动容器，
      scrollIntoView 会把整个沉浸页顶走，底部控件跟着上下跳 */
   overflow: clip;
+}
+html[data-theme="light"] .mu-immersive {
+  background: rgba(8, 10, 14, 0.94);
 }
 .mu-imm-bg {
   position: absolute;

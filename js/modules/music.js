@@ -47,7 +47,10 @@
         // 只保留在线聚合（洛雪内核）——旧版本的 audius/jamendo 分支已删除，
         // 若沿用旧值会走进不存在的搜索路径且界面上没有切回入口
         state.src = state.src && typeof state.src === 'object' ? state.src : {};
+        var wasStale = state.src.builtin !== 'lx';
         state.src.builtin = 'lx';
+        // 迁移结果要落盘，否则内存是 lx、存储还是旧值，长期不一致
+        if (wasStale) saveState();
       }
     } catch (e) { state = defaultState(); }
   }
@@ -1280,13 +1283,8 @@
       };
     }
 
-    /* 点空白处收起联想 */
-    document.addEventListener('click', function onDocClick(e) {
-      if (!sug) return;
-      if (sug.contains(e.target)) return;
-      if (skw && skw.contains(e.target)) return;
-      sug.hidden = true;
-    }, { once: true });
+    /* 点空白处收起联想：交给 #muRoot 上的委托处理（只绑一次，见 init），
+       不在这里每次渲染都往 document 上挂新监听 */
 
     /* ---- 收藏按钮 ---- */
     el.querySelectorAll('[data-love]').forEach(function (b) {
@@ -1614,7 +1612,12 @@
     });
   }
   function closeImmersive() {
-    if (immEl) { immEl.remove(); immEl = null; }
+    if (!immEl) return;
+    immEl.remove();
+    immEl = null;
+    // 在别的模块里关沉浸页时，hashchange 和 class 变化都已经错过，
+    // 不在这里重算，播放条会永久留在那个模块上盖住内容
+    syncBarVisibility();
   }
 
   /* ---------------- 全局迷你条（模块外也可见） ---------------- */
@@ -1706,9 +1709,16 @@
   function onKey(e) {
     var active = document.getElementById('mod-music').classList.contains('active');
     var imm = !!immEl;
-    if (!active && !imm) return;
+    var maskOpen = !!document.getElementById('muAddListMask');
+    if (!active && !imm && !maskOpen) return;
     // 其他输入框里不抢键
     if (/INPUT|TEXTAREA/.test((e.target && e.target.tagName) || '')) return;
+    if (e.key === 'Escape' && maskOpen) {
+      addTargetIndex = -1;
+      document.getElementById('muAddListMask').remove();
+      return;
+    }
+    if (!active && !imm) return;
     if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
     else if (e.key === 'ArrowRight' && audio) { audio.currentTime = Math.min((audio.duration || 0), audio.currentTime + 5); }
     else if (e.key === 'ArrowLeft' && audio) { audio.currentTime = Math.max(0, audio.currentTime - 5); }
@@ -1728,6 +1738,10 @@
       /* 切模块（hash 变化）时重算吸底条显隐：音频常驻，但吸底条只在
          离开音乐模块且非沉浸模式时出现 */
       window.addEventListener('hashchange', function () {
+        // 弹层挂在 body 上，离开模块后没人会清它，会挡住整个页面
+        addTargetIndex = -1;
+        var mask = document.getElementById('muAddListMask');
+        if (mask) mask.remove();
         setTimeout(syncBarVisibility, 60);
         setTimeout(syncBarVisibility, 400);
       });
@@ -1737,6 +1751,17 @@
       if (moTarget && window.MutationObserver) {
         new MutationObserver(syncBarVisibility).observe(moTarget, { attributes: true, attributeFilter: ['class'] });
       }
+      /* 点空白收起搜索联想。只绑一次，用委托找当前 DOM——
+         之前每次 renderHome 都往 document 上挂一个 once 监听，
+         未点击前会一直累积，闭包还持有已被替换掉的旧元素 */
+      document.addEventListener('click', function (e) {
+        var sug = document.getElementById('muSuggest');
+        if (!sug || sug.hidden) return;
+        var skw = document.getElementById('muSearchKw');
+        if (sug.contains(e.target)) return;
+        if (skw && skw.contains(e.target)) return;
+        sug.hidden = true;
+      });
       ensureAudio();
       ensureMini();
 
@@ -1757,6 +1782,10 @@
   function destroy() {
     /* 只卸模块级 UI；audio / 迷你条 / 键盘监听保留——跨模块继续播放 */
     closeImmersive();
+    // 弹层挂在 body 上、z=500，离开模块后没人会清它，会挡住整个页面
+    addTargetIndex = -1;
+    var mask = document.getElementById('muAddListMask');
+    if (mask) mask.remove();
     renderMini();
   }
 

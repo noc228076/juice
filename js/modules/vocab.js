@@ -564,7 +564,20 @@
         '</div></div>';
     }
 
-    return '<div class="vc-hero">' +
+    var dueAll = 0;
+    if (book) {
+      var td = dayNum(todayKey());
+      for (var wi = 0; wi < book.words.length; wi++) {
+        var wr = bs().words[book.words[wi][0]];
+        if (wr && !wr.known && wr.due <= td) dueAll++;
+      }
+    }
+    /* 到期提醒：只要今天有待复习词就常显（队列里自然排着，点按钮直接开背） */
+    var dueBanner = (dueAll > 0)
+      ? '<div class="vc-due-banner">📖 有 <b>' + dueAll + '</b> 个词今天到期复习——它们明天也会在，但今天最划算' +
+        '<button class="vc-btn small primary" id="vcStart2" type="button">开始复习</button></div>'
+      : '';
+    return dueBanner + '<div class="vc-hero">' +
         '<div class="vc-hero-art">' + owl('think') + '</div>' +
         '<div class="vc-hero-main">' +
           '<div class="vc-hero-tag">' + (state.book === 'cet6' ? 'CET-6' : 'CET-4') +
@@ -585,6 +598,8 @@
   function bindToday() {
     var sb = el.querySelector('#vcStart');
     if (sb) sb.onclick = function () { startSession(); };
+    var dueBtn = el.querySelector('#vcStart2');
+    if (dueBtn) dueBtn.onclick = function () { startSession(); };
     var tb = el.querySelector('#vcToSettings');
     if (tb) tb.onclick = function () { tab = 'settings'; renderHome(); };
     var eb = el.querySelector('#vcExtra');
@@ -1835,6 +1850,22 @@
     }
     saveState();
     submitBoards();
+
+    /* 全所统一档案库：每完成一局记一条（含当局统计，供档案中心回看） */
+    if (window.UniversalHistory && typeof window.UniversalHistory.add === 'function') {
+      var hisAcc = (right + wrong) ? Math.round(right / (right + wrong) * 100) : null;
+      window.UniversalHistory.add({
+        module: 'vocab',
+        title: '背单词 · 本局 ' + (right + wrong) + ' 题 · ' + usedNew + ' 个新词' +
+          (hisAcc != null ? ' · 正确率 ' + hisAcc + '%' : ''),
+        subtitle: 'CET-' + (state.book === 'cet6' ? '6' : '4') +
+          ' · 连续打卡 ' + (bs().streak || 0) + ' 天 · 累计 ' + (bs().totalAnswered || 0) + ' 题',
+        color: '#6366F1',
+        badge: '背单词',
+        avatar: '📚',
+        data: { test: 'vocab', date: bs().day, right: right, wrong: wrong, acc: hisAcc, newWords: usedNew }
+      });
+    }
 
     el.innerHTML =
       '<div class="vc-wrap">' + subnav() +

@@ -165,6 +165,10 @@
         if (window.AppBazi && typeof window.AppBazi.restore === 'function' && item.data) {
           window.AppBazi.restore(item.data);
         }
+      } else if (mod === 'vocab') {
+        if (window.AppRouter && typeof window.AppRouter.navigate === 'function') {
+          window.AppRouter.navigate('vocab', 'home');
+        }
       } else if (mod === 'scratch') {
         if (window.AppScratch && typeof window.AppScratch.restore === 'function' && item.data) {
           window.AppScratch.restore(item.data);
@@ -204,7 +208,8 @@
       // 所以「说明书」筛选要把两者都算进去，不然老存档会凭空消失
       manual: list.filter(r => r.module === 'manual' || r.module === 'lifeguide').length,
       bazi: list.filter(r => r.module === 'bazi').length,
-      scratch: list.filter(r => r.module === 'scratch').length
+      scratch: list.filter(r => r.module === 'scratch').length,
+      vocab: list.filter(r => r.module === 'vocab').length
     };
 
     // 渲染分类筛选条
@@ -223,6 +228,7 @@
         <button class="uni-filter-chip ${filterMod === 'merit' ? 'active' : ''}" data-mod="merit">📿 功德 <span class="chip-count">${counts.merit}</span></button>
         <button class="uni-filter-chip ${filterMod === 'bazi' ? 'active' : ''}" data-mod="bazi">📜 八字 <span class="chip-count">${counts.bazi}</span></button>
         <button class="uni-filter-chip ${filterMod === 'scratch' ? 'active' : ''}" data-mod="scratch">🎟️ 刮刮乐 <span class="chip-count">${counts.scratch}</span></button>
+        <button class="uni-filter-chip ${filterMod === 'vocab' ? 'active' : ''}" data-mod="vocab">📚 背单词 <span class="chip-count">${counts.vocab}</span></button>
       `;
 
       filterBar.querySelectorAll('.uni-filter-chip').forEach(btn => {

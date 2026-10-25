@@ -792,8 +792,18 @@
       description: copyright,
       cover: raw.url,
       cover_4k: raw.url.replace('_1920x1080.jpg', '_UHD.jpg'),
+      cover_proxy: '/api/bing-img?u=' + encodeURIComponent(raw.url.replace('_1920x1080.jpg', '_UHD.jpg')),
       date: raw.end_date || raw.start_date || dateKey(new Date())
     };
+  }
+
+  /* 必应图床代理：部分用户网络无法直连 bing 图床（壁纸裂图/背景无效果），
+     统一改走自家 /api/bing-img 服务端中转，浏览器只请求本站域名。 */
+  function proxiedBingSrc(src) {
+    if (/^https:\/\/(www|cn)\.bing\.com\/th\?id=OHR\./.test(src)) {
+      return '/api/bing-img?u=' + encodeURIComponent(src);
+    }
+    return src;
   }
 
   /* 必应图床双域名兜底：www.bing.com 偶发被 DNS/代理拦时切 cn.bing.com */
@@ -836,10 +846,10 @@
     if (titleEl) titleEl.textContent = wp.title || '今日壁纸大片';
     if (descEl) descEl.textContent = wp.description || wp.main_text || wp.copyright || '';
     if (metaEl) metaEl.textContent = wp.copyright ? `📷 摄影版权：${wp.copyright}` : '';
-    if (dlBtn) dlBtn.href = wp.cover_4k || wp.cover;
+    if (dlBtn) dlBtn.href = wp.cover_4k || wp.cover;   // 下载原图仍走 bing 原链（浏览器下载不受 CORS 限制）
 
     if (!imgEl) return;
-    const src = wp.cover_4k || wp.cover;
+    const src = proxiedBingSrc(wp.cover_4k || wp.cover);
     if (!src) return;
     if (imgEl.src === src && imgEl.naturalWidth) return;
 
@@ -902,7 +912,7 @@
             .map(
               (item, i) => `
         <div class="daily-wp-thumb-card ${i === 0 ? 'active' : ''}" style="--i:${i}" data-idx="${i}">
-          <img class="daily-wp-thumb-img" src="${esc(item.cover)}" alt="${esc(item.copyright)}" loading="lazy" />
+          <img class="daily-wp-thumb-img" src="${esc('/api/bing-img?u=' + encodeURIComponent(item.cover))}" alt="${esc(item.copyright)}" loading="lazy" />
           <div class="daily-wp-thumb-meta">
             <span class="daily-wp-thumb-date">${esc(item.date || `近第 ${i + 1} 日`)}</span>
             <div class="daily-wp-thumb-title" title="${esc(item.copyright)}">${esc(item.title)}</div>
@@ -963,6 +973,7 @@
 
   function applySiteBackground(url, title) {
     if (!url) return;
+    url = proxiedBingSrc(url);
     document.documentElement.style.setProperty('--daily-bg-url', `url("${url}")`);
     document.body.style.setProperty('--daily-bg-url', `url("${url}")`);
     document.documentElement.classList.add('has-daily-ambient-bg');

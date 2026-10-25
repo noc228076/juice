@@ -1104,12 +1104,12 @@ html[data-theme="light"] .subnav-pill-btn.active[data-sub-jump="scratch"] {
   position: absolute;
   inset: 0;
   /* 遮罩加重：保证任何壁纸（无论明暗）之上正文对比度都达标 */
-  background: radial-gradient(circle at 50% 35%, rgba(11, 14, 20, 0.62) 0%, rgba(11, 14, 20, 0.88) 100%);
+  background: radial-gradient(circle at 50% 35%, rgba(11, 14, 20, 0.55) 0%, rgba(11, 14, 20, 0.82) 100%);
   transition: background 0.35s ease;
 }
 
 html[data-theme="light"] .app-ambient-backdrop::after {
-  background: radial-gradient(circle at 50% 35%, rgba(245, 246, 241, 0.66) 0%, rgba(245, 246, 241, 0.90) 100%);
+  background: radial-gradient(circle at 50% 35%, rgba(245, 246, 241, 0.45) 0%, rgba(245, 246, 241, 0.78) 100%);
 }
 
 html.has-daily-ambient-bg .app-ambient-backdrop,

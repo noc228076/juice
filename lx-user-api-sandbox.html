@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>LX User API Sandbox</title>
+</head>
+<body>
+<script>
+/**
+ * 自定义音源沙箱宿主。
+ *
+ * 在 sandbox iframe 里运行，负责：
+ *   1. 构造 globalThis.lx 契约（与桌面端 preload.js 保持一致）
+ *   2. 执行用户音源脚本
+ *   3. 与父窗口用 postMessage 通信：请求转发、事件上报
+ *
+ * 与桌面端的差异：
+ *   - request 由父窗口经 CORS 代理发出（浏览器不能直连音乐平台）
+ *   - crypto 用纯 JS 实现（WebCrypto 是异步的，而脚本要求同步返回 Buffer）
+ */
+(function () {
+  'use strict'
+
+  var EVENT_NAMES = {
+    request: 'request',
+    inited: 'inited',
+    updateAlert: 'updateAlert',
+  }
+  var SUPPORT_EVENTS = [EVENT_NAMES.request, EVENT_NAMES.inited, EVENT_NAMES.updateAlert]
+
+  var scriptInfo = null
+  var isInited = false
+  var isShowedUpdateAlert = false
+  var requestHandler = null
+  var pendingRequests = {}
+
+  var parentWindow = window.parent
+
+  function post(msg) {
+    parentWindow.postMessage(msg, '*')
+  }
+
+  function reportError(message) {
+    post({ type: 'error', message: String(message) })
+  }
+
+  // ---------------- 字节工具 ----------------
+  // 用户脚本期望拿到/返回「类 Buffer」对象，这里用 Uint8Array 承载，
+  // 并补齐脚本常用的 toString / length 语义。
+
+  function toBytes(input, encoding) {
+    if (input instanceof Uint8Array) return input
+    if (input instanceof ArrayBuffer) return new Uint8Array(input)
+    if (Array.isArray(input)) return new Uint8Array(input)
+    if (typeof input === 'string') {
+      if (encoding === 'hex') {
+        var out = new Uint8Array(input.length / 2)
+        for (var i = 0; i < out.length; i++) out[i] = parseInt(input.substr(i * 2, 2), 16)
+        return out
+      }
+      if (encoding === 'base64') {
+        var bin = atob(input)
+        var arr = new Uint8Array(bin.length)
+        for (var j = 0; j < bin.length; j++) arr[j] = bin.charCodeAt(j)
+        return arr
+      }
+      return new TextEncoder().encode(input)
+    }
+    return new Uint8Array(0)
+  }
+
+  function bytesToString(bytes, encoding) {
+    bytes = toBytes(bytes)
+    if (encoding === 'hex') {
+      var s = ''
+      for (var i = 0; i < bytes.length; i++) s += bytes[i].toString(16).padStart(2, '0')
+      return s
+    }
+    if (encoding === 'base64') {
+      var bin = ''
+      for (var k = 0; k < bytes.length; k++) bin += String.fromCharCode(bytes[k])
+      return btoa(bin)
+    }
+    if (encoding === 'binary' || encoding === 'latin1') {
+      var out = ''
+      for (var m = 0; m < bytes.length; m++) out += String.fromCharCode(bytes[m])
+      return out
+    }
+    return new TextDecoder().decode(bytes)
+  }
+
+  // ---------------- MD5（同步） ----------------
+  function md5(str) {
+    var bytes = new TextEncoder().encode(str)
+    var s = [7,12,17,22,7,12,17,22,7,12,17,22,7,12,17,22,
+             5,9,14,20,5,9,14,20,5,9,14,20,5,9,14,20,
+             4,11,16,23,4,11,16,23,4,11,16,23,4,11,16,23,
+             6,10,15,21,6,10,15,21,6,10,15,21,6,10,15,21]
+    var K = []
+    for (var i = 0; i < 64; i++) K[i] = Math.floor(Math.abs(Math.sin(i + 1)) * 4294967296) | 0
+
+    var bitLen = bytes.length * 8
+    var padded = new Uint8Array((((bytes.length + 8) >> 6) + 1) << 6)
+    padded.set(bytes)
+    padded[bytes.length] = 0x80
+    var view = new DataView(padded.buffer)
+    view.setUint32(padded.length - 8, bitLen >>> 0, true)
+    view.setUint32(padded.length - 4, Math.floor(bitLen / 4294967296), true)
+
+    var a0 = 0x67452301, b0 = 0xefcdab89, c0 = 0x98badcfe, d0 = 0x10325476
+    var M = new Array(16)
+    for (var off = 0; off < padded.length; off += 64) {
+      for (var n = 0; n < 16; n++) M[n] = view.getUint32(off + n * 4, true)
+      var A = a0, B = b0, C = c0, D = d0
+      for (var t = 0; t < 64; t++) {
+        var F, g
+        if (t < 16) { F = (B & C) | (~B & D); g = t }
+        else if (t < 32) { F = (D & B) | (~D & C); g = (5 * t + 1) % 16 }
+        else if (t < 48) { F = B ^ C ^ D; g = (3 * t + 5) % 16 }
+        else { F = C ^ (B | ~D); g = (7 * t) % 16 }
+        F = (F + A + K[t] + M[g]) | 0
+        A = D; D = C; C = B
+        B = (B + ((F << s[t]) | (F >>> (32 - s[t])))) | 0
+      }
+      a0 = (a0 + A) | 0; b0 = (b0 + B) | 0; c0 = (c0 + C) | 0; d0 = (d0 + D) | 0
+    }
+    function hex(x) {
+      var out = ''
+      for (var q = 0; q < 4; q++) out += ((x >>> (q * 8)) & 0xff).toString(16).padStart(2, '0')
+      return out
+    }
+    return hex(a0) + hex(b0) + hex(c0) + hex(d0)
+  }
+
+  // ---------------- AES（同步实现，支持 ECB/CBC） ----------------
+  // 音源脚本常用 aes-128-ecb 与 aes-128-cbc，这里实现最小的 AES 加解密。
+  var AES = (function () {
+    var SBOX = new Uint8Array(256)
+    var INV_SBOX = new Uint8Array(256)
+    var RCON = [0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1b, 0x36]
+
+    ;(function initSbox() {
+      var p = 1, q = 1
+      do {
+        p = (p ^ (p << 1) ^ (p & 0x80 ? 0x1b : 0)) & 0xff
+        q ^= q << 1; q ^= q << 2; q ^= q << 4; q &= 0xff
+        if (q & 0x80) q ^= 0x09
+        var x = q ^ ((q << 1) | (q >> 7)) ^ ((q << 2) | (q >> 6)) ^ ((q << 3) | (q >> 5)) ^ ((q << 4) | (q >> 4))
+        SBOX[p] = (x ^ 0x63) & 0xff
+      } while (p !== 1)
+      SBOX[0] = 0x63
+      for (var i = 0; i < 256; i++) INV_SBOX[SBOX[i]] = i
+    })()
+
+    function xtime(a) { return ((a << 1) ^ (a & 0x80 ? 0x1b : 0)) & 0xff }
+    function mul(a, b) {
+      var p = 0
+      while (b) {
+        if (b & 1) p ^= a
+        a = xtime(a)
+        b >>= 1
+      }
+      return p & 0xff
+    }
+
+    function expandKey(key) {
+      var Nk = key.length / 4
+      var Nr = Nk + 6
+      var w = []
+      for (var i = 0; i < Nk; i++) {
+        w[i] = [key[4 * i], key[4 * i + 1], key[4 * i + 2], key[4 * i + 3]]
+      }
+      for (var j = Nk; j < 4 * (Nr + 1); j++) {
+        var temp = w[j - 1].slice()
+        if (j % Nk === 0) {
+          temp.push(temp.shift())
+          temp = temp.map(function (b) { return SBOX[b] })
+          temp[0] ^= RCON[j / Nk - 1]
+        } else if (Nk > 6 && j % Nk === 4) {
+          temp = temp.map(function (b) { return SBOX[b] })
+        }
+        w[j] = w[j - Nk].map(function (b, idx) { return b ^ temp[idx] })
+      }
+      return { w: w, Nr: Nr }
+    }
+
+    function encryptBlock(block, ks) {
+      var state = []
+      for (var i = 0; i < 4; i++) state.push([block[i * 4], block[i * 4 + 1], block[i * 4 + 2], block[i * 4 + 3]])
+      // 转成列主序
+      var s = [[state[0][0], state[1][0], state[2][0], state[3][0]],
+               [state[0][1], state[1][1], state[2][1], state[3][1]],
+               [state[0][2], state[1][2], state[2][2], state[3][2]],
+               [state[0][3], state[1][3], state[2][3], state[3][3]]]
+
+      function addRoundKey(r) {
+        for (var c = 0; c < 4; c++) {
+          for (var rr = 0; rr < 4; rr++) s[c][rr] ^= ks.w[r * 4 + c][rr]
+        }
+      }
+      function subBytes() {
+        for (var c = 0; c < 4; c++) for (var rr = 0; rr < 4; rr++) s[c][rr] = SBOX[s[c][rr]]
+      }
+      function shiftRows() {
+        for (var rr = 1; rr < 4; rr++) {
+          var row = []
+          for (var c = 0; c < 4; c++) row.push(s[c][rr])
+          row = row.slice(rr).concat(row.slice(0, rr))
+          for (var c2 = 0; c2 < 4; c2++) s[c2][rr] = row[c2]
+        }
+      }
+      function mixColumns() {
+        for (var c = 0; c < 4; c++) {
+          var a0 = s[c][0], a1 = s[c][1], a2 = s[c][2], a3 = s[c][3]
+          s[c][0] = mul(a0, 2) ^ mul(a1, 3) ^ a2 ^ a3
+          s[c][1] = a0 ^ mul(a1, 2) ^ mul(a2, 3) ^ a3
+          s[c][2] = a0 ^ a1 ^ mul(a2, 2) ^ mul(a3, 3)
+          s[c][3] = mul(a0, 3) ^ a1 ^ a2 ^ mul(a3, 2)
+        }
+      }
+
+      addRoundKey(0)
+      for (var round = 1; round <= ks.Nr; round++) {
+        subBytes(); shiftRows(); mixColumns(); addRoundKey(round)
+      }
+      subBytes(); shiftRows(); addRoundKey(ks.Nr)
+
+      var out = new Uint8Array(16)
+      for (var c3 = 0; c3 < 4; c3++) for (var r3 = 0; r3 < 4; r3++) out[c3 * 4 + r3] = s[c3][r3]
+      return out
+    }
+
+    return { expandKey: expandKey, encryptBlock: encryptBlock }
+  })()
+
+  function aesEncrypt(data, mode, key, iv) {
+    var bytes = toBytes(data)
+    var keyBytes = toBytes(key)
+    var modeName = String(mode || 'aes-128-ecb').toLowerCase()
+    var isCBC = modeName.indexOf('cbc') > -1
+    var ks = AES.expandKey(keyBytes)
+
+    // PKCS7 补位
+    var padLen = 16 - (bytes.length % 16)
+    var padded = new Uint8Array(bytes.length + padLen)
+    padded.set(bytes)
+    for (var p = 0; p < padLen; p++) padded[bytes.length + p] = padLen
+
+    var ivBytes = iv ? toBytes(iv) : new Uint8Array(16)
+    var out = new Uint8Array(padded.length)
+    var prev = ivBytes
+    for (var i = 0; i < padded.length; i += 16) {
+      var block = padded.slice(i, i + 16)
+      if (isCBC) for (var b = 0; b < 16; b++) block[b] ^= prev[b]
+      var enc = AES.encryptBlock(block, ks)
+      out.set(enc, i)
+      prev = enc
+    }
+    return out
+  }
+
+  // ---------------- RSA（NO_PADDING，桌面端语义） ----------------
+  // 桌面端 rsaEncrypt 用 RSA_NO_PADDING：把数据左补零到 128 字节后做原始模幂。
+  // 这里实现最小 RSA：解析 PEM 公钥 → 大数模幂。
+  function parsePublicKey(pem) {
+    var b64 = pem.replace(/-----[^-]+-----/g, '').replace(/\s+/g, '')
+    var bin = atob(b64)
+    var bytes = new Uint8Array(bin.length)
+    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
+    // 解析 DER: SEQUENCE { SEQUENCE { OID, NULL }, BIT STRING { SEQUENCE { INTEGER n, INTEGER e } } }
+    var pos = 0
+    function readLen() {
+      var l = bytes[pos++]
+      if (l & 0x80) {
+        var n = l & 0x7f
+        l = 0
+        for (var k = 0; k < n; k++) l = (l << 8) | bytes[pos++]
+      }
+      return l
+    }
+    function readTag(tag) {
+      if (bytes[pos] !== tag) throw new Error('bad DER tag ' + bytes[pos] + ' expected ' + tag)
+      pos++
+      return readLen()
+    }
+    readTag(0x30)
+    readTag(0x30)
+    pos += 2 + bytes[pos + 1] // skip OID
+    pos += 2 // skip NULL
+    readTag(0x03) // BIT STRING
+    pos++ // unused bits
+    readTag(0x30)
+    var nLen = readTag(0x02)
+    var n = bytes.slice(pos, pos + nLen)
+    pos += nLen
+    var eLen = readTag(0x02)
+    var e = bytes.slice(pos, pos + eLen)
+    return { n: bytesToBigInt(n), e: bytesToBigInt(e) }
+  }
+
+  function bytesToBigInt(bytes) {
+    var hex = ''
+    for (var i = 0; i < bytes.length; i++) hex += bytes[i].toString(16).padStart(2, '0')
+    return BigInt('0x' + (hex || '0'))
+  }
+
+  function bigIntToBytes(num, len) {
+    var hex = num.toString(16)
+    if (hex.length % 2) hex = '0' + hex
+    var raw = new Uint8Array(hex.length / 2)
+    for (var i = 0; i < raw.length; i++) raw[i] = parseInt(hex.substr(i * 2, 2), 16)
+    if (len && raw.length < len) {
+      var out = new Uint8Array(len)
+      out.set(raw, len - raw.length)
+      return out
+    }
+    return raw
+  }
+
+  function modPow(base, exp, mod) {
+    var result = BigInt(1)
+    base = base % mod
+    while (exp > BigInt(0)) {
+      if (exp & BigInt(1)) result = (result * base) % mod
+      exp >>= BigInt(1)
+      base = (base * base) % mod
+    }
+    return result
+  }
+
+  function rsaEncrypt(buffer, key) {
+    var bytes = toBytes(buffer)
+    var pub = parsePublicKey(key)
+    var keyLen = Math.ceil(pub.n.toString(16).length / 2)
+    // RSA_NO_PADDING：左补零到密钥长度
+    var padded = new Uint8Array(keyLen)
+    padded.set(bytes, keyLen - bytes.length)
+    var m = bytesToBigInt(padded)
+    var c = modPow(m, pub.e, pub.n)
+    return bigIntToBytes(c, keyLen)
+  }
+
+  function randomBytes(size) {
+    var out = new Uint8Array(size)
+    crypto.getRandomValues(out)
+    return out
+  }
+
+  // ---------------- 请求转发 ----------------
+  var reqSeq = 0
+
+  function request(url, options, callback) {
+    options = options || {}
+    var id = ++reqSeq
+    pendingRequests[id] = callback
+    post({
+      type: 'request',
+      id: id,
+      payload: {
+        url: url,
+        method: options.method || 'get',
+        timeout: typeof options.timeout === 'number' && options.timeout > 0
+          ? Math.min(options.timeout, 60000)
+          : 60000,
+        headers: options.headers,
+        body: options.body,
+        form: options.form,
+        formData: options.formData,
+      },
+    })
+    return function abort() {
+      if (!pendingRequests[id]) return
+      delete pendingRequests[id]
+      post({ type: 'abort', id: id })
+    }
+  }
+
+  // 调试：允许父窗口查询沙箱内部状态
+  window.__lxDebugState = function () {
+    return {
+      pendingRequestIds: Object.keys(pendingRequests),
+      reqSeq: reqSeq,
+      isInited: isInited,
+      hasHandler: !!requestHandler,
+    }
+  }
+
+  window.addEventListener('message', function (event) {
+    var data = event.data
+    if (!data || typeof data !== 'object') return
+
+    if (data.type === 'request-result') {
+      var cb = pendingRequests[data.id]
+      if (!cb) return
+      delete pendingRequests[data.id]
+      try {
+        if (data.error) {
+          cb.call(window, new Error(data.error), null, null)
+        } else {
+          cb.call(window, null, data.resp, data.resp.body)
+        }
+      } catch (e) {
+        reportError(e && e.message)
+      }
+      return
+    }
+
+    if (data.type === 'invoke-request') {
+      // 主窗口请求脚本执行 action（musicUrl / lyric / pic）
+      if (!requestHandler) {
+        post({ type: 'invoke-result', reqId: data.reqId, error: 'script not inited' })
+        return
+      }
+      Promise.resolve()
+        .then(function () { return requestHandler(data.payload) })
+        .then(function (result) {
+          post({ type: 'invoke-result', reqId: data.reqId, result: result })
+        })
+        .catch(function (err) {
+          post({ type: 'invoke-result', reqId: data.reqId, error: (err && err.message) || String(err) })
+        })
+      return
+    }
+
+    if (data.type === 'init') {
+      scriptInfo = data.scriptInfo
+      try {
+        runScript(data.script)
+      } catch (e) {
+        reportError(e && e.message)
+      }
+    }
+  })
+
+  function runScript(script) {
+    var lx = {
+      EVENT_NAMES: EVENT_NAMES,
+      request: request,
+      send: function (eventName, data) {
+        return new Promise(function (resolve, reject) {
+          if (SUPPORT_EVENTS.indexOf(eventName) < 0) return reject(new Error('The event is not supported: ' + eventName))
+          switch (eventName) {
+            case EVENT_NAMES.inited:
+              if (isInited) return reject(new Error('Script is inited'))
+              isInited = true
+              post({ type: 'inited', data: data })
+              resolve()
+              break
+            case EVENT_NAMES.updateAlert:
+              if (isShowedUpdateAlert) return reject(new Error('The update alert can only be called once.'))
+              isShowedUpdateAlert = true
+              post({ type: 'updateAlert', data: data })
+              resolve()
+              break
+            default:
+              reject(new Error('Unknown event name: ' + eventName))
+          }
+        })
+      },
+      on: function (eventName, handler) {
+        if (SUPPORT_EVENTS.indexOf(eventName) < 0) return Promise.reject(new Error('The event is not supported: ' + eventName))
+        if (eventName === EVENT_NAMES.request) requestHandler = handler
+        return Promise.resolve()
+      },
+      utils: {
+        crypto: {
+          aesEncrypt: aesEncrypt,
+          rsaEncrypt: rsaEncrypt,
+          randomBytes: randomBytes,
+          md5: md5,
+        },
+        buffer: {
+          from: function (data, enc) { return toBytes(data, enc) },
+          bufToString: function (buf, format) { return bytesToString(buf, format) },
+        },
+        zlib: {
+          inflate: function (buf) {
+            return Promise.resolve().then(function () {
+              if (typeof DecompressionStream === 'undefined') throw new Error('zlib not supported')
+              var stream = new Blob([toBytes(buf)]).stream().pipeThrough(new DecompressionStream('deflate'))
+              return new Response(stream).arrayBuffer().then(function (ab) { return new Uint8Array(ab) })
+            })
+          },
+          deflate: function (data) {
+            return Promise.resolve().then(function () {
+              if (typeof CompressionStream === 'undefined') throw new Error('zlib not supported')
+              var stream = new Blob([toBytes(data)]).stream().pipeThrough(new CompressionStream('deflate'))
+              return new Response(stream).arrayBuffer().then(function (ab) { return new Uint8Array(ab) })
+            })
+          },
+        },
+      },
+      currentScriptInfo: scriptInfo,
+      version: '2.0.0',
+      // 保持 desktop 语义：多数脚本据此选择返回类型（如返回 Buffer 而非 hex）
+      env: 'desktop',
+    }
+
+    var errorHandler = {
+      sendError: function (message) { reportError(message) },
+    }
+
+    window.addEventListener('error', function (event) {
+      if (event.isTrusted) reportError(String(event.message).replace(/^Uncaught\sError:\s/, ''))
+    })
+    window.addEventListener('unhandledrejection', function (event) {
+      if (!event.isTrusted) return
+      var reason = event.reason
+      var message = typeof reason === 'string' ? reason : (reason && reason.message) || String(reason)
+      reportError(String(message).replace(/^Error:\s/, ''))
+    })
+
+    // 用 Function 在全局作用域执行，让脚本里的 var/function 落到 window 上
+    var fn = new Function('lx', '__lx_init_error_handler__', 'globalThis', script + '\n//# sourceURL=user-api.js')
+    window.lx = lx
+    window.__lx_init_error_handler__ = errorHandler
+    fn.call(window, lx, errorHandler, window)
+  }
+
+  post({ type: 'ready' })
+})()
+</script>
+</body>
+</html>

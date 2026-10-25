@@ -1,6 +1,7 @@
 {
   "builds": [
     { "src": "api/**/*.js", "use": "@vercel/node" },
+    { "src": "api/proxy.js", "use": "@vercel/node" },
     { "src": "api/wall.js", "use": "@vercel/node" },
     { "src": "api/douban.js", "use": "@vercel/node" },
     { "src": "api/zhuiju.js", "use": "@vercel/node" },
@@ -17,7 +18,8 @@
     { "source": "/api/leaderboard", "destination": "/api/leaderboard.js" },
     { "source": "/api/wall", "destination": "/api/wall.js" },
     { "source": "/api/douban", "destination": "/api/douban.js" },
-    { "source": "/api/zhuiju", "destination": "/api/zhuiju.js" }
+    { "source": "/api/zhuiju", "destination": "/api/zhuiju.js" },
+    { "source": "/api/proxy", "destination": "/api/proxy.js" }
   ],
   "headers": [
     {

@@ -1,12 +1,12 @@
-# 饮料人格研究所 · 七合一趣味实验矩阵 🍹
+# 饮料人格研究所 · 趣味实验矩阵 🍹
 
-纯静态、零运行时依赖的网页趣味测试矩阵，包含 8 大模块 / 14 个功能屏，支持 PWA 安装与离线图片缓存。
+纯静态网页趣味测试矩阵，包含 8 大顶栏模块 / 15 个功能区块，支持 PWA 安装。
 
 | 项 | 内容 |
 |---|---|
 | 定位 | 纯前端趣味测试 / 玄学 / 轻游戏合集 |
 | 技术栈 | 原生 HTML + CSS + JavaScript，无框架、无运行时依赖 |
-| 构建 | 自研轻量打包脚本（`build-bundles.js`），Node 仅用于本地静态服务 |
+| 构建 | 自研打包脚本（`build-bundles.js`）+ esbuild minify，Node 仅用于本地静态服务 |
 | 运行环境 | 任意现代浏览器（Chrome / Edge / Safari），Node ≥ 24 仅用于本地开发 |
 | 部署 | Vercel 静态托管，连接 GitHub `main` 自动部署 |
 
@@ -14,7 +14,7 @@
 
 ## 📦 功能模块
 
-顶栏 7 个胶囊标签，部分标签下挂有子导航条，视图状态同步到 URL hash（`#/<模块>`）。
+顶栏 8 个胶囊标签，部分标签下挂有子导航条，视图状态同步到 URL hash（`#/<模块>`）。
 
 ### 1. 🍹 饮品测评
 - **`drinks` 16 款灵魂特调** — MBTI × 饮料人格，四维度计分裁定 16 型人格配方
@@ -119,7 +119,7 @@ npm run build
 | `router.js` | 按需 CSS / JS chunk URL | `98` | 从主包注入的版本号读取 |
 
 首屏只引用 `css/core.bundle.css`（`base + nav + history`）；
-其余 12 个模块样式打包为 `css/modules.bundle.css`，首次进入非饮品模块时加载。
+其余 14 个模块样式打包为 `css/modules.bundle.css`，首次进入非饮品模块时加载。
 
 ---
 
@@ -127,18 +127,20 @@ npm run build
 
 ```text
 juice/
-├── index.html              # 页面骨架：顶栏 + 12 个 <section class="app-module">
+├── index.html              # 页面骨架：顶栏 + 15 个 <section class="app-module">
 ├── sw.js                   # Service Worker：图片懒缓存
 ├── manifest.json           # PWA 清单
 ├── vercel.json             # 构建声明 + 缓存策略
 ├── server.js               # 零依赖本地服务器（含 api/ 模拟）
 ├── build-bundles.js        # 打包脚本
 ├── api/
-│   └── leaderboard.js      # 19 个 game key 的全服排行榜 Serverless 函数
+│   └── leaderboard.js      # 全服排行榜 Serverless 函数（25 个 game key，见下文）
 ├── favicon.png             # 旧版 192px 图标（已不再被 index.html 引用）
 │
 ├── js/
 │   ├── app.bundle.js       # 【构建产物】勿手改
+│   ├── esc.js              # 全站统一 HTML 转义（escHtml/escUrl）
+│   ├── vendor/             # 【构建产物】morphicons + lucide 图标子集
 │   ├── chunks/             # 【构建产物】按需模块包
 │   ├── core-drink.js       # 饮品人格核心（计分、Canvas 分享长图）
 │   ├── sfx.js              # WebAudio 合成音效引擎（零音频文件）
@@ -158,12 +160,12 @@ juice/
 │       ├── profile.js              # 玩家头像 / 昵称
 │       ├── leaderboard.js          # 全服排行榜客户端（按 game 分榜）
 │       ├── lb-panel.js             # 排行榜面板（各游戏分榜共用）
-│       └── lifeguide.js / daily.js / scratch.js
+│       ├── vocab.js / vocab-data.js  # 背单词（三阶段 + 全服榜）
+│       ├── daily.js / scratch.js / music.js  # music 已下架，源码保留
 │
 ├── css/
 │   ├── core.bundle.css     # 【构建产物】首屏核心：base + nav + history
 │   ├── modules.bundle.css  # 【构建产物】按需模块样式
-│   ├── app.bundle.css      # 【构建产物】旧版兼容包，勿手改
 │   ├── base.css            # 全局基础样式、主题变量、双主题
 │   └── modules/            # 与 js/modules 对应的模块样式
 │
@@ -257,14 +259,14 @@ Vercel 托管，连接 GitHub `main` 分支自动部署，无需手动构建命�
 
 `vercel.json` 中：
 
-- **`builds` 段**：`api/**/*.js` 走 `@vercel/node`（小游戏全服排行榜），其余路径全部 `@vercel/static`；
+- **`builds` 段**：`api/**/*.js` 走 `@vercel/node`（排行榜 / 弹幕墙 / 豆瓣代理 / 必应壁纸代理 / 追剧索引），其余路径全部 `@vercel/static`；
 - **缓存策略分档**：`sw.js` 为 `no-cache, no-store, must-revalidate`；`index.html` 为 `max-age=0, must-revalidate`；`css`/`js` 为 `max-age=31536000, immutable`（文件自带 `?v=` 版本号，可以放心长缓存）；`assets` 为 1 周强缓存 + 1 月陈旧重验证。
 
 `.vercelignore` 排除 `node_modules`、`scratch`、`.git` 等非部署产物。
 
 ### 全服排行榜（需要一次性配置）
 
-`api/leaderboard.js` 提供全服榜（在役 key：2048 / 反应速度三关 / 色彩 / 扫雷三档 / 舒尔特三档 / 定位靶场 / 数独三档 / 华容道三档 / 俄罗斯方块 / 贪吃蛇三档 / 泡泡猫两档，另有 legacy `minesweeper`），使用 Upstash Redis 存储，**不配置也能部署**——此时接口返回 503，前端自动退回本机战绩，游戏不受影响。
+`api/leaderboard.js` 提供全服榜（25 个 game key：各小游戏分档榜 + 背单词日/周/总榜，另有 legacy `minesweeper`），使用 Upstash Redis 存储，**不配置也能部署**——此时接口返回 503，前端自动退回本机战绩，游戏不受影响。
 
 开启全服榜：
 

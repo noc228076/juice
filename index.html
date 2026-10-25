@@ -17,10 +17,10 @@
 <meta property="og:title" content="饮料人格研究所 · 测测你的精神状态与灵魂特调">
 <meta property="og:description" content="当代年轻人精神状态测试 (SBTI) / 经典 16 型人格 (MBTI) / 16 款灵魂饮料特调，测出你的独家出厂配方与精神病友。">
 <meta property="og:image" content="assets/icons/icon-512.png">
-  <link rel="stylesheet" href="css/core.bundle.css?v=308">
+  <link rel="stylesheet" href="css/core.bundle.css?v=312">
   <script defer src="js/vendor/morphicons.js"></script>
   <script defer src="js/vendor/lucide-icons.js"></script>
-  <script defer src="js/app.bundle.js?v=308" fetchpriority="high"></script>
+  <script defer src="js/app.bundle.js?v=312" fetchpriority="high"></script>
   <script>
     (function(){
       // 主题必须在首次绘制前定下来。以前只有 <html data-theme="dark"> 的硬编码默认值，
@@ -107,6 +107,12 @@
             <span class="tab-icon">📚</span>
             <span class="tab-label-full">背单词</span>
             <span class="tab-label-short">单词</span>
+          </button>
+
+          <button class="nav-tab" data-mod="music">
+            <span class="tab-icon">🎵</span>
+            <span class="tab-label-full">音乐台</span>
+            <span class="tab-label-short">音乐</span>
           </button>
         </nav>
       </div>
@@ -2319,6 +2325,11 @@
 
       <!-- 模块 13：背单词 (Vocabulary) -->
       <section id="mod-vocab" class="app-module"></section>
+
+      <!-- 音乐台：洛雪音源内核 + 播放器（music.js 把 UI 渲染进 #muRoot） -->
+      <section id="mod-music" class="app-module">
+        <div id="muRoot"></div>
+      </section>
   </main>
 
   <!-- 历史档案抽屉浮层 -->

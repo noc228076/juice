@@ -447,10 +447,43 @@
     }
   }
 
-  var searchResults = [];      // [{title,artist,cover,url}]
+  var searchResults = [];      // [{title,artist,cover,url,track}]
   function runSearch(kw) {
     if (!kw) return;
-    if (state.src.builtin !== 'custom') {
+    var mode = state.src.builtin === 'custom' ? 'lx' : state.src.builtin;
+
+    /* ---- 洛雪多平台聚合搜索 ---- */
+    if (mode === 'lx') {
+      if (!window.LxMusic) { toast('音源内核未加载'); return; }
+      toast('搜索中…');
+      window.LxMusic.search(kw, 1).then(function (res) {
+        searchResults = res.list.map(function (t) {
+          return {
+            kind: 'search',
+            id: t.source + '_' + t.songmid,
+            title: t.name,
+            artist: t.singer,
+            cover: t.img || '',
+            url: '',              // 播放时才向音源脚本要地址
+            track: t,             // 保留完整信息供取址
+            source: t.source,
+            interval: t.interval
+          };
+        });
+        renderIfActive();
+        if (!searchResults.length) {
+          toast(res.errors.length ? ('没有搜到结果（' + res.errors[0].message + '）') : '没有搜到结果');
+        } else if (res.errors.length) {
+          toast('搜到 ' + searchResults.length + ' 首，' + res.errors.length + ' 个平台失败');
+        }
+      }).catch(function (e) {
+        toast('搜索失败：' + (e && e.message ? e.message : 'unknown'));
+      });
+      return;
+    }
+
+    /* ---- Audius / Jamendo ---- */
+    if (mode !== 'custom') {
       toast('搜索中…');
       searchBuiltin(kw).then(function (items) {
         searchResults = items.slice(0, 100);
@@ -461,6 +494,8 @@
       });
       return;
     }
+
+    /* ---- 旧版自定义脚本（自带 search）---- */
     if (!activeSource) { toast('先加载一个音源脚本'); return; }
     toast('搜索中…');
     Promise.resolve(activeSource.search(kw)).then(function (res) {
@@ -478,6 +513,33 @@
       if (!searchResults.length) toast('没有搜到结果');
     }).catch(function (e) {
       toast('搜索失败：' + (e && e.message ? e.message : 'unknown'));
+    });
+  }
+
+  /**
+   * 播放一首搜索结果。
+   * 洛雪的曲目没有直接 url，需要向音源脚本要地址（异步）。
+   */
+  function playTrack(track, listName) {
+    if (!track) return;
+    if (track.url) {
+      playQueue([track], listName, 0);
+      return;
+    }
+    if (!track.track) { toast('这首没有播放地址'); return; }
+    if (!window.LxMusic || !window.LxMusic.hasSource()) {
+      toast('尚未导入音源脚本，无法获取播放地址');
+      return;
+    }
+
+    toast('获取播放地址…');
+    var quality = state.quality || '128k';
+    window.LxMusic.resolveUrl(track.track, quality).then(function (url) {
+      if (!url) { toast('音源未返回地址'); return; }
+      track.url = url;
+      playQueue([track], listName, 0);
+    }).catch(function (e) {
+      toast('取地址失败：' + (e && e.message ? String(e.message).slice(0, 60) : 'unknown'));
     });
   }
 
@@ -538,58 +600,88 @@
     '};';
 
   function searchHtml() {
-    var BUILTIN_CHIPS = [
+    var lxReady = !!(window.LxMusic);
+    var hasSrc = lxReady && window.LxMusic.hasSource();
+    var chips = [
+      { k: 'lx', label: '🎵 在线曲库', tip: '酷我/酷狗/企鹅/咪咕 多平台聚合搜索' },
       { k: 'audius', label: ' Audius', tip: '去中心化音乐平台 · 免 Key · 全曲播放' },
-      { k: 'jamendo', label: ' Jamendo', tip: '55 万+ CC 协议曲库 · 需免费 Client ID' },
-      { k: 'custom', label: ' 自定义脚本', tip: '在「音源脚本」页粘贴脚本后在此搜索' }
+      { k: 'jamendo', label: ' Jamendo', tip: '55 万+ CC 协议曲库 · 需免费 Client ID' }
     ];
-    var cur = state.src.builtin;
-    var chipsHtml = '<div class="mu-src-chips">' + BUILTIN_CHIPS.map(function (c) {
+    var cur = state.src.builtin === 'custom' ? 'lx' : state.src.builtin;
+    var chipsHtml = '<div class="mu-src-chips">' + chips.map(function (c) {
       return '<button type="button" class="mu-src-chip' + (cur === c.k ? ' active' : '') +
         '" data-builtin="' + c.k + '" title="' + esc(c.tip) + '">' + c.label + '</button>';
     }).join('') + '</div>';
+
+    var srcHint = '';
+    if (cur === 'lx') {
+      if (!hasSrc) {
+        srcHint = '<p class="mu-note warn">⚠️ 还没有可用的音源脚本。在线曲库负责「搜到歌」，' +
+          '播放地址需要音源脚本提供——去「音源脚本」页导入一个（.js 文件或粘贴内容）。</p>';
+      } else {
+        var loaded = window.LxMusic.listLoaded();
+        srcHint = '<p class="mu-note">✅ 已加载 ' + loaded.length + ' 个音源：' +
+          loaded.map(function (x) { return esc(x.name); }).join('、') + '</p>';
+      }
+    }
+
     return '<div class="mu-panel">' +
       '<h3 class="mu-h3">📡 选择曲库</h3>' +
-      '<p class="mu-note">内置两个开源曲库，浏览器直连、无需登录。' +
-        '默认 Audius——直接在下面搜歌名 / 歌手 / 风格，点结果即播。</p>' +
+      '<p class="mu-note">「在线曲库」聚合酷我/酷狗/企鹅/咪咕四个平台的搜索结果，' +
+        '播放地址由你导入的音源脚本提供。</p>' +
       chipsHtml +
+      srcHint +
       (cur === 'jamendo'
         ? '<div class="mu-keyrow"><input class="mu-input" id="muJmKey" placeholder="Jamendo Client ID" value="' + esc(state.src.jamendoKey || '') + '">' +
           '<button class="mu-btn" id="muJmKeySave">保存</button></div>' +
-          '<p class="mu-note">到 devportal.jamendo.com 免费注册一个应用即可拿到 Client ID（一分钟）。' +
-            'Internet Archive / Openverse 等国内直连不通，可用「音源脚本」自接。</p>'
+          '<p class="mu-note">到 devportal.jamendo.com 免费注册一个应用即可拿到 Client ID。</p>'
         : '') +
       '<div class="mu-searchbar">' +
-        '<input class="mu-input" id="muSearchKw" placeholder="输入歌名 / 歌手 / 风格，回车或点搜索…">' +
+        '<input class="mu-input" id="muSearchKw" placeholder="输入歌名 / 歌手，回车或点搜索…">' +
         '<button class="mu-btn primary" id="muSearchBtn">🔍 搜索</button>' +
       '</div>' +
       (searchResults.length
         ? '<div class="mu-list">' + searchResults.map(function (t, i) { return listRowHtml(t, i, '搜索结果'); }).join('') + '</div>'
-        : '<div class="mu-empty">默认用 Audius（免登录、全曲播放）——想听什么直接搜</div>') +
+        : '<div class="mu-empty">' + (cur === 'lx' ? '搜点什么听听——支持歌名 / 歌手' : '默认用 Audius（免登录、全曲播放）') + '</div>') +
     '</div>';
   }
 
   function scriptHtml() {
-    var srcRows = (state.sources || []).map(function (s, i) {
-      var on = activeSource && activeSource.name === s.name;
-      return '<div class="mu-src' + (on ? ' on' : '') + '" data-src="' + i + '">' +
-        '<b>' + esc(s.name || '未命名音源') + '</b>' +
+    var lxReady = !!window.LxMusic;
+    var saved = lxReady ? window.LxMusic.listScripts() : [];
+    var loaded = lxReady ? window.LxMusic.listLoaded() : [];
+
+    var rows = saved.map(function (s) {
+      var on = loaded.some(function (x) { return x.name === s.name; });
+      return '<div class="mu-src' + (on ? ' on' : '') + '">' +
+        '<b>' + esc(s.name) + (s.version ? ' <span class="mu-src-ver">' + esc(s.version) + '</span>' : '') + '</b>' +
         '<span class="mu-src-ops">' +
-          '<button class="mu-btn mini" data-src-use="' + i + '">' + (on ? '已加载' : '加载') + '</button>' +
-          '<button class="mu-btn mini danger" data-src-del="' + i + '">删除</button>' +
+          '<span class="mu-src-tag">' + (on ? '已加载' : '未加载') + '</span>' +
+          '<button class="mu-btn mini danger" data-lx-del="' + esc(s.id) + '">删除</button>' +
         '</span></div>';
     }).join('');
+
+    var status = '';
+    if (loaded.length) {
+      status = '<p class="mu-note ok">✅ 运行中：' + loaded.map(function (x) {
+        return esc(x.name) + '（' + x.sources.join('/') + '）';
+      }).join('、') + '</p>';
+    }
+
     return '<div class="mu-panel">' +
-      '<h3 class="mu-h3">🧩 自定义音源脚本</h3>' +
-      '<p class="mu-note">粘贴你自己写的音源脚本（定义 MusicSource 对象，实现 search(keyword)）。' +
-        '脚本只保存在本机浏览器，本站仓库与服务器不经手任何脚本内容。' +
-        '保存加载后，回到「在线搜歌」页并把曲库切到「自定义脚本」再搜索。</p>' +
-      '<textarea class="mu-textarea mono" id="muSrcCode" rows="8" placeholder="// 粘贴音源脚本…"></textarea>' +
+      '<h3 class="mu-h3">🧩 音源脚本</h3>' +
+      '<p class="mu-note">洛雪的音源脚本只负责「把歌名换成播放地址」，搜索由内置的多平台接口完成。' +
+        '脚本只存在你本机浏览器，本站服务器不经手任何脚本内容。</p>' +
+      status +
       '<div class="mu-btns">' +
-        '<button class="mu-btn primary" id="muSrcAdd">保存并加载</button>' +
-        '<button class="mu-btn" id="muSrcExample">填入模板</button>' +
+        '<button class="mu-btn primary" id="muLxPickFile">📂 导入 .js 文件</button>' +
+        '<input type="file" id="muLxFileInput" accept=".js,text/javascript" hidden>' +
       '</div>' +
-      (srcRows ? '<div class="mu-src-list">' + srcRows + '</div>' : '<div class="mu-empty">还没有保存过脚本</div>') +
+      '<textarea class="mu-textarea mono" id="muLxCode" rows="6" placeholder="或直接粘贴脚本内容…"></textarea>' +
+      '<div class="mu-btns">' +
+        '<button class="mu-btn primary" id="muLxAdd">保存并加载</button>' +
+      '</div>' +
+      (rows ? '<div class="mu-src-list">' + rows + '</div>' : '<div class="mu-empty">还没有导入音源脚本</div>') +
     '</div>';
   }
 
@@ -679,6 +771,13 @@
         var name = r.getAttribute('data-play');
         var i = parseInt(r.getAttribute('data-idx'), 10);
         var list = name === '本机文件' ? localTracks() : name === '直链歌单' ? directList() : searchResults;
+        var target = list[i];
+        if (!target) return;
+        // 洛雪曲目没有现成 url，要先向音源脚本要地址
+        if (!target.url && target.track) {
+          playTrack(target, name);
+          return;
+        }
         playQueue(list, name, i);
       };
     });
@@ -733,31 +832,49 @@
         toast(state.src.jamendoKey ? 'Client ID 已保存' : 'Client ID 已清空');
       };
     }
-    var sadd = el.querySelector('#muSrcAdd');
-    var scode = el.querySelector('#muSrcCode');
-    if (sadd && scode) sadd.onclick = function () {
-      var code = scode.value;
-      if (!code.trim()) { toast('先粘贴脚本代码'); return; }
-      var nameMatch = code.match(/name\s*:\s*["']([^"']+)["']/);
-      var item = { id: uid(), name: nameMatch ? nameMatch[1] : '未命名音源', code: code };
-      if (loadSource(item)) {
-        state.sources.unshift(item);
-        saveState(); renderHome();
-      }
-    };
-    var sex = el.querySelector('#muSrcExample'); if (sex && scode) sex.onclick = function () { scode.value = SRC_SKELETON; };
-    el.querySelectorAll('[data-src-use]').forEach(function (b) {
-      b.onclick = function (e) {
-        e.stopPropagation();
-        var i = parseInt(b.getAttribute('data-src-use'), 10);
-        if (state.sources[i]) loadSource(state.sources[i]) && renderHome();
+    /* ---- 洛雪音源脚本：导入 / 删除 ---- */
+    var lxAdd = el.querySelector('#muLxAdd');
+    var lxCode = el.querySelector('#muLxCode');
+    var lxPick = el.querySelector('#muLxPickFile');
+    var lxInput = el.querySelector('#muLxFileInput');
+
+    function importLxScript(text) {
+      if (!window.LxMusic) { toast('音源内核未加载'); return; }
+      toast('导入中…');
+      window.LxMusic.importScript(text).then(function (r) {
+        toast('已导入：' + r.name + '（' + r.sources.join('/') + '）');
+        renderHome();
+      }).catch(function (e) {
+        toast('导入失败：' + (e && e.message ? e.message : 'unknown'));
+      });
+    }
+
+    if (lxAdd && lxCode) {
+      lxAdd.onclick = function () {
+        var code = lxCode.value;
+        if (!code.trim()) { toast('先粘贴脚本内容'); return; }
+        importLxScript(code);
       };
-    });
-    el.querySelectorAll('[data-src-del]').forEach(function (b) {
+    }
+    if (lxPick && lxInput) {
+      lxPick.onclick = function () { lxInput.click(); };
+      lxInput.onchange = function () {
+        var f = lxInput.files && lxInput.files[0];
+        if (!f) return;
+        // 用 FileReader 读成文本，而不是把 File 当字符串（会得到 [object File]）
+        var reader = new FileReader();
+        reader.onload = function () { importLxScript(String(reader.result || '')); };
+        reader.onerror = function () { toast('读取文件失败'); };
+        reader.readAsText(f);
+      };
+    }
+    el.querySelectorAll('[data-lx-del]').forEach(function (b) {
       b.onclick = function (e) {
         e.stopPropagation();
-        state.sources.splice(parseInt(b.getAttribute('data-src-del'), 10), 1);
-        saveState(); renderHome();
+        if (!window.LxMusic) return;
+        window.LxMusic.removeScript(b.getAttribute('data-lx-del'));
+        toast('已删除');
+        renderHome();
       };
     });
     var sbtn = el.querySelector('#muSearchBtn');

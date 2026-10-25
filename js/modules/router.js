@@ -8,7 +8,7 @@
 
   const STATE_VERSION = 1;
   const HOME_MOD = 'drinks';
-  const ALLOWED_MODS = ['drinks', 'milktea', 'manual', 'fengshui', 'tarot', 'lingqian', 'decision', 'clock', 'merit', 'films', 'lifeguide', 'bazi', 'daily', 'scratch', 'wall', 'vocab'];
+  const ALLOWED_MODS = ['drinks', 'milktea', 'manual', 'fengshui', 'tarot', 'lingqian', 'decision', 'clock', 'merit', 'films', 'lifeguide', 'bazi', 'daily', 'scratch', 'wall', 'vocab', 'music'];
   const MODULE_CHUNKS = {
     milktea: 'milktea',
     manual: 'manual',
@@ -23,7 +23,8 @@
     decision: 'decision',
     scratch: 'scratch',
     wall: 'wall',
-    vocab: 'vocab'
+    vocab: 'vocab',
+    music: 'music'
   };
   const MODULE_API = {
     drinks: 'AppDrinks',
@@ -41,7 +42,8 @@
     decision: 'AppDecision',
     scratch: 'AppScratch',
     wall: 'AppWall',
-    vocab: 'AppVocab'
+    vocab: 'AppVocab',
+    music: 'AppMusic'
   };
   const MOD_PARENT_MAP = {
     milktea: 'drinks',

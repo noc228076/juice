@@ -1,0 +1,195 @@
+/* =========================================================
+   洛雪音源内核 · 请求底座
+   ---------------------------------------------------------
+   移植自 lx-music-desktop 的 src/renderer/utils/request.js，
+   改成浏览器原生 fetch + CORS 代理。
+
+   回调约定与原实现保持一致：
+     callback(err, resp, body)
+     resp = { statusCode, headers, body, raw }
+   ========================================================= */
+(function (root) {
+  'use strict';
+
+  // juice 的代理在 /api/proxy（Vercel serverless + 本地 server.js 同路径）
+  var PROXY = '/api/proxy';
+
+  function toProxied(url, kind) {
+    if (!/^https?:\/\//i.test(url)) return url;
+    var sep = PROXY.indexOf('?') > -1 ? '&' : '?';
+    return PROXY + sep + 'url=' + encodeURIComponent(url) + '&kind=' + (kind || 'api') + '&_t=' + Date.now();
+  }
+
+  var DEFAULT_HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/69.0.3497.100 Safari/537.36'
+  };
+
+  function encodeForm(form) {
+    return Object.keys(form)
+      .filter(function (k) { return form[k] != null; })
+      .map(function (k) { return encodeURIComponent(k) + '=' + encodeURIComponent(String(form[k])); })
+      .join('&');
+  }
+
+  function buildBody(opts) {
+    if (opts.formData) {
+      var fd = new FormData();
+      Object.keys(opts.formData).forEach(function (k) {
+        var v = opts.formData[k];
+        if (v == null) return;
+        fd.append(k, v instanceof Blob ? v : String(v));
+      });
+      return { body: fd };
+    }
+    if (opts.form) {
+      return { body: encodeForm(opts.form), contentType: 'application/x-www-form-urlencoded' };
+    }
+    if (opts.body != null) {
+      if (typeof opts.body === 'string') return { body: opts.body };
+      return { body: JSON.stringify(opts.body), contentType: 'application/json' };
+    }
+    return {};
+  }
+
+  function headersToObject(headers) {
+    var out = {};
+    headers.forEach(function (v, k) {
+      var lower = k.toLowerCase();
+      if (lower === 'set-cookie') out[lower] = v.split(/,\s*(?=[^;=]+=)/);
+      else out[lower] = v;
+    });
+    // 浏览器禁止读 set-cookie，代理把原文放在 x-set-cookie
+    if (!out['set-cookie'] && out['x-set-cookie']) {
+      out['set-cookie'] = String(out['x-set-cookie']).split('\n');
+      delete out['x-set-cookie'];
+    }
+    return out;
+  }
+
+  function parseBody(text, format) {
+    if (format === 'text' || format === 'script') return text;
+    try { return JSON.parse(text); } catch (e) { return text; }
+  }
+
+  /**
+   * 底层请求，返回 { promise, cancel }
+   * 与原 httpFetch 的行为对齐（超时、取消、错误码映射）
+   */
+  function fetchData(url, method, opts, cb) {
+    var controller = new AbortController();
+    // 默认 8 秒：搜索场景下 15 秒太长，会让用户以为卡死。
+    // 单个平台超时不影响其他平台（聚合器是并行 + 单源降级）。
+    var timeout = opts.timeout == null ? 8000 : opts.timeout;
+    var timer = null;
+    var aborted = false;
+
+    var cancel = function () {
+      aborted = true;
+      controller.abort();
+    };
+
+    var run = function () {
+      if (timeout > 0) {
+        timer = setTimeout(function () {
+          aborted = true;
+          controller.abort();
+        }, timeout);
+      }
+
+      var headers = {};
+      var src = Object.assign({}, DEFAULT_HEADERS, opts.headers || {});
+      Object.keys(src).forEach(function (k) {
+        if (src[k] != null) headers[k] = String(src[k]);
+      });
+
+      var b = buildBody(opts);
+      if (b.contentType && !Object.keys(headers).some(function (k) { return k.toLowerCase() === 'content-type'; })) {
+        headers['Content-Type'] = b.contentType;
+      }
+
+      return fetch(toProxied(url, opts.kind), {
+        method: (method || 'get').toUpperCase(),
+        headers: headers,
+        body: b.body,
+        signal: controller.signal,
+        credentials: 'omit',
+        redirect: 'follow',
+        cache: 'no-store'
+      }).then(function (resp) {
+        return resp.text().then(function (text) {
+          return {
+            statusCode: resp.status,
+            statusMessage: resp.statusText,
+            headers: headersToObject(resp.headers),
+            body: parseBody(text, opts.format),
+            raw: text
+          };
+        });
+      });
+    };
+
+    var promise = run().then(function (resp) {
+      if (timer) clearTimeout(timer);
+      if (aborted) throw new Error('cancel request');
+      cb(null, resp, resp.body);
+      return resp;
+    }).catch(function (error) {
+      if (timer) clearTimeout(timer);
+      var message = (error && error.message) || String(error);
+      var code = 'ENETWORK';
+      if (aborted) { message = 'cancel request'; code = 'ECANCELED'; }
+      else if (error && error.name === 'AbortError') { message = '请求超时'; code = 'ETIMEDOUT'; }
+      else if (/Failed to fetch|NetworkError|Load failed/i.test(message)) { message = '无法连接到服务器'; }
+      var err = new Error(message);
+      err.code = code;
+      cb(err);
+      throw err;
+    });
+
+    promise.catch(function () {});
+
+    return { promise: promise, cancel: cancel };
+  }
+
+  /** 与洛雪 httpFetch 同签名，返回 { promise, cancelHttp, isCancelled } */
+  function httpFetch(url, options) {
+    options = options || { method: 'get' };
+    var obj = { isCancelled: false, promise: null, cancelHttp: null, requestObj: null };
+
+    obj.cancelHttp = function () {
+      if (!obj.requestObj) { obj.isCancelled = true; return; }
+      obj.requestObj.cancel();
+      obj.requestObj = null;
+    };
+
+    obj.promise = new Promise(function (resolve, reject) {
+      obj.requestObj = fetchData(url, options.method || 'get', options, function (err, resp) {
+        obj.requestObj = null;
+        if (err) return reject(err);
+        resolve(resp);
+      });
+      if (obj.isCancelled) obj.cancelHttp();
+    });
+
+    return obj;
+  }
+
+  function httpGet(url, options, callback) {
+    if (typeof options === 'function') { callback = options; options = {}; }
+    return fetchData(url, 'get', options || {}, callback);
+  }
+
+  function httpPost(url, data, options, callback) {
+    if (typeof options === 'function') { callback = options; options = {}; }
+    options = options || {};
+    if (data != null && options.body == null && options.form == null) options.body = data;
+    return fetchData(url, 'post', options, callback);
+  }
+
+  root.LxRequest = {
+    httpFetch: httpFetch,
+    httpGet: httpGet,
+    httpPost: httpPost,
+    fetchData: fetchData
+  };
+})(window);

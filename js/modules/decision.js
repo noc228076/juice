@@ -1216,6 +1216,26 @@
     // 2. 绑定轮盘事件
     const btnSpin = document.getElementById('btnSpinWheel');
     if (btnSpin) btnSpin.onclick = spinWheel;
+    /* morphicons：启动按钮图标态（Zap↔Hourglass，转轮进行中显示沙漏）。
+       paint/vendor 都在核心包，但 init 同步段跑时 svg 尚未画好——延后一批执行 */
+    setTimeout(function () {
+      try {
+        window.paintLucideIcons(document.getElementById('btnSpinWheel'));
+        var wheelPath = document.querySelector('#btnSpinWheel .wheel-spin-ico path');
+        if (wheelPath && window.MorphDOM && window.LUCIDE_ICONS) {
+          wheelPath._morph = window.MorphDOM.createMorph(wheelPath, window.LUCIDE_ICONS.Zap, {});
+          var _origSpin = spinWheel;
+          spinWheel = function () {
+            try { wheelPath._morph.set(window.LUCIDE_ICONS.Hourglass); } catch (e) {}
+            var r = _origSpin.apply(this, arguments);
+            var check = setInterval(function () {
+              if (!isSpinningWheel) { try { wheelPath._morph.set(window.LUCIDE_ICONS.Zap); } catch (e) {} clearInterval(check); }
+            }, 400);
+            return r;
+          };
+        }
+      } catch (e) {}
+    }, 0);
 
     const btnAddOpt = document.getElementById('btnAddWheelOpt');
     const inputNewOpt = document.getElementById('wheelNewOptInput');

@@ -6,7 +6,7 @@ const fs = require('fs');
   const lucide = await import('lucide');
   const pick = {};
   const wanted = ['Play','Pause','Brain','BookOpen','Volume2','VolumeX','Sparkles','Check','CheckCircle2',
-    'X','ArrowRight','RotateCcw','RefreshCw','Coins','Dices','Wand2','Zap','Smile','Meh','Frown','Star','Award','GraduationCap',
+    'X','ArrowRight','RotateCcw','RefreshCw','Coins','Dices','Wand2','Hourglass','Zap','Smile','Meh','Frown','Star','Award','GraduationCap',
     'Flame','Eye','EyeOff','ChevronRight','Repeat','Shuffle'];
   for (const k of wanted) if (lucide[k]) pick[k] = lucide[k];
   console.log('lucide 图标子集:', Object.keys(pick).length, '个');

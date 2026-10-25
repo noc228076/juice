@@ -8,6 +8,10 @@
   --mod-ac-ink: #10120A;
   --mod-ac-glow: rgba(214, 255, 75, 0.35);
   --mod-ambient: rgba(214, 255, 75, 0.05);
+  /* 强调色的淡底：manual / vocab / music 都在用，
+     但此前全站没有定义，这些背景一直是透明的。
+     color-mix 让它自动跟随每个模块的 --mod-ac */
+  --mod-ac-soft: color-mix(in srgb, var(--mod-ac) 14%, transparent);
 }
 html[data-active-module="drinks"] {
   --mod-ac: #D6FF4B;

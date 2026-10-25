@@ -105,6 +105,31 @@
     return chain.then(function () { return results; });
   }
 
+  /* ---------------- 内置音源脚本 ---------------- */
+  /**
+   * 内置脚本随包发布，用户无需手动导入即可播放。
+   * 全部加载一遍，成功的进入沙箱，失败的静默跳过（不同脚本适配不同平台，
+   * 有的可能已失效，但不影响其他脚本工作）。
+   */
+  function loadBuiltinScripts() {
+    var data = root.LX_BUILTIN_SOURCES;
+    if (!Array.isArray(data) || !data.length) return Promise.resolve({ ok: 0, fail: 0 });
+
+    var ok = 0, fail = 0;
+    var chain = Promise.resolve();
+    data.forEach(function (item) {
+      chain = chain.then(function () {
+        return root.LxSandbox.load(item.script)
+          .then(function () { ok++; })
+          .catch(function () { fail++; });
+      });
+    });
+    return chain.then(function () {
+      console.log('[LxMusic] 内置音源: ' + ok + ' 个加载成功，' + fail + ' 个失败');
+      return { ok: ok, fail: fail };
+    });
+  }
+
   /* ---------------- 搜索 ---------------- */
   /**
    * 多平台搜索
@@ -112,9 +137,15 @@
    * @param {number} page
    * @returns {Promise<{list:Array, bySource:Object, errors:Array}>}
    */
-  function search(keyword, page) {
+  function search(keyword, page, onProgress) {
     registerAll();
-    return root.LxSources.searchAll(keyword, page || 1, 30);
+    return root.LxSources.searchAll(keyword, page || 1, 30, onProgress);
+  }
+
+  /** 搜索联想（平台热词 + 本地历史合并） */
+  function tipSearch(kw) {
+    var remote = root.LxTipSearch ? root.LxTipSearch.tipSearch(kw) : Promise.resolve([]);
+    return remote.catch(function () { return []; });
   }
 
   /* ---------------- 播放地址 ---------------- */
@@ -142,6 +173,30 @@
     return root.LxSandbox.getMusicUrl(track.source, musicInfo, quality || '128k');
   }
 
+  /**
+   * 自检：逐平台测搜索耗时。
+   * 用户反馈「转很久」时用来定位是哪个平台慢。
+   */
+  function diagnose() {
+    registerAll();
+    var ids = root.LxSources.list().map(function (x) { return x.id; });
+    var out = [];
+    var chain = Promise.resolve();
+    ids.forEach(function (id) {
+      chain = chain.then(function () {
+        var t0 = Date.now();
+        return root.LxSources.searchOne(id, '测试', 1, 5)
+          .then(function (r) {
+            out.push({ source: id, ms: Date.now() - t0, ok: true, count: r.list.length });
+          })
+          .catch(function (e) {
+            out.push({ source: id, ms: Date.now() - t0, ok: false, err: (e && e.message) || String(e) });
+          });
+      });
+    });
+    return chain.then(function () { return out; });
+  }
+
   /** 判断是否有可用音源（用于 UI 提示） */
   function hasSource() {
     return root.LxSandbox.hasAny();
@@ -154,12 +209,15 @@
   root.LxMusic = {
     ready: registerAll,
     search: search,
+    tipSearch: tipSearch,
     resolveUrl: resolveUrl,
     importScript: importScript,
     listScripts: listScripts,
     removeScript: removeScript,
     loadSavedScripts: loadSavedScripts,
+    loadBuiltinScripts: loadBuiltinScripts,
     hasSource: hasSource,
+    diagnose: diagnose,
     listLoaded: listLoaded,
     sources: function () { registerAll(); return root.LxSources.list(); }
   };

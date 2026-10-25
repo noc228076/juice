@@ -77,7 +77,7 @@
     page = page || 1;
     limit = limit || 30;
     retryNum = retryNum || 0;
-    if (retryNum > 2) return Promise.reject(new Error('酷我搜索重试次数用尽'));
+    if (retryNum > 0) return Promise.reject(new Error('酷我搜索失败'));
 
     var url = 'http://search.kuwo.cn/r.s?client=kt&all=' + encodeURIComponent(str)
       + '&pn=' + (page - 1) + '&rn=' + limit

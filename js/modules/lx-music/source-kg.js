@@ -64,7 +64,7 @@
     retryNum = retryNum || 0;
     page = page || 1;
     limit = limit || 30;
-    if (++retryNum > 3) return Promise.reject(new Error('酷狗搜索重试次数用尽'));
+    if (++retryNum > 1) return Promise.reject(new Error('酷狗搜索失败'));
 
     var url = 'http://songsearch.kugou.com/song_search_v2?platform=AndroidFilter&iscorrection=1'
       + '&keyword=' + encodeURIComponent(str)

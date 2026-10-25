@@ -58,6 +58,22 @@ const coreJsFiles = [
 ];
 
 // 顺序即依赖顺序：manual-data -> icon/report -> games -> controller
+
+/* 内置音源脚本：把 sources.json 转成 JS 全局变量，
+   避免运行时额外发一次 300KB 的 JSON 请求。 */
+(function generateBuiltinSources() {
+  const fs = require('fs');
+  const path = require('path');
+  const jsonPath = path.join(__dirname, 'js/modules/lx-music/builtin/sources.json');
+  const outPath = path.join(__dirname, 'js/modules/lx-music/builtin/sources.js');
+  if (!fs.existsSync(jsonPath)) {
+    fs.writeFileSync(outPath, 'window.LX_BUILTIN_SOURCES = [];' + String.fromCharCode(10), 'utf8');
+    return;
+  }
+  const data = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+  fs.writeFileSync(outPath, 'window.LX_BUILTIN_SOURCES = ' + JSON.stringify(data) + ';' + String.fromCharCode(10), 'utf8');
+})();
+
 const chunks = {
   manual: [
     'js/modules/manual-data.js',
@@ -88,6 +104,7 @@ const chunks = {
   vocab: ['js/modules/vocab-data.js', 'js/modules/vocab.js'],
   // 洛雪音源内核 + 音乐台：搜索走多平台接口，播放地址由自定义音源脚本提供
   music: [
+    'js/modules/lx-music/builtin/sources.js',
     'js/modules/lx-music/request.js',
     'js/modules/lx-music/utils.js',
     'js/modules/lx-music/aes.js',
@@ -96,6 +113,8 @@ const chunks = {
     'js/modules/lx-music/source-tx.js',
     'js/modules/lx-music/source-mg.js',
     'js/modules/lx-music/sources.js',
+    'js/modules/lx-music/tipSearch.js',
+    'js/modules/lx-music/lyric.js',
     'js/modules/lx-music/sandbox.js',
     'js/modules/lx-music/bridge.js',
     'js/modules/music.js'

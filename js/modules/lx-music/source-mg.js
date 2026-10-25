@@ -77,7 +77,7 @@
     page = page || 1;
     limit = limit || 20;
     retryNum = retryNum || 0;
-    if (++retryNum > 3) return Promise.reject(new Error('咪咕搜索重试次数用尽'));
+    if (++retryNum > 1) return Promise.reject(new Error('咪咕搜索失败'));
 
     var time = Date.now().toString();
     var signData = createSignature(time, str);

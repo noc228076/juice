@@ -16,13 +16,50 @@
   var PART_2_INDEXES = [16, 1, 32, 12, 19, 27, 8, 5];
   var SCRAMBLE_VALUES = [89, 39, 179, 150, 218, 82, 58, 252, 177, 52, 186, 123, 120, 64, 242, 133, 143, 161, 121, 179];
 
+  /**
+   * 纯 JS SHA-1。
+   *
+   * 不能用 crypto.subtle：它只在安全上下文（https / localhost）可用，
+   * 手机通过 http://内网IP 访问时 crypto.subtle 是 undefined，
+   * 调用会直接抛 TypeError 并让整个搜索 Promise 悬挂。
+   */
   function sha1Hex(text) {
-    var data = new TextEncoder().encode(text);
-    return crypto.subtle.digest('SHA-1', data).then(function (buf) {
-      return Array.prototype.map.call(new Uint8Array(buf), function (b) {
-        return b.toString(16).padStart(2, '0');
-      }).join('');
-    });
+    var bytes = new TextEncoder().encode(text);
+    var bitLen = bytes.length * 8;
+    // 补位：0x80 + 若干 0 + 64 位长度
+    var withPad = new Uint8Array((((bytes.length + 8) >> 6) + 1) << 6);
+    withPad.set(bytes);
+    withPad[bytes.length] = 0x80;
+    var view = new DataView(withPad.buffer);
+    view.setUint32(withPad.length - 8, Math.floor(bitLen / 4294967296), false);
+    view.setUint32(withPad.length - 4, bitLen >>> 0, false);
+
+    var h0 = 0x67452301, h1 = 0xEFCDAB89, h2 = 0x98BADCFE, h3 = 0x10325476, h4 = 0xC3D2E1F0;
+
+    function rol(n, s) { return ((n << s) | (n >>> (32 - s))) >>> 0; }
+
+    var w = new Uint32Array(80);
+    for (var off = 0; off < withPad.length; off += 64) {
+      for (var i = 0; i < 16; i++) w[i] = view.getUint32(off + i * 4, false);
+      for (var j = 16; j < 80; j++) w[j] = rol(w[j - 3] ^ w[j - 8] ^ w[j - 14] ^ w[j - 16], 1);
+
+      var a = h0, b = h1, c = h2, d = h3, e = h4;
+      for (var k = 0; k < 80; k++) {
+        var f, kk;
+        if (k < 20) { f = (b & c) | (~b & d); kk = 0x5A827999; }
+        else if (k < 40) { f = b ^ c ^ d; kk = 0x6ED9EBA1; }
+        else if (k < 60) { f = (b & c) | (b & d) | (c & d); kk = 0x8F1BBCDC; }
+        else { f = b ^ c ^ d; kk = 0xCA62C1D6; }
+        var tmp = (rol(a, 5) + f + e + kk + w[k]) >>> 0;
+        e = d; d = c; c = rol(b, 30); b = a; a = tmp;
+      }
+      h0 = (h0 + a) >>> 0; h1 = (h1 + b) >>> 0; h2 = (h2 + c) >>> 0;
+      h3 = (h3 + d) >>> 0; h4 = (h4 + e) >>> 0;
+    }
+
+    return [h0, h1, h2, h3, h4].map(function (n) {
+      return n.toString(16).padStart(8, '0');
+    }).join('');
   }
 
   function pickHashByIdx(hash, indexes) {
@@ -36,7 +73,8 @@
   }
 
   function zzcSign(text) {
-    return sha1Hex(text).then(function (hash) {
+    var hash = sha1Hex(text);
+    return (function () {
       var part1 = pickHashByIdx(hash, PART_1_INDEXES);
       var part2 = pickHashByIdx(hash, PART_2_INDEXES);
       var part3 = SCRAMBLE_VALUES.map(function (value, i) {
@@ -44,7 +82,7 @@
       });
       var b64Part = base64Encode(part3).replace(/[\\/+=]/g, '');
       return ('zzc' + part1 + b64Part + part2).toLowerCase();
-    });
+    })();
   }
 
   function getSearchId() {
@@ -54,13 +92,12 @@
   }
 
   function signRequest(data) {
-    return zzcSign(JSON.stringify(data)).then(function (sign) {
-      return R.httpFetch('https://u.y.qq.com/cgi-bin/musics.fcg?sign=' + sign, {
-        method: 'post',
-        headers: { 'User-Agent': 'QQMusic 14090508(android 12)' },
-        body: data
-      }).promise;
-    });
+    var sign = zzcSign(JSON.stringify(data));
+    return R.httpFetch('https://u.y.qq.com/cgi-bin/musics.fcg?sign=' + sign, {
+      method: 'post',
+      headers: { 'User-Agent': 'QQMusic 14090508(android 12)' },
+      body: data
+    }).promise;
   }
 
   function filterData(rawData) {
@@ -109,7 +146,7 @@
     page = page || 1;
     limit = limit || 50;
     retryNum = retryNum || 0;
-    if (retryNum > 5) return Promise.reject(new Error('企鹅搜索失败'));
+    if (retryNum > 1) return Promise.reject(new Error('企鹅搜索失败'));
 
     var payload = {
       comm: {

@@ -22,26 +22,32 @@
       volume: 0.8,
       repeat: 'all',           // off | all | one
       shuffle: false,
-      direct: [],              // 直链歌单 [{id,title,artist,cover,url}]
-      sources: [],             // [{id,name,code}]
-      localMeta: [],           // 本机文件元数据 [{title,size}]（刷新后需重新关联）
-      folderName: '',
-      /* 内置开源音源：audius（免 key）/ jamendo（免费 key）/ custom（自定义脚本） */
-      src: { builtin: 'audius', jamendoKey: '' }
+      /* 音源固定为在线聚合（洛雪内核），不再提供 Audius/Jamendo 等备选 */
+      src: { builtin: 'lx' },
+      /* 歌单：{ id, name, tracks: [] }，收藏是 id='love' 的固定歌单 */
+      lists: [],
+      /* 搜索历史，供联想使用 */
+      history: []
     };
   }
   var state = defaultState();
 
   function loadState() {
+    // 歌词开关独立存储：与歌单数据分开，避免旧版本数据覆盖
+    try {
+      var ly = localStorage.getItem('juice_music_show_lyric');
+      if (ly !== null) showLyric = ly === '1';
+    } catch (e) {}
     try {
       var raw = localStorage.getItem(LS_KEY);
       if (!raw) return;
       var d = JSON.parse(raw);
       if (d && typeof d === 'object') {
         state = Object.assign(defaultState(), d);
-        if (!state.src || !state.src.builtin) {
-          state.src = { builtin: 'audius', jamendoKey: (state.src && state.src.jamendoKey) || '' };
-        }
+        // 只保留在线聚合（洛雪内核）——旧版本的 audius/jamendo 分支已删除，
+        // 若沿用旧值会走进不存在的搜索路径且界面上没有切回入口
+        state.src = state.src && typeof state.src === 'object' ? state.src : {};
+        state.src.builtin = 'lx';
       }
     } catch (e) { state = defaultState(); }
   }
@@ -112,8 +118,14 @@
     a.play().catch(function () { /* 自动播放策略被拦：等用户点播放 */ });
     updateMediaSession();
     syncPlayUI(!a.paused);
+    syncBarMeta();
+    syncBarVisibility();
     renderIfActive();
     renderMini();
+    // 切歌后换歌词；沉浸页开着就立即刷新
+    lastLyricIndex = -1;
+    loadLyricFor(cur);
+    if (immEl) refreshImmersiveLyric();
   }
 
   function togglePlay() {
@@ -164,11 +176,15 @@
     for (var k = 0; k < durs.length; k++) durs[k].textContent = fmtTime(d);
     var sliders = document.querySelectorAll('.mu-seek');
     for (var m = 0; m < sliders.length; m++) {
+      // range 默认 max=100，超过 100 秒的歌会把滑块钉死在 100s
+      if (d) sliders[m].max = String(d);
       if (document.activeElement !== sliders[m] && d) sliders[m].value = String(t);
     }
     if ('mediaSession' in navigator && audio && audio.duration) {
       try { navigator.mediaSession.setPositionState({ duration: audio.duration, playbackRate: 1, position: t }); } catch (e) {}
     }
+    // 沉浸页开着时同步歌词高亮
+    if (immEl) highlightLyric(t);
   }
 
   function onEnded() { nextTrack(true); }
@@ -447,6 +463,115 @@
     }
   }
 
+  /* ---------------- 歌单与收藏 ---------------- */
+  var LOVE_ID = 'love';
+
+  function ensureLoveList() {
+    var love = state.lists.filter(function (l) { return l.id === LOVE_ID; })[0];
+    if (!love) {
+      love = { id: LOVE_ID, name: '我的收藏', tracks: [] };
+      state.lists.unshift(love);
+      saveState();
+    }
+    return love;
+  }
+
+  function getList(id) {
+    ensureLoveList();
+    return state.lists.filter(function (l) { return l.id === id; })[0] || null;
+  }
+
+  /** 判断某首歌是否已在指定歌单里（按 source+songmid 判重） */
+  function inList(listId, track) {
+    var l = getList(listId);
+    if (!l || !track) return false;
+    var key = trackKey(track);
+    return l.tracks.some(function (t) { return trackKey(t) === key; });
+  }
+
+  function trackKey(t) {
+    if (!t) return '';
+    if (t.track) return t.track.source + '|' + t.track.songmid;
+    return t.id || (t.title + '|' + t.artist);
+  }
+
+  /** 加入歌单；返回 true 表示新增，false 表示已存在 */
+  function addToList(listId, track) {
+    var l = getList(listId);
+    if (!l || !track) return false;
+    if (inList(listId, track)) return false;
+    // 只存必要字段，播放地址不落盘（音源地址会过期）
+    l.tracks.push({
+      id: track.id,
+      title: track.title,
+      artist: track.artist,
+      cover: track.cover || '',
+      source: track.source || (track.track && track.track.source) || '',
+      interval: track.interval || '',
+      track: track.track || null
+    });
+    saveState();
+    return true;
+  }
+
+  function removeFromList(listId, track) {
+    var l = getList(listId);
+    if (!l) return false;
+    var key = trackKey(track);
+    var before = l.tracks.length;
+    l.tracks = l.tracks.filter(function (t) { return trackKey(t) !== key; });
+    saveState();
+    return l.tracks.length < before;
+  }
+
+  function createList(name) {
+    name = String(name || '').trim();
+    if (!name) return null;
+    var item = { id: 'list_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5), name: name, tracks: [] };
+    state.lists.push(item);
+    saveState();
+    return item;
+  }
+
+  function removeList(id) {
+    if (id === LOVE_ID) return false;
+    state.lists = state.lists.filter(function (l) { return l.id !== id; });
+    saveState();
+    return true;
+  }
+
+  function toggleLove(track) {
+    if (inList(LOVE_ID, track)) {
+      removeFromList(LOVE_ID, track);
+      return false;
+    }
+    addToList(LOVE_ID, track);
+    return true;
+  }
+
+  /* ---------------- 搜索历史（联想用） ---------------- */
+  function addHistory(kw) {
+    kw = String(kw || '').trim();
+    if (!kw) return;
+    state.history = [kw].concat(state.history.filter(function (x) { return x !== kw; })).slice(0, 20);
+    saveState();
+  }
+
+  /** 按前缀/包含匹配历史，最多 8 条 */
+  function matchHistory(kw) {
+    kw = String(kw || '').trim().toLowerCase();
+    if (!kw) return state.history.slice(0, 8);
+    return state.history.filter(function (x) {
+      return x.toLowerCase().indexOf(kw) > -1;
+    }).slice(0, 8);
+  }
+
+  var activeListId = 'love';   // 当前查看的歌单
+  var searching = false;       // 搜索进行中，用于按钮/骨架屏状态
+  var searchProgress = '';     // 逐源进度文案
+  var showLyric = true;        // 沉浸页是否显示歌词
+  var currentLyric = null;     // { parsed: [{time,text}], source }
+  var lyricTrackKey = '';      // 当前歌词对应的歌，避免重复请求
   var searchResults = [];      // [{title,artist,cover,url,track}]
   function runSearch(kw) {
     if (!kw) return;
@@ -455,8 +580,22 @@
     /* ---- 洛雪多平台聚合搜索 ---- */
     if (mode === 'lx') {
       if (!window.LxMusic) { toast('音源内核未加载'); return; }
-      toast('搜索中…');
-      window.LxMusic.search(kw, 1).then(function (res) {
+      searching = true;
+      searchProgress = '正在连接各平台…';
+      renderHome();
+      window.LxMusic.search(kw, 1, function (p) {
+        // 实时进度：让用户看到具体哪个平台慢，而不是无限转圈
+        if (p.phase === 'start') {
+          searchProgress = '正在请求 ' + p.source + '（0/' + p.total + '）…';
+        } else {
+          searchProgress = '已完成 ' + p.done + '/' + p.total + ' 个平台' +
+            (p.last && p.last.id ? '（' + p.last.id + ' ' + p.ms + 'ms）' : '') + '…';
+        }
+        var tip = document.querySelector('.mu-loading-text');
+        if (tip) tip.textContent = searchProgress;
+      }).then(function (res) {
+        searching = false;
+        searchProgress = '';
         searchResults = res.list.map(function (t) {
           return {
             kind: 'search',
@@ -470,13 +609,17 @@
             interval: t.interval
           };
         });
-        renderIfActive();
+        renderHome();
         if (!searchResults.length) {
           toast(res.errors.length ? ('没有搜到结果（' + res.errors[0].message + '）') : '没有搜到结果');
         } else if (res.errors.length) {
           toast('搜到 ' + searchResults.length + ' 首，' + res.errors.length + ' 个平台失败');
         }
       }).catch(function (e) {
+        // 失败也要复位，否则 spinner 会一直转
+        searching = false;
+        searchProgress = '';
+        renderHome();
         toast('搜索失败：' + (e && e.message ? e.message : 'unknown'));
       });
       return;
@@ -546,13 +689,25 @@
   /* ---------------- UI：主屏 ---------------- */
   function listRowHtml(t, i, listName) {
     var active = cur && cur.url === t.url && qName === listName;
-    var dur = t.durMs ? fmtTime(t.durMs / 1000) : '';
+    var loved = inList(LOVE_ID, t);
+    // 时长：洛雪结果直接给 interval 字符串（如 04:35），本机文件给 durMs
+    var dur = t.interval || (t.durMs ? fmtTime(t.durMs / 1000) : '');
+    var sub = [t.artist, t.source ? String(t.source).toUpperCase() : ''].filter(Boolean).join(' · ');
+    var playing = active && audio && !audio.paused;
     return '<div class="mu-row' + (active ? ' active' : '') + '" data-play="' + listName + '" data-idx="' + i + '">' +
-      '<span class="mu-row-ico">' + (active && audio && !audio.paused ? '▶' : '♪') + '</span>' +
+      '<span class="mu-row-ico">' +
+        (t.cover
+          ? '<img src="' + esc(t.cover) + '" alt="" loading="lazy">'
+          : (playing ? '▶' : '♪')) +
+      '</span>' +
       '<span class="mu-row-main"><b>' + esc(t.title) + '</b>' +
-      (t.artist ? '<i>' + esc(t.artist) + '</i>' : '') + '</span>' +
+        (sub ? '<i>' + esc(sub) + '</i>' : '') +
+      '</span>' +
       (dur ? '<span class="mu-row-dur">' + dur + '</span>' : '') +
-      '<span class="mu-row-go">播放</span>' +
+      '<span class="mu-row-ops">' +
+        '<button class="mu-love' + (loved ? ' on' : '') + '" data-love="' + i + '" title="' + (loved ? '取消收藏' : '收藏') + '">' + (loved ? '♥' : '♡') + '</button>' +
+        '<button class="mu-addlist" data-addlist="' + i + '" title="加入歌单">＋</button>' +
+      '</span>' +
       '</div>';
   }
 
@@ -600,49 +755,107 @@
     '};';
 
   function searchHtml() {
+    // 音源固定为在线聚合（洛雪内核）
     var lxReady = !!(window.LxMusic);
     var hasSrc = lxReady && window.LxMusic.hasSource();
-    var chips = [
-      { k: 'lx', label: '🎵 在线曲库', tip: '酷我/酷狗/企鹅/咪咕 多平台聚合搜索' },
-      { k: 'audius', label: ' Audius', tip: '去中心化音乐平台 · 免 Key · 全曲播放' },
-      { k: 'jamendo', label: ' Jamendo', tip: '55 万+ CC 协议曲库 · 需免费 Client ID' }
-    ];
-    var cur = state.src.builtin === 'custom' ? 'lx' : state.src.builtin;
-    var chipsHtml = '<div class="mu-src-chips">' + chips.map(function (c) {
-      return '<button type="button" class="mu-src-chip' + (cur === c.k ? ' active' : '') +
-        '" data-builtin="' + c.k + '" title="' + esc(c.tip) + '">' + c.label + '</button>';
-    }).join('') + '</div>';
-
     var srcHint = '';
-    if (cur === 'lx') {
-      if (!hasSrc) {
-        srcHint = '<p class="mu-note warn">⚠️ 还没有可用的音源脚本。在线曲库负责「搜到歌」，' +
-          '播放地址需要音源脚本提供——去「音源脚本」页导入一个（.js 文件或粘贴内容）。</p>';
-      } else {
-        var loaded = window.LxMusic.listLoaded();
-        srcHint = '<p class="mu-note">✅ 已加载 ' + loaded.length + ' 个音源：' +
-          loaded.map(function (x) { return esc(x.name); }).join('、') + '</p>';
-      }
+    if (!hasSrc) {
+      srcHint = '<p class="mu-note warn">还没有可用的音源脚本。曲库负责搜到歌，' +
+        '播放地址需要音源脚本提供——去「音源」页导入一个。</p>';
     }
 
     return '<div class="mu-panel">' +
-      '<h3 class="mu-h3">📡 选择曲库</h3>' +
-      '<p class="mu-note">「在线曲库」聚合酷我/酷狗/企鹅/咪咕四个平台的搜索结果，' +
-        '播放地址由你导入的音源脚本提供。</p>' +
-      chipsHtml +
       srcHint +
-      (cur === 'jamendo'
-        ? '<div class="mu-keyrow"><input class="mu-input" id="muJmKey" placeholder="Jamendo Client ID" value="' + esc(state.src.jamendoKey || '') + '">' +
-          '<button class="mu-btn" id="muJmKeySave">保存</button></div>' +
-          '<p class="mu-note">到 devportal.jamendo.com 免费注册一个应用即可拿到 Client ID。</p>'
-        : '') +
       '<div class="mu-searchbar">' +
-        '<input class="mu-input" id="muSearchKw" placeholder="输入歌名 / 歌手，回车或点搜索…">' +
-        '<button class="mu-btn primary" id="muSearchBtn">🔍 搜索</button>' +
+        '<div class="mu-search-wrap">' +
+          '<input class="mu-input" id="muSearchKw" autocomplete="off" placeholder="歌名或歌手">' +
+          '<div class="mu-suggest" id="muSuggest" hidden></div>' +
+        '</div>' +
+        '<button class="mu-btn primary" id="muSearchBtn"' + (searching ? ' disabled' : '') + '>' + (searching ? '搜索中' : '搜索') + '</button>' +
       '</div>' +
-      (searchResults.length
-        ? '<div class="mu-list">' + searchResults.map(function (t, i) { return listRowHtml(t, i, '搜索结果'); }).join('') + '</div>'
-        : '<div class="mu-empty">' + (cur === 'lx' ? '搜点什么听听——支持歌名 / 歌手' : '默认用 Audius（免登录、全曲播放）') + '</div>') +
+      (searching
+        ? '<div class="mu-loading"><span class="mu-spinner"></span><span class="mu-loading-text">' + esc(searchProgress || '正在搜索…') + '</span></div>'
+        : searchResults.length
+          ? '<div class="mu-list">' + searchResults.map(function (t, i) { return listRowHtml(t, i, '搜索结果'); }).join('') + '</div>'
+          : '<div class="mu-empty">搜点什么听听——支持歌名 / 歌手</div>') +
+    '</div>';
+  }
+
+  /* ---------------- 加入歌单弹层 ---------------- */
+  var addTargetIndex = -1;   // 当前要加入歌单的搜索结果索引
+
+  function addListModalHtml() {
+    if (addTargetIndex < 0) return '';
+    ensureLoveList();
+    var items = state.lists.map(function (l) {
+      return '<button class="mu-pick-list" data-pick-list="' + l.id + '">' +
+        esc(l.name) +
+        '<span class="mu-pick-count">' + l.tracks.length + '</span>' +
+        '</button>';
+    }).join('');
+    return '<div class="mu-modal-mask" id="muAddListMask">' +
+      '<div class="mu-modal-box">' +
+        '<h4 class="mu-modal-title">加入歌单</h4>' +
+        '<div class="mu-pick-lists">' + items + '</div>' +
+        '<div class="mu-modal-ops">' +
+          '<button class="mu-btn" id="muPickNew">新建歌单</button>' +
+          '<button class="mu-btn" id="muPickCancel">取消</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }
+
+  /* ---------------- UI：我的歌单 ---------------- */
+  function listsHtml() {
+    ensureLoveList();
+    var current = state.lists.filter(function (l) { return l.id === activeListId; })[0] || state.lists[0];
+    if (current) activeListId = current.id;
+
+    var listTabs = state.lists.map(function (l) {
+      var isActive = current && l.id === current.id;
+      return '<button class="mu-list-tab' + (isActive ? ' active' : '') + '" data-list-tab="' + l.id + '">' +
+        esc(l.name) +
+        '<span class="mu-list-count">' + l.tracks.length + '</span></button>';
+    }).join('');
+
+    var rows = '';
+    if (current && current.tracks.length) {
+      rows = '<div class="mu-list">' + current.tracks.map(function (t, i) {
+        // 歌单里的条目结构是 { title, artist, track }，跟搜索结果不同，
+        // 这里按 trackKey 判正在播放，才能跟搜索页一样有竖条 + 变色
+        var active = !!cur && trackKey(cur) === trackKey(t);
+        var inner = t.track || t;
+        var sub = [t.artist || inner.singer, String(inner.source || t.source || '').toUpperCase()].filter(Boolean).join(' · ');
+        var dur = t.interval || inner.interval || '';
+        return '<div class="mu-row' + (active ? ' active' : '') + '" data-list-play="' + i + '">' +
+          '<span class="mu-row-ico">' +
+            (t.cover || inner.img
+              ? '<img src="' + esc(t.cover || inner.img) + '" alt="" loading="lazy">'
+              : (active ? '▶' : '♪')) +
+          '</span>' +
+          '<span class="mu-row-main"><b>' + esc(t.title) + '</b>' +
+            (sub ? '<i>' + esc(sub) + '</i>' : '') + '</span>' +
+          (dur ? '<span class="mu-row-dur">' + esc(dur) + '</span>' : '') +
+          '<span class="mu-row-ops">' +
+            '<button class="mu-addlist" data-list-remove="' + i + '" title="从歌单移除">✕</button>' +
+          '</span></div>';
+      }).join('') + '</div>';
+    } else {
+      rows = '<div class="mu-empty">' +
+        (current && current.id === LOVE_ID
+          ? '在搜索结果里点 ♡ 收藏喜欢的歌'
+          : '这个歌单还是空的') + '</div>';
+    }
+
+    return '<div class="mu-panel">' +
+      '<div class="mu-list-tabs">' + listTabs + '</div>' +
+      '<div class="mu-btns">' +
+        '<button class="mu-btn" id="muListNew">新建歌单</button>' +
+        (current && current.id !== LOVE_ID
+          ? '<button class="mu-btn danger" id="muListDel">删除此歌单</button>'
+          : '') +
+      '</div>' +
+      rows +
     '</div>';
   }
 
@@ -663,18 +876,17 @@
 
     var status = '';
     if (loaded.length) {
-      status = '<p class="mu-note ok">✅ 运行中：' + loaded.map(function (x) {
+      status = '<p class="mu-note ok">运行中：' + loaded.map(function (x) {
         return esc(x.name) + '（' + x.sources.join('/') + '）';
       }).join('、') + '</p>';
     }
 
     return '<div class="mu-panel">' +
-      '<h3 class="mu-h3">🧩 音源脚本</h3>' +
-      '<p class="mu-note">洛雪的音源脚本只负责「把歌名换成播放地址」，搜索由内置的多平台接口完成。' +
+      '<p class="mu-note">音源脚本只负责把歌名换成播放地址，搜索由内置的多平台接口完成。' +
         '脚本只存在你本机浏览器，本站服务器不经手任何脚本内容。</p>' +
       status +
       '<div class="mu-btns">' +
-        '<button class="mu-btn primary" id="muLxPickFile">📂 导入 .js 文件</button>' +
+        '<button class="mu-btn primary" id="muLxPickFile">导入 .js 文件</button>' +
         '<input type="file" id="muLxFileInput" accept=".js,text/javascript" hidden>' +
       '</div>' +
       '<textarea class="mu-textarea mono" id="muLxCode" rows="6" placeholder="或直接粘贴脚本内容…"></textarea>' +
@@ -685,49 +897,82 @@
     '</div>';
   }
 
-  /* 播放器条（常驻主屏顶部） */
+  /* 播放器条（固定底部，64px 三列） */
   function playerBarHtml() {
     var playing = audio && cur && !audio.paused;
     var cover = cur && cur.cover;
     return '<div class="mu-player">' +
+      // 2px 进度条贴顶边缘
+      '<div class="mu-bar"><span class="mu-time mu-time-cur">0:00</span>' +
+        '<div class="mu-bar-progress"><i></i></div>' +
+        '<input type="range" class="mu-seek" min="0" step="0.1" value="0">' +
+        '<span class="mu-time mu-time-dur">0:00</span></div>' +
+      // 左列：封面 + 标题
       '<div class="mu-disc' + (playing ? ' spin' : '') + '" id="muDisc">' +
-        (cover ? '<img src="' + esc(cover) + '" alt="">' : '<span>🎧</span>') +
+        (cover ? '<img src="' + esc(cover) + '" alt="">' : '<span>♪</span>') +
       '</div>' +
-      '<div class="mu-player-main">' +
-        '<div class="mu-player-title">' + (cur ? esc(cur.title) : '未在播放') +
-          (cur && cur.artist ? ' <i>· ' + esc(cur.artist) + '</i>' : '') + '</div>' +
-        '<div class="mu-bar"><span class="mu-time mu-time-cur">0:00</span>' +
-          '<div class="mu-bar-progress"><i></i></div>' +
-          '<input type="range" class="mu-seek" min="0" step="0.1" value="0">' +
-          '<span class="mu-time mu-time-dur">0:00</span></div>' +
-        '<div class="mu-ops">' +
-          '<button class="mu-op" id="muPrev" title="上一首">⏮</button>' +
-          '<button class="mu-op big" id="muToggle" title="播放/暂停">' + (playing ? '⏸' : '▶') + '</button>' +
-          '<button class="mu-op" id="muNext" title="下一首">⏭</button>' +
-          '<button class="mu-op' + (state.shuffle ? ' on' : '') + '" id="muShuffle" title="随机">🔀</button>' +
-          '<button class="mu-op' + (state.repeat !== 'off' ? ' on' : '') + '" id="muRepeat" title="循环：' + state.repeat + '">🔁</button>' +
-          '<span class="mu-volwrap">🔊<input type="range" class="mu-vol" min="0" max="1" step="0.01" value="' + state.volume + '"></span>' +
-          '<button class="mu-op imm" id="muImmersive" title="沉浸模式">⛶</button>' +
-        '</div>' +
+      '<div class="mu-player-title">' + (cur ? esc(cur.title) : '未在播放') +
+        (cur && cur.artist ? ' <i>· ' + esc(cur.artist) + '</i>' : '') + '</div>' +
+      // 中列：传输控件
+      '<div class="mu-ops mu-ops-main">' +
+        '<button class="mu-op" id="muPrev" title="上一首">⏮</button>' +
+        '<button class="mu-op big" id="muToggle" title="播放/暂停">' + (playing ? '⏸' : '▶') + '</button>' +
+        '<button class="mu-op" id="muNext" title="下一首">⏭</button>' +
+      '</div>' +
+      // 右列：模式 / 音量 / 沉浸
+      '<div class="mu-ops mu-ops-side">' +
+        '<button class="mu-op' + (state.shuffle ? ' on' : '') + '" id="muShuffle" title="随机">🔀</button>' +
+        '<button class="mu-op' + (state.repeat !== 'off' ? ' on' : '') + '" id="muRepeat" title="循环：' + state.repeat + '">🔁</button>' +
+        '<span class="mu-volwrap">🔊<input type="range" class="mu-vol" min="0" max="1" step="0.01" value="' + state.volume + '"></span>' +
+        '<button class="mu-op imm" id="muImmersive" title="沉浸模式">⛶</button>' +
       '</div>' +
     '</div>';
   }
 
   function homeHtml() {
     var tabs = [
-      ['search', '🔍 在线搜歌'],
-      ['local', '📁 本机音乐'],
-      ['links', '🔗 直链歌单'],
-      ['script', '🧩 音源脚本']
+      ['search', '搜索'],
+      ['lists', '歌单'],
+      ['script', '音源']
     ];
-    return playerBarHtml() +
+    return '<div class="mu-wrap">' +
+      '<div class="mu-header">' +
+        '<div class="mu-mark">♪</div>' +
+        '<div class="mu-headtext">' +
+          '<h2 class="mu-title">我的音乐台</h2>' +
+          '<p class="mu-sub">' + sourceStatusText() + '</p>' +
+        '</div>' +
+      '</div>' +
       '<div class="mu-tabs">' + tabs.map(function (t) {
         return '<button class="mu-tab' + (tab === t[0] ? ' active' : '') + '" data-mu-tab="' + t[0] + '">' + t[1] + '</button>';
       }).join('') + '</div>' +
       (tab === 'search' ? searchHtml()
-        : tab === 'local' ? localHtml()
-        : tab === 'links' ? linksHtml()
-        : scriptHtml());
+        : tab === 'lists' ? listsHtml()
+        : scriptHtml()) +
+      '</div>';
+  }
+
+  /**
+   * 加入歌单弹层挂到 body。
+   * 放在 #muRoot 里会被 #modules-viewport（z-index:1，自成层叠上下文）压住，
+   * 而播放条在 body 上 z-index:340，会盖在遮罩之上，导致弹层开着还能点播放。
+   */
+  function mountAddListModal() {
+    var old = document.getElementById('muAddListMask');
+    if (old) old.remove();
+    if (addTargetIndex < 0) return;
+    var host = document.createElement('div');
+    host.innerHTML = addListModalHtml();
+    var mask = host.firstElementChild;
+    if (mask) document.body.appendChild(mask);
+  }
+
+  /** 头部副标题：用真实状态代替空泛文案 */
+  function sourceStatusText() {
+    if (!window.LxMusic) return '音源未就绪';
+    var loaded = window.LxMusic.listLoaded ? window.LxMusic.listLoaded() : [];
+    if (!loaded.length) return '未加载音源脚本';
+    return loaded.map(function (x) { return x.name; }).join(' · ');
   }
 
   function renderIfActive() {
@@ -737,33 +982,105 @@
 
   function renderHome() {
     if (!el) return;
+
+    // 整块重建 DOM 会让输入框丢值（新元素没有旧值）。
+    // 重建前记下当前输入与焦点，重建后恢复，避免用户打字被打断。
+    var prevInput = el.querySelector('#muSearchKw');
+    var prevValue = prevInput ? prevInput.value : '';
+    var hadFocus = prevInput && document.activeElement === prevInput;
+
     el.innerHTML = homeHtml();
+    mountPlayerBar();
+    mountAddListModal();
     bindHome();
     onProgress();
+
+    if (prevValue) {
+      var next = el.querySelector('#muSearchKw');
+      if (next) {
+        next.value = prevValue;
+        if (hadFocus) next.focus();
+      }
+    }
   }
 
-  function bindHome() {
-    el.querySelectorAll('[data-mu-tab]').forEach(function (b) {
-      b.onclick = function () { tab = b.getAttribute('data-mu-tab'); renderHome(); };
-    });
-    var toggle = el.querySelector('#muToggle'); if (toggle) toggle.onclick = togglePlay;
-    var prev = el.querySelector('#muPrev'); if (prev) prev.onclick = prevTrack;
-    var next = el.querySelector('#muNext'); if (next) next.onclick = function () { nextTrack(false); };
-    var shuf = el.querySelector('#muShuffle');
+  /**
+   * 播放条挂到 body 上。
+   * #modules-viewport 是 position:fixed 的滚动容器，fixed 子元素会以它为包含块，
+   * 导致 bottom:0 对不齐真实视口底部；挂 body 才真正贴底。
+   */
+  function mountPlayerBar() {
+    var old = document.getElementById('muPlayerBar');
+    if (old) old.remove();
+    var html = playerBarHtml();
+    var host = document.createElement('div');
+    host.innerHTML = html;
+    var bar = host.firstElementChild;
+    if (!bar) return;
+    bar.id = 'muPlayerBar';
+    document.body.appendChild(bar);
+    bindPlayerBar(bar);
+    syncBarVisibility();
+  }
+
+  /** 只在音乐模块内显示播放条；其它模块交给右下角迷你条，避免遮住别人的内容 */
+  function syncBarVisibility() {
+    var bar = document.getElementById('muPlayerBar');
+    if (!bar) return;
+    var host = document.getElementById('mod-music');
+    var inMusic = !!(host && host.classList.contains('active'));
+    bar.style.display = (inMusic || immEl) ? '' : 'none';
+    renderMini();
+  }
+
+  /** 模块不活跃时切歌：播放条没被重建，标题/封面得手动同步 */
+  function syncBarMeta() {
+    var bar = document.getElementById('muPlayerBar');
+    if (!bar) return;
+    var titleEl = bar.querySelector('.mu-player-title');
+    if (titleEl) {
+      titleEl.innerHTML = (cur ? esc(cur.title) : '未在播放') +
+        (cur && cur.artist ? ' <i>· ' + esc(cur.artist) + '</i>' : '');
+    }
+    var disc = bar.querySelector('#muDisc');
+    if (disc) {
+      disc.innerHTML = (cur && cur.cover)
+        ? '<img src="' + esc(cur.cover) + '" alt="">'
+        : '<span>♪</span>';
+    }
+  }
+
+  /** 播放条在 body 上，单独绑定 */
+  function bindPlayerBar(bar) {
+    var toggle = bar.querySelector('#muToggle'); if (toggle) toggle.onclick = togglePlay;
+    var prev = bar.querySelector('#muPrev'); if (prev) prev.onclick = prevTrack;
+    var next = bar.querySelector('#muNext'); if (next) next.onclick = function () { nextTrack(false); };
+    var shuf = bar.querySelector('#muShuffle');
     if (shuf) shuf.onclick = function () { state.shuffle = !state.shuffle; saveState(); renderHome(); };
-    var rep = el.querySelector('#muRepeat');
+    var rep = bar.querySelector('#muRepeat');
     if (rep) rep.onclick = function () {
       state.repeat = state.repeat === 'off' ? 'all' : state.repeat === 'all' ? 'one' : 'off';
       saveState(); renderHome();
       toast('循环：' + ({ off: '关闭', all: '列表循环', one: '单曲循环' })[state.repeat]);
     };
-    var vol = el.querySelector('.mu-vol');
+    var vol = bar.querySelector('.mu-vol');
     if (vol) vol.oninput = function () { setVolume(parseFloat(vol.value)); };
-    var seek = el.querySelector('.mu-seek');
+    var seek = bar.querySelector('.mu-seek');
     if (seek) seek.oninput = function () {
       if (audio && audio.duration) audio.currentTime = parseFloat(seek.value);
     };
-    var imm = el.querySelector('#muImmersive'); if (imm) imm.onclick = openImmersive;
+    var imm = bar.querySelector('#muImmersive'); if (imm) imm.onclick = openImmersive;
+  }
+
+  function bindHome() {
+    el.querySelectorAll('[data-mu-tab]').forEach(function (b) {
+      b.onclick = function () {
+        tab = b.getAttribute('data-mu-tab');
+        // 切页时顺手关掉「加入歌单」弹层，否则它会跟着新页面一起重建
+        addTargetIndex = -1;
+        renderHome();
+      };
+    });
 
     // 列表播放
     el.querySelectorAll('[data-play]').forEach(function (r) {
@@ -879,16 +1196,338 @@
     });
     var sbtn = el.querySelector('#muSearchBtn');
     var skw = el.querySelector('#muSearchKw');
-    if (sbtn && skw) {
-      sbtn.onclick = function () { runSearch(skw.value.trim()); };
-      skw.onkeydown = function (e) { if (e.key === 'Enter') runSearch(skw.value.trim()); };
+    var sug = el.querySelector('#muSuggest');
+
+    /* ---- 搜索联想：按输入实时匹配历史 + 平台热词 ---- */
+    var suggestTimer = null;
+    var suggestSeq = 0;
+
+    /* 联想：本地历史立即出，平台热词异步补上（防抖 250ms） */
+    function renderSuggest() {
+      if (!sug || !skw) return;
+      var kw = skw.value.trim();
+      var hist = matchHistory(kw);
+      var seq = ++suggestSeq;
+
+      function paint(remote) {
+        if (seq !== suggestSeq) return;   // 输入已变，丢弃旧结果
+        var html = '';
+        if (remote && remote.length) {
+          html += '<div class="mu-suggest-head">搜索建议</div>' +
+            remote.map(function (x) {
+              return '<div class="mu-suggest-item" data-sug="' + esc(x) + '">🔎 ' + esc(x) + '</div>';
+            }).join('');
+        }
+        if (hist.length) {
+          html += '<div class="mu-suggest-head">搜索历史</div>' +
+            hist.map(function (x) {
+              return '<div class="mu-suggest-item" data-sug="' + esc(x) + '">🕘 ' + esc(x) + '</div>';
+            }).join('');
+        }
+        if (kw) {
+          html += '<div class="mu-suggest-item" data-sug="' + esc(kw) + '">🔍 搜索「' + esc(kw) + '」</div>';
+        }
+        if (!html) { sug.hidden = true; sug.innerHTML = ''; return; }
+        sug.innerHTML = html;
+        sug.hidden = false;
+      }
+
+      // 先渲染本地部分，避免输入时下拉框空白
+      paint([]);
+
+      if (!kw) return;
+      if (!window.LxMusic || !window.LxMusic.tipSearch) return;
+
+      window.LxMusic.tipSearch(kw).then(function (list) {
+        paint(list);
+      }).catch(function () {});
     }
+
+    if (skw) {
+      skw.oninput = function () {
+        if (suggestTimer) clearTimeout(suggestTimer);
+        suggestTimer = setTimeout(renderSuggest, 250);
+      };
+      skw.onfocus = renderSuggest;
+      skw.onkeydown = function (e) {
+        if (e.key === 'Enter') {
+          if (sug) sug.hidden = true;
+          doSearch(skw.value.trim());
+        } else if (e.key === 'Escape') {
+          if (sug) sug.hidden = true;
+        }
+      };
+    }
+
+    function doSearch(kw) {
+      if (!kw) return;
+      addHistory(kw);
+      runSearch(kw);
+    }
+
+    if (sbtn && skw) {
+      sbtn.onclick = function () { doSearch(skw.value.trim()); };
+    }
+
+    if (sug) {
+      sug.onclick = function (e) {
+        var item = e.target.closest('[data-sug]');
+        if (!item) return;
+        var val = item.getAttribute('data-sug');
+        if (skw) skw.value = val;
+        sug.hidden = true;
+        doSearch(val);
+      };
+    }
+
+    /* 点空白处收起联想 */
+    document.addEventListener('click', function onDocClick(e) {
+      if (!sug) return;
+      if (sug.contains(e.target)) return;
+      if (skw && skw.contains(e.target)) return;
+      sug.hidden = true;
+    }, { once: true });
+
+    /* ---- 收藏按钮 ---- */
+    el.querySelectorAll('[data-love]').forEach(function (b) {
+      b.onclick = function (e) {
+        e.stopPropagation();
+        var i = parseInt(b.getAttribute('data-love'), 10);
+        var track = searchResults[i];
+        if (!track) return;
+        var nowLoved = toggleLove(track);
+        toast(nowLoved ? '已收藏' : '已取消收藏');
+        renderHome();
+      };
+    });
+
+    /* ---- 加入歌单按钮 ---- */
+    el.querySelectorAll('[data-addlist]').forEach(function (b) {
+      b.onclick = function (e) {
+        e.stopPropagation();
+        addTargetIndex = parseInt(b.getAttribute('data-addlist'), 10);
+        renderHome();
+      };
+    });
+
+    /* ---- 弹层：选歌单 / 新建 / 取消 ---- */
+    var mask = document.getElementById('muAddListMask');
+    if (mask) {
+      mask.onclick = function (e) {
+        // 点遮罩空白处关闭
+        if (e.target === mask) {
+          addTargetIndex = -1;
+          renderHome();
+        }
+      };
+    }
+    document.querySelectorAll('[data-pick-list]').forEach(function (b) {
+      b.onclick = function () {
+        var listId = b.getAttribute('data-pick-list');
+        var track = searchResults[addTargetIndex];
+        if (!track) { addTargetIndex = -1; renderHome(); return; }
+        var l = getList(listId);
+        if (!l) { addTargetIndex = -1; renderHome(); return; }
+        if (inList(listId, track)) {
+          toast('已在「' + l.name + '」里');
+        } else {
+          addToList(listId, track);
+          toast('已加入「' + l.name + '」');
+        }
+        addTargetIndex = -1;
+        renderHome();
+      };
+    });
+
+    var pickNew = document.getElementById('muPickNew');
+    if (pickNew) pickNew.onclick = function () {
+      var name = window.prompt('新歌单名称');
+      if (!name) return;
+      var item = createList(name);
+      var track = searchResults[addTargetIndex];
+      if (item && track) {
+        addToList(item.id, track);
+        toast('已加入「' + item.name + '」');
+      }
+      addTargetIndex = -1;
+      renderHome();
+    };
+
+    var pickCancel = document.getElementById('muPickCancel');
+    if (pickCancel) pickCancel.onclick = function () {
+      addTargetIndex = -1;
+      renderHome();
+    };
+
+    /* ---- 歌单操作 ---- */
+    el.querySelectorAll('[data-list-tab]').forEach(function (b) {
+      b.onclick = function () {
+        activeListId = b.getAttribute('data-list-tab');
+        renderHome();
+      };
+    });
+
+    el.querySelectorAll('[data-list-play]').forEach(function (r) {
+      r.onclick = function (e) {
+        if (e.target.closest('[data-list-remove]')) return;
+        var i = parseInt(r.getAttribute('data-list-play'), 10);
+        var l = getList(activeListId);
+        if (!l) return;
+        var target = l.tracks[i];
+        if (!target) return;
+        if (!target.url && target.track) {
+          playTrack(target, l.name);
+          return;
+        }
+        playQueue(l.tracks, l.name, i);
+      };
+    });
+
+    el.querySelectorAll('[data-list-remove]').forEach(function (b) {
+      b.onclick = function (e) {
+        e.stopPropagation();
+        var i = parseInt(b.getAttribute('data-list-remove'), 10);
+        var l = getList(activeListId);
+        if (!l) return;
+        l.tracks.splice(i, 1);
+        saveState();
+        renderHome();
+      };
+    });
+
+    var listNew = el.querySelector('#muListNew');
+    if (listNew) listNew.onclick = function () {
+      var name = window.prompt('新歌单名称');
+      if (!name) return;
+      var item = createList(name);
+      if (item) { activeListId = item.id; renderHome(); }
+    };
+
+    var listDel = el.querySelector('#muListDel');
+    if (listDel) listDel.onclick = function () {
+      var l = getList(activeListId);
+      if (!l) return;
+      if (!window.confirm('删除歌单「' + l.name + '」？')) return;
+      removeList(l.id);
+      activeListId = LOVE_ID;
+      renderHome();
+    };
   }
 
   /* ---------------- 沉浸全屏 ---------------- */
   var immEl = null;
+  /* ---------------- 沉浸页歌词 ---------------- */
+  /** 渲染歌词行（带 data-time 供高亮） */
+  function lyricLinesHtml() {
+    if (!showLyric) return '';
+    if (!currentLyric) return '<div class="mu-imm-lyric-tip">歌词加载中…</div>';
+    var parsed = currentLyric.parsed || [];
+    if (!parsed.length) {
+      return '<div class="mu-imm-lyric-tip">' +
+        (currentLyric.pending ? '歌词加载中…（这首歌要跨平台找）' : '暂无歌词') + '</div>';
+    }
+    return '<span class="mu-lyr-pad"></span>' +
+      parsed.map(function (l, i) {
+        return '<p class="mu-imm-lyric-line" data-line="' + i + '" data-time="' + l.time + '">' + esc(l.text) + '</p>';
+      }).join('') +
+      '<span class="mu-lyr-pad"></span>';
+  }
+
+  /** 为当前歌曲取歌词（同一首不重复请求） */
+  function loadLyricFor(track) {
+    if (!track) { currentLyric = null; lyricTrackKey = ''; return; }
+    var key = (track.source || '') + '|' + (track.id || track.title || '');
+    if (key === lyricTrackKey) return;
+    lyricTrackKey = key;
+    currentLyric = null;
+
+    if (!window.LxLyric) return;
+    // 非酷我来源要「搜一次再取」，链路偏长，超时就先给个可读提示而不是一直转
+    var slowTimer = setTimeout(function () {
+      if (key !== lyricTrackKey || currentLyric) return;
+      currentLyric = { parsed: [], pending: true };
+      refreshImmersiveLyric();
+    }, 8000);
+
+    window.LxLyric.getLyric(track).then(function (res) {
+      clearTimeout(slowTimer);
+      // 期间可能已切歌，丢弃过期结果
+      if (key !== lyricTrackKey) return;
+      currentLyric = res;
+      refreshImmersiveLyric();
+    }).catch(function () {
+      clearTimeout(slowTimer);
+      if (key !== lyricTrackKey) return;
+      currentLyric = { parsed: [] };
+      refreshImmersiveLyric();
+    });
+  }
+
+  /** 重绘沉浸页歌词区（不重建整个 DOM，避免打断滚动） */
+  function refreshImmersiveLyric() {
+    if (!immEl) return;
+    var box = immEl.querySelector('#muImmLyric');
+    if (!box) return;
+    box.innerHTML = lyricLinesHtml();
+    applyLyricPad(box);
+    lastLyricIndex = -1;   // innerHTML 已清掉所有 active，必须重算
+    highlightLyric(audio ? audio.currentTime : 0);
+  }
+
+  /** 首尾留白高度 = 容器可视高度的一半，首末句才能滚到正中 */
+  function applyLyricPad(box) {
+    var pads = box.querySelectorAll('.mu-lyr-pad');
+    if (!pads.length) return;
+    var h = Math.max(0, box.clientHeight / 2 - 24);
+    for (var i = 0; i < pads.length; i++) pads[i].style.height = h + 'px';
+  }
+
+  /** 按当前播放时间高亮歌词行，并平滑滚动到中间 */
+  var lastLyricIndex = -1;
+  function highlightLyric(t) {
+    if (!immEl || !currentLyric) return;
+    var parsed = currentLyric.parsed || [];
+    if (!parsed.length) return;
+
+    // 二分找当前行
+    var lo = 0, hi = parsed.length - 1, cur2 = -1;
+    while (lo <= hi) {
+      var mid = (lo + hi) >> 1;
+      if (parsed[mid].time <= t) { cur2 = mid; lo = mid + 1; }
+      else hi = mid - 1;
+    }
+    if (cur2 === lastLyricIndex) return;
+    lastLyricIndex = cur2;
+
+    var box = immEl.querySelector('#muImmLyric');
+    if (!box) return;
+    var lines = box.querySelectorAll('.mu-imm-lyric-line');
+    for (var i = 0; i < lines.length; i++) {
+      lines[i].classList.toggle('active', i === cur2);
+      lines[i].classList.toggle('passed', i < cur2);
+    }
+    var active = lines[cur2];
+    if (active) {
+      // 滚到容器垂直中间。首尾各有一个 .mu-lyr-pad 撑出半屏留白，
+      // 所以第一句和最后一句也能居中。
+      // behavior 用 auto 而不是 smooth——切行比动画快，smooth 队列会堆积，
+      // 实测表现为 scrollTop 一直停在 0。
+      try {
+        active.scrollIntoView({ block: 'center', behavior: 'auto' });
+      } catch (e) {
+        var target = active.offsetTop - box.clientHeight / 2 + active.offsetHeight / 2;
+        box.scrollTo({ top: Math.max(0, target), behavior: 'auto' });
+      }
+    }
+  }
+
   function openImmersive() {
     closeImmersive();
+    // 每次打开都从存储重读开关，避免变量与 localStorage 长期不一致
+    try {
+      var ly = localStorage.getItem('juice_music_show_lyric');
+      if (ly !== null) showLyric = ly === '1';
+    } catch (e) {}
     immEl = document.createElement('div');
     immEl.className = 'mu-immersive';
     immEl.innerHTML = immHtml();
@@ -896,30 +1535,51 @@
     bindImmersive();
     syncPlayUI(audio && !audio.paused);
     onProgress();
+    lastLyricIndex = -1;
+    loadLyricFor(cur);
+    // 首帧布局完成后才知道容器真实高度，此时才能算留白
+    var padBox = immEl.querySelector('#muImmLyric');
+    if (padBox) applyLyricPad(padBox);
+    setTimeout(function () {
+      if (immEl) {
+        var b = immEl.querySelector('#muImmLyric');
+        if (b) applyLyricPad(b);
+        lastLyricIndex = -1;
+        highlightLyric(audio ? audio.currentTime : 0);
+      }
+    }, 60);
   }
   function immHtml() {
     var playing = audio && cur && !audio.paused;
     var bars = '';
-    for (var i = 0; i < 28; i++) bars += '<i style="--d:' + (i * 0.07).toFixed(2) + 's"></i>';
+    for (var i = 0; i < 24; i++) bars += '<i style="--d:' + (i * 0.08).toFixed(2) + 's"></i>';
     return '<div class="mu-imm-bg"></div>' +
       '<div class="mu-imm-inner">' +
-        '<div class="mu-imm-vinyl' + (playing ? ' spin' : '') + '">' +
-          '<div class="mu-imm-disc' + (playing ? ' spin' : '') + '">' +
-            (cur && cur.cover ? '<img src="' + esc(cur.cover) + '" alt="">' : '<span>🎧</span>') +
-          '</div><div class="mu-imm-hole"></div>' +
+        '<div class="mu-imm-left">' +
+          '<div class="mu-imm-vinyl' + (playing ? ' spin' : '') + '">' +
+            '<div class="mu-imm-disc' + (playing ? ' spin' : '') + '">' +
+              (cur && cur.cover ? '<img src="' + esc(cur.cover) + '" alt="">' : '<span>♪</span>') +
+            '</div><div class="mu-imm-hole"></div>' +
+          '</div>' +
+          '<div class="mu-imm-bars' + (playing ? ' on' : '') + '">' + bars + '</div>' +
+          '<div class="mu-imm-title">' + (cur ? esc(cur.title) : '未在播放') + '</div>' +
+          '<div class="mu-imm-artist">' + (cur && cur.artist ? esc(cur.artist) : '我的音乐台') + '</div>' +
         '</div>' +
-        '<div class="mu-imm-bars' + (playing ? ' on' : '') + '">' + bars + '</div>' +
-        '<div class="mu-imm-title">' + (cur ? esc(cur.title) : '未在播放') + '</div>' +
-        '<div class="mu-imm-artist">' + (cur && cur.artist ? esc(cur.artist) : '我的音乐台 · 自导入音源') + '</div>' +
-        '<div class="mu-bar imm"><span class="mu-time mu-time-cur">0:00</span>' +
-          '<div class="mu-bar-progress"><i></i></div>' +
-          '<input type="range" class="mu-seek" min="0" step="0.1" value="0">' +
-          '<span class="mu-time mu-time-dur">0:00</span></div>' +
-        '<div class="mu-ops imm">' +
-          '<button class="mu-op" data-imm="prev">⏮</button>' +
-          '<button class="mu-op big" data-imm="toggle">' + (playing ? '⏸' : '▶') + '</button>' +
-          '<button class="mu-op" data-imm="next">⏭</button>' +
-          '<button class="mu-op" data-imm="exit" title="退出（Esc）">✕</button>' +
+        '<div class="mu-imm-lyric' + (showLyric ? '' : ' hidden') + '" id="muImmLyric">' +
+          lyricLinesHtml() +
+        '</div>' +
+        '<div class="mu-imm-foot">' +
+          '<div class="mu-bar imm"><span class="mu-time mu-time-cur">0:00</span>' +
+            '<div class="mu-bar-progress"><i></i></div>' +
+            '<input type="range" class="mu-seek" min="0" step="0.1" value="0">' +
+            '<span class="mu-time mu-time-dur">0:00</span></div>' +
+          '<div class="mu-ops imm">' +
+            '<button class="mu-op" data-imm="prev" title="上一首">⏮</button>' +
+            '<button class="mu-op big" data-imm="toggle" title="播放/暂停">' + (playing ? '⏸' : '▶') + '</button>' +
+            '<button class="mu-op" data-imm="next" title="下一首">⏭</button>' +
+            '<button class="mu-op' + (showLyric ? ' on' : '') + '" data-imm="lyric" title="' + (showLyric ? '隐藏歌词' : '显示歌词') + '">词</button>' +
+            '<button class="mu-op" data-imm="exit" title="退出（Esc）">✕</button>' +
+          '</div>' +
         '</div>' +
       '</div>';
   }
@@ -928,6 +1588,25 @@
     immEl.querySelector('[data-imm="next"]').onclick = function () { nextTrack(false); };
     immEl.querySelector('[data-imm="toggle"]').onclick = togglePlay;
     immEl.querySelector('[data-imm="exit"]').onclick = closeImmersive;
+    immEl.querySelector('[data-imm="lyric"]').onclick = function () {
+      showLyric = !showLyric;
+      try { localStorage.setItem('juice_music_show_lyric', showLyric ? '1' : '0'); } catch (e) {}
+      // 原地切换：重建整页会打断滚动位置和唱片动画
+      var box = immEl.querySelector('#muImmLyric');
+      if (box) box.classList.toggle('hidden', !showLyric);
+      this.classList.toggle('on', showLyric);
+      this.title = showLyric ? '隐藏歌词' : '显示歌词';
+      // 从隐藏切回时强制重算：lastLyricIndex 可能是隐藏前留下的旧值，
+      // 且隐藏期间容器高度为 0，留白也得重新量。
+      // 必须重写 innerHTML——showLyric=false 时 lyricLinesHtml() 返回空串，
+      // 若这次是「关着歌词进的沉浸页」，DOM 里根本没内容可显示。
+      if (showLyric) {
+        box.innerHTML = lyricLinesHtml();
+        applyLyricPad(box);
+        lastLyricIndex = -1;
+        highlightLyric(audio ? audio.currentTime : 0);
+      }
+    };
     var seek = immEl.querySelector('.mu-seek');
     seek.oninput = function () { if (audio && audio.duration) audio.currentTime = parseFloat(seek.value); };
     immEl.addEventListener('click', function (e) {
@@ -983,14 +1662,15 @@
   }
 
   function syncPlayUI(playing) {
-    var t = el && el.querySelector('#muToggle');
+    var bar = document.getElementById('muPlayerBar');
+    var t = bar && bar.querySelector('#muToggle');
     if (t) t.textContent = playing ? '⏸' : '▶';
-    var d = el && el.querySelector('#muDisc');
+    var d = bar && bar.querySelector('#muDisc');
     if (d) d.classList.toggle('spin', !!playing);
     var tt = document.querySelectorAll('.mu-imm-title');
     tt.forEach(function (x) { if (cur) x.textContent = cur.title; });
     var ta = document.querySelectorAll('.mu-imm-artist');
-    ta.forEach(function (x) { if (cur) x.textContent = cur.artist || '我的音乐台 · 自导入音源'; });
+    ta.forEach(function (x) { if (cur) x.textContent = cur.artist || '我的音乐台'; });
     if (immEl) {
       var vinyl = immEl.querySelector('.mu-imm-vinyl');
       var disc = immEl.querySelector('.mu-imm-disc');
@@ -1048,18 +1728,26 @@
       /* 切模块（hash 变化）时重算吸底条显隐：音频常驻，但吸底条只在
          离开音乐模块且非沉浸模式时出现 */
       window.addEventListener('hashchange', function () {
-        setTimeout(renderMini, 60);
-        setTimeout(renderMini, 400);
+        setTimeout(syncBarVisibility, 60);
+        setTimeout(syncBarVisibility, 400);
       });
       /* 路由切模块是异步的（等 chunk 加载完才摘 active 类），
          直接盯 #mod-music 的 class 变化最准 */
       var moTarget = document.getElementById('mod-music');
       if (moTarget && window.MutationObserver) {
-        new MutationObserver(renderMini).observe(moTarget, { attributes: true, attributeFilter: ['class'] });
+        new MutationObserver(syncBarVisibility).observe(moTarget, { attributes: true, attributeFilter: ['class'] });
       }
       ensureAudio();
       ensureMini();
-      bindFolder();
+
+      /* 首次进入时加载内置音源脚本 + 用户导入的脚本。
+         内置脚本随包发布，开箱即可播放；用户导入的追加在后面。 */
+      if (window.LxMusic) {
+        window.LxMusic.loadBuiltinScripts()
+          .then(function () { return window.LxMusic.loadSavedScripts(); })
+          .then(function () { renderIfActive(); })
+          .catch(function (e) { console.warn('[LxMusic] 音源加载失败', e); });
+      }
     }
     renderHome();
   }

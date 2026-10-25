@@ -56,6 +56,14 @@ function runApi(req, res, pathname) {
       try { req.body = JSON.parse(raw); } catch (e) { req.body = raw; }
     }
     res.status = (code) => { res.statusCode = code; return res; };
+    res.send = (body) => {
+      if (typeof body === 'object' && body !== null) return res.json(body);
+      if (!res.getHeader('Content-Type')) {
+        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+      }
+      res.end(body == null ? '' : String(body));
+      return res;
+    };
     res.json = (obj) => {
       if (!res.getHeader('Content-Type')) {
         res.setHeader('Content-Type', 'application/json; charset=utf-8');

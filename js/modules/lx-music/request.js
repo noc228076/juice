@@ -79,7 +79,7 @@
     var controller = new AbortController();
     // 默认 8 秒：搜索场景下 15 秒太长，会让用户以为卡死。
     // 单个平台超时不影响其他平台（聚合器是并行 + 单源降级）。
-    var timeout = opts.timeout == null ? 8000 : opts.timeout;
+    var timeout = opts.timeout == null ? 6000 : opts.timeout;
     var timer = null;
     var aborted = false;
 
@@ -116,6 +116,18 @@
         redirect: 'follow',
         cache: 'no-store'
       }).then(function (resp) {
+        // 二进制响应（如酷我加密歌词）不能走 text()：UTF-8 解码会把字节改坏
+        if (opts.responseType === 'arraybuffer') {
+          return resp.arrayBuffer().then(function (ab) {
+            return {
+              statusCode: resp.status,
+              statusMessage: resp.statusText,
+              headers: headersToObject(resp.headers),
+              body: null,
+              raw: new Uint8Array(ab)
+            };
+          });
+        }
         return resp.text().then(function (text) {
           return {
             statusCode: resp.status,

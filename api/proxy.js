@@ -51,7 +51,13 @@ function decompress(buffer, encoding) {
   }
 }
 
-/** 读取请求体（Vercel 已解析时直接用 req.body，本地 server 用流读取） */
+/**
+ * 读取请求体（Vercel 已解析时直接用 req.body，本地 server 用流读取）。
+ *
+ * 必须有超时：手机通过 VPN/内网访问时，POST 的 body 可能因为链路问题
+ * 迟迟发不完，req 的 'end' 事件永不触发，这个 Promise 就会永久挂起——
+ * 表现就是界面上「正在请求 tx」一直不动。
+ */
 function readBody(req) {
   return new Promise(function (resolve) {
     // Vercel Node runtime：body 可能已被解析成对象/字符串
@@ -61,10 +67,33 @@ function readBody(req) {
       return resolve(Buffer.from(JSON.stringify(req.body)));
     }
     if (req.readableEnded) return resolve(null);
-    const chunks = [];
-    req.on('data', function (c) { chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c)); });
-    req.on('end', function () { resolve(chunks.length ? Buffer.concat(chunks) : null); });
-    req.on('error', function () { resolve(null); });
+
+    var settled = false;
+    var chunks = [];
+
+    function finish(value) {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve(value);
+    }
+
+    // 3 秒读不完就放弃：搜索请求体只有几百字节，正常毫秒级就结束了
+    var timer = setTimeout(function () {
+      console.warn('[proxy] 读取请求体超时，按空 body 处理');
+      finish(chunks.length ? Buffer.concat(chunks) : null);
+    }, 3000);
+
+    req.on('data', function (c) {
+      if (settled) return;
+      chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c));
+      // 超过 1MB 直接截断，防止异常大 body 拖死进程
+      var total = chunks.reduce(function (n, b) { return n + b.length; }, 0);
+      if (total > 1024 * 1024) finish(Buffer.concat(chunks));
+    });
+    req.on('end', function () { finish(chunks.length ? Buffer.concat(chunks) : null); });
+    req.on('error', function () { finish(null); });
+    req.on('aborted', function () { finish(null); });
   });
 }
 
@@ -92,6 +121,7 @@ module.exports = async function handler(req, res) {
   }
   const kind = q.kind || 'api';
 
+
   if (!target) {
     res.status(400).send('missing url');
     return;
@@ -114,6 +144,9 @@ module.exports = async function handler(req, res) {
     res.status(403).send('host not allowed: ' + targetUrl.hostname);
     return;
   }
+
+  // 请求日志：排查「某个平台卡住」时看这条，确认请求是否到达服务端
+  console.log('[proxy]', (req.method || 'GET'), kind, targetUrl.hostname + targetUrl.pathname);
 
   // 转发时去掉 Origin/Referer，避免被目标站按 CORS 预检拒绝
   const headers = Object.assign({}, req.headers);
@@ -224,6 +257,13 @@ function forward(targetUrl, method, headers, redirectCount, res, kind, body) {
     });
 
     proxyReq.on('error', reject);
+
+    // 上游超时：某些平台在特定网络下 TCP 能连上但永不响应，
+    // 不设超时会让整个搜索挂住
+    proxyReq.setTimeout(10000, function () {
+      proxyReq.destroy(new Error('上游响应超时'));
+    });
+
     // 有请求体时写入，否则上游会一直等
     if (body && body.length) proxyReq.write(body);
     proxyReq.end();

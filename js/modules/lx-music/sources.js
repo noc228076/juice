@@ -59,18 +59,45 @@
    * 搜索全部平台（并行，单源失败不影响整体）
    * @returns {Promise<{list, bySource, errors}>}
    */
-  function searchAll(keyword, page, limit) {
+  function searchAll(keyword, page, limit, onProgress) {
     page = page || 1;
     limit = limit || 30;
     var ids = ORDER.filter(function (id) { return SOURCES[id]; });
 
+    var timings = {};
     var tasks = ids.map(function (id) {
+      var t0 = Date.now();
+      if (typeof onProgress === 'function') onProgress({ phase: 'start', source: id, done: 0, total: ids.length });
       return searchOne(id, keyword, page, limit)
-        .then(function (res) { return { id: id, res: res }; })
-        .catch(function (err) { return { id: id, error: err }; });
+        .then(function (res) {
+          timings[id] = Date.now() - t0;
+          return { id: id, res: res };
+        })
+        .catch(function (err) {
+          timings[id] = Date.now() - t0;
+          return { id: id, error: err };
+        });
     });
 
-    return Promise.all(tasks).then(function (results) {
+    /**
+     * 整体硬上限：单个源内部有重试+超时，最坏情况会拖到几十秒，
+     * 用户只会看到 spinner 一直转。这里设 9 秒上限，超时就用已有结果
+     * 先返回，慢的源标记为超时。
+     */
+    var HARD_LIMIT = 9000;
+    var done = [];          // 已完成的源结果
+    var pending = ids.length;
+
+    var allTask = Promise.all(tasks.map(function (t, i) {
+      return t.then(function (r) {
+        done.push(r);
+        pending--;
+        if (typeof onProgress === 'function') {
+          onProgress({ done: done.length, total: ids.length, last: r, ms: timings[r.id] });
+        }
+        return r;
+      });
+    })).then(function (results) {
       var merged = [];
       var bySource = {};
       var errors = [];
@@ -93,7 +120,38 @@
         .sort(function (a, b) { return b.s - a.s || a.i - b.i; })
         .map(function (x) { return x.it; });
 
-      return { list: merged, bySource: bySource, errors: errors };
+      return { list: merged, bySource: bySource, errors: errors, timings: timings };
+    });
+
+    var timeoutTask = new Promise(function (resolve) {
+      setTimeout(function () { resolve('__TIMEOUT__'); }, HARD_LIMIT);
+    });
+
+    return Promise.race([allTask, timeoutTask]).then(function (r) {
+      if (r !== '__TIMEOUT__') return r;
+
+      // 超时：用已经返回的源立即组装结果，慢的源放弃
+      console.warn('[搜索] 超过 ' + HARD_LIMIT + 'ms，用已完成的部分返回');
+      var merged2 = [];
+      var bySource2 = {};
+      var errors2 = [];
+      done.forEach(function (item) {
+        if (item.error) {
+          errors2.push({ source: item.id, message: (item.error && item.error.message) || String(item.error) });
+          bySource2[item.id] = { list: [], total: 0 };
+          return;
+        }
+        var list = (item.res && item.res.list) || [];
+        bySource2[item.id] = { list: list, total: (item.res && item.res.total) || list.length };
+        merged2 = merged2.concat(list);
+      });
+      merged2 = dedupe(merged2);
+      merged2 = merged2
+        .map(function (it, i) { return { it: it, i: i, s: relevanceScore(it, keyword) }; })
+        .sort(function (a, b) { return b.s - a.s || a.i - b.i; })
+        .map(function (x) { return x.it; });
+      if (pending > 0) errors2.push({ source: 'slow', message: pending + ' 个平台响应慢，已跳过' });
+      return { list: merged2, bySource: bySource2, errors: errors2, timings: timings };
     });
   }
 

@@ -555,7 +555,7 @@
 
     if (!total) {
       return '<div class="vc-panel vc-done">' + owl('sleep') +
-        '<h2>今天的任务清空了</h2>' +
+        '<h2>今天的单词都背完了</h2>' +
         '<p>已答 <b>' + bs().doneToday + '</b> 题 · 连续打卡 <b>' + bs().streak + '</b> 天</p>' +
         '<p class="vc-dim">明天到期复习会自动排好；也可以现在多背一组。</p>' +
         '<div class="vc-actions">' +
@@ -581,8 +581,8 @@
         '<div class="vc-hero-art">' + owl('think') + '</div>' +
         '<div class="vc-hero-main">' +
           '<div class="vc-hero-tag">' + (state.book === 'cet6' ? 'CET-6' : 'CET-4') +
-            ' · 第 ' + (bs().streak + 1) + ' 天 · ' + (state.order === 'random' ? '乱序' : '顺序') + '</div>' +
-          '<h1 class="vc-hero-title">今日摸鱼局</h1>' +
+            ' · 已连续 ' + bs().streak + ' 天 · ' + (state.order === 'random' ? '乱序' : '顺序') + '</div>' +
+          '<h1 class="vc-hero-title">今天的单词任务</h1>' +
           '<p class="vc-hero-sub">待复习 <b>' + dueN + '</b> · 新词 <b>' + newN + '</b> · 共 <b>' + total + '</b> 题</p>' +
           '<div class="vc-bar"><i style="width:' + Math.min(100, Math.round(bs().doneToday / Math.max(total, 1) * 100)) + '%"></i></div>' +
           '<div class="vc-actions">' +

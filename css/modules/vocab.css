@@ -43,9 +43,9 @@
 /* ---------- 今日屏 ---------- */
 .vc-hero {
   display: flex;
-  gap: 22px;
+  gap: 18px;
   align-items: center;
-  padding: 26px 26px 24px;
+  padding: 18px 22px 16px;
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
@@ -53,8 +53,8 @@
 }
 .vc-hero-art {
   flex: 0 0 auto;
-  width: 132px;
-  height: 132px;
+  width: 96px;
+  height: 96px;
 }
 .vc-owl {
   width: 100%;
@@ -232,7 +232,7 @@
   border: 1px solid var(--line);
   border-radius: var(--r-lg);
   box-shadow: var(--shadow);
-  padding: 26px 24px 24px;
+  padding: 18px 20px 18px;
 }
 .vc-h2 {
   margin: 0 0 16px;
@@ -277,7 +277,7 @@
   color: var(--tx-faint);
 }
 
-.vc-boxes { display: grid; gap: 8px; }
+.vc-boxes { display: grid; gap: 5px; }
 .vc-boxrow {
   display: grid;
   grid-template-columns: 52px 1fr 44px;
@@ -292,11 +292,11 @@
 .vc-heat {
   display: grid;
   grid-template-columns: repeat(15, 1fr);
-  gap: 5px;
+  gap: 4px;
 }
 .vc-heat i {
   display: block;
-  aspect-ratio: 1;
+  height: 15px;
   border-radius: 3px;
   background: var(--btn-ghost-bg);
 }
@@ -877,8 +877,7 @@
 @media (max-width: 620px) {
   .vc-heat { grid-template-columns: repeat(10, 1fr); }
   .vc-cloze { font-size: 16px; }
-  .vc-input { font-size: 19px; }
-  .vc-wordrow { flex-direction: column; gap: 8px; }
+    .vc-wordrow { flex-direction: column; gap: 8px; }
   .vc-wordrow-meta { align-self: flex-end; }
 }
 
@@ -1082,7 +1081,7 @@
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
-  margin-top: 14px;
+  margin-top: 10px;
 }
 .vc-statcell {
   background: var(--btn-ghost-bg);
@@ -1104,16 +1103,16 @@
   color: var(--tx-faint);
 }
 
-/* 90 天热力图：18 列 × 5 行，高度砍一半 */
+/* 90 天热力图：矮格（15 列，与 292 行基准一致，此处仅覆盖 18 列旧版） */
 .vc-heat {
   display: grid;
-  grid-template-columns: repeat(18, 1fr);
+  grid-template-columns: repeat(15, 1fr);
   gap: 4px;
 }
 .vc-heat i {
   display: block;
-  aspect-ratio: 1;
-  border-radius: 2px;
+  height: 15px;
+  border-radius: 3px;
   background: var(--btn-ghost-bg);
 }
 
@@ -1123,6 +1122,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
+  margin: 10px 0 6px;
 }
 .vc-heat-legend {
   display: flex;
@@ -1311,16 +1311,24 @@
   #mod-vocab .vc-statgrid {
     grid-template-columns: repeat(6, 1fr);
   }
+  /* 档位条 6 行 → 3 列 × 2 行，一屏放下 */
+  #mod-vocab .vc-boxes {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px 14px;
+  }
+  #mod-vocab .vc-h2 { margin-bottom: 10px; }
+  #mod-vocab .vc-ring-wrap { margin: 0 0 8px; }
 }
 
 /* ---------- 词书进度环 ---------- */
 .vc-ring-wrap {
   display: flex;
   align-items: center;
-  gap: 22px;
-  margin: 6px 0 18px;
+  gap: 18px;
+  margin: 2px 0 12px;
 }
-.vc-ring { position: relative; width: 128px; height: 128px; flex: none; }
+.vc-ring { position: relative; width: 96px; height: 96px; flex: none; }
+.vc-ring svg { width: 96px; height: 96px; }
 .vc-ring svg { display: block; }
 .vc-ring-num {
   position: absolute;
@@ -1330,7 +1338,7 @@
   align-items: center;
   justify-content: center;
 }
-.vc-ring-num b { font-size: 24px; font-weight: 900; color: var(--tx); }
+.vc-ring-num b { font-size: 19px; font-weight: 900; color: var(--tx); }
 .vc-ring-num span { font-size: 11px; color: var(--tx-dim); margin-top: 2px; }
 .vc-ring-side { flex: 1; min-width: 0; }
 .vc-ring-goal {
@@ -1345,7 +1353,7 @@
 .vc-cal {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 6px;
+  gap: 4px;
 }
 .vc-cal-h {
   font-style: normal;
@@ -1359,7 +1367,7 @@
   padding: 5px 0 4px;
   text-align: center;
   background: var(--btn-ghost-bg);
-  min-height: 44px;
+  min-height: 34px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1389,4 +1397,44 @@
   .vc-ring { width: 104px; height: 104px; }
   .vc-ring svg { width: 104px; height: 104px; }
   .vc-cal-d { min-height: 38px; }
+}
+/* ---------- 到期复习横幅 ---------- */
+.vc-due-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--card);
+  border: 1px solid var(--mod-ac-glow);
+  border-left: 3px solid var(--mod-ac);
+  border-radius: 14px;
+  padding: 10px 16px;
+  margin-bottom: 14px;
+  font-size: 13px;
+  color: var(--tx-dim);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.vc-due-banner b { color: var(--mod-ac); font-size: 15px; }
+.vc-due-banner .vc-btn { margin-left: auto; flex: none; white-space: nowrap; }
+.vc-input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--tx);
+  font-size: 13px;
+  padding: 9px 12px;
+}
+.vc-input:focus { outline: none; border-color: var(--mod-ac); }
+
+/* 矮屏笔记本（≤800 高）：统计页再收一档，1366×768 也一屏 */
+@media (min-width: 1100px) and (max-height: 820px) {
+  #mod-vocab .vc-ring svg { width: 80px; height: 80px; }
+  #mod-vocab .vc-ring { width: 80px; height: 80px; }
+  #mod-vocab .vc-ring-num b { font-size: 16px; }
+  #mod-vocab .vc-cal-d { min-height: 22px; padding: 2px 0 2px; }
+  #mod-vocab .vc-cal-d em { display: none; }
+  #mod-vocab .vc-heat i { height: 10px; }
+  #mod-vocab .vc-boxrow { font-size: 11px; }
 }

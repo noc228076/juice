@@ -796,6 +796,23 @@
     };
   }
 
+  /* 必应图床双域名兜底：www.bing.com 偶发被 DNS/代理拦时切 cn.bing.com */
+  function bingFallbackSrc(src) {
+    if (/^https:\/\/www\.bing\.com\//.test(src)) return src.replace('www.bing.com', 'cn.bing.com');
+    if (/^https:\/\/cn\.bing\.com\//.test(src)) return src.replace('cn.bing.com', 'www.bing.com');
+    return null;
+  }
+
+  function attachBingFallback(img) {
+    img.addEventListener('error', function onErr() {
+      img.removeEventListener('error', onErr);
+      var alt = bingFallbackSrc(img.getAttribute('src') || '');
+      if (alt) {
+        img.setAttribute('src', alt);
+      }
+    });
+  }
+
   async function loadBingWallpaper() {
     const raw = await fetchWithCache(
       'https://bing.biturl.top/?resolution=1920&format=json&index=0&mkt=zh-CN',
@@ -828,6 +845,7 @@
 
     // 换图时先挂占位类，图片解码完成后淡入，消除白屏闪烁
     imgEl.classList.add('is-loading');
+    attachBingFallback(imgEl);
     const onReady = () => {
       imgEl.classList.remove('is-loading');
       imgEl.classList.add('is-ready');
@@ -895,6 +913,7 @@
             .join('')
     );
 
+    galleryGrid.querySelectorAll('.daily-wp-thumb-img').forEach(attachBingFallback);
     galleryGrid.querySelectorAll('.daily-wp-thumb-card').forEach((card, idx) => {
       card.onclick = () => {
         const item = valid[idx];

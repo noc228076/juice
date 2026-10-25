@@ -232,10 +232,10 @@
   function manualRefresh() {
     const btn = document.getElementById('wlRefresh');
     const errEl = document.getElementById('wlErr');
-    if (btn) { btn.disabled = true; btn.classList.add('spin'); btn.textContent = '↻ 刷新中'; }
+    if (btn) { btn.disabled = true; btn.classList.add('spin'); btn.querySelector('.wl-refresh-ico') && (btn.querySelector('.wl-refresh-ico').textContent = '↻'); btn.classList.add('busy'); }
     if (errEl) errEl.textContent = '';
     fetchWall().then(function (d) {
-      if (btn) { btn.disabled = false; btn.classList.remove('spin'); btn.textContent = '↻ 刷新'; }
+      if (btn) { btn.disabled = false; btn.classList.remove('spin'); btn.classList.remove('busy'); btn.querySelector('.wl-refresh-ico') && (btn.querySelector('.wl-refresh-ico').textContent = '↻'); }
       if (!d) { if (errEl) errEl.textContent = '刷新失败，稍后再试'; return; }
       if (errEl) {
         errEl.textContent = '';

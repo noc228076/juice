@@ -334,9 +334,12 @@
   opacity: 0.6;
   cursor: default;
 }
-.wl-refresh.spin {
-  animation: wl-spin 0.9s linear infinite;
+.wl-refresh.spin .wl-refresh-ico {
+  display: inline-block;
+  animation: wlIcoSpin 0.9s linear infinite;
 }
+@keyframes wlIcoSpin { to { transform: rotate(360deg); } }
+.wl-refresh.spin { opacity: 0.6; pointer-events: none; }
 @keyframes wl-spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }

@@ -573,18 +573,38 @@
       }
     }
     var donePct = Math.min(100, Math.round(bs().doneToday / Math.max(total, 1) * 100));
+    /* 中间「今日重点」面板：把红框空白区变成有内容的行动区。
+       有到期词 → 重点=复习（主按钮变「开始复习」）；无 → 重点=新词任务 */
+    var focusTitle, focusDesc, focusBtnId, focusBtnText;
+    if (dueAll > 0) {
+      focusTitle = '今日重点 · 到期复习';
+      focusDesc = '有 <b>' + dueAll + '</b> 个词等着巩固——今天做掉最划算';
+      focusBtnId = 'vcStart';
+      focusBtnText = '开始复习';
+    } else if (total > 0) {
+      focusTitle = '今日重点 · 新词任务';
+      focusDesc = '准备好 <b>' + newN + '</b> 个新词，开背大约 ' + Math.max(1, Math.round(total * 0.7 / 60)) + ' 分钟';
+      focusBtnId = 'vcStart';
+      focusBtnText = '开始背';
+    } else {
+      focusTitle = '今日重点 · 加练';
+      focusDesc = '今天额度已用完，想继续随时加练';
+      focusBtnId = 'vcExtra';
+      focusBtnText = '再加一组';
+    }
     return '<div class="vc-hero">' +
         '<div class="vc-hero-art">' + owl('think') + '</div>' +
         '<div class="vc-hero-main">' +
           '<div class="vc-hero-tag">' + (state.book === 'cet6' ? 'CET-6' : 'CET-4') +
             ' · 已连续 ' + bs().streak + ' 天 · ' + (state.order === 'random' ? '乱序' : '顺序') + '</div>' +
           '<h1 class="vc-hero-title">今天的单词任务</h1>' +
-          (dueAll > 0
-            ? '<p class="vc-hero-due">📖 其中有 <b>' + dueAll + '</b> 个是到期复习——今天做掉最划算</p>'
-            : '') +
+          '<p class="vc-hero-sub">CET 词库 · 每天一局，进度只存本机</p>' +
+        '</div>' +
+        '<div class="vc-hero-focus">' +
+          '<b class="vc-focus-title">' + focusTitle + '</b>' +
+          '<p class="vc-focus-desc">' + focusDesc + '</p>' +
           '<div class="vc-actions">' +
-            '<button class="vc-btn primary" id="vcStart" type="button">开始背 ' +
-              '<svg class="vc-btn-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" data-lucide="ArrowRight"/></svg></button>' +
+            '<button class="vc-btn primary" id="' + focusBtnId + '" type="button">' + focusBtnText + ' →</button>' +
             '<button class="vc-btn ghost" id="vcToSettings" type="button">调设置</button>' +
           '</div>' +
         '</div>' +
@@ -609,6 +629,8 @@
     if (eb) eb.onclick = function () { bs().newDoneToday = 0; saveState(); buildAndStart(); };
     var gs = el.querySelector('#vcGoStats');
     if (gs) gs.onclick = function () { tab = 'stats'; renderHome(); };
+    var ex2 = el.querySelector('#vcExtra');
+    if (ex2) ex2.onclick = function () { bs().newDoneToday = 0; saveState(); buildAndStart(); };
   }
 
   function statStrip() {

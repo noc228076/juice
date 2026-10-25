@@ -604,7 +604,6 @@
           '<b class="vc-focus-title">' + focusTitle + '</b>' +
           '<p class="vc-focus-desc">' + focusDesc + '</p>' +
           '<div class="vc-actions">' + actionsHtml +
-            '<button class="vc-btn ghost" id="vcToSettings" type="button">调设置</button>' +
           '</div>' +
         '</div>' +
         '<div class="vc-hero-side">' +
@@ -634,8 +633,6 @@
       startSession();
     };
 
-    var tb = el.querySelector('#vcToSettings');
-    if (tb) tb.onclick = function () { tab = 'settings'; renderHome(); };
     var eb = el.querySelector('#vcExtra');
     if (eb) eb.onclick = function () { bs().newDoneToday = 0; saveState(); buildAndStart(); };
     var gs = el.querySelector('#vcGoStats');

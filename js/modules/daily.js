@@ -825,36 +825,6 @@
     loadRecentWallpapers();
   }
 
-  /* ---------- 壁纸字节本地快照（Cache API） ----------
-     用户浏览器可能对 bing 图床整体 TUNNEL_FAILED（代理隧道拒绝），
-     「当时能加载」不等于「下次能加载」。任何一次壁纸成功加载的瞬间
-     都把字节快照进 Cache API（同域持久，浏览器重开也在）；
-     之后背景恢复优先从快照读 blob，bing 直链只当首次源。 */
-  var WP_CACHE = 'juice-wallpaper-v1';
-  async function snapshotWallpaper(url) {
-    try {
-      if (!window.caches || !url || url.indexOf('data:') === 0 || url.indexOf('blob:') === 0) return;
-      var cache = await caches.open(WP_CACHE);
-      var hit = await cache.match(url);
-      if (hit) return;   // 已有快照
-      var r = await fetch(url, { mode: 'cors', redirect: 'follow' });
-      if (r.ok && (r.headers.get('content-type') || '').startsWith('image/')) {
-        await cache.put(url, r.clone());
-      }
-    } catch (e) { /* 快照失败静默：下次成功加载再试 */ }
-  }
-  /* 从快照取 blob URL；没有快照返回 null */
-  async function wallSnapshotBlobUrl(url) {
-    try {
-      if (!window.caches || !url) return null;
-      var cache = await caches.open(WP_CACHE);
-      var hit = await cache.match(url);
-      if (!hit) return null;
-      var blob = await hit.blob();
-      return URL.createObjectURL(blob);
-    } catch (e) { return null; }
-  }
-
   function renderMainWallpaper(wp) {
     const imgEl = document.getElementById('dlWpMainImg');
     const titleEl = document.getElementById('dlWpMainTitle');
@@ -881,7 +851,6 @@
       imgEl.classList.add('is-ready');
       imgEl.removeEventListener('load', onReady);
       imgEl.removeEventListener('error', onErr);
-      snapshotWallpaper(src);   // 成功加载瞬间存快照（下次断 bing 也能显示）
     };
     const onErr = () => {
       imgEl.classList.remove('is-loading');
@@ -954,7 +923,6 @@
 
         activeWp = item;
         renderMainWallpaper(activeWp);
-        snapshotWallpaper(item.cover_4k || item.cover);   // 换源立即快照
         if (isSiteBgActive) {
           applySiteBackground(activeWp.cover_4k || activeWp.cover, activeWp.title);
           showDailyToast(`✨ 全站背景已切换：${activeWp.title}`);
@@ -993,7 +961,7 @@
     }
   }
 
-  async function applySiteBackground(url, title) {
+  function applySiteBackground(url, title) {
     if (!url) return;
     /* 防线：v301/v302 代理残留地址（本地/其他浏览器同步或旧代码写入）一律还原直链 */
     if (url.indexOf('/api/bing-img?u=') === 0) {
@@ -1210,7 +1178,7 @@
   }
 
   // 恢复已保存的全站背景状态
-  async function restoreSavedAmbientBg() {
+  function restoreSavedAmbientBg() {
     try {
       const savedActive = localStorage.getItem('daily_site_active_fix') === 'true'
         || localStorage.getItem('daily_site_bg_active') === 'true';
@@ -1225,9 +1193,7 @@
       }
       if (savedActive && savedUrl) {
         isSiteBgActive = true;
-        /* 优先用本地快照（用户浏览器可能对 bing TUNNEL_FAILED） */
-        var blobUrl = await wallSnapshotBlobUrl(savedUrl);
-        applySiteBackground(blobUrl || savedUrl, localStorage.getItem('daily_site_bg_title'));
+        applySiteBackground(savedUrl, localStorage.getItem('daily_site_bg_title'));
       }
     } catch (_) {}
     syncWallpaperDismissBtn();

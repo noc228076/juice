@@ -97,11 +97,10 @@
   margin: 0;
 }
 .vc-hero-tag {
-  font-size: 11px;
-  letter-spacing: 1.6px;
-  font-weight: 700;
+  font-size: 13.5px;
+  letter-spacing: 0.5px;
+  font-weight: 800;
   color: var(--mod-ac);
-  opacity: 0.9;
 }
 .vc-hero-title {
   margin: 6px 0 6px;

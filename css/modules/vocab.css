@@ -1188,7 +1188,10 @@
 .vc-lb-row:last-child { border-bottom: none; }
 .vc-lb-row.me {
   background: var(--mod-ambient, rgba(99, 102, 241, 0.08));
+  box-shadow: inset 3px 0 0 var(--mod-ac);
 }
+/* 少于 8 行时撑住面板高度，避免榜单下方大片空白 */
+.vc-lb { min-height: 320px; }
 .vc-lb-row.tail { border-top: 1px dashed var(--line-strong, var(--line)); }
 .vc-lb-rank {
   width: 34px;
@@ -1308,4 +1311,82 @@
   #mod-vocab .vc-statgrid {
     grid-template-columns: repeat(6, 1fr);
   }
+}
+
+/* ---------- 词书进度环 ---------- */
+.vc-ring-wrap {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  margin: 6px 0 18px;
+}
+.vc-ring { position: relative; width: 128px; height: 128px; flex: none; }
+.vc-ring svg { display: block; }
+.vc-ring-num {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.vc-ring-num b { font-size: 24px; font-weight: 900; color: var(--tx); }
+.vc-ring-num span { font-size: 11px; color: var(--tx-dim); margin-top: 2px; }
+.vc-ring-side { flex: 1; min-width: 0; }
+.vc-ring-goal {
+  font-size: 13.5px;
+  line-height: 1.7;
+  color: var(--tx-dim);
+  margin: 0;
+}
+.vc-ring-goal b { color: var(--mod-ac); }
+
+/* ---------- 打卡日历 ---------- */
+.vc-cal {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+.vc-cal-h {
+  font-style: normal;
+  font-size: 11px;
+  color: var(--tx-faint);
+  text-align: center;
+  padding: 2px 0;
+}
+.vc-cal-d {
+  border-radius: 9px;
+  padding: 5px 0 4px;
+  text-align: center;
+  background: var(--btn-ghost-bg);
+  min-height: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.vc-cal-d b { font-size: 12.5px; color: var(--tx); font-weight: 700; }
+.vc-cal-d em {
+  font-style: normal;
+  font-size: 10.5px;
+  color: var(--tx-faint);
+  margin-top: 1px;
+}
+.vc-cal-d.future { opacity: 0.35; }
+.vc-cal-d.hit1 { background: var(--mod-ac-soft); }
+.vc-cal-d.hit2 { background: var(--mod-ac-fade); }
+.vc-cal-d.hit3 { background: var(--mod-ac); }
+.vc-cal-d.hit3 b, .vc-cal-d.hit3 em { color: var(--mod-ac-ink); }
+.vc-cal-d.today { outline: 2px solid var(--mod-ac); outline-offset: -2px; }
+.vc-cal-streak {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--mod-ac);
+  margin-left: 8px;
+}
+@media (max-width: 480px) {
+  .vc-ring-wrap { gap: 14px; }
+  .vc-ring { width: 104px; height: 104px; }
+  .vc-ring svg { width: 104px; height: 104px; }
+  .vc-cal-d { min-height: 38px; }
 }

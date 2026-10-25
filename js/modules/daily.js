@@ -963,6 +963,13 @@
 
   function applySiteBackground(url, title) {
     if (!url) return;
+    /* 防线：v301/v302 代理残留地址（本地/其他浏览器同步或旧代码写入）一律还原直链 */
+    if (url.indexOf('/api/bing-img?u=') === 0) {
+      try {
+        const inner = decodeURIComponent(url.split('u=')[1] || '');
+        if (/^https:\/\/(www|cn)\.bing\.com\/th\?id=OHR\./.test(inner)) url = inner;
+      } catch (e) {}
+    }
     document.documentElement.style.setProperty('--daily-bg-url', `url("${url}")`);
     document.body.style.setProperty('--daily-bg-url', `url("${url}")`);
     document.documentElement.classList.add('has-daily-ambient-bg');

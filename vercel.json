@@ -17,7 +17,6 @@
     { "source": "/api/leaderboard", "destination": "/api/leaderboard.js" },
     { "source": "/api/wall", "destination": "/api/wall.js" },
     { "source": "/api/douban", "destination": "/api/douban.js" },
-    { "source": "/api/bing-img", "destination": "/api/bing-img.js" },
     { "source": "/api/zhuiju", "destination": "/api/zhuiju.js" }
   ],
   "headers": [

@@ -1603,9 +1603,25 @@
     btn.title = muted ? '取消静音' : '静音';
   }
 
+  /**
+   * 给音量控件挂滚轮调节。
+   * 鼠标停在音量图标或弹出的滑条上滚轮即可调音量；
+   * 必须 preventDefault，否则滚轮会同时滚动页面。
+   */
+  function bindVolumeWheel(el) {
+    if (!el || el._volWheelBound) return;
+    el._volWheelBound = true;
+    el.addEventListener('wheel', function (e) {
+      e.preventDefault();
+      e.stopPropagation();
+      // 每格约 4%，向上加、向下减
+      var step = (e.deltaY < 0 ? 1 : -1) * 0.04;
+      setVolume(state.volume + step);
+    }, { passive: false });
+  }
+
   /** 沉浸页里的静音图标与滑块同步（它不在播放条上，单独处理） */
-  function syncImmMuteIcon() {
-    if (!immEl) return;
+  function syncImmMuteIcon() {    if (!immEl) return;
     var muted = state.volume <= 0;
     var btn = immEl.querySelector('[data-imm="mute"]');
     if (btn) {
@@ -1695,6 +1711,8 @@
     // 音量滑块（hover 弹出的垂直条）
     var barVol = bar.querySelector('.mu-vol');
     if (barVol) barVol.oninput = function () { setVolume(parseFloat(barVol.value)); };
+    // 滚轮也能调：挂在音量图标所在的容器上，hover 时滚一下就行
+    bindVolumeWheel(bar.querySelector('.mu-imm-vol'));
 
     // 点封面也进全屏（跟网易云/QQ音乐的习惯一致）
     var discEl = bar.querySelector('#muDisc');
@@ -2608,6 +2626,7 @@
       setVolume(parseFloat(volRange.value));
       syncImmMuteIcon();
     };
+    bindVolumeWheel(immEl.querySelector('.mu-imm-vol'));
     var muteBtn = immEl.querySelector('[data-imm="mute"]');
     if (muteBtn) muteBtn.onclick = function () {
       if (state.volume > 0) { lastVolume = state.volume; setVolume(0); }

@@ -13,7 +13,7 @@
 
   var LS_KEY = 'juice_music_v1';
   var el = null;
-  var tab = 'discover';
+  var tab = 'search';
   var inited = false;
 
   /* ---------------- 持久化状态 ---------------- */
@@ -1184,7 +1184,6 @@
   function homeHtml() {
     var tabs = [
       ['search', '搜索'],
-      ['discover', '发现'],
       ['rank', '排行榜'],
       ['lists', '我的列表'],
       ['script', '音源']
@@ -1200,42 +1199,20 @@
       '<div class="mu-tabs">' + tabs.map(function (t) {
         return '<button class="mu-tab' + (tab === t[0] ? ' active' : '') + '" data-mu-tab="' + t[0] + '">' + t[1] + '</button>';
       }).join('') + '</div>' +
-      (tab === 'discover' ? discoverHtml()
-        : tab === 'rank' ? rankHtml()
+      (tab === 'rank' ? rankHtml()
         : tab === 'search' ? searchHtml()
         : tab === 'lists' ? listsHtml()
         : scriptHtml()) +
       '</div>';
   }
 
-  /* ---------------- UI：发现（推荐歌单 + 排行榜） ---------------- */
+  /* ---------------- UI：排行榜 ---------------- */
   var discoverState = {
-    featured: null,     // [{id,name,cover,intro}]
     ranks: null,        // [{id,name,cover,intro}]
     openRank: null,     // 当前展开的榜单 {id,name}
     songs: null,        // 榜单歌曲
     loading: false,
   };
-
-  function discoverHtml() {
-    var feat = discoverState.featured;
-    // 推荐位（发现页只有这一块）
-    var body = '<div class="mu-panel">' +
-      '<h3 class="mu-h3">推荐歌单</h3>' +
-      (feat === null
-        ? '<div class="mu-loading"><span class="mu-spinner"></span><span>正在加载…</span></div>'
-        : '<div class="mu-cover-grid">' + feat.map(function (f) {
-            return '<button class="mu-cover-card" data-rank="' + f.id + '" data-rank-name="' + esc(f.name) + '">' +
-              '<span class="mu-cover-art">' +
-                (f.cover ? '<img src="' + esc(f.cover) + '" alt="" loading="lazy">' : icon('ListMusic')) +
-              '</span>' +
-              '<span class="mu-cover-name">' + esc(f.name) + '</span>' +
-              '</button>';
-          }).join('') + '</div>') +
-    '</div>';
-
-    return body;
-  }
 
   /** 排行榜页：左栏榜单列表，右栏选中榜单的歌曲（对齐洛雪） */
   function rankHtml() {
@@ -1298,28 +1275,16 @@
     '</div>';
   }
 
-  /** 首次进发现页时拉数据（只拉一次，之后用缓存） */
+  /** 排行榜页拉数据（只拉一次，之后用缓存） */
   function loadDiscover() {
     if (!window.LxDiscover) return;
-    // 空数组也要重试：首次进入时网络可能还没就绪，
-    // 一旦把 [] 存进状态，界面就永久空着
-    if (!discoverState.featured || !discoverState.featured.length) {
-      if (!discoverState.featLoading) {
-        discoverState.featLoading = true;
-        window.LxDiscover.listFeatured().then(function (list) {
-          discoverState.featLoading = false;
-          discoverState.featured = list && list.length ? list : null;
-          if (tab === 'discover') renderHome();
-        }).catch(function () { discoverState.featLoading = false; });
-      }
-    }
     if (!discoverState.ranks || !discoverState.ranks.length) {
       if (!discoverState.rankLoading) {
         discoverState.rankLoading = true;
         window.LxDiscover.listRanks().then(function (list) {
           discoverState.rankLoading = false;
           discoverState.ranks = list && list.length ? list : null;
-          if (tab === 'discover') renderHome();
+          if (tab === 'rank') renderHome();
         }).catch(function () { discoverState.rankLoading = false; });
       }
     }
@@ -2089,9 +2054,9 @@
       renderHome();
     };
 
-    /* ---- 发现页 / 排行榜页 ---- */
-    if (tab === 'discover' || tab === 'rank') loadDiscover();
-    if (tab === 'discover' || tab === 'rank') {
+    /* ---- 排行榜页 ---- */
+    if (tab === 'rank') loadDiscover();
+    if (tab === 'rank') {
       el.querySelectorAll('[data-rank]').forEach(function (b) {
         b.onclick = function () {
           openRank(b.getAttribute('data-rank'), b.getAttribute('data-rank-name') || '');

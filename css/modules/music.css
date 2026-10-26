@@ -322,7 +322,11 @@
   margin-bottom: 22px;
   box-shadow: 0 30px 80px rgba(0, 0, 0, 0.6);
 }
-.mu-imm-vinyl.spin, .mu-imm-disc.spin { animation: muSpin 8s linear infinite; }
+.mu-imm-disc {
+  animation: muSpin 26s linear infinite;
+  animation-play-state: paused;
+}
+.mu-imm-disc.spin { animation-play-state: running; }
 .mu-imm-disc {
   width: 55%;
   height: 55%;
@@ -1644,8 +1648,8 @@ html[data-theme="light"] .mu-immersive {
   background: #e5e7eb;
 }
 @keyframes muSpin { to { transform: rotate(360deg); } }
-/* 只让整张唱片转：封面是贴在盘面上的，单独转会显得脱节 */
-.mu-imm-vinyl.spin { animation: muVinylSpin 26s linear infinite; }
+/* 只让整张唱片转：封面是贴在盘面上的，单独转会显得脱节。
+   启停规则见文件后段的 animation-play-state。 */
 
 .mu-imm-bars {
   display: flex;
@@ -2011,7 +2015,14 @@ html[data-theme="light"] .mu-immersive {
   /* 旋转由 .spin 类驱动，绕自身中心 */
   transform-origin: 50% 50%;
 }
-.mu-imm-vinyl.spin { animation: muVinylSpin 26s linear infinite; }
+/* 动画常驻、用 play-state 控制启停：
+   暂停时移除 animation 会让 transform 回到 0deg，封面就转回正位了。
+   保持动画存在、只暂停，唱片会停在当前角度。 */
+.mu-imm-vinyl {
+  animation: muVinylSpin 26s linear infinite;
+  animation-play-state: paused;
+}
+.mu-imm-vinyl.spin { animation-play-state: running; }
 @keyframes muVinylSpin { to { transform: rotate(360deg); } }
 
 /* 纹路：同心细圈。用 repeating-radial-gradient 一次画完，
@@ -2760,28 +2771,31 @@ html[data-theme="light"] .mu-immersive {
 }
 .mu-imm-vol-pop {
   position: absolute;
-  bottom: calc(100% + 8px);
+  /* 不能留空隙：图标和弹层之间只要有 1px 缝，鼠标移过去就会
+     离开 :hover 区、弹层立刻消失，根本没法拖。
+     这里贴紧图标顶部，再用 padding-bottom 撑出视觉间距 */
+  bottom: 100%;
   left: 50%;
-  transform: translateX(-50%) translateY(6px);
+  transform: translateX(-50%);
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 6px;
-  padding: 10px 8px 8px;
-  border-radius: 999px;
+  /* 底部 14px padding 既是视觉间距，也是鼠标从图标移到滑条的桥 */
+  padding: 10px 8px 14px;
+  border-radius: 22px;
   background: rgba(20, 24, 30, 0.94);
   border: 1px solid rgba(255, 255, 255, 0.12);
   box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
   opacity: 0;
   pointer-events: none;
-  transition: opacity .18s ease, transform .18s ease;
+  transition: opacity .16s ease;
   z-index: 6;
 }
 .mu-imm-vol:hover .mu-imm-vol-pop,
 .mu-imm-vol:focus-within .mu-imm-vol-pop {
   opacity: 1;
   pointer-events: auto;
-  transform: translateX(-50%) translateY(0);
 }
 .mu-imm-vol-num {
   font-size: 11px;

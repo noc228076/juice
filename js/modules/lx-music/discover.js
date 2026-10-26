@@ -5,25 +5,12 @@
      · 榜单列表  /api/v3/rank/list
      · 榜单歌曲  /api/v3/rank/song
    两个接口都免登录、带封面（cover 里的 {size} 换成 480）。
-
-   推荐歌单用同一批榜单里偏「风格」的那几个，等价于平台的
-   分类推荐——酷我/酷狗的独立歌单接口经常空返回，榜单更稳。
    ========================================================= */
 (function (root) {
   'use strict';
 
   var R = root.LxRequest;
   var KG = 'http://mobilecdn.kugou.com/api/v3';
-
-  // 平台推荐位：从榜单里挑出适合当「推荐歌单」的风格榜
-  var FEATURED = [
-    { rankid: 8888, name: 'TOP500' },
-    { rankid: 85897, name: '国潮音乐榜' },
-    { rankid: 51341, name: '民谣榜' },
-    { rankid: 33160, name: '电音榜' },
-    { rankid: 24971, name: 'DJ热歌榜' },
-    { rankid: 80025, name: '国乐榜' }
-  ];
 
   var coverCache = {};
 
@@ -123,26 +110,8 @@
     }).catch(function () { return []; });
   }
 
-  /** 推荐位：预置几个风格榜，各自取封面（复用榜单列表里的图） */
-  function listFeatured() {
-    return listRanks().then(function (all) {
-      var byId = {};
-      all.forEach(function (r) { byId[r.id] = r; });
-      return FEATURED.map(function (f) {
-        var hit = byId[f.rankid];
-        return {
-          id: f.rankid,
-          name: (hit && hit.name) || f.name,
-          cover: (hit && hit.cover) || '',
-          intro: (hit && hit.intro) || ''
-        };
-      });
-    });
-  }
-
   root.LxDiscover = {
     listRanks: listRanks,
-    rankSongs: rankSongs,
-    listFeatured: listFeatured
+    rankSongs: rankSongs
   };
 })(window);

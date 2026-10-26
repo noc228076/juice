@@ -125,6 +125,34 @@
     playCurrent();
   }
 
+  /**
+   * 插队播放：把单曲插到当前曲目后面，不打断正在播的歌。
+   * 用户正在听自己的歌单时点搜索结果，期望是「加一首进来」，
+   * 而不是把整个歌单换掉。
+   */
+  function enqueueNext(item) {
+    if (!queue.length || qi < 0) {
+      playQueue([item], item.kind === 'search' ? '搜索结果' : qName, 0);
+      return;
+    }
+    // 已存在同一首就不重复插，直接跳过去
+    var exist = -1;
+    for (var i = 0; i < queue.length; i++) {
+      if (queue[i].id === item.id) { exist = i; break; }
+    }
+    if (exist === qi) { toast('正在播放这首'); return; }
+    if (exist > -1) {
+      qi = exist;
+      playCurrent();
+      toast('已跳到这首');
+      return;
+    }
+    queue.splice(qi + 1, 0, item);
+    toast('已插到下一首播放');
+    if (queuePanelEl) renderQueuePanel();
+    if (tab === 'lists') renderHome();
+  }
+
   function playCurrent() {
     if (!queue.length) return;
     cur = queue[qi];
@@ -245,6 +273,19 @@
     if (immEl) highlightLyric(t);
     // 播放条那行歌词跟着进度走
     updateBarLyric(t);
+    updateBarTime(t, d);
+  }
+
+  /** 播放条上的「当前 / 总时长」 */
+  var lastBarCur = '', lastBarDur = '';
+  function updateBarTime(t, d) {
+    var curEl = document.getElementById('muPtCur');
+    var durEl = document.getElementById('muPtDur');
+    if (!curEl || !durEl) return;
+    var cur = fmtTime(t);
+    var dur = d ? fmtTime(d) : '0:00';
+    if (cur !== lastBarCur) { curEl.textContent = cur; lastBarCur = cur; }
+    if (dur !== lastBarDur) { durEl.textContent = dur; lastBarDur = dur; }
   }
 
   /** 播放条左侧的歌词行：取当前时间对应的那一句 */
@@ -592,7 +633,9 @@
       cover: track.cover || '',
       source: track.source || (track.track && track.track.source) || '',
       interval: track.interval || '',
-      track: track.track || null
+      track: track.track || null,
+      // 加入时间：按时间排序要用。旧数据没有这个字段，排序时当作 0
+      addedAt: Date.now()
     });
     saveState();
     return true;
@@ -872,6 +915,9 @@
   var addTargetIndex = -1; pickTarget = null;   // 当前要加入歌单的搜索结果索引
   var pickTarget = null;     // 非搜索结果（如榜单歌曲）要加入歌单时暂存于此
   var importState = null;    // { listId, done, total, added, failed } 导入进度
+  // 歌单排序：'default' 原序 | 'title' 按字母 | 'added' 按加入时间 | 'artist' 按歌手
+  var listSort = 'default';
+  var listSortAsc = true;
 
   function addListModalHtml() {
     if (addTargetIndex < 0) return '';
@@ -895,9 +941,50 @@
   }
 
   /* ---------------- UI：我的歌单 ---------------- */
+  /**
+   * 按当前排序方式返回 [{track, index}]。
+   * index 是原数组下标——播放和删除都要用原始位置，
+   * 不能用排序后的位置，否则会点错歌。
+   */
+  function sortedTracks(tracks) {
+    var arr = tracks.map(function (t, i) { return { track: t, index: i }; });
+    if (listSort === 'default') return arr;
+
+    var cmp;
+    if (listSort === 'title') {
+      cmp = function (a, b) {
+        return String(a.track.title || '').localeCompare(String(b.track.title || ''), 'zh-Hans-CN');
+      };
+    } else if (listSort === 'artist') {
+      cmp = function (a, b) {
+        return String(a.track.artist || '').localeCompare(String(b.track.artist || ''), 'zh-Hans-CN');
+      };
+    } else {
+      // 按加入时间；旧数据没有 addedAt 的当作 0 排在最前
+      cmp = function (a, b) {
+        return (Number(a.track.addedAt) || 0) - (Number(b.track.addedAt) || 0);
+      };
+    }
+    arr.sort(function (a, b) {
+      var r = cmp(a, b);
+      // 主键相同时保持原顺序，避免每次渲染顺序乱跳
+      if (r === 0) return a.index - b.index;
+      return listSortAsc ? r : -r;
+    });
+    return arr;
+  }
+
+  /** 排序按钮：显示当前排序方式，点一下循环切换（再点同项反向） */
+  function sortBtnHtml() {
+    var label = { default: '默认', title: '字母', artist: '歌手', added: '时间' }[listSort];
+    var arrow = listSort === 'default' ? '' : (listSortAsc ? '↑' : '↓');
+    return '<button class="mu-btn mini mu-sort-btn' + (listSort !== 'default' ? ' on' : '') +
+      '" id="muListSort" title="排序：' + label + '">' +
+      icon('ArrowUpDown') + label + arrow + '</button>';
+  }
+
   function listsHtml() {
-    ensureLoveList();
-    var current = state.lists.filter(function (l) { return l.id === activeListId; })[0] || state.lists[0];
+    ensureLoveList();    var current = state.lists.filter(function (l) { return l.id === activeListId; })[0] || state.lists[0];
     if (current) activeListId = current.id;
 
     var listTabs = state.lists.map(function (l) {
@@ -909,7 +996,11 @@
 
     var rows = '';
     if (current && current.tracks.length) {
-      rows = '<div class="mu-list">' + current.tracks.map(function (t, i) {
+      // 排序视图：带上原始索引，播放时要用原数组定位
+      var view = sortedTracks(current.tracks);
+      rows = '<div class="mu-list">' + view.map(function (v) {
+        var t = v.track;
+        var i = v.index;
         // 歌单里的条目结构是 { title, artist, track }，跟搜索结果不同，
         // 这里按 trackKey 判正在播放，才能跟搜索页一样有竖条 + 变色
         var active = !!cur && trackKey(cur) === trackKey(t);
@@ -941,6 +1032,7 @@
       '<div class="mu-list-head">' +
         '<div class="mu-list-tabs">' + listTabs + '</div>' +
         '<div class="mu-list-actions">' +
+          sortBtnHtml() +
           '<button class="mu-btn mini" id="muListImport" title="从分享链接导入歌单">' + icon('Link') + '导入</button>' +
           '<button class="mu-btn mini" id="muListNew" title="新建歌单">' + icon('Plus') + '新建</button>' +
           (current && current.id !== LOVE_ID
@@ -1058,6 +1150,12 @@
       '</div>' +
       // 中列右侧：歌词，占用播放键与右侧控件之间的大片空白
       '<div class="mu-player-lyric" id="muBarLyric"></div>' +
+      // 时间：当前 / 总时长，贴在右侧控件左边
+      '<div class="mu-player-time">' +
+        '<span class="mu-pt-cur" id="muPtCur">0:00</span>' +
+        '<span class="mu-pt-sep">/</span>' +
+        '<span class="mu-pt-dur" id="muPtDur">0:00</span>' +
+      '</div>' +
       // 右列：播放模式（三态） / 音量 / 沉浸
       '<div class="mu-ops mu-ops-side">' +
         '<button class="mu-op' + (mode !== 'all' ? ' on' : '') + '" id="muMode" title="' + modeLabel + '">' + icon(modeIcon) + '</button>' +
@@ -1345,6 +1443,8 @@
   function syncBarMeta() {
     var bar = document.getElementById('muPlayerBar');
     if (!bar) return;
+    // 播放条可能刚被重建，时间缓存要清掉才会重新写入
+    lastBarCur = ''; lastBarDur = '';
     var titleEl = bar.querySelector('.mu-player-title');
     if (titleEl) {
       titleEl.innerHTML = (cur ? esc(cur.title) : '未在播放') +
@@ -1505,6 +1605,7 @@
     queuePanelEl.innerHTML = queuePanelHtml();
     document.body.appendChild(queuePanelEl);
     paintIcons(queuePanelEl);
+    bindQueueDrag(queuePanelEl);
 
     queuePanelEl.querySelectorAll('[data-q-jump]').forEach(function (row) {
       row.onclick = function () {
@@ -1543,8 +1644,11 @@
     var body = queuePanelEl.querySelector('.mu-queue-body');
     if (body) body.innerHTML = queueRowsHtml();
     paintIcons(queuePanelEl);
+    if (body) bindQueueDrag(body);
     queuePanelEl.querySelectorAll('[data-q-jump]').forEach(function (row) {
-      row.onclick = function () {
+      row.onclick = function (e) {
+        // 拖动手柄不触发跳转
+        if (e.target.closest('.mu-queue-grip')) return;
         var i = parseInt(row.getAttribute('data-q-jump'), 10);
         if (isNaN(i) || i === qi) { closeQueuePanel(); return; }
         qi = i;
@@ -1575,13 +1679,64 @@
   function queueRowsHtml() {
     return queue.map(function (t, i) {
       var on = i === qi;
-      return '<div class="mu-queue-row' + (on ? ' active' : '') + '" data-q-jump="' + i + '">' +
+      return '<div class="mu-queue-row' + (on ? ' active' : '') + '" data-q-jump="' + i +
+        '" draggable="true" data-q-index="' + i + '">' +
+        '<span class="mu-queue-grip" title="拖动排序">' + icon('GripVertical') + '</span>' +
         '<span class="mu-queue-idx">' + (on ? icon('Volume2') : (i + 1)) + '</span>' +
         '<span class="mu-queue-text"><b>' + esc(t.title || '未知曲目') + '</b>' +
           (t.artist ? '<i>' + esc(t.artist) + '</i>' : '') + '</span>' +
         (t.interval ? '<span class="mu-queue-dur">' + esc(t.interval) + '</span>' : '') +
         '</div>';
     }).join('');
+  }
+
+  /* ---------------- 队列拖动排序 ---------------- */
+  var dragFrom = -1;
+
+  function bindQueueDrag(root) {
+    var rows = root.querySelectorAll('[data-q-index]');
+    rows.forEach(function (row) {
+      row.addEventListener('dragstart', function (e) {
+        dragFrom = parseInt(row.getAttribute('data-q-index'), 10);
+        row.classList.add('dragging');
+        try { e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(dragFrom)); } catch (err) {}
+      });
+      row.addEventListener('dragend', function () {
+        row.classList.remove('dragging');
+        root.querySelectorAll('.drag-over').forEach(function (x) { x.classList.remove('drag-over'); });
+      });
+      row.addEventListener('dragover', function (e) {
+        if (dragFrom < 0) return;
+        e.preventDefault();
+        try { e.dataTransfer.dropEffect = 'move'; } catch (err) {}
+        row.classList.add('drag-over');
+      });
+      row.addEventListener('dragleave', function () { row.classList.remove('drag-over'); });
+      row.addEventListener('drop', function (e) {
+        e.preventDefault();
+        row.classList.remove('drag-over');
+        var to = parseInt(row.getAttribute('data-q-index'), 10);
+        if (dragFrom < 0 || isNaN(to) || dragFrom === to) return;
+        moveQueueItem(dragFrom, to);
+        dragFrom = -1;
+      });
+    });
+  }
+
+  /** 把队列里第 from 项移到 to 位置，正在播的那首跟着走 */
+  function moveQueueItem(from, to) {
+    if (from === to || from < 0 || to < 0 || from >= queue.length || to >= queue.length) return;
+    var playing = queue[qi];
+    var moved = queue.splice(from, 1)[0];
+    queue.splice(to, 0, moved);
+    // 重新定位当前曲目：位置可能因为插入/移除变了
+    var newIdx = queue.indexOf(playing);
+    if (newIdx > -1) qi = newIdx;
+    renderQueuePanel();
+    if (queuePanelEl) {
+      var body = queuePanelEl.querySelector('.mu-queue-body');
+      if (body) bindQueueDrag(body);
+    }
   }
 
   function bindHome() {
@@ -1604,8 +1759,24 @@
         var list = name === '本机文件' ? localTracks() : name === '直链歌单' ? directList() : searchResults;
         var target = list[i];
         if (!target) return;
-        // 整页入队，从点击那首开始播——这样「当前播放列表」里能看到后续曲目，
-        // 上一首/下一首也有东西可切（之前只播单曲，队列里永远只有一首）
+        var item = {
+          kind: name === '搜索结果' ? 'search' : 'local',
+          id: target.id || ((target.source || '') + '_' + (target.songmid || target.title)),
+          title: target.title,
+          artist: target.artist || '',
+          cover: target.cover || '',
+          url: target.url || '',
+          track: target.track || null,
+          source: target.source || '',
+          interval: target.interval || ''
+        };
+        // 正在播别的列表里的歌时，点搜索结果只插队，不换掉整个队列
+        var fromOtherList = queue.length > 0 && qName && qName !== name;
+        if (fromOtherList && name === '搜索结果') {
+          enqueueNext(item);
+          return;
+        }
+        // 同列表内点击：整页入队，从点的那首开始
         var q = list.map(function (t) {
           return {
             kind: name === '搜索结果' ? 'search' : 'local',
@@ -2017,6 +2188,27 @@
         renderHome();
       };
     });
+
+    var sortBtn = el.querySelector('#muListSort');
+    if (sortBtn) sortBtn.onclick = function () {
+      // 循环：默认 → 字母↑ → 字母↓ → 歌手↑ → 歌手↓ → 时间↑ → 时间↓ → 默认
+      var order = ['default', 'title', 'artist', 'added'];
+      if (listSort === 'default') {
+        listSort = 'title'; listSortAsc = true;
+      } else if (listSortAsc) {
+        // 先在同一项内切正/倒序
+        listSortAsc = false;
+      } else {
+        // 倒序再点才进下一项
+        var i = order.indexOf(listSort);
+        var next = order[(i + 1) % order.length];
+        listSort = next;
+        listSortAsc = true;
+      }
+      renderHome();
+      toast('排序：' + ({ default: '默认', title: '按字母', artist: '按歌手', added: '按加入时间' })[listSort] +
+        (listSort === 'default' ? '' : (listSortAsc ? ' 正序' : ' 倒序')));
+    };
 
     var listImport = el.querySelector('#muListImport');
     if (listImport) listImport.onclick = importFromShare;

@@ -2648,3 +2648,63 @@ html[data-theme="light"] .mu-immersive {
   }
   .mu-queue-panel { width: 100%; max-height: 55vh; }
 }
+
+
+/* ==========================================================================
+   播放条时间：当前 / 总时长
+   ========================================================================== */
+.mu-player-time {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  /* 放在标题右边、播放键左边：右边已经挤了模式和音量 */
+  left: calc(50% - 190px);
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  color: var(--tx-faint);
+  pointer-events: none;
+  white-space: nowrap;
+}
+.mu-pt-cur { color: var(--tx-dim); }
+.mu-pt-sep { opacity: .5; }
+
+@media (max-width: 900px) {
+  /* 窄屏优先保时间，歌词让位 */
+  .mu-player-lyric { display: none; }
+  .mu-player-time { left: calc(50% - 180px); }
+}
+@media (max-width: 720px) {
+  .mu-player-time { display: none; }
+}
+
+/* ==========================================================================
+   队列拖动排序
+   ========================================================================== */
+.mu-queue-grip {
+  flex: none;
+  width: 14px;
+  display: grid;
+  place-items: center;
+  color: var(--tx-faint);
+  opacity: .45;
+  cursor: grab;
+}
+.mu-queue-grip .mu-ico { width: 13px; height: 13px; }
+.mu-queue-row:hover .mu-queue-grip { opacity: .9; }
+.mu-queue-row.dragging {
+  opacity: .45;
+  background: var(--btn-ghost-bg);
+}
+.mu-queue-row.drag-over {
+  box-shadow: inset 0 2px 0 var(--mod-ac);
+}
+
+/* 排序按钮激活态 */
+.mu-sort-btn.on {
+  color: var(--mod-ac);
+  border-color: var(--mod-ac-glow);
+}
+.mu-sort-btn .mu-ico { width: 12px; height: 12px; }

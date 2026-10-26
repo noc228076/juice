@@ -60,10 +60,26 @@ function decompress(buffer, encoding) {
  */
 function readBody(req) {
   return new Promise(function (resolve) {
-    // Vercel Node runtime：body 可能已被解析成对象/字符串
+    // Vercel Node runtime：body 可能已被解析成对象/字符串。
+    // 注意不能一律 JSON.stringify：表单（urlencoded）被解析成对象后
+    // 再序列化会变成 JSON，上游收到的是 "{"ids":"[...]"}" 这种非法表单，
+    // 网易云 song/detail 就会回「参数错误」。
     if (req.body != null && typeof req.body !== 'function') {
       if (Buffer.isBuffer(req.body)) return resolve(req.body);
       if (typeof req.body === 'string') return resolve(Buffer.from(req.body));
+      var ct = String((req.headers && req.headers['content-type']) || '');
+      if (/application\/x-www-form-urlencoded/i.test(ct)) {
+        var pairs = [];
+        Object.keys(req.body).forEach(function (k) {
+          var v = req.body[k];
+          if (Array.isArray(v)) {
+            v.forEach(function (x) { pairs.push(encodeURIComponent(k) + '=' + encodeURIComponent(String(x))); });
+          } else {
+            pairs.push(encodeURIComponent(k) + '=' + encodeURIComponent(String(v)));
+          }
+        });
+        return resolve(Buffer.from(pairs.join('&')));
+      }
       return resolve(Buffer.from(JSON.stringify(req.body)));
     }
     if (req.readableEnded) return resolve(null);

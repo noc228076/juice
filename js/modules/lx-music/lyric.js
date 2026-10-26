@@ -80,11 +80,13 @@
   }
 
   /** 酷我 mlyric 接口（免登录，认搜索返回的 songmid/MUSICRID） */
-  function fetchKwLyric(musicId) {
+  function fetchKwLyric(musicId, deadline) {
     if (!musicId) return Promise.resolve(null);
     var url = 'http://mlyric.kuwo.cn/mobi.s?f=web&type=lyric&lrcx=1&rid=' +
       encodeURIComponent(musicId) + '&encode=utf8';
-    return R.httpFetch(url, { timeout: 8000, responseType: 'arraybuffer' }).promise.then(function (resp) {
+    // 把总预算摊到单次请求上：原来每次 8 秒，逐个候选试下去最坏 14 秒+
+    var left = deadline ? Math.max(2000, deadline - Date.now()) : 8000;
+    return R.httpFetch(url, { timeout: Math.min(8000, left), responseType: 'arraybuffer' }).promise.then(function (resp) {
       var raw = resp.raw;
       if (!raw) return null;
       var buf = raw instanceof Uint8Array ? raw : new Uint8Array(raw);
@@ -102,7 +104,7 @@
    * 返回按优先级排序的 id 列表——翻唱、合辑版本常常没有歌词，
    * 所以调用方需要逐个试，直到拿到非空结果。
    */
-  function searchKwIds(track) {
+  function searchKwIds(track, deadline) {
     var title = String(track.title || track.name || '').trim();
     var artist = String(track.artist || track.singer || '').trim();
     if (!title) return Promise.resolve([]);
@@ -114,7 +116,8 @@
       var url = 'http://search.kuwo.cn/r.s?client=kt&all=' + encodeURIComponent(kw) +
         '&pn=0&rn=8&uid=794762570&ver=kwplayer_ar_9.2.2.1&vipver=1&show_copyright_off=1' +
         '&newver=1&ft=music&cluster=0&strategy=2012&encoding=utf8&rformat=json&vermerge=1&mobi=1';
-      return R.httpFetch(url, { timeout: 8000 }).promise.then(function (resp) {
+      var leftQ = deadline ? Math.max(2000, deadline - Date.now()) : 8000;
+      return R.httpFetch(url, { timeout: Math.min(8000, leftQ) }).promise.then(function (resp) {
         var body = resp && resp.body;
         if (!body) return [];
         var list = body.abslist || body.absList || [];
@@ -201,12 +204,12 @@
         // 3. 直取失败或其它平台：按歌名+歌手搜候选，逐个试到有歌词为止。
         //    翻唱/合辑版本常常没歌词，只试第一个会白跑；但也不能无限试，
         //    最多 3 个、总耗时压在 6 秒内，否则用户会盯着「加载中」发呆。
-        return searchKwIds(track).then(function (ids) {
+        var deadline = Date.now() + 6000;   // 总预算从这里起算，而不是搜完才开始
+        return searchKwIds(track, deadline).then(function (ids) {
           if (!ids.length) return empty;
-          var deadline = Date.now() + 6000;
           var tryAt = function (i) {
             if (i >= ids.length || i >= 3 || Date.now() > deadline) return Promise.resolve(empty);
-            return fetchKwLyric(ids[i]).then(function (res2) {
+            return fetchKwLyric(ids[i], deadline).then(function (res2) {
               return res2 || tryAt(i + 1);
             });
           };

@@ -243,7 +243,7 @@
     }
     queue.splice(qi + 1, 0, item);
     toast('已插到下一首播放');
-    if (queuePanelEl) renderQueuePanel();
+    if (queuePanelEl) renderQueuePanel(true);
     if (tab === 'lists') renderHome();
     saveLive();
   }
@@ -294,7 +294,7 @@
       syncBarVisibility();
       renderIfActive();
       renderMini();
-      if (queuePanelEl) renderQueuePanel();
+      if (queuePanelEl) renderQueuePanel(true);
       setBarLoading(true);
       // 歌词和封面与取地址并行，别让播放条空着
       lastLyricIndex = -1;
@@ -401,7 +401,7 @@
     renderIfActive();
     renderMini();
     // 队列面板开着时同步高亮
-    if (queuePanelEl) renderQueuePanel();
+    if (queuePanelEl) renderQueuePanel(true);
     // 切歌后换歌词；沉浸页开着就立即刷新
     lastLyricIndex = -1;
     loadLyricFor(cur);
@@ -435,7 +435,7 @@
     syncBarVisibility();
     renderIfActive();
     renderMini();
-    if (queuePanelEl) renderQueuePanel();
+    if (queuePanelEl) renderQueuePanel(true);
     toast('「' + (item.title || '这首') + '」取不到播放地址：' + why);
   }
 
@@ -2213,15 +2213,31 @@
   }
 
   /** 面板只重建内部列表，不重建整个浮层（保住滚动位置） */
-  function renderQueuePanel() {
+  /**
+   * @param {boolean} light 只同步高亮和滚动，不重建行。
+   * 队列 200+ 项时全量重建（字符串拼接 + innerHTML + 数百个 SVG 重绘
+   * + 4×N 个拖拽/删除监听重挂）在每次切歌都跑一遍，肉眼可感卡顿。
+   * 增删/排序仍走全量。
+   */
+  function renderQueuePanel(light) {
     if (!queuePanelEl) return;
+    if (light) {
+      var qrows = queuePanelEl.querySelectorAll('.mu-queue-row');
+      var target = null;
+      for (var ri = 0; ri < qrows.length; ri++) {
+        var on = parseInt(qrows[ri].getAttribute('data-q-index'), 10) === qi;
+        qrows[ri].classList.toggle('active', on);
+        if (on) target = qrows[ri];
+      }
+      if (target) target.scrollIntoView({ block: 'center' });
+      return;
+    }
     var body = queuePanelEl.querySelector('.mu-queue-body');
     if (body) body.innerHTML = queueRowsHtml();
     paintIcons(queuePanelEl);
     if (body) bindQueueDrag(body);
     queuePanelEl.querySelectorAll('[data-q-jump]').forEach(function (row) {
       row.onclick = function (e) {
-        // 拖动手柄不触发跳转
         // 拖动手柄和删除键都不触发跳转
         if (e.target.closest('.mu-queue-grip') || e.target.closest('[data-q-del]')) return;
         var i = parseInt(row.getAttribute('data-q-jump'), 10);

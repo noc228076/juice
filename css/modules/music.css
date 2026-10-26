@@ -2828,3 +2828,52 @@ html[data-theme="light"] .mu-immersive {
   /* 触屏没有 hover：点图标也能把滑条调出来 */
   .mu-imm-vol:focus-within .mu-imm-vol-pop { opacity: 1; pointer-events: auto; }
 }
+
+/* ==========================================================================
+   搜索结果的平台筛选（对齐洛雪的分类 tab）
+   ========================================================================== */
+.mu-src-filter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin: 0 0 12px;
+}
+.mu-src-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 30px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--mu-r-pill);
+  background: transparent;
+  color: var(--tx-dim);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background var(--mu-t-fast) var(--mu-ease),
+              color var(--mu-t-fast) var(--mu-ease),
+              border-color var(--mu-t-fast) var(--mu-ease);
+}
+.mu-src-chip:hover { color: var(--tx); border-color: var(--line-strong); }
+.mu-src-chip.active {
+  background: var(--mod-ac);
+  border-color: transparent;
+  color: var(--mod-ac-ink);
+  box-shadow: 0 4px 14px var(--mod-ac-glow);
+}
+.mu-src-chip-n {
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--btn-ghost-bg);
+  color: var(--tx-faint);
+}
+.mu-src-chip.active .mu-src-chip-n {
+  background: rgba(0, 0, 0, 0.14);
+  color: var(--mod-ac-ink);
+}

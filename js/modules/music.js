@@ -892,6 +892,41 @@
     '  }\n' +
     '};';
 
+  /* ---------------- 平台筛选（对齐洛雪的分类 tab） ---------------- */
+  var PLATFORM_NAMES = { kw: '酷我', kg: '酷狗', tx: 'QQ音乐', mg: '咪咕', wy: '网易云' };
+  var srcFilter = 'all';   // 'all' = 聚合 | 平台 id
+
+  /** 按当前筛选返回结果 */
+  function filteredResults() {
+    if (srcFilter === 'all') return searchResults;
+    return searchResults.filter(function (t) { return t.source === srcFilter; });
+  }
+
+  /** 筛选栏：聚合 + 各平台原名，带该平台结果数 */
+  function sourceFilterHtml() {
+    if (!searchResults.length) return '';
+    var counts = {};
+    searchResults.forEach(function (t) { counts[t.source] = (counts[t.source] || 0) + 1; });
+
+    // 聚合 + 有结果的平台（按固定顺序，避免每次顺序变）
+    var order = ['kw', 'kg', 'tx', 'mg', 'wy'];
+    var chips = [{
+      id: 'all',
+      label: '聚合',
+      n: searchResults.length
+    }];
+    order.forEach(function (id) {
+      if (!counts[id]) return;
+      chips.push({ id: id, label: PLATFORM_NAMES[id] || id.toUpperCase(), n: counts[id] });
+    });
+
+    return '<div class="mu-src-filter">' + chips.map(function (c) {
+      return '<button class="mu-src-chip' + (srcFilter === c.id ? ' active' : '') +
+        '" data-src-filter="' + c.id + '">' + esc(c.label) +
+        '<span class="mu-src-chip-n">' + c.n + '</span></button>';
+    }).join('') + '</div>';
+  }
+
   function searchHtml() {
     // 音源固定为在线聚合（洛雪内核）
     var lxReady = !!(window.LxMusic);
@@ -911,10 +946,11 @@
         '</div>' +
         '<button class="mu-btn primary" id="muSearchBtn"' + (searching ? ' disabled' : '') + '>' + (searching ? '搜索中' : '搜索') + '</button>' +
       '</div>' +
+      sourceFilterHtml() +
       (searching
         ? '<div class="mu-loading"><span class="mu-spinner"></span><span class="mu-loading-text">' + esc(searchProgress || '正在搜索…') + '</span></div>'
-        : searchResults.length
-          ? '<div class="mu-list">' + searchResults.map(function (t, i) { return listRowHtml(t, i, '搜索结果'); }).join('') + '</div>'
+        : filteredResults().length
+          ? '<div class="mu-list">' + filteredResults().map(function (t, i) { return listRowHtml(t, i, '搜索结果'); }).join('') + '</div>'
           : '<div class="mu-empty">搜点什么听听——支持歌名 / 歌手</div>') +
     '</div>';
   }
@@ -1772,7 +1808,7 @@
         if (e.target.closest('[data-love]') || e.target.closest('[data-addlist]')) return;
         var name = r.getAttribute('data-play');
         var i = parseInt(r.getAttribute('data-idx'), 10);
-        var list = name === '本机文件' ? localTracks() : name === '直链歌单' ? directList() : searchResults;
+        var list = name === '本机文件' ? localTracks() : name === '直链歌单' ? directList() : filteredResults();
         var target = list[i];
         if (!target) return;
         var item = {
@@ -2031,7 +2067,7 @@
       b.onclick = function (e) {
         e.stopPropagation();
         var i = parseInt(b.getAttribute('data-love'), 10);
-        var track = searchResults[i];
+        var track = filteredResults()[i];
         if (!track) return;
         var nowLoved = toggleLove(track);
         toast(nowLoved ? '已收藏' : '已取消收藏');
@@ -2062,7 +2098,7 @@
     document.querySelectorAll('[data-pick-list]').forEach(function (b) {
       b.onclick = function () {
         var listId = b.getAttribute('data-pick-list');
-        var track = pickTarget || searchResults[addTargetIndex];
+        var track = pickTarget || filteredResults()[addTargetIndex];
         if (!track) { addTargetIndex = -1; pickTarget = null; pickTarget = null; renderHome(); return; }
         var l = getList(listId);
         if (!l) { addTargetIndex = -1; pickTarget = null; renderHome(); return; }
@@ -2082,7 +2118,7 @@
       askName('新建歌单', '歌单名称', '', function (name) {
         if (!name) return;
         var item = createList(name);
-        var track = pickTarget || searchResults[addTargetIndex];
+        var track = pickTarget || filteredResults()[addTargetIndex];
         if (item && track) {
           addToList(item.id, track);
           toast('已加入「' + item.name + '」');
@@ -2223,6 +2259,14 @@
         if (!l) return;
         l.tracks.splice(i, 1);
         saveState();
+        renderHome();
+      };
+    });
+
+    /* ---- 平台筛选 ---- */
+    el.querySelectorAll('[data-src-filter]').forEach(function (b) {
+      b.onclick = function () {
+        srcFilter = b.getAttribute('data-src-filter');
         renderHome();
       };
     });

@@ -156,6 +156,22 @@
    * @param {string} quality
    * @returns {Promise<string>}
    */
+  /**
+   * 取播放地址。
+   *
+   * 必须串行：音源脚本跑在同一个 iframe 里，内部会用模块级变量缓存
+   * musicId/url。实测连续快速请求两首不同的歌，第二首会返回第一首的
+   * 地址（「显示可惜没如果、放的却是唯一」就是这么来的）。
+   * 用一条 Promise 链把请求排成队列，彻底避免脚本状态被覆盖。
+   */
+  var resolveChain = Promise.resolve();
+  // 上一首拿到的地址：用来识别脚本串号（两首不同的歌返回同一个 URL）
+  var lastResolved = { key: '', url: '' };
+
+  function trackKeyOf(track) {
+    return [track.source, track.songmid, track.hash, track.name].filter(Boolean).join('|');
+  }
+
   function resolveUrl(track, quality) {
     if (!root.LxSandbox.hasAny()) {
       return Promise.reject(new Error('尚未导入音源脚本，无法获取播放地址'));
@@ -175,7 +191,31 @@
       types: track.types,
       _types: track._types
     };
-    return root.LxSandbox.getMusicUrl(track.source, musicInfo, quality || '128k');
+    var key = trackKeyOf(track);
+
+    var once = function () {
+      return root.LxSandbox.getMusicUrl(track.source, musicInfo, quality || '128k');
+    };
+
+    var task = resolveChain.then(function () {
+      return once().then(function (url) {
+        // 两首不同的歌拿到同一个地址 = 脚本串号了。
+        // 等一拍再要一次（脚本内部缓存多半是同一 tick 内的旧值）。
+        if (url && key && key !== lastResolved.key && url === lastResolved.url) {
+          return new Promise(function (r) { setTimeout(r, 220); })
+            .then(once)
+            .then(function (url2) { return url2 || url; });
+        }
+        return url;
+      });
+    }).then(function (url) {
+      if (url) lastResolved = { key: key, url: url };
+      return url;
+    });
+
+    // 队列本身要吞掉错误，否则一次失败会卡死后续所有请求
+    resolveChain = task.catch(function () {});
+    return task;
   }
 
   /**

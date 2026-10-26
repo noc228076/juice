@@ -1730,14 +1730,26 @@ html[data-theme="light"] .mu-immersive {
   line-height: 1.4;
   font-weight: 500;
   color: rgba(255, 255, 255, 0.3);
+  /* 只过渡 opacity/transform：这两个不会因为「元素在合成层外」而冻住。
+     color 和 font-size 保持瞬时切换，否则实测会卡在起始色。 */
+  transition: opacity .45s cubic-bezier(.16,1,.3,1),
+              transform .45s cubic-bezier(.16,1,.3,1);
+  transform-origin: left center;
+  will-change: opacity, transform;
 }
-.mu-imm-lyric-line.passed { opacity: 0.6; }
+/* 非当前行轻微缩小，当前行回到原尺寸——比单纯改字号更柔和 */
+.mu-imm-lyric-line:not(.active) {
+  transform: scale(.97);
+  opacity: .62;
+}
+.mu-imm-lyric-line.passed { opacity: .38; }
 /* 高亮必须瞬时：加 transition 时合成层外的行会冻在起始色 */
 .mu-imm-lyric-line.active {
   color: var(--mod-ac);
   font-size: clamp(18px, 2.1vw, 25px);
   font-weight: 700;
   opacity: 1;
+  transform: scale(1);
   text-shadow: 0 0 28px var(--mod-ac-glow);
 }
 .mu-imm-lyric-tip {

@@ -2647,15 +2647,52 @@
     if (active) {
       // 滚到容器垂直中间。首尾各有一个 .mu-lyr-pad 撑出半屏留白，
       // 所以第一句和最后一句也能居中。
-      // behavior 用 auto 而不是 smooth——切行比动画快，smooth 队列会堆积，
-      // 实测表现为 scrollTop 一直停在 0。
-      try {
-        active.scrollIntoView({ block: 'center', behavior: 'auto' });
-      } catch (e) {
-        var target = active.offsetTop - box.clientHeight / 2 + active.offsetHeight / 2;
-        box.scrollTo({ top: Math.max(0, target), behavior: 'auto' });
-      }
+      var target = active.offsetTop - box.clientHeight / 2 + active.offsetHeight / 2;
+      smoothScrollTo(box, Math.max(0, target));
     }
+  }
+
+  /**
+   * 歌词区平滑滚动。
+   * 不用原生 behavior:'smooth'——切行比动画快，浏览器的滚动队列会堆积，
+   * 实测表现为 scrollTop 卡在 0。
+   *
+   * 用 rAF + setTimeout 双调度：后台标签页会把 rAF 节流到几乎不触发，
+   * 只有 rAF 的话动画会永远停在起始位置（虚拟列表也踩过同一个坑）。
+   */
+  var lyricScrollTimer = 0;
+  function smoothScrollTo(box, to) {
+    if (lyricScrollTimer) { clearTimeout(lyricScrollTimer); lyricScrollTimer = 0; }
+    var from = box.scrollTop;
+    var dist = to - from;
+    if (Math.abs(dist) < 1) return;
+
+    // 距离越远动画稍长，但封顶，避免跨十几行时拖太久
+    var dur = Math.min(520, 260 + Math.abs(dist) * 0.35);
+    var start = performance.now();
+
+    // 先快后慢的三次缓动，比线性自然
+    var ease = function (x) {
+      return x < 0.5
+        ? 4 * x * x * x
+        : 1 - Math.pow(-2 * x + 2, 3) / 2;
+    };
+
+    var done = false;
+    var tick = function () {
+      if (done) return;
+      var now = performance.now();
+      var p = Math.min(1, (now - start) / dur);
+      box.scrollTop = from + dist * ease(p);
+      if (p < 1) {
+        lyricScrollTimer = setTimeout(tick, 16);
+      } else {
+        done = true;
+        lyricScrollTimer = 0;
+      }
+    };
+    // 用 setTimeout 起步，不依赖 rAF 是否被节流
+    lyricScrollTimer = setTimeout(tick, 16);
   }
 
   function openImmersive() {

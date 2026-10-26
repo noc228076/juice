@@ -1010,7 +1010,12 @@
 
   /* ---------------- UI：主屏 ---------------- */
   function listRowHtml(t, i, listName) {
-    var active = cur && cur.url === t.url && qName === listName;
+    // 不能用 cur.url === t.url 判断：搜索结果的 url 一开始全是空串，
+    // 取到地址之前 cur.url 也是空串，于是每一行都会被判成「正在播放」，
+    // 界面上表现为所有条目同时亮起绿框、封面变播放键。
+    // 改按 source|songmid 判身份，跟歌单页保持一致。
+    var myKey = trackKey(t);
+    var active = !!cur && qName === listName && !!myKey && myKey === trackKey(cur);
     var loved = inList(LOVE_ID, t);
     // 时长：洛雪结果直接给 interval 字符串（如 04:35），本机文件给 durMs
     var dur = t.interval || (t.durMs ? fmtTime(t.durMs / 1000) : '');

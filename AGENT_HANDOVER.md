@@ -41,9 +41,10 @@ api/leaderboard.js     20,503 B              ← 零依赖 Serverless 排行榜
 - 唯一构建入口 `build-bundles.js`（`npm run build`），CSS 分 `coreCssFiles`
   首屏核心与 `moduleCssFiles` 按需包；JS 分 `coreJsFiles` 主包与 `chunks` 按需包。
   **顺序即层叠/依赖顺序**，见第四节。
-- `build-bundles.js` 从 `sw.js` 读版本号，**原样抄**到 `index.html` 的 `?v=`，
-  **它只抄不递增** —— 版本号必须手改 `sw.js`；chunk URL 也带同一版本号，
-  避免 Vercel 的 immutable 缓存拿到旧 chunk。
+- `build-bundles.js` 从 `sw.js` 读版本号，同步到 `index.html` 的 `?v=`；
+  **v440 起版本号自动递增**：构建时对所有进 bundle 的源码做 sha256 指纹，
+  指纹与上次构建（`.build-state.json`）不同就把 `sw.js` 的版本号 +1。
+  改完代码直接 `npm run build` 即可，不再需要手改版本号；chunk URL 同理。
 - 源文件数量：CSS 15 个、JS 24 个。`js/libs/lunar.js`（436,144 B）是 bazi 强依赖，
   v96 起从主包移出：bazi chunk 内含它；只有进入 Daily / Clock 后才按需加载
   `js/chunks/lunar.js`，供两处农历显示。
@@ -651,8 +652,8 @@ v99 修好后线上仍是旧 JS，因为 `?v=99` 被 Vercel 设为 immutable。
 - 缓存头：`sw.js` no-store；`index.html` must-revalidate；
   css/js `public, max-age=31536000, immutable`；assets 7 天 + 30 天 SWR。
 - 改了 `css/` 或 `js/` **必须 `npm run build`**，否则线上拿到的还是旧 bundle。
-- **改了任何 css/js 都要先手改 `sw.js` 的 `CACHE_NAME` 版本号**（当前 v100），
-  否则回访用户命中旧缓存看不到改动。这个坑踩过两次。
+- ~~手改版本号~~ v440 起 `build-bundles.js` 按源码指纹自动递增 `CACHE_NAME`，
+  忘改版本导致旧缓存的问题已从流程上根除。仍要 `npm run build`。
 - SW 的 `install` 阶段**严禁并发预拉取**资源，会触发 Vercel 边缘防火墙 705。
   当前实现零预取，只在 `fetch` 时懒缓存 `/assets/` 与 `.png`/`.jpg`。
 - SW 的 `activate` 调了 `clients.claim()` —— 这是 v63「双刷」问题的成因，

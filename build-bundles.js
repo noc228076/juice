@@ -116,6 +116,7 @@ const chunks = {
     'js/modules/lx-music/tipSearch.js',
     'js/modules/lx-music/lyric.js',
     'js/modules/lx-music/cover.js',
+    'js/modules/lx-music/discover.js',
     'js/modules/lx-music/sandbox.js',
     'js/modules/lx-music/bridge.js',
     'js/modules/music.js'

@@ -13,7 +13,7 @@
 
   var LS_KEY = 'juice_music_v1';
   var el = null;
-  var tab = 'search';
+  var tab = 'discover';
   var inited = false;
 
   /* ---------------- 持久化状态 ---------------- */
@@ -128,6 +128,22 @@
   function playCurrent() {
     if (!queue.length) return;
     cur = queue[qi];
+    // 队列项可能还没有播放地址（榜单/搜索的条目要等音源脚本给），
+    // 这时先取地址，取到再真正开始播
+    if (!cur.url && cur.track) {
+      if (!window.LxMusic || !window.LxMusic.hasSource()) { toast('尚未导入音源脚本'); return; }
+      var pending = cur;
+      toast('获取播放地址…');
+      window.LxMusic.resolveUrl(pending.track, state.quality || '128k').then(function (url) {
+        if (!url) { toast('音源未返回地址'); return; }
+        if (cur !== pending) return;   // 期间已切歌
+        pending.url = url;
+        playCurrent();
+      }).catch(function (e) {
+        toast('取地址失败：' + (e && e.message ? String(e.message).slice(0, 60) : 'unknown'));
+      });
+      return;
+    }
     var a = ensureAudio();
     try { a.pause(); } catch (e) {}
     a.src = cur.url;
@@ -851,7 +867,8 @@
   }
 
   /* ---------------- 加入歌单弹层 ---------------- */
-  var addTargetIndex = -1;   // 当前要加入歌单的搜索结果索引
+  var addTargetIndex = -1; pickTarget = null;   // 当前要加入歌单的搜索结果索引
+  var pickTarget = null;     // 非搜索结果（如榜单歌曲）要加入歌单时暂存于此
 
   function addListModalHtml() {
     if (addTargetIndex < 0) return '';
@@ -917,12 +934,16 @@
     }
 
     return '<div class="mu-panel">' +
-      '<div class="mu-list-tabs">' + listTabs + '</div>' +
-      '<div class="mu-btns">' +
-        '<button class="mu-btn" id="muListNew">新建歌单</button>' +
-        (current && current.id !== LOVE_ID
-          ? '<button class="mu-btn danger" id="muListDel">删除此歌单</button>'
-          : '') +
+      // 歌单标签与新建/删除同一行：新建紧跟标签，删除靠右（对齐洛雪的列表头）
+      '<div class="mu-list-head">' +
+        '<div class="mu-list-tabs">' + listTabs + '</div>' +
+        '<div class="mu-list-actions">' +
+          '<button class="mu-btn mini" id="muListImport" title="从分享链接导入歌单">' + icon('Link') + '导入</button>' +
+          '<button class="mu-btn mini" id="muListNew" title="新建歌单">' + icon('Plus') + '新建</button>' +
+          (current && current.id !== LOVE_ID
+            ? '<button class="mu-btn mini danger" id="muListDel" title="删除此歌单">' + icon('Trash2') + '删除</button>'
+            : '') +
+        '</div>' +
       '</div>' +
       rows +
     '</div>';
@@ -1004,21 +1025,20 @@
         '<div class="mu-bar-progress"><i></i></div>' +
         '<input type="range" class="mu-seek" min="0" step="0.1" value="0">' +
         '<span class="mu-time mu-time-dur">0:00</span></div>' +
-      // 左列：封面 + 标题/歌词轮播
-      '<div class="mu-disc' + (playing && cover ? ' spin' : '') + '" id="muDisc">' +
+      // 左列：封面 + 标题（标题紧贴封面，不要居中漂走）
+      '<div class="mu-disc' + (playing && cover ? ' spin' : '') + '" id="muDisc" title="全屏播放">' +
         (cover ? '<img src="' + esc(cover) + '" alt="">' : icon('Play')) +
       '</div>' +
-      '<div class="mu-player-text">' +
-        '<div class="mu-player-title">' + (cur ? esc(cur.title) : '未在播放') +
-          (cur && cur.artist ? ' <i>· ' + esc(cur.artist) + '</i>' : '') + '</div>' +
-        '<div class="mu-player-lyric" id="muBarLyric"></div>' +
-      '</div>' +
-      // 中列：传输控件（播放/暂停用 morphicons 形变）
+      '<div class="mu-player-title">' + (cur ? esc(cur.title) : '未在播放') +
+        (cur && cur.artist ? ' <i>· ' + esc(cur.artist) + '</i>' : '') + '</div>' +
+      // 中列：传输控件
       '<div class="mu-ops mu-ops-main">' +
         '<button class="mu-op" id="muPrev" title="上一首">' + icon('SkipBack') + '</button>' +
         '<button class="mu-op big" id="muToggle" title="播放/暂停" data-morph="' + (playing ? 'Pause' : 'Play') + '">' + icon(playing ? 'Pause' : 'Play') + '</button>' +
         '<button class="mu-op" id="muNext" title="下一首">' + icon('SkipForward') + '</button>' +
       '</div>' +
+      // 中列右侧：歌词，占用播放键与右侧控件之间的大片空白
+      '<div class="mu-player-lyric" id="muBarLyric"></div>' +
       // 右列：播放模式（三态） / 音量 / 沉浸
       '<div class="mu-ops mu-ops-side">' +
         '<button class="mu-op' + (mode !== 'all' ? ' on' : '') + '" id="muMode" title="' + modeLabel + '">' + icon(modeIcon) + '</button>' +
@@ -1046,7 +1066,9 @@
   function homeHtml() {
     var tabs = [
       ['search', '搜索'],
-      ['lists', '歌单'],
+      ['discover', '发现'],
+      ['rank', '排行榜'],
+      ['lists', '我的列表'],
       ['script', '音源']
     ];
     return '<div class="mu-wrap">' +
@@ -1060,10 +1082,144 @@
       '<div class="mu-tabs">' + tabs.map(function (t) {
         return '<button class="mu-tab' + (tab === t[0] ? ' active' : '') + '" data-mu-tab="' + t[0] + '">' + t[1] + '</button>';
       }).join('') + '</div>' +
-      (tab === 'search' ? searchHtml()
+      (tab === 'discover' ? discoverHtml()
+        : tab === 'rank' ? rankHtml()
+        : tab === 'search' ? searchHtml()
         : tab === 'lists' ? listsHtml()
         : scriptHtml()) +
       '</div>';
+  }
+
+  /* ---------------- UI：发现（推荐歌单 + 排行榜） ---------------- */
+  var discoverState = {
+    featured: null,     // [{id,name,cover,intro}]
+    ranks: null,        // [{id,name,cover,intro}]
+    openRank: null,     // 当前展开的榜单 {id,name}
+    songs: null,        // 榜单歌曲
+    loading: false,
+  };
+
+  function discoverHtml() {
+    var feat = discoverState.featured;
+    // 推荐位（发现页只有这一块）
+    var body = '<div class="mu-panel">' +
+      '<h3 class="mu-h3">推荐歌单</h3>' +
+      (feat === null
+        ? '<div class="mu-loading"><span class="mu-spinner"></span><span>正在加载…</span></div>'
+        : '<div class="mu-cover-grid">' + feat.map(function (f) {
+            return '<button class="mu-cover-card" data-rank="' + f.id + '" data-rank-name="' + esc(f.name) + '">' +
+              '<span class="mu-cover-art">' +
+                (f.cover ? '<img src="' + esc(f.cover) + '" alt="" loading="lazy">' : icon('ListMusic')) +
+              '</span>' +
+              '<span class="mu-cover-name">' + esc(f.name) + '</span>' +
+              '</button>';
+          }).join('') + '</div>') +
+    '</div>';
+
+    return body;
+  }
+
+  /** 排行榜页：左栏榜单列表，右栏选中榜单的歌曲（对齐洛雪） */
+  function rankHtml() {
+    var ranks = discoverState.ranks;
+    if (ranks === null) {
+      return '<div class="mu-panel">' +
+        '<div class="mu-loading"><span class="mu-spinner"></span><span>正在加载排行榜…</span></div>' +
+        '</div>';
+    }
+    if (!ranks.length) {
+      return '<div class="mu-panel"><div class="mu-empty">排行榜加载失败，稍后再试</div></div>';
+    }
+
+    var open = discoverState.openRank;
+    var side = ranks.map(function (r) {
+      var on = open && String(open.id) === String(r.id);
+      return '<button class="mu-rank-side-item' + (on ? ' active' : '') +
+        '" data-rank="' + r.id + '" data-rank-name="' + esc(r.name) + '">' +
+        '<span class="mu-rank-side-art">' +
+          (r.cover ? '<img src="' + esc(r.cover) + '" alt="" loading="lazy">' : icon('Trophy')) +
+        '</span>' +
+        '<span class="mu-rank-side-name">' + esc(r.name) + '</span>' +
+        '</button>';
+    }).join('');
+
+    var main;
+    if (!open) {
+      main = '<div class="mu-empty">从左边选一个榜单</div>';
+    } else if (discoverState.loading) {
+      main = '<div class="mu-loading"><span class="mu-spinner"></span><span>正在加载榜单…</span></div>';
+    } else {
+      var songs = discoverState.songs || [];
+      main = songs.length
+        ? '<div class="mu-rank-main-head"><h3>' + esc(open.name) + '</h3>' +
+            '<span>' + songs.length + ' 首</span></div>' +
+          '<div class="mu-list">' + songs.map(function (t, i) {
+            var loved = inList(LOVE_ID, { track: t });
+            return '<div class="mu-row" data-rank-play="' + i + '">' +
+              '<span class="mu-row-ico">' +
+                (t.img ? '<img src="' + esc(t.img) + '" alt="" loading="lazy">' : icon('Play')) +
+              '</span>' +
+              '<span class="mu-row-main"><b>' + esc(t.name) + '</b>' +
+                '<i>' + esc(t.singer) + '</i></span>' +
+              '<span class="mu-row-ops">' +
+                '<button class="mu-love' + (loved ? ' on' : '') + '" data-rank-love="' + i + '" title="' +
+                  (loved ? '取消收藏' : '收藏') + '">' + icon('Heart') + '</button>' +
+                '<button class="mu-addlist" data-rank-addlist="' + i + '" title="加入列表">' + icon('ListPlus') + '</button>' +
+              '</span>' +
+              (t.interval ? '<span class="mu-row-dur">' + esc(t.interval) + '</span>' : '') +
+              '</div>';
+          }).join('') + '</div>'
+        : '<div class="mu-empty">这个榜单暂时取不到歌曲</div>';
+    }
+
+    return '<div class="mu-panel">' +
+      '<div class="mu-rank-split">' +
+        '<div class="mu-rank-side">' + side + '</div>' +
+        '<div class="mu-rank-main">' + main + '</div>' +
+      '</div>' +
+    '</div>';
+  }
+
+  /** 首次进发现页时拉数据（只拉一次，之后用缓存） */
+  function loadDiscover() {
+    if (!window.LxDiscover) return;
+    // 空数组也要重试：首次进入时网络可能还没就绪，
+    // 一旦把 [] 存进状态，界面就永久空着
+    if (!discoverState.featured || !discoverState.featured.length) {
+      if (!discoverState.featLoading) {
+        discoverState.featLoading = true;
+        window.LxDiscover.listFeatured().then(function (list) {
+          discoverState.featLoading = false;
+          discoverState.featured = list && list.length ? list : null;
+          if (tab === 'discover') renderHome();
+        }).catch(function () { discoverState.featLoading = false; });
+      }
+    }
+    if (!discoverState.ranks || !discoverState.ranks.length) {
+      if (!discoverState.rankLoading) {
+        discoverState.rankLoading = true;
+        window.LxDiscover.listRanks().then(function (list) {
+          discoverState.rankLoading = false;
+          discoverState.ranks = list && list.length ? list : null;
+          if (tab === 'discover') renderHome();
+        }).catch(function () { discoverState.rankLoading = false; });
+      }
+    }
+  }
+
+  /** 打开某个榜单并取歌 */
+  function openRank(id, name) {
+    discoverState.openRank = { id: id, name: name };
+    discoverState.songs = null;
+    discoverState.loading = true;
+    renderHome();
+    if (!window.LxDiscover) return;
+    window.LxDiscover.rankSongs(id, 1, 60).then(function (songs) {
+      if (!discoverState.openRank || discoverState.openRank.id !== id) return;
+      discoverState.songs = songs;
+      discoverState.loading = false;
+      renderHome();
+    });
   }
 
   /**
@@ -1301,6 +1457,12 @@
       if (audio && audio.duration) audio.currentTime = parseFloat(seek.value);
     };
     var imm = bar.querySelector('#muImmersive'); if (imm) imm.onclick = openImmersive;
+    // 点封面也进全屏（跟网易云/QQ音乐的习惯一致）
+    var discEl = bar.querySelector('#muDisc');
+    if (discEl) {
+      discEl.onclick = openImmersive;
+      discEl.style.cursor = 'pointer';
+    }
   }
 
   function bindHome() {
@@ -1308,7 +1470,7 @@
       b.onclick = function () {
         tab = b.getAttribute('data-mu-tab');
         // 切页时顺手关掉「加入歌单」弹层，否则它会跟着新页面一起重建
-        addTargetIndex = -1;
+        addTargetIndex = -1; pickTarget = null;
         renderHome();
       };
     });
@@ -1542,7 +1704,7 @@
       mask.onclick = function (e) {
         // 点遮罩空白处关闭
         if (e.target === mask) {
-          addTargetIndex = -1;
+          addTargetIndex = -1; pickTarget = null;
           renderHome();
         }
       };
@@ -1550,17 +1712,17 @@
     document.querySelectorAll('[data-pick-list]').forEach(function (b) {
       b.onclick = function () {
         var listId = b.getAttribute('data-pick-list');
-        var track = searchResults[addTargetIndex];
-        if (!track) { addTargetIndex = -1; renderHome(); return; }
+        var track = pickTarget || searchResults[addTargetIndex];
+        if (!track) { addTargetIndex = -1; pickTarget = null; pickTarget = null; renderHome(); return; }
         var l = getList(listId);
-        if (!l) { addTargetIndex = -1; renderHome(); return; }
+        if (!l) { addTargetIndex = -1; pickTarget = null; renderHome(); return; }
         if (inList(listId, track)) {
           toast('已在「' + l.name + '」里');
         } else {
           addToList(listId, track);
           toast('已加入「' + l.name + '」');
         }
-        addTargetIndex = -1;
+        addTargetIndex = -1; pickTarget = null;
         renderHome();
       };
     });
@@ -1570,21 +1732,102 @@
       askName('新建歌单', '歌单名称', '', function (name) {
         if (!name) return;
         var item = createList(name);
-        var track = searchResults[addTargetIndex];
+        var track = pickTarget || searchResults[addTargetIndex];
         if (item && track) {
           addToList(item.id, track);
           toast('已加入「' + item.name + '」');
         }
-        addTargetIndex = -1;
+        addTargetIndex = -1; pickTarget = null;
         renderHome();
       });
     };
 
     var pickCancel = document.getElementById('muPickCancel');
     if (pickCancel) pickCancel.onclick = function () {
-      addTargetIndex = -1;
+      addTargetIndex = -1; pickTarget = null;
       renderHome();
     };
+
+    /* ---- 发现页 / 排行榜页 ---- */
+    if (tab === 'discover' || tab === 'rank') loadDiscover();
+    if (tab === 'discover' || tab === 'rank') {
+      el.querySelectorAll('[data-rank]').forEach(function (b) {
+        b.onclick = function () {
+          openRank(b.getAttribute('data-rank'), b.getAttribute('data-rank-name') || '');
+        };
+      });
+      // 榜单歌曲：转成播放队列
+      el.querySelectorAll('[data-rank-play]').forEach(function (r) {
+        r.onclick = function (e) {
+          // 收藏 / 加列表按钮在行内，别触发播放
+          if (e.target.closest('[data-rank-love]') || e.target.closest('[data-rank-addlist]')) return;
+          var i = parseInt(r.getAttribute('data-rank-play'), 10);
+          var songs = discoverState.songs || [];
+          if (!songs[i]) return;
+          var name = discoverState.openRank ? discoverState.openRank.name : '排行榜';
+          var list = songs.map(function (t) {
+            return {
+              kind: 'rank',
+              id: 'kg_' + (t.hash || t.songmid),
+              title: t.name,
+              artist: t.singer,
+              cover: t.img || '',
+              url: '',            // 地址要等音源脚本给
+              track: t,
+              source: 'kg',
+              interval: t.interval
+            };
+          });
+          // 地址交给 playCurrent 统一取（它会给没有 url 的队列项补地址）
+          playQueue(list, name, i);
+        };
+      });
+
+      // 榜单歌曲的收藏
+      el.querySelectorAll('[data-rank-love]').forEach(function (b) {
+        b.onclick = function (e) {
+          e.stopPropagation();
+          var i = parseInt(b.getAttribute('data-rank-love'), 10);
+          var t = (discoverState.songs || [])[i];
+          if (!t) return;
+          var item = {
+            id: 'kg_' + (t.hash || t.songmid),
+            title: t.name,
+            artist: t.singer,
+            cover: t.img || '',
+            source: 'kg',
+            interval: t.interval,
+            track: t
+          };
+          var on = toggleLove(item);
+          toast(on ? '已收藏' : '已取消收藏');
+          renderHome();
+        };
+      });
+
+      // 榜单歌曲的「加入列表」
+      el.querySelectorAll('[data-rank-addlist]').forEach(function (b) {
+        b.onclick = function (e) {
+          e.stopPropagation();
+          var i = parseInt(b.getAttribute('data-rank-addlist'), 10);
+          var t = (discoverState.songs || [])[i];
+          if (!t) return;
+          // 复用「加入歌单」弹层：它读的是 searchResults，这里临时替换
+          var item = {
+            id: 'kg_' + (t.hash || t.songmid),
+            title: t.name,
+            artist: t.singer,
+            cover: t.img || '',
+            source: 'kg',
+            interval: t.interval,
+            track: t
+          };
+          pickTarget = item;
+          addTargetIndex = 0;
+          renderHome();
+        };
+      });
+    }
 
     /* ---- 歌单操作 ---- */
     el.querySelectorAll('[data-list-tab]').forEach(function (b) {
@@ -1621,6 +1864,9 @@
         renderHome();
       };
     });
+
+    var listImport = el.querySelector('#muListImport');
+    if (listImport) listImport.onclick = importFromShare;
 
     var listNew = el.querySelector('#muListNew');
     if (listNew) listNew.onclick = function () {
@@ -1950,15 +2196,23 @@
   /* ---------------- 页内输入弹层 ----------------
      替代 window.prompt：原生弹窗在移动端样式突兀，也会被部分浏览器拦。 */
   var askEl = null;
-  function askName(title, placeholder, defaultValue, onOk) {
+  /**
+   * @param {Object} [opts] { multiline, hint }
+   */
+  function askName(title, placeholder, defaultValue, onOk, opts) {
     closeAsk();
+    opts = opts || {};
     askEl = document.createElement('div');
     askEl.className = 'mu-modal-mask';
     askEl.innerHTML =
       '<div class="mu-modal-box mu-ask-box">' +
         '<h4 class="mu-modal-title">' + esc(title) + '</h4>' +
-        '<input class="mu-input mu-ask-input" id="muAskInput" placeholder="' + esc(placeholder) +
-          '" value="' + esc(defaultValue || '') + '" maxlength="30">' +
+        (opts.hint ? '<p class="mu-ask-hint">' + esc(opts.hint) + '</p>' : '') +
+        (opts.multiline
+          ? '<textarea class="mu-textarea mu-ask-input" id="muAskInput" rows="6" placeholder="' +
+            esc(placeholder) + '">' + esc(defaultValue || '') + '</textarea>'
+          : '<input class="mu-input mu-ask-input" id="muAskInput" placeholder="' + esc(placeholder) +
+            '" value="' + esc(defaultValue || '') + '" maxlength="30">') +
         '<div class="mu-modal-ops">' +
           '<button class="mu-btn" id="muAskCancel">取消</button>' +
           '<button class="mu-btn primary" id="muAskOk">确定</button>' +
@@ -1976,13 +2230,132 @@
     askEl.querySelector('#muAskCancel').onclick = closeAsk;
     askEl.onclick = function (e) { if (e.target === askEl) closeAsk(); };
     input.onkeydown = function (e) {
-      if (e.key === 'Enter') { e.preventDefault(); submit(); }
-      else if (e.key === 'Escape') { e.preventDefault(); closeAsk(); }
+      if (e.key === 'Escape') { e.preventDefault(); closeAsk(); return; }
+      // 多行模式下 Enter 是换行，Ctrl/Cmd+Enter 才提交
+      if (e.key === 'Enter' && (!opts.multiline || e.ctrlKey || e.metaKey)) {
+        e.preventDefault(); submit();
+      }
     };
-    setTimeout(function () { input.focus(); input.select(); }, 30);
+    setTimeout(function () { input.focus(); if (!opts.multiline) input.select(); }, 30);
   }
   function closeAsk() {
     if (askEl) { askEl.remove(); askEl = null; }
+  }
+
+  /* ---------------- 从分享链接导入歌单 ----------------
+     各平台的分享内容通常是「歌名 - 歌手」的若干行，或夹着一堆文案的
+     一段文字。这里把能识别的「歌名 - 歌手」逐条搜出来加入歌单，
+     不依赖任何平台私有的歌单接口（那些接口大多要登录或被风控）。 */
+  function importFromShare() {
+    askName('导入歌单', '把分享内容粘在这里，一行一首：\n歌名 - 歌手', '', function (text) {
+      if (!text) return;
+      var items = parseShareText(text);
+      if (!items.length) {
+        toast('没识别到歌曲，试试「歌名 - 歌手」每行一首');
+        return;
+      }
+      var defName = '导入 ' + new Date().toLocaleDateString('zh-CN');
+      askName('命名歌单', '歌单名称', defName, function (name) {
+        var list = createList(name || defName);
+        if (!list) return;
+        doImport(items, list);
+      });
+    }, {
+      multiline: true,
+      hint: '支持各平台分享文案；识别「歌名 - 歌手」或「歌名 歌手」形式的行'
+    });
+  }
+
+  /** 从分享文本里抽出 [{title, artist}] */
+  function parseShareText(text) {
+    var out = [];
+    var seen = {};
+    String(text).split(/\r?\n/).forEach(function (raw) {
+      var line = raw.trim();
+      if (!line) return;
+      // 去掉常见的分享前缀和装饰
+      line = line.replace(/^[\s·•\-—*>#\d.、]+/, '')
+                 .replace(/[《》「」“”"]/g, '')
+                 .replace(/\s*(分享|来自|复制链接|打开\S*APP|https?:\/\/\S+)\s*/g, ' ')
+                 .trim();
+      if (!line || line.length > 80) return;
+      var title = '', artist = '';
+      // 「歌名 - 歌手」/「歌名 – 歌手」/「歌名 — 歌手」
+      var m = line.match(/^(.+?)\s*[-–—]\s*(.+)$/);
+      if (m) { title = m[1].trim(); artist = m[2].trim(); }
+      else {
+        // 「歌手 - 歌名」在酷狗分享里也常见，判断不了就整行当歌名搜
+        var m2 = line.match(/^(.+?)\s*[·|]\s*(.+)$/);
+        if (m2) { title = m2[2].trim(); artist = m2[1].trim(); }
+        else title = line;
+      }
+      title = title.replace(/\s+/g, ' ').trim();
+      artist = artist.replace(/\s+/g, ' ').trim();
+      if (!title || title.length < 1) return;
+      var key = (title + '|' + artist).toLowerCase();
+      if (seen[key]) return;
+      seen[key] = 1;
+      out.push({ title: title, artist: artist });
+    });
+    return out.slice(0, 100);   // 一次最多导 100 首，避免把接口打爆
+  }
+
+  /** 逐条搜索并加入歌单，边导边报进度 */
+  function doImport(items, list) {
+    if (!window.LxMusic) { toast('音源未就绪'); return; }
+    var done = 0, added = 0, failed = 0;
+    toast('开始导入 ' + items.length + ' 首…');
+
+    var chain = Promise.resolve();
+    items.forEach(function (it, i) {
+      chain = chain.then(function () {
+        var kw = (it.title + ' ' + it.artist).trim();
+        return window.LxMusic.search(kw, 1).then(function (res) {
+          var hit = pickBestMatch(res.list || [], it);
+          if (hit && !inList(list.id, hit)) {
+            addToList(list.id, {
+              id: hit.source + '_' + hit.songmid,
+              title: hit.name,
+              artist: hit.singer,
+              cover: hit.img || '',
+              source: hit.source,
+              interval: hit.interval,
+              track: hit
+            });
+            added++;
+          } else if (!hit) failed++;
+        }).catch(function () { failed++; }).then(function () {
+          done++;
+          if (done % 5 === 0 || done === items.length) {
+            toast('导入中 ' + done + '/' + items.length + '（成功 ' + added + '）');
+          }
+        });
+      });
+    });
+
+    chain.then(function () {
+      activeListId = list.id;
+      renderHome();
+      toast('导入完成：成功 ' + added + ' 首' + (failed ? '，失败 ' + failed + ' 首' : ''));
+    });
+  }
+
+  /** 在搜索结果里挑最接近的一首 */
+  function pickBestMatch(list, want) {
+    if (!list.length) return null;
+    var t = want.title.toLowerCase();
+    var a = want.artist.toLowerCase();
+    var exact = null, nameOnly = null;
+    for (var i = 0; i < list.length; i++) {
+      var it = list[i];
+      var nm = String(it.name || '').toLowerCase();
+      var ar = String(it.singer || '').toLowerCase();
+      var nameHit = nm === t;
+      var artistHit = !a || ar.indexOf(a) > -1;
+      if (nameHit && artistHit) { exact = it; break; }
+      if (!nameOnly && nameHit) nameOnly = it;
+    }
+    return exact || nameOnly || null;
   }
 
   /* ---------------- 模块键盘（仅本模块激活时；沉浸模式全局 Esc） ---------------- */
@@ -1994,7 +2367,7 @@
     // 其他输入框里不抢键
     if (/INPUT|TEXTAREA/.test((e.target && e.target.tagName) || '')) return;
     if (e.key === 'Escape' && maskOpen) {
-      addTargetIndex = -1;
+      addTargetIndex = -1; pickTarget = null;
       document.getElementById('muAddListMask').remove();
       return;
     }
@@ -2019,7 +2392,7 @@
          离开音乐模块且非沉浸模式时出现 */
       window.addEventListener('hashchange', function () {
         // 弹层挂在 body 上，离开模块后没人会清它，会挡住整个页面
-        addTargetIndex = -1;
+        addTargetIndex = -1; pickTarget = null;
         var mask = document.getElementById('muAddListMask');
         if (mask) mask.remove();
         setTimeout(syncBarVisibility, 60);
@@ -2084,7 +2457,7 @@
     closeImmersive();
     closeAsk();
     // 弹层挂在 body 上、z=500，离开模块后没人会清它，会挡住整个页面
-    addTargetIndex = -1;
+    addTargetIndex = -1; pickTarget = null;
     var mask = document.getElementById('muAddListMask');
     if (mask) mask.remove();
     renderMini();

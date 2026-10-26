@@ -165,10 +165,15 @@
       songId: track.songmid,
       hash: track.hash,
       albumId: track.albumId,
+      albumAudioId: track.albumAudioId,
       copyrightId: track.copyrightId,
       strMediaMid: track.strMediaMid,
       name: track.name,
-      singer: track.singer
+      singer: track.singer,
+      // 洛雪的 kg / tx 脚本要靠 _types[quality] 里的 hash / strMediaMid 取地址，
+      // 只给顶层字段它们会取不到
+      types: track.types,
+      _types: track._types
     };
     return root.LxSandbox.getMusicUrl(track.source, musicInfo, quality || '128k');
   }

@@ -1291,6 +1291,7 @@ html[data-theme="light"] .mu-row:hover { background: rgba(20, 24, 18, 0.04); }
   right: 0;
   bottom: 0;
   z-index: 340;
+  /* 传输控件是绝对定位居中的，需要这里做定位基准 */
   height: calc(64px + env(safe-area-inset-bottom, 0px));
   /* 旧样式留了 margin-bottom/border/radius，这里必须全部清掉，
      否则 fixed 元素会被 16px margin 顶离底部 */
@@ -1301,9 +1302,11 @@ html[data-theme="light"] .mu-row:hover { background: rgba(20, 24, 18, 0.04); }
   padding: 0 16px env(safe-area-inset-bottom, 0px);
   box-sizing: border-box;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  /* 封面 / 标题 / 传输控件 / 歌词 / 右侧控件
+     标题给一个有上下限的弹性宽度，歌词吃剩下的空间 */
+  grid-template-columns: auto minmax(120px, 22vw) minmax(0, 1fr) auto;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
   /* 旧 @media(560px) 给 .mu-player 设了 text-align:center，
      会被标题继承，窄屏下歌名漂到中间脱离封面 */
   text-align: start;
@@ -1406,10 +1409,6 @@ html[data-theme="light"] .mu-player .mu-bar-progress { background: rgba(20, 24, 
 .mu-disc.spin { animation: none; }
 
 .mu-player-title {
-  grid-column: 1;
-  grid-row: 1;
-  align-self: center;
-  margin-left: 62px;
   min-width: 0;
   font-size: 12.5px;
   font-weight: 600;
@@ -1427,16 +1426,23 @@ html[data-theme="light"] .mu-player .mu-bar-progress { background: rgba(20, 24, 
 }
 
 /* 中列：传输控件；右列：模式/音量/沉浸 */
+/* 传输控件钉在播放条的几何中心：
+   五列布局里第 3 列不是视觉中心（左边只有封面+标题，右边有模式和音量），
+   用绝对定位居中才真正对齐屏幕中线 */
 .mu-ops-main {
-  grid-column: 2;
-  grid-row: 1;
-  justify-self: center;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
 }
 .mu-ops-side {
-  grid-column: 3;
+  grid-column: 4;
   grid-row: 1;
   justify-self: end;
 }
+.mu-disc { grid-column: 1; grid-row: 1; }
+.mu-player-title { grid-column: 2; grid-row: 1; }
+.mu-player-lyric { grid-column: 3; grid-row: 1; }
 .mu-ops {
   display: flex;
   align-items: center;
@@ -1498,9 +1504,7 @@ html[data-theme="light"] .mu-player .mu-bar-progress { background: rgba(20, 24, 
     gap: 6px;
     padding: 0 12px;
   }
-  .mu-ops-main { justify-self: center; }
   .mu-ops-side { justify-self: end; }
-  .mu-player-title { margin-left: 56px; }
   .mu-op { width: 30px; height: 30px; }
   .mu-op.big { width: 36px; height: 36px; }
 }
@@ -2118,41 +2122,25 @@ html[data-theme="light"] .mu-immersive {
   .mu-imm-disc { font-size: 16px; }
 }
 
-/* ==========================================================================
-   播放条左侧：标题 + 歌词轮播
-   --------------------------------------------------------------------------
-   标题一行、歌词一行；歌词跟着播放进度滚，没有歌词时留空。
-   ========================================================================== */
-.mu-player-text {
-  grid-column: 1;
-  grid-row: 1;
-  align-self: center;
-  margin-left: 62px;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  overflow: hidden;
-}
 .mu-player-title {
   margin-left: 0;
   font-size: 13.5px;
   line-height: 1.3;
 }
 .mu-player-lyric {
-  font-size: 11.5px;
+  min-width: 0;
+  font-size: 12px;
   line-height: 1.3;
   color: var(--mod-ac);
-  opacity: .85;
+  opacity: .9;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  min-height: 15px;
+  text-align: center;
   transition: opacity .2s ease;
 }
 .mu-player-lyric:empty { opacity: 0; }
 @media (max-width: 720px) {
-  .mu-player-text { margin-left: 56px; }
   .mu-player-lyric { display: none; }
 }
 
@@ -2189,5 +2177,257 @@ html[data-theme="light"] .mu-immersive {
 .mu-ask-input {
   width: 100%;
   box-sizing: border-box;
+  margin-bottom: 4px;
+}
+
+/* ==========================================================================
+   歌单页头部：标签与新建/删除同一行，操作靠右（对齐洛雪）
+   ========================================================================== */
+.mu-list-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.mu-list-head .mu-list-tabs {
+  flex: 1;
+  min-width: 0;
+  margin-bottom: 0;
+  /* 标签多了横向滚，不换行把操作按钮挤下去 */
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.mu-list-head .mu-list-tabs::-webkit-scrollbar { height: 0; }
+.mu-list-actions {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+.mu-list-actions .mu-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.mu-list-actions .mu-ico { width: 13px; height: 13px; }
+@media (max-width: 560px) {
+  .mu-list-head { flex-wrap: wrap; }
+  .mu-list-head .mu-list-tabs { flex-basis: 100%; }
+  .mu-list-actions { margin-left: 0; }
+}
+
+/* ==========================================================================
+   发现页：推荐歌单（封面网格）+ 排行榜（列表）
+   ========================================================================== */
+.mu-cover-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  gap: 14px;
+  margin-top: 4px;
+}
+.mu-cover-card {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  min-width: 0;
+}
+.mu-cover-art {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: var(--mu-r-sm);
+  overflow: hidden;
+  background: var(--mu-surface-2);
+  display: grid;
+  place-items: center;
+  color: var(--tx-faint);
+  transition: transform var(--mu-t-fast) var(--mu-ease);
+}
+.mu-cover-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.mu-cover-art .mu-ico { width: 28px; height: 28px; }
+.mu-cover-card:hover .mu-cover-art { transform: translateY(-2px); }
+.mu-cover-name {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--tx);
+  line-height: 1.35;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.mu-rank-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 8px;
+  margin-top: 4px;
+}
+.mu-rank-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border: 0;
+  border-radius: var(--mu-r-sm);
+  background: var(--mu-surface-2);
+  cursor: pointer;
+  text-align: left;
+  min-width: 0;
+  transition: background var(--mu-t-fast) var(--mu-ease);
+}
+.mu-rank-item:hover { background: var(--mod-ambient); }
+.mu-rank-art {
+  flex: none;
+  width: 42px;
+  height: 42px;
+  border-radius: 6px;
+  overflow: hidden;
+  background: var(--btn-ghost-bg);
+  display: grid;
+  place-items: center;
+  color: var(--tx-faint);
+}
+.mu-rank-art img { width: 100%; height: 100%; object-fit: cover; }
+.mu-rank-art .mu-ico { width: 18px; height: 18px; }
+.mu-rank-text { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.mu-rank-text b {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tx);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mu-rank-text i {
+  font-style: normal;
+  font-size: 11.5px;
+  color: var(--tx-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mu-rank-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.mu-rank-head .mu-h3 { margin: 0; }
+.mu-rank-head .mu-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.mu-rank-head .mu-ico { width: 13px; height: 13px; }
+
+/* ==========================================================================
+   排行榜页：左栏榜单 + 右栏歌曲（对齐洛雪的排行榜布局）
+   ========================================================================== */
+.mu-rank-split {
+  display: grid;
+  grid-template-columns: minmax(150px, 200px) minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+}
+.mu-rank-side {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 62vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.mu-rank-side-item {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 9px;
+  border: 0;
+  border-radius: var(--mu-r-sm);
+  background: transparent;
+  color: var(--tx-dim);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition: background var(--mu-t-fast) var(--mu-ease), color var(--mu-t-fast) var(--mu-ease);
+}
+.mu-rank-side-item:hover { background: var(--btn-ghost-bg); color: var(--tx); }
+.mu-rank-side-item.active {
+  background: var(--mod-ambient);
+  color: var(--mod-ac);
+  font-weight: 600;
+}
+.mu-rank-side-art {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 5px;
+  overflow: hidden;
+  background: var(--btn-ghost-bg);
+  display: grid;
+  place-items: center;
+  color: var(--tx-faint);
+}
+.mu-rank-side-art img { width: 100%; height: 100%; object-fit: cover; }
+.mu-rank-side-art .mu-ico { width: 15px; height: 15px; }
+.mu-rank-side-name {
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.mu-rank-main { min-width: 0; }
+.mu-rank-main-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.mu-rank-main-head h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--tx);
+  margin: 0;
+}
+.mu-rank-main-head span {
+  font-size: 12px;
+  color: var(--tx-faint);
+}
+
+@media (max-width: 720px) {
+  .mu-rank-split {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+  .mu-rank-side {
+    flex-direction: row;
+    max-height: none;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-bottom: 4px;
+  }
+  .mu-rank-side-item { flex: none; }
+  .mu-rank-side-name { max-width: 84px; }
+}
+
+/* 导入歌单弹层的提示文字 */
+.mu-ask-hint {
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--tx-dim);
+  margin: -4px 0 10px;
+}
+.mu-ask-box .mu-textarea {
+  font-family: inherit;
   margin-bottom: 4px;
 }

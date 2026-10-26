@@ -169,6 +169,8 @@
    * 一遍——对不上就换下一个脚本，并给该脚本记一次失败，下次排到最后。
    */
   var resolveChain = Promise.resolve();
+  // 取址请求序号：只有最新的那次需要真的去问脚本
+  var resolveSeq = 0;
   // 脚本名 → 校验失败次数；用来把不可靠脚本排到候选末尾
   var scriptPenalty = {};
 
@@ -185,12 +187,15 @@
    * 只读元数据探测时长（正常只拉几 KB）。
    * 返回秒数；-1 加载失败、-2 超时——这两种都当作「无法校验」，
    * 不能因此否掉一个可能正确的地址。
+   *
+   * 4 秒足够：这是个本地探测，不是流式下载。原来给 7 秒，
+   * 碰上要逐个脚本重试的场景会明显拖长等待。
    */
   function probeDuration(url) {
     return new Promise(function (resolve) {
       var a = document.createElement('audio');
       var done = false;
-      var timer = setTimeout(function () { finish(-2); }, 7000);
+      var timer = setTimeout(function () { finish(-2); }, 4000);
       function finish(v) {
         if (done) return;
         done = true;
@@ -211,6 +216,10 @@
     if (!root.LxSandbox.hasAny()) {
       return Promise.reject(new Error('尚未导入音源脚本，无法获取播放地址'));
     }
+    // 连点下一首时会排起一长串请求，实际只有最后一次点击有意义。
+    // 每次调用递增序号，排队到自己时发现已被更新的请求取代就直接放弃，
+    // 避免「点了 5 下要等 5 轮取址」。
+    var mySeq = ++resolveSeq;
     var musicInfo = {
       songmid: track.songmid,
       songId: track.songmid,
@@ -229,6 +238,10 @@
     var expected = intervalSec(track);
 
     var task = resolveChain.then(function () {
+      // 排队期间用户又点了别的歌，这次请求已经没意义，别再占着脚本
+      if (mySeq !== resolveSeq) {
+        throw new Error('已被更新的取址请求取代');
+      }
       var list = root.LxSandbox.candidatesFor
         ? root.LxSandbox.candidatesFor(track.source)
         : [];
@@ -266,10 +279,22 @@
       return attempt(0);
     });
 
+    // 总时限 18 秒：单个脚本 8 秒超时，7 个脚本串起来最坏要一分钟，
+    // 那对用户就是「永远在加载」。超过这个时间直接报错，
+    // 让界面能给出明确结局，而不是无限转圈。
+    var timed = new Promise(function (resolve, reject) {
+      var timer = setTimeout(function () {
+        reject(new Error('音源全部无响应（超过 ' + Math.round(RESOLVE_LIMIT / 1000) + ' 秒）'));
+      }, RESOLVE_LIMIT);
+      task.then(function (v) { clearTimeout(timer); resolve(v); },
+                function (e) { clearTimeout(timer); reject(e); });
+    });
+
     // 队列本身要吞掉错误，否则一次失败会卡死后续所有请求
-    resolveChain = task.catch(function () {});
-    return task;
+    resolveChain = timed.catch(function () {});
+    return timed;
   }
+  var RESOLVE_LIMIT = 18000;
 
   /**
    * 自检：逐平台测搜索耗时。

@@ -232,7 +232,13 @@
     if (!cur.url && cur.track) {
       if (!window.LxMusic || !window.LxMusic.hasSource()) { toast('尚未导入音源脚本'); return; }
       var pending = cur;
+      // 立刻停掉上一首。取地址快的时候感觉不到差别，但只要它慢
+      // （或者最终失败），继续放旧歌就会变成「新歌一直加载、旧歌一直响」，
+      // 播放条上写着 B，耳朵里是 A。
+      var prevAudio = ensureAudio();
+      if (!prevAudio.paused) { try { prevAudio.pause(); } catch (e) {} }
       cur.loading = true;
+      syncPlayUI(false);        // 旧歌已停，按钮要立刻回到「播放」态
       updateMediaSession();
       syncBarMeta();
       syncBarVisibility();
@@ -250,7 +256,7 @@
         if (!url) {
           pending.loading = false;
           setBarLoading(false);
-          toast('音源未返回地址');
+          handleResolveFail(pending, '音源未返回地址');
           return;
         }
         pending.url = url;
@@ -261,7 +267,7 @@
         if (cur !== pending) return;
         pending.loading = false;
         setBarLoading(false);
-        toast('取地址失败：' + (e && e.message ? String(e.message).slice(0, 60) : 'unknown'));
+        handleResolveFail(pending, e && e.message ? String(e.message).slice(0, 60) : 'unknown');
       });
       return;
     }
@@ -329,7 +335,34 @@
     saveLive();
   }
 
-  /** 搜索接口大多不带封面，播放时补一张（结果按歌名+歌手缓存） */
+  /**
+   * 取地址失败时的收尾。
+   *
+   * 之前这里只弹一个 toast 就 return，有两个后果：
+   *   1. 旧的那首歌没人 pause，会一直放——用户听到 A 的歌声、
+   *      播放条却写着 B 的名字在「正在加载」，正是反馈的现象；
+   *   2. 播放条永远停在加载态，没有结局。
+   * 现在明确停掉音频、清掉加载态，并把这首歌标记出来，
+   * 让用户知道是这首放不了，而不是界面卡死。
+   */
+  function handleResolveFail(item, why) {
+    // 被更新的取址请求取代属于正常情况（用户连点了下一首），
+    // 不算失败，也不要停音频——新请求马上就会接管
+    if (/已被更新的取址请求取代/.test(why)) return;
+    // 旧音频必须停：它属于上一首，继续放会和新歌的信息对不上
+    var a = ensureAudio();
+    try { a.pause(); } catch (e) {}
+    try { a.removeAttribute('src'); a.load(); } catch (e) {}
+    item.failed = true;
+    syncPlayUI(false);
+    syncBarMeta();
+    syncBarVisibility();
+    renderIfActive();
+    renderMini();
+    if (queuePanelEl) renderQueuePanel();
+    toast('「' + (item.title || '这首') + '」取不到播放地址：' + why);
+  }
+
   function loadCoverFor(track) {
     if (!track || track.cover) return;
     if (!window.LxCover) return;

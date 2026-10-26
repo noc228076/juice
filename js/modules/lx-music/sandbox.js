@@ -161,10 +161,12 @@
   function requestFromSandbox(sb, payload) {
     var reqId = ++sb.requestSeq;
     return new Promise(function (resolve, reject) {
+      // 8 秒：取地址是「点一下就等」的交互，等满 30 秒用户早就以为卡死了。
+      // 正常的脚本 1~3 秒就返回，超时说明它自己有问题，早放弃好换下一个。
       var timer = setTimeout(function () {
         window.removeEventListener('message', onMessage);
         reject(new Error('音源「' + sb.scriptInfo.name + '」请求超时'));
-      }, 30000);
+      }, 8000);
 
       function onMessage(event) {
         if (event.source !== sb.iframe.contentWindow) return;

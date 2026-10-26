@@ -109,7 +109,7 @@
 
     return searchKwPic(track).then(function (pic) {
       if (pic) {
-        cache[key] = pic;
+        cache[key] = { url: pic, at: Date.now() };
         saveCache();
       }
       return pic || '';

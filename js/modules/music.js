@@ -322,8 +322,12 @@
     saveState();
     var vols = document.querySelectorAll('.mu-vol');
     for (var i = 0; i < vols.length; i++) vols[i].value = String(state.volume);
-    // 拖到 0 或拖离 0 时，静音图标要跟着形变
+    // 音量数字（播放条与全屏各一个）
+    var nums = document.querySelectorAll('#muBarVolNum, #muImmVolNum');
+    for (var j = 0; j < nums.length; j++) nums[j].textContent = String(Math.round(state.volume * 100));
+    // 静音图标要跟着换
     if (typeof updateMuteIcon === 'function') updateMuteIcon();
+    if (typeof syncImmMuteIcon === 'function') syncImmMuteIcon();
   }
 
   function updateMediaSession() {
@@ -1200,11 +1204,24 @@
         '<span class="mu-pt-sep">/</span>' +
         '<span class="mu-pt-dur" id="muPtDur">0:00</span>' +
       '</div>' +
-      // 右列：播放模式（三态） / 音量 / 沉浸
+      // 右列：播放模式（三态） / 音量 / 收藏 / 歌词 / 列表 / 全屏
       '<div class="mu-ops mu-ops-side">' +
         '<button class="mu-op' + (mode !== 'all' ? ' on' : '') + '" id="muMode" title="' + modeLabel + '">' + icon(modeIcon) + '</button>' +
-        '<span class="mu-volwrap"><button class="mu-op" id="muMute" title="' + (muted ? '取消静音' : '静音') + '" data-morph="' + (muted ? 'VolumeX' : 'Volume2') + '">' + icon(muted ? 'VolumeX' : 'Volume2') + '</button>' +
-          '<input type="range" class="mu-vol" min="0" max="1" step="0.01" value="' + state.volume + '"></span>' +
+        // 音量：与全屏一致，hover 向上弹垂直滑条
+        '<span class="mu-imm-vol">' +
+          '<button class="mu-op" id="muMute" title="' + (muted ? '取消静音' : '静音') + '">' +
+            icon(muted ? 'VolumeX' : 'Volume2') + '</button>' +
+          '<span class="mu-imm-vol-pop">' +
+            '<span class="mu-imm-vol-num" id="muBarVolNum">' + Math.round(state.volume * 100) + '</span>' +
+            '<input type="range" class="mu-imm-vol-range mu-vol" min="0" max="1" step="0.01" value="' + state.volume +
+              '" orient="vertical" aria-label="音量">' +
+          '</span>' +
+        '</span>' +
+        '<button class="mu-op' + (cur && inList(LOVE_ID, { track: cur.track || cur }) ? ' on' : '') +
+          '" id="muBarLove" title="收藏">' + icon('Heart') + '</button>' +
+        '<button class="mu-op lyric-btn' + (showLyric ? ' on' : '') + '" id="muBarLyricBtn" title="' +
+          (showLyric ? '隐藏歌词' : '显示歌词') + '"><span class="mu-lyric-glyph' +
+          (showLyric ? '' : ' off') + '">词</span></button>' +
         '<button class="mu-op" id="muQueueBtn" title="当前播放列表">' + icon('ListMusic') + '</button>' +
         '<button class="mu-op imm" id="muImmersive" title="全屏播放">' + icon('Maximize2') + '</button>' +
       '</div>' +
@@ -1580,10 +1597,9 @@
     var btn = bar && bar.querySelector('#muMute');
     if (!btn) return;
     var muted = state.volume <= 0;
-    var from = btn.getAttribute('data-morph') || (muted ? 'VolumeX' : 'Volume2');
     var to = muted ? 'VolumeX' : 'Volume2';
-    if (!morphIcon(btn, morphKey(from), morphKey(to))) setIcon(btn, to);
-    btn.setAttribute('data-morph', to);
+    // 播放条的音量键现在是普通图标（不再走 morph），直接换图更稳
+    setIcon(btn, to);
     btn.title = muted ? '取消静音' : '静音';
   }
 
@@ -1610,8 +1626,6 @@
     var next = bar.querySelector('#muNext'); if (next) next.onclick = function () { nextTrack(false); };
     var modeBtn = bar.querySelector('#muMode');
     if (modeBtn) modeBtn.onclick = cyclePlayMode;
-    var vol = bar.querySelector('.mu-vol');
-    if (vol) vol.oninput = function () { setVolume(parseFloat(vol.value)); };
     var mute = bar.querySelector('#muMute');
     if (mute) mute.onclick = function () {
       // 静音前记住原音量，再点一次恢复
@@ -1630,6 +1644,58 @@
     var imm = bar.querySelector('#muImmersive'); if (imm) imm.onclick = openImmersive;
     var queueBtn = bar.querySelector('#muQueueBtn');
     if (queueBtn) queueBtn.onclick = toggleQueuePanel;
+
+    // 收藏当前曲
+    var loveBtn = bar.querySelector('#muBarLove');
+    if (loveBtn) loveBtn.onclick = function () {
+      if (!cur) { toast('还没有在播的歌'); return; }
+      var on = toggleLove({
+        id: cur.id, title: cur.title, artist: cur.artist, cover: cur.cover || '',
+        source: cur.source || '', interval: cur.interval || '', track: cur.track || null
+      });
+      loveBtn.classList.toggle('on', on);
+      var svg = loveBtn.querySelector('svg');
+      if (svg) svg.classList.toggle('on', on);
+      toast(on ? '已收藏' : '已取消收藏');
+    };
+
+    // 歌词开关（与全屏那个「词」一致）
+    var lyrBtn = bar.querySelector('#muBarLyricBtn');
+    if (lyrBtn) lyrBtn.onclick = function () {
+      showLyric = !showLyric;
+      try { localStorage.setItem('juice_music_show_lyric', showLyric ? '1' : '0'); } catch (e) {}
+      lyrBtn.classList.toggle('on', showLyric);
+      lyrBtn.title = showLyric ? '隐藏歌词' : '显示歌词';
+      var glyph = lyrBtn.querySelector('.mu-lyric-glyph');
+      if (glyph) glyph.classList.toggle('off', !showLyric);
+      // 播放条那行歌词跟着开关走
+      var line = document.getElementById('muBarLyric');
+      if (line) line.style.display = showLyric ? '' : 'none';
+      if (!showLyric) lastBarLyric = '';
+      // 沉浸页开着时同步
+      if (immEl) {
+        var box = immEl.querySelector('#muImmLyric');
+        var ibtn = immEl.querySelector('[data-imm="lyric"]');
+        if (box) box.classList.toggle('hidden', !showLyric);
+        if (ibtn) {
+          ibtn.classList.toggle('on', showLyric);
+          ibtn.title = showLyric ? '隐藏歌词' : '显示歌词';
+          var ig = ibtn.querySelector('.mu-lyric-glyph');
+          if (ig) ig.classList.toggle('off', !showLyric);
+        }
+        if (showLyric && box) {
+          box.innerHTML = lyricLinesHtml();
+          applyLyricPad(box);
+          lastLyricIndex = -1;
+          highlightLyric(audio ? audio.currentTime : 0);
+        }
+      }
+    };
+
+    // 音量滑块（hover 弹出的垂直条）
+    var barVol = bar.querySelector('.mu-vol');
+    if (barVol) barVol.oninput = function () { setVolume(parseFloat(barVol.value)); };
+
     // 点封面也进全屏（跟网易云/QQ音乐的习惯一致）
     var discEl = bar.querySelector('#muDisc');
     if (discEl) {
@@ -1720,7 +1786,7 @@
           '<span>' + (qName ? esc(qName) + ' · ' : '') + queue.length + ' 首</span>' +
         '</div>' +
         '<div class="mu-queue-ops">' +
-          '<button class="mu-btn mini" id="muQueueClear">清空</button>' +
+          '<button class="mu-btn mini" id="muQueueClear" title="清空播放列表">' + icon('Trash2') + '清空</button>' +
           '<button class="mu-op mu-queue-close" title="关闭">' + icon('X') + '</button>' +
         '</div>' +
       '</div>' +

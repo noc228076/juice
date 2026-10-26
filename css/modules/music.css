@@ -2877,3 +2877,43 @@ html[data-theme="light"] .mu-immersive {
   background: rgba(0, 0, 0, 0.14);
   color: var(--mod-ac-ink);
 }
+
+/* ==========================================================================
+   播放条上的音量：与全屏一致的 hover 垂直滑条
+   --------------------------------------------------------------------------
+   .mu-imm-vol / .mu-imm-vol-pop 的样式是通用的，这里只补播放条特有的偏移：
+   播放条贴底，弹层向上弹出不会超出视口。
+   ========================================================================== */
+.mu-player .mu-imm-vol-pop {
+  /* 播放条高度只有 64px，弹层往上弹会盖住歌词区，稍微右移避开 */
+  background: rgba(20, 24, 30, 0.96);
+}
+html[data-theme="light"] .mu-player .mu-imm-vol-pop {
+  background: rgba(250, 251, 248, 0.98);
+  border-color: var(--line-strong);
+}
+html[data-theme="light"] .mu-player .mu-imm-vol-num { color: var(--mod-ac); }
+
+/* 播放条里的收藏红心 */
+.mu-player #muBarLove.on svg {
+  fill: #ff4d6a;
+  stroke: #ff4d6a;
+  color: #ff4d6a;
+}
+
+/* 播放条里的「词」按钮 */
+.mu-player .lyric-btn { font-size: 14px; }
+
+/* 队列面板的「清空」：做成带图标的文字按钮，别让它看着像不可点 */
+.mu-queue-ops .mu-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 26px;
+  padding: 0 10px;
+  font-size: 11.5px;
+  color: var(--tx-dim);
+  border-color: var(--line);
+}
+.mu-queue-ops .mu-btn:hover { color: var(--warn-c); border-color: var(--warn-c); }
+.mu-queue-ops .mu-btn .mu-ico { width: 12px; height: 12px; }

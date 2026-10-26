@@ -62,8 +62,7 @@
      队列、当前曲目索引、播放进度单独存一份，和歌单数据分开：
      歌单是用户的长期资产，播放现场只是「上次听到哪」，
      彼此污染会让一次坏数据同时毁掉两边。 */
-  var LIVE_KEY = 'juice_music_live_v1';
-  // 上次真正有效的播放进度。还原后如果用户没点播放，audio.currentTime
+  var LIVE_KEY = 'juice_music_live_v1';  // 上次真正有效的播放进度。还原后如果用户没点播放，audio.currentTime
   // 恒为 0，任何一次 saveLive 都会把这个 0 写进存档，把进度冲掉。
   // 所以单独记一份，只有「确实在播放」时才更新它。
   var knownPos = 0;
@@ -154,8 +153,6 @@
   var qName = '';              // 队列来源名
   var qi = -1;
   var cur = null;
-  var historyStack = [];       // 随机模式下已播过的
-  var objUrls = [];            // 本会话创建的 objectURL，destroy 时不必回收（切歌复用）
   var failStreak = 0;          // 搜索结果连续播放失败计数（下架曲自动跳过用）
 
   function ensureAudio() {
@@ -174,12 +171,18 @@
     audio.addEventListener('play', function () { syncPlayUI(true); });
     audio.addEventListener('playing', function () {
       failStreak = 0;
-      if (cur) cur.retried = false;   // 这次成功了，下次失效还能再重取一次
+      if (cur) {
+        cur.retried = false;   // 这次成功了，下次失效还能再重取一次
+        cur.failed = false;    // 从失败名单里移出来，切歌不再跳过它
+      }
     });
     audio.addEventListener('pause', function () { syncPlayUI(false); });
     // 拖动进度条后立刻落盘：直接赋值 currentTime 不一定马上触发
     // timeupdate，用户拖完就关页面会把进度丢在拖动前的位置
     audio.addEventListener('seeked', function () {
+      // 还原窗口内用户已经动手拖了进度条，说明现场已经"活"了，
+      // 不能再拦着落盘——拦住会让这次拖动在刷新后丢失
+      restoringLive = false;
       lastSavedAt = 0;                        // 绕过两秒节流
       lastSavedSec = Math.floor(audio.currentTime || 0);
       knownPos = lastSavedSec;
@@ -266,6 +269,18 @@
     // 而不是等地址拿到才出现——用户点了歌，播放条应该立刻有反应。
     if (!cur.url && cur.track) {
       if (!window.LxMusic || !window.LxMusic.hasSource()) { toast('尚未导入音源脚本'); return; }
+      // 同一首正在取址时再次触发 playCurrent 会发起第二个请求——
+      // 两次都通过 cur===pending 的身份校验，后返回的那个会把刚播起来的
+      // 歌重新 a.src 赋一遍（从头重播）。这里直接挡掉。
+      if (cur.loading) {
+        if (wantPlay) {
+          var aa = ensureAudio();
+          if (aa.paused && aa.getAttribute('src')) {
+            try { aa.play().catch(function () {}); } catch (e) {}
+          }
+        }
+        return;
+      }
       var pending = cur;
       // 立刻停掉上一首。取地址快的时候感觉不到差别，但只要它慢
       // （或者最终失败），继续放旧歌就会变成「新歌一直加载、旧歌一直响」，
@@ -286,8 +301,21 @@
       loadLyricFor(cur);
       loadCoverFor(cur);
 
-      window.LxMusic.resolveUrl(pending.track, state.quality || '128k').then(function (url) {
-        if (cur !== pending) return;   // 期间已切歌
+      var myResolve = ++resolveToken;   // 只有最后一次取址允许落地
+      var p;
+      try {
+        p = window.LxMusic.resolveUrl(pending.track, state.quality || '128k');
+      } catch (eSync) {
+        // resolveUrl 同步抛错（比如 chunk 版本不一致缺了方法）：
+        // 不接住的话 loading 态和 .loading class 永远不会复位，
+        // 播放条就永久卡在「正在加载…」
+        pending.loading = false;
+        setBarLoading(false);
+        handleResolveFail(pending, eSync && eSync.message ? String(eSync.message).slice(0, 60) : 'unknown');
+        return;
+      }
+      Promise.resolve(p).then(function (url) {
+        if (myResolve !== resolveToken || cur !== pending) return;   // 期间已切歌/重新取址
         if (!url) {
           pending.loading = false;
           setBarLoading(false);
@@ -299,10 +327,10 @@
         setBarLoading(false);
         playCurrent(wantPlay);
       }).catch(function (e) {
-        if (cur !== pending) return;
+        if (myResolve !== resolveToken || cur !== pending) return;
         pending.loading = false;
         setBarLoading(false);
-        handleResolveFail(pending, e && e.message ? String(e.message).slice(0, 60) : 'unknown');
+        handleResolveFail(pending, e && e.message ? String(e.message).slice(0, 60) : 'unknown', e && e.code);
       });
       return;
     }
@@ -392,10 +420,11 @@
    * 现在明确停掉音频、清掉加载态，并把这首歌标记出来，
    * 让用户知道是这首放不了，而不是界面卡死。
    */
-  function handleResolveFail(item, why) {
+  function handleResolveFail(item, why, code) {
     // 被更新的取址请求取代属于正常情况（用户连点了下一首），
-    // 不算失败，也不要停音频——新请求马上就会接管
-    if (/已被更新的取址请求取代/.test(why)) return;
+    // 不算失败，也不要停音频——新请求马上就会接管。
+    // 用错误码判断而不是匹配中文文案：bridge 那边改个字这里就失效了。
+    if (code === 'SUPERSEDED') return;
     // 旧音频必须停：它属于上一首，继续放会和新歌的信息对不上
     var a = ensureAudio();
     try { a.pause(); } catch (e) {}
@@ -456,14 +485,22 @@
     if (!queue.length) return;
     // 单曲循环：自动续播时原地重放，手动点下一首仍然切歌
     if (state.repeat === 'one' && auto) { audio.currentTime = 0; audio.play().catch(function(){}); return; }
+    // 已确认取不到地址的歌直接跳过（最多绕一整圈），
+    // 不然每点一次下一首都要先撞上它等一轮超时
+    var hops = 0;
     if (state.shuffle && queue.length > 1) {
       var n;
-      do { n = Math.floor(Math.random() * queue.length); } while (n === qi);
+      do {
+        n = Math.floor(Math.random() * queue.length);
+        if (++hops > queue.length * 2) break;
+      } while ((n === qi || queue[n].failed) && hops <= queue.length * 2);
       qi = n;
     } else {
-      qi++;
-      // 三态模式没有「不循环」，顺序播放到末尾就回到第一首
-      if (qi >= queue.length) qi = 0;
+      do {
+        qi++;
+        if (qi >= queue.length) qi = 0;
+        if (++hops > queue.length) break;
+      } while (queue[qi].failed && hops <= queue.length);
     }
     playCurrent();
   }
@@ -519,6 +556,8 @@
   // 每次应用还原进度都递增，旧的回调（挂在 audio 上的事件监听）
   // 凭序号判断自己是否已经过期，避免把旧歌的 seek 位置套到新歌上
   var seekSeq = 0;
+  // 取址请求的序号：重新发起取址（同一首或切歌）时旧的回调全部作废
+  var resolveToken = 0;
   function maybeSaveProgress(t) {
     // 还原现场期间不能写：audio 还没 src、currentTime 恒为 0，
     // 一写就把刚读出来的存档进度冲成 0，下次刷新就真的丢了。
@@ -725,6 +764,16 @@
       }
       return step();
     }
+    // 旧一批的 objectURL 必须回收：每首音频的 Blob 会一直占内存，
+    // 反复关联文件夹/重新授权时内存会持续上涨。
+    // 还在播放队列里被引用的先留着，否则正在放的那首会断。
+    localFiles.forEach(function (f) {
+      if (!f.url) return;
+      var inQueue = queue.some(function (q) { return q.url === f.url; });
+      if (!inQueue && !(cur && cur.url === f.url)) {
+        try { URL.revokeObjectURL(f.url); } catch (e) {}
+      }
+    });
     localFiles = [];
     return walk(fsHandle, 0).then(function () {
       state.localMeta = localFiles.map(function (x) { return { title: x.title, size: x.size }; });
@@ -989,7 +1038,9 @@
       window.LxMusic.search(kw, 1, function (p) {
         // 实时进度：让用户看到具体哪个平台慢，而不是无限转圈
         if (p.phase === 'start') {
-          searchProgress = '正在请求 ' + p.source + '（0/' + p.total + '）…';
+          // start 现在一条带全部源名（sources 数组），不再逐源各发一条
+          searchProgress = '正在请求 ' + p.total + ' 个平台（' +
+            (p.sources || []).map(function (s) { return PLATFORM_NAMES[s] || s; }).join('/') + '）…';
         } else {
           searchProgress = '已完成 ' + p.done + '/' + p.total + ' 个平台' +
             (p.last && p.last.id ? '（' + p.last.id + ' ' + p.ms + 'ms）' : '') + '…';

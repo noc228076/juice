@@ -96,14 +96,17 @@
       register(root.LxSourceKw);
       register(root.LxSourceKg);
       register(root.LxSourceTx);
+      register(root.LxSourceWy);
       register(root.LxSourceMg);
     }
     var ids = ORDER.filter(function (id) { return SOURCES[id]; });
 
     var timings = {};
+    // 一次 start 带全部源列表：原来每个源各发一条 start，UI 只显示最后
+    // 一条，「正在请求 tx」其实 5 个源都已经在请求了，文案有误导性
+    if (typeof onProgress === 'function') onProgress({ phase: 'start', sources: ids.slice(), done: 0, total: ids.length });
     var tasks = ids.map(function (id) {
       var t0 = Date.now();
-      if (typeof onProgress === 'function') onProgress({ phase: 'start', source: id, done: 0, total: ids.length });
       return searchOne(id, keyword, page, limit)
         .then(function (res) {
           timings[id] = Date.now() - t0;
@@ -125,9 +128,11 @@
     var HARD_LIMIT = 12000;
     var done = [];          // 已完成的源结果
     var pending = ids.length;
+    var settled = false;    // race 出口后冻结状态：迟到的源不能再动 UI 和计数
 
     var allTask = Promise.all(tasks.map(function (t, i) {
       return t.then(function (r) {
+        if (settled) return r;   // 超时后才回来：结果已无用，别再碰进度
         done.push(r);
         pending--;
         if (typeof onProgress === 'function') {
@@ -161,15 +166,18 @@
       return { list: merged, bySource: bySource, errors: errors, timings: timings };
     });
 
+    var timeoutTimer = null;
     var timeoutTask = new Promise(function (resolve) {
-      setTimeout(function () { resolve('__TIMEOUT__'); }, HARD_LIMIT);
+      timeoutTimer = setTimeout(function () { resolve('__TIMEOUT__'); }, HARD_LIMIT);
     });
 
     return Promise.race([allTask, timeoutTask]).then(function (r) {
+      clearTimeout(timeoutTimer);
       if (r !== '__TIMEOUT__') return r;
 
-      // 超时：用已经返回的源立即组装结果，慢的源放弃
-      console.warn('[搜索] 超过 ' + HARD_LIMIT + 'ms，用已完成的部分返回');
+      // 超时：用已经返回的源立即组装结果，慢的源放弃。
+      // 冻结后续回调（慢源 9 秒左右自己会结束，不需要也无法逐个取消）。
+      settled = true;
       var merged2 = [];
       var bySource2 = {};
       var errors2 = [];

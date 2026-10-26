@@ -150,7 +150,8 @@ function safeContentType(type) {
   return 'application/octet-stream';
 }
 
-function decompress(buffer, encoding) {  try {
+function decompress(buffer, encoding) {
+  try {
     var opt = { maxOutputLength: MAX_BODY };
     switch (String(encoding || '').toLowerCase()) {
       case 'gzip': return zlib.gunzipSync(buffer, opt);
@@ -171,7 +172,7 @@ function decompress(buffer, encoding) {  try {
  * 表现就是界面上「正在请求 tx」一直不动。
  */
 function readBody(req) {
-  return new Promise(function (resolve) {
+  return new Promise(function (resolve, reject) {
     // Vercel Node runtime：body 可能已被解析成对象/字符串。
     // 注意不能一律 JSON.stringify：表单（urlencoded）被解析成对象后
     // 再序列化会变成 JSON，上游收到的是 "{"ids":"[...]"}" 这种非法表单，
@@ -179,8 +180,8 @@ function readBody(req) {
     if (req.body != null && typeof req.body !== 'function') {
       if (Buffer.isBuffer(req.body)) return resolve(req.body);
       if (typeof req.body === 'string') return resolve(Buffer.from(req.body));
-      var ct = String((req.headers && req.headers['content-type']) || '');
-      if (/application\/x-www-form-urlencoded/i.test(ct)) {
+      var ct0 = String((req.headers && req.headers['content-type']) || '');
+      if (/application\/x-www-form-urlencoded/i.test(ct0)) {
         var pairs = [];
         Object.keys(req.body).forEach(function (k) {
           var v = req.body[k];
@@ -198,6 +199,7 @@ function readBody(req) {
 
     var settled = false;
     var chunks = [];
+    var total = 0;
 
     function finish(value) {
       if (settled) return;
@@ -205,19 +207,30 @@ function readBody(req) {
       clearTimeout(timer);
       resolve(value);
     }
+    function fail(status, msg) {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      try { req.destroy(); } catch (e) {}
+      var err = new Error(msg);
+      err.status = status;
+      reject(err);
+    }
 
-    // 3 秒读不完就放弃：搜索请求体只有几百字节，正常毫秒级就结束了
+    // 3 秒读不完就放弃：搜索请求体只有几百字节，正常毫秒级就结束了。
+    // 原来超时后把「已经读到的半截 body」当完整请求发出去，
+    // 上游返回莫名其妙的参数错误，极难排查——现在明确报 408。
     var timer = setTimeout(function () {
-      console.warn('[proxy] 读取请求体超时，按空 body 处理');
-      finish(chunks.length ? Buffer.concat(chunks) : null);
+      console.warn('[proxy] 读取请求体超时');
+      fail(408, 'request body timeout');
     }, 3000);
 
     req.on('data', function (c) {
       if (settled) return;
       chunks.push(Buffer.isBuffer(c) ? c : Buffer.from(c));
-      // 超过 1MB 直接截断，防止异常大 body 拖死进程
-      var total = chunks.reduce(function (n, b) { return n + b.length; }, 0);
-      if (total > 1024 * 1024) finish(Buffer.concat(chunks));
+      total += chunks[chunks.length - 1].length;
+      // 超过 1MB 明确拒绝，而不是截断成半截发给上游
+      if (total > 1024 * 1024) fail(413, 'request body too large');
     });
     req.on('end', function () { finish(chunks.length ? Buffer.concat(chunks) : null); });
     req.on('error', function () { finish(null); });
@@ -293,7 +306,13 @@ module.exports = async function handler(req, res) {
 
   // 读出请求体：POST 搜索接口（企鹅/网易）必须把 body 转发给上游，
   // 否则上游一直等数据，表现为请求挂到超时。
-  const bodyBuffer = await readBody(req);
+  let bodyBuffer;
+  try {
+    bodyBuffer = await readBody(req);
+  } catch (eBody) {
+    if (!res.headersSent) res.status(eBody.status || 400).send(eBody.message || 'bad request');
+    return;
+  }
   // 显式给 content-length：不要的话 Node 会改用 chunked，
   // 部分 PHP/CGI 风格的上游不解析 chunked body，会一直等到超时
   if (bodyBuffer && bodyBuffer.length) {

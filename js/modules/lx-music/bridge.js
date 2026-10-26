@@ -23,8 +23,9 @@
     root.LxSources.register(root.LxSourceKw);
     root.LxSources.register(root.LxSourceKg);
     root.LxSources.register(root.LxSourceTx);
-    // 网易需要 AES-128-ECB 的 eapi 签名，当前实现未通过标准测试向量校验，
-    // 先不启用，避免返回空结果干扰用户体验。其余四个平台覆盖足够。
+    // 网易的 eapi 签名依赖 AES-128-ECB，实现已按 NIST 向量修好，
+    // 解析也换成了 /eapi/batch 新结构（resources[].baseInfo.simpleSongData）
+    root.LxSources.register(root.LxSourceWy);
     root.LxSources.register(root.LxSourceMg);
     ready = true;
   }
@@ -262,7 +263,9 @@
         }
         // 用户已经切走了就别再挨个试脚本了，白白占着 iframe
         if (mySeq !== resolveSeq) {
-          return Promise.reject(new Error('已被更新的取址请求取代'));
+          var superseded = new Error('已被更新的取址请求取代');
+          superseded.code = 'SUPERSEDED';
+          return Promise.reject(superseded);
         }
         var sb = list[i];
         var next = function (why) {

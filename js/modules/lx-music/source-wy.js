@@ -4,7 +4,8 @@
    移植自 lx-music-desktop：
      src/renderer/utils/musicSdk/wy/musicSearch.js
      src/renderer/utils/musicSdk/wy/utils/crypto.js（eapi）
-   原实现用 node:crypto 的 AES-128-ECB，这里改用 WebCrypto
+   原实现用 node:crypto 的 AES-128-ECB；浏览器里没有这个 API，
+   用 LxAes（纯 JS，已用 NIST 标准向量校验）替代。
    ========================================================= */
 (function (root) {
   'use strict';
@@ -14,7 +15,7 @@
 
   var EAPI_KEY = 'e82ckenh8dichen8';
 
-  /** AES-128-ECB 加密，返回大写 hex（用纯 JS 实现，避开 WebCrypto 的自动填充） */
+  /** AES-128-ECB 加密，返回大写 hex */
   function aesEncryptEcb(text) {
     var bytes = root.LxAes.encryptEcb(text, new TextEncoder().encode(EAPI_KEY));
     return Promise.resolve(root.LxAes.toHexUpper(bytes));
@@ -47,36 +48,39 @@
     return (singers || []).map(function (s) { return s.name; }).join('、');
   }
 
-  function handleResult(rawList) {
-    if (!rawList) return [];
+  /**
+   * /eapi/batch 的搜索结果包在 resources[].baseInfo.simpleSongData 里
+   * （2024 起的新结构；老的 result.songs / data.list 已经不回来了）。
+   */
+  function handleResult(resources) {
+    if (!Array.isArray(resources)) return [];
     var out = [];
-    rawList.forEach(function (item) {
-      if (!item) return;
+    resources.forEach(function (res) {
+      if (!res || res.resourceType !== 'song') return;
+      var item = (res.baseInfo || {}).simpleSongData;
+      if (!item || item.id == null) return;
+
+      // 音质字段：hr=hires、sq=flac、h=320k、m=128k、l=96k。
+      // 标全部可用的等级，取址脚本会按 quality 去挑。
       var types = [];
       var _types = {};
-      // 网易的搜索结果里 quality 信息在 privilege / hr 等字段，这里按可得字段尽量标注
-      if (item.hr) {
-        types.push({ type: 'flac24bit', size: null });
-        _types.flac24bit = { size: null };
-      } else if (item.sq) {
-        types.push({ type: 'flac', size: null });
-        _types.flac = { size: null };
-      } else if (item.h) {
-        types.push({ type: '320k', size: null });
-        _types['320k'] = { size: null };
-      } else {
-        types.push({ type: '128k', size: null });
-        _types['128k'] = { size: null };
-      }
+      var add = function (type) {
+        types.push({ type: type, size: null });
+        _types[type] = { size: null };
+      };
+      if (item.hr) add('flac24bit');
+      if (item.sq) add('flac');
+      if (item.h) add('320k');
+      if (item.m || item.l || (!item.hr && !item.sq && !item.h)) add('128k');
 
       out.push({
-        singer: U.decodeName(getSinger(item.ar || item.artists)),
+        singer: U.decodeName(getSinger(item.ar)),
         name: U.decodeName(item.name),
-        albumName: U.decodeName((item.al || item.album || {}).name || ''),
-        albumId: (item.al || item.album || {}).id,
+        albumName: U.decodeName((item.al || {}).name || ''),
+        albumId: (item.al || {}).id,
         songmid: item.id,
         source: 'wy',
-        interval: U.formatPlayTime(Math.floor((item.dt || item.duration || 0) / 1000)),
+        interval: U.formatPlayTime(Math.floor((item.dt || 0) / 1000)),
         img: (item.al || {}).picUrl || null,
         lrc: null,
         types: types,
@@ -103,13 +107,21 @@
     }).then(function (resp) {
       var body = resp.body;
       if (!body || body.code !== 200) {
+        // 460 频控重试一次没意义，直接报出来
+        if (body && (body.code === 460 || body.code === 405)) {
+          return Promise.reject(new Error('网易接口限流（code ' + body.code + '）'));
+        }
         return search(str, page, limit, retryNum + 1);
       }
-      // 新接口返回结构：body.data.list 或 body.result.songs
-      var rawList = (body.data && (body.data.list || body.data.songs)) ||
-        (body.result && body.result.songs) || [];
-      var list = handleResult(rawList);
-      var total = (body.data && body.data.totalCount) || (body.result && body.result.songCount) || list.length;
+      var data = body.data || {};
+      var list = handleResult(data.resources);
+      // 旧结构兜底（如果哪天接口回退）
+      if (!list.length && body.result && body.result.songs) {
+        list = handleResult(body.result.songs.map(function (s) {
+          return { resourceType: 'song', baseInfo: { simpleSongData: s } };
+        }));
+      }
+      var total = data.totalCount || (body.result && body.result.songCount) || list.length;
       return {
         list: list,
         allPage: Math.ceil(total / limit),
@@ -120,5 +132,5 @@
     });
   }
 
-  root.LxSourceWy = { id: 'wy', name: '网易', search: search };
+  root.LxSourceWy = { id: 'wy', name: '网易云', search: search };
 })(window);

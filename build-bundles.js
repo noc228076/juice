@@ -112,6 +112,7 @@ const chunks = {
     'js/modules/lx-music/source-kg.js',
     'js/modules/lx-music/source-tx.js',
     'js/modules/lx-music/source-mg.js',
+    'js/modules/lx-music/source-wy.js',
     'js/modules/lx-music/sources.js',
     'js/modules/lx-music/tipSearch.js',
     'js/modules/lx-music/lyric.js',

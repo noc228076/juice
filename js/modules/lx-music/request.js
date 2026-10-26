@@ -142,10 +142,19 @@
       });
     };
 
+    // cb 只允许被调用一次：成功分支里 cb 自己抛异常时，
+    // 原来的写法会掉进下面的 catch 再 cb(err) 一次，调用方会被触发两回
+    var cbDone = false;
+    var onceCb = function (err, resp, body) {
+      if (cbDone) return;
+      cbDone = true;
+      try { cb(err, resp, body); } catch (eCb) { /* 回调内部错误不能改变请求本身的结论 */ }
+    };
+
     var promise = run().then(function (resp) {
       if (timer) clearTimeout(timer);
       if (aborted) throw new Error('cancel request');
-      cb(null, resp, resp.body);
+      onceCb(null, resp, resp.body);
       return resp;
     }).catch(function (error) {
       if (timer) clearTimeout(timer);
@@ -159,7 +168,7 @@
       else if (/Failed to fetch|NetworkError|Load failed/i.test(message)) { message = '无法连接到服务器'; }
       var err = new Error(message);
       err.code = code;
-      cb(err);
+      onceCb(err);
       throw err;
     });
 

@@ -828,7 +828,7 @@
             '</div>' +
             '<div class="gp-body">' +
             '<p>一台专为年轻人打造的<b>工位摸鱼、解压娱乐与自我测评</b>纯前端工具箱。免登录、无广告，所有数据只存在你的设备本地。</p>' +
-            '<div class="gp-label">📌 8 大功能</div>' +
+            '<div class="gp-label">📌 9 大功能</div>' +
             '<div class="gp-func-list">' +
             '<div>🍹 <b>饮品测评</b> —— 测专属饮料 / 奶茶人格，支持当代 SBTI 发疯测试与 MBTI。</div>' +
             '<div>📖 <b>自我说明书</b> —— 15 关挑战：扫雷、俄罗斯方块、贪吃蛇、泡泡猫等 11 款小游戏 + 全服冲榜。</div>' +
@@ -840,8 +840,13 @@
             '<div>🗞️ <b>今日风向</b> —— 每天 60 秒早报速递、全网实时热搜榜、必应 4K 壁纸。</div>' +
             '<div>💬 <b>弹幕墙</b> —— 一人一句留言上墙，看看大家在聊什么。</div>' +
             '<div>📚 <b>背单词</b> —— 四六级词库 8500+ 词（CET-4 4544 / CET-6 3991），间隔重复 + 四选一，进度存本机。</div>' +
+            '<div>🎵 <b>我的音乐台</b> —— 酷我 / 酷狗 / 企鹅 / 咪咕 四平台聚合搜索；' +
+            '<b>黑胶全屏播放</b>（封面随播放旋转、暂停停在当前角度、实时歌词、hover 音量条）；' +
+            '<b>我的列表</b>（收藏 / 自建歌单 / 按字母·歌手·时间排序 / 拖动排序播放队列）；' +
+            '<b>排行榜</b>（25 个平台榜单，左栏选榜右栏听歌）；' +
+            '<b>歌单导入</b>（粘贴网易云等平台分享链接一键拉取，或按「歌名 - 歌手」批量导入）；' +
+            '支持导入洛雪音源脚本，播放地址由脚本提供。</div>' +
             '</div>' +
-            '<div class="gp-tip">💡 极简提示：按 <b>Space</b> 快速开测 / 敲木鱼，按 <b>ESC</b> 退出全屏屏保。</div>' +
             '<div class="gp-label">开源</div>' +
             '<p>本项目以 <b>MIT</b> 协议开源，欢迎参观与拍砖：<br>' +
             '<a href="https://github.com/noc228076/juice" target="_blank" rel="noopener">github.com/noc228076/juice</a></p>' +
@@ -852,6 +857,9 @@
             '<li>热榜 / 早报：codelife.cc、60s 公开接口，失败自动回落本地缓存</li>' +
             '<li>排行榜与弹幕墙：Upstash Redis（只存随机 ID、昵称、头像与成绩）</li>' +
             '<li>背单词词库：<a href="https://github.com/KyleBing/english-vocabulary" target="_blank" rel="noopener">english-vocabulary</a>（BSD-3-Clause）</li>' +
+            '<li>音乐搜索 / 歌词 / 封面：酷我、酷狗、企鹅音乐、咪咕的公开接口（经本站代理）</li>' +
+            '<li>音乐排行榜：酷狗公开榜单接口</li>' +
+            '<li>音源脚本内核：移植自 <a href="https://github.com/lyswhut/lx-music-desktop" target="_blank" rel="noopener">lx-music-desktop</a>（Apache-2.0）</li>' +
             '</ul>' +
             '<div class="gp-label">构建版本</div>' +
             '<p class="gp-about-ver" id="gpAboutVer">' + (ver || 'dev') + '</p>' +

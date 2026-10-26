@@ -1130,6 +1130,7 @@
    * 播放一首搜索结果。
    * 洛雪的曲目没有直接 url，需要向音源脚本要地址（异步）。
    */
+  /* [废弃] 无调用点；恢复使用前先核对数据结构（localHtml 依赖的 state.localMeta 只在选文件时写入） */
   function playTrack(track, listName) {
     if (!track) return;
     if (track.url) {
@@ -1185,6 +1186,7 @@
       '</div>';
   }
 
+  /* [废弃] 无调用点；恢复使用前先核对数据结构（localHtml 依赖的 state.localMeta 只在选文件时写入） */
   function localHtml() {
     var needRelink = state.localMeta.length && !localFiles.length;
     var rows = localTracks().map(function (t, i) { return listRowHtml(t, i, '本机文件'); }).join('');
@@ -1202,6 +1204,7 @@
     '</div>';
   }
 
+  /* [废弃] 无调用点；恢复使用前先核对数据结构（localHtml 依赖的 state.localMeta 只在选文件时写入） */
   function linksHtml() {
     var rows = directList().map(function (t, i) { return listRowHtml(t, i, '直链歌单'); }).join('');
     return '<div class="mu-panel">' +

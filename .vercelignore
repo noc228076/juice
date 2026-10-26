@@ -13,3 +13,6 @@ js/app.js
 js/data.js
 js/drinks-art.js
 css/style.css
+
+# 临时修复脚本
+tmp_*

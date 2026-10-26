@@ -2751,3 +2751,66 @@ html[data-theme="light"] .mu-immersive {
   gap: 4px;
   justify-self: end;
 }
+
+/* 沉浸页音量：默认只有图标，hover 向上弹出垂直滑条 */
+.mu-imm-vol {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.mu-imm-vol-pop {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(6px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 8px 8px;
+  border-radius: 999px;
+  background: rgba(20, 24, 30, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .18s ease, transform .18s ease;
+  z-index: 6;
+}
+.mu-imm-vol:hover .mu-imm-vol-pop,
+.mu-imm-vol:focus-within .mu-imm-vol-pop {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
+}
+.mu-imm-vol-num {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--mod-ac);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.mu-imm-vol-range {
+  /* 垂直滑条：writing-mode 比 transform 旋转可靠，
+     旋转会把拖拽方向也转反 */
+  writing-mode: vertical-lr;
+  direction: rtl;
+  width: 4px;
+  height: 96px;
+  accent-color: var(--mod-ac);
+  cursor: pointer;
+}
+/* 沉浸页里的收藏红心 */
+.mu-immersive .mu-op.on .mu-ico[data-lucide],
+.mu-immersive .mu-op.on svg path {
+  /* 交给 .on 的 currentColor 处理，这里只补实心 */
+}
+.mu-immersive [data-imm="love"].on svg {
+  fill: #ff4d6a;
+  stroke: #ff4d6a;
+  color: #ff4d6a;
+}
+@media (hover: none) {
+  /* 触屏没有 hover：点图标也能把滑条调出来 */
+  .mu-imm-vol:focus-within .mu-imm-vol-pop { opacity: 1; pointer-events: auto; }
+}

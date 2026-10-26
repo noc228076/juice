@@ -1552,6 +1552,22 @@
     btn.title = muted ? '取消静音' : '静音';
   }
 
+  /** 沉浸页里的静音图标与滑块同步（它不在播放条上，单独处理） */
+  function syncImmMuteIcon() {
+    if (!immEl) return;
+    var muted = state.volume <= 0;
+    var btn = immEl.querySelector('[data-imm="mute"]');
+    if (btn) {
+      btn.innerHTML = icon(muted ? 'VolumeX' : 'Volume2');
+      paintIcons(btn);
+      btn.title = muted ? '取消静音' : '静音';
+    }
+    var range = immEl.querySelector('.mu-imm-vol-range');
+    if (range && document.activeElement !== range) range.value = String(state.volume);
+    var num = immEl.querySelector('#muImmVolNum');
+    if (num) num.textContent = String(Math.round(state.volume * 100));
+  }
+
   /** 播放条在 body 上，单独绑定 */
   function bindPlayerBar(bar) {
     var toggle = bar.querySelector('#muToggle'); if (toggle) toggle.onclick = togglePlay;
@@ -2434,6 +2450,8 @@
                 (showLyric ? '隐藏歌词' : '显示歌词') + '"><span class="mu-lyric-glyph' +
                 (showLyric ? '' : ' off') + '">词</span></button>' +
               '<button class="mu-op" data-imm="queue" title="播放列表">' + icon('ListMusic') + '</button>' +
+              '<button class="mu-op' + (cur && inList(LOVE_ID, { track: cur.track || cur }) ? ' on' : '') +
+                '" data-imm="love" title="收藏">' + icon('Heart') + '</button>' +
             '</div>' +
             '<div class="mu-imm-ops-center">' +
               '<button class="mu-op" data-imm="prev" title="上一首">' + icon('SkipBack') + '</button>' +
@@ -2444,6 +2462,16 @@
               '<button class="mu-op' + (playMode() !== 'all' ? ' on' : '') + '" data-imm="mode" title="' +
                 ({ one: '单曲循环', all: '顺序播放', shuffle: '随机播放' }[playMode()]) + '">' +
                 icon({ one: 'Repeat1', all: 'Repeat', shuffle: 'Shuffle' }[playMode()]) + '</button>' +
+              // 音量：一个图标，hover 时向上弹出垂直滑条
+              '<span class="mu-imm-vol">' +
+                '<button class="mu-op" data-imm="mute" title="' + (state.volume <= 0 ? '取消静音' : '静音') + '">' +
+                  icon(state.volume <= 0 ? 'VolumeX' : 'Volume2') + '</button>' +
+                '<span class="mu-imm-vol-pop">' +
+                  '<span class="mu-imm-vol-num" id="muImmVolNum">' + Math.round(state.volume * 100) + '</span>' +
+                  '<input type="range" class="mu-imm-vol-range" min="0" max="1" step="0.01" value="' + state.volume +
+                    '" orient="vertical" aria-label="音量">' +
+                '</span>' +
+              '</span>' +
               '<button class="mu-op" data-imm="exit" title="退出全屏（Esc）">' + icon('Minimize2') + '</button>' +
             '</div>' +
           '</div>' +
@@ -2455,6 +2483,38 @@
     immEl.querySelector('[data-imm="next"]').onclick = function () { nextTrack(false); };
     immEl.querySelector('[data-imm="toggle"]').onclick = togglePlay;
     immEl.querySelector('[data-imm="exit"]').onclick = closeImmersive;
+    // 音量：滑块与静音
+    var volRange = immEl.querySelector('.mu-imm-vol-range');
+    if (volRange) volRange.oninput = function () {
+      setVolume(parseFloat(volRange.value));
+      syncImmMuteIcon();
+    };
+    var muteBtn = immEl.querySelector('[data-imm="mute"]');
+    if (muteBtn) muteBtn.onclick = function () {
+      if (state.volume > 0) { lastVolume = state.volume; setVolume(0); }
+      else setVolume(lastVolume > 0 ? lastVolume : 0.7);
+      syncImmMuteIcon();
+    };
+
+    // 收藏当前曲
+    var loveBtn = immEl.querySelector('[data-imm="love"]');
+    if (loveBtn) loveBtn.onclick = function () {
+      if (!cur) return;
+      var item = {
+        id: cur.id,
+        title: cur.title,
+        artist: cur.artist,
+        cover: cur.cover || '',
+        source: cur.source || '',
+        interval: cur.interval || '',
+        track: cur.track || null
+      };
+      var on = toggleLove(item);
+      loveBtn.classList.toggle('on', on);
+      loveBtn.querySelector('svg')?.classList.toggle('on', on);
+      toast(on ? '已收藏' : '已取消收藏');
+    };
+
     var qBtn = immEl.querySelector('[data-imm="queue"]');
     if (qBtn) qBtn.onclick = function () { toggleQueuePanel(true); };
     var modeBtn = immEl.querySelector('[data-imm="mode"]');

@@ -1402,6 +1402,7 @@ html[data-theme="light"] .mu-player .mu-bar-progress { background: rgba(20, 24, 
 /* 左侧：封面 + 标题/歌手 */
 .mu-disc {
   flex: none;
+  position: relative;   /* 加载图标要绝对定位在封面正中 */
   width: 46px;
   height: 46px;
   border-radius: var(--mu-r-sm);
@@ -2944,6 +2945,7 @@ html[data-theme="light"] .mu-player .mu-imm-vol-num { color: var(--mod-ac); }
 /* ==========================================================================
    播放条加载态：封面转圈 + 标题旁「正在加载…」
    ========================================================================== */
+/* 加载态：封面位置叠一个旋转的 Loader 图标（12 条放射线，比 CSS 圆环自然） */
 .mu-player.loading #muDisc {
   position: relative;
 }
@@ -2951,12 +2953,24 @@ html[data-theme="light"] .mu-player .mu-imm-vol-num { color: var(--mod-ac); }
   content: "";
   position: absolute;
   inset: 0;
-  border-radius: inherit;
-  border: 2px solid rgba(255, 255, 255, 0.18);
-  border-top-color: var(--mod-ac);
-  animation: muSpin 0.8s linear infinite;
+  background: rgba(8, 10, 14, 0.55);
   pointer-events: none;
 }
+.mu-disc-spinner {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  z-index: 2;
+  pointer-events: none;
+}
+.mu-disc-spinner .mu-ico {
+  width: 20px;
+  height: 20px;
+  color: var(--mod-ac);
+  animation: muSpin 0.9s linear infinite;
+}
+.mu-player.loading #muDisc img { opacity: .3; }
 .mu-loading-tip {
   margin-left: 6px;
   font-size: 11px;

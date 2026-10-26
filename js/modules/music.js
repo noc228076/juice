@@ -1211,9 +1211,11 @@
       // 左列：封面 + 标题（标题紧贴封面，不要居中漂走）
       '<div class="mu-disc' + (playing && cover ? ' spin' : '') + '" id="muDisc" title="全屏播放">' +
         (cover ? '<img src="' + esc(cover) + '" alt="">' : icon('Play')) +
+        (cur && cur.loading ? '<span class="mu-disc-spinner">' + icon('Loader') + '</span>' : '') +
       '</div>' +
       '<div class="mu-player-title">' + (cur ? esc(cur.title) : '未在播放') +
-        (cur && cur.artist ? ' <i>· ' + esc(cur.artist) + '</i>' : '') + '</div>' +
+        (cur && cur.artist ? ' <i>· ' + esc(cur.artist) + '</i>' : '') +
+        (cur && cur.loading ? '<span class="mu-loading-tip">正在加载…</span>' : '') + '</div>' +
       // 中列：传输控件
       '<div class="mu-ops mu-ops-main">' +
         '<button class="mu-op" id="muPrev" title="上一首">' + icon('SkipBack') + '</button>' +
@@ -1504,6 +1506,12 @@
     bar.id = 'muPlayerBar';
     document.body.appendChild(bar);
     bindPlayerBar(bar);
+    // 重建后把当前曲目和加载态补回去，否则取地址期间重建会丢掉
+    // 封面转圈和「正在加载…」提示
+    if (cur) {
+      syncBarMeta();
+      if (cur.loading) setBarLoading(true);
+    }
     syncBarVisibility();
   }
 
@@ -1542,6 +1550,15 @@
         ? '<img src="' + esc(cur.cover) + '" alt="">'
         : icon('Play');
       paintIcons(disc);
+      // 重写封面后要补回加载图标，否则加载态会丢
+      if (cur && cur.loading) {
+        var spinner = document.createElement('span');
+        spinner.className = 'mu-disc-spinner';
+        spinner.innerHTML = icon('Loader');
+        disc.appendChild(spinner);
+        paintIcons(spinner);
+        bar.classList.add('loading');
+      }
     }
   }
 
@@ -1645,6 +1662,24 @@
     var bar = document.getElementById('muPlayerBar');
     if (!bar) return;
     bar.classList.toggle('loading', !!on);
+
+    // 封面位置叠一个旋转的 Loader 图标
+    var disc = bar.querySelector('#muDisc');
+    if (disc) {
+      var spinner = disc.querySelector('.mu-disc-spinner');
+      if (on) {
+        if (!spinner) {
+          spinner = document.createElement('span');
+          spinner.className = 'mu-disc-spinner';
+          spinner.innerHTML = icon('Loader');
+          disc.appendChild(spinner);
+          paintIcons(spinner);
+        }
+      } else if (spinner) {
+        spinner.remove();
+      }
+    }
+
     var titleEl = bar.querySelector('.mu-player-title');
     if (!titleEl) return;
     var tip = titleEl.querySelector('.mu-loading-tip');

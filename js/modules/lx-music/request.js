@@ -153,7 +153,8 @@
 
     var promise = run().then(function (resp) {
       if (timer) clearTimeout(timer);
-      if (aborted) throw new Error('cancel request');
+      // 响应已完整到手就别丢：fetch resolve 与超时定时器有竞态，踩中会把有效响应当取消
+      if (aborted && !resp) throw new Error('cancel request');
       onceCb(null, resp, resp.body);
       return resp;
     }).catch(function (error) {

@@ -20,7 +20,8 @@
   }
 
   function sizeFormate(size) {
-    if (!size) return '0 B';
+    // 负数/NaN 会算出 Math.log 负数下标溢出 units，返回 'NaN undefined'
+    if (!size || !isFinite(size) || size < 0) return '0 B';
     var units = ['B', 'KiB', 'MiB', 'GiB', 'TiB'];
     var number = Math.floor(Math.log(size) / Math.log(1024));
     return (size / Math.pow(1024, Math.floor(number))).toFixed(2) + ' ' + units[number];

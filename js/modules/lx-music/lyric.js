@@ -159,6 +159,7 @@
    */
   function getLyric(track) {
     var empty = { lyric: '', parsed: [], source: '' };
+
     if (!track) return Promise.resolve(empty);
 
     var inner = track.track || track;
@@ -218,6 +219,29 @@
       });
     });
   }
+
+  // 声明在使用之前（函数体里引用）
+  var lyricCache = {};
+  var LYRIC_CACHE_MAX = 120;
+  function cachePut(key, val) {
+    lyricCache[key] = val;
+    var ks = Object.keys(lyricCache);
+    if (ks.length > LYRIC_CACHE_MAX) delete lyricCache[ks[0]];
+  }
+  var _getLyric = getLyric;
+  getLyric = function (track) {
+    var inner0 = track && (track.track || track);
+    var key0 = ((track && track.source) || (inner0 && inner0.source) || '') + '|' + ((inner0 && inner0.songmid) || '') + '|' + String((inner0 && inner0.name) || (track && track.title) || '');
+    if (lyricCache[key0]) return Promise.resolve(lyricCache[key0]);
+    return _getLyric(track).then(function (res) {
+      if (res && res.parsed && res.parsed.length) {
+        var inner = track && (track.track || track);
+        var key = ((track && track.source) || (inner && inner.source) || '') + '|' + ((inner && inner.songmid) || '') + '|' + String((inner && inner.name) || (track && track.title) || '');
+        cachePut(key, res);
+      }
+      return res;
+    });
+  };
 
   root.LxLyric = {
     parseLrc: parseLrc,

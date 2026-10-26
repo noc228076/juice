@@ -115,6 +115,7 @@ const chunks = {
     'js/modules/lx-music/sources.js',
     'js/modules/lx-music/tipSearch.js',
     'js/modules/lx-music/lyric.js',
+    'js/modules/lx-music/cover.js',
     'js/modules/lx-music/sandbox.js',
     'js/modules/lx-music/bridge.js',
     'js/modules/music.js'
@@ -175,9 +176,13 @@ if (version) {
   const htmlPath = path.join(__dirname, 'index.html');
   const htmlSrc = fs.readFileSync(htmlPath, 'utf8');
   const nextHtml = htmlSrc
-    .replace(/core\.bundle\.css\?v=\d+/g, `core.bundle.css?v=${version}`)
-    .replace(/modules\.bundle\.css\?v=\d+/g, `modules.bundle.css?v=${version}`)
-    .replace(/app\.bundle\.js\?v=\d+/g, `app.bundle.js?v=${version}`);
+    .replace(/core\.bundle\.css\?v=[\w.]+/g, `core.bundle.css?v=${version}`)
+    .replace(/modules\.bundle\.css\?v=[\w.]+/g, `modules.bundle.css?v=${version}`)
+    .replace(/app\.bundle\.js\?v=[\w.]+/g, `app.bundle.js?v=${version}`)
+    // vendor 脚本也要带版本：/js/** 是 immutable 一年缓存，
+    // 不带版本号的话 lucide-icons.js 改了也永远加载旧缓存
+    .replace(/js\/vendor\/(morphicons|lucide-icons)\.js\?v=[\w.]+/g, `js/vendor/$1.js?v=${version}`)
+    .replace(/js\/vendor\/(morphicons|lucide-icons)\.js(?!\?)/g, `js/vendor/$1.js?v=${version}`);
   if (nextHtml !== htmlSrc) fs.writeFileSync(htmlPath, nextHtml, 'utf8');
 
   console.log(`版本号已同步 -> v${version} (index.html ?v=, sw.js CACHE_NAME)`);

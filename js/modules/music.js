@@ -141,7 +141,32 @@
     // 切歌后换歌词；沉浸页开着就立即刷新
     lastLyricIndex = -1;
     loadLyricFor(cur);
+    loadCoverFor(cur);
     if (immEl) refreshImmersiveLyric();
+  }
+
+  /** 搜索接口大多不带封面，播放时补一张（结果按歌名+歌手缓存） */
+  function loadCoverFor(track) {
+    if (!track || track.cover) return;
+    if (!window.LxCover) return;
+    var key = track.id || (track.title + '|' + track.artist);
+    window.LxCover.getCover(track).then(function (url) {
+      // 期间可能已切歌
+      if (!url || !cur || (cur.id || (cur.title + '|' + cur.artist)) !== key) return;
+      cur.cover = url;
+      // 队列里同一条也补上，回头上一首/下一首不用再请求
+      if (queue[qi]) queue[qi].cover = url;
+      syncBarMeta();
+      var disc = document.getElementById('muDisc');
+      if (disc) disc.classList.toggle('spin', !audio.paused && !!url);
+      if (immEl) {
+        var d = immEl.querySelector('.mu-imm-disc');
+        if (d) d.innerHTML = '<img src="' + esc(url) + '" alt="">';
+        var v = immEl.querySelector('.mu-imm-vinyl');
+        if (v) v.classList.toggle('spin', !audio.paused);
+      }
+      renderIfActive();
+    }).catch(function () {});
   }
 
   function togglePlay() {
@@ -159,6 +184,7 @@
 
   function nextTrack(auto) {
     if (!queue.length) return;
+    // 单曲循环：自动续播时原地重放，手动点下一首仍然切歌
     if (state.repeat === 'one' && auto) { audio.currentTime = 0; audio.play().catch(function(){}); return; }
     if (state.shuffle && queue.length > 1) {
       var n;
@@ -166,10 +192,8 @@
       qi = n;
     } else {
       qi++;
-      if (qi >= queue.length) {
-        if (state.repeat === 'all') qi = 0;
-        else { qi = queue.length - 1; if (auto) { audio.pause(); return; } }
-      }
+      // 三态模式没有「不循环」，顺序播放到末尾就回到第一首
+      if (qi >= queue.length) qi = 0;
     }
     playCurrent();
   }
@@ -201,6 +225,30 @@
     }
     // 沉浸页开着时同步歌词高亮
     if (immEl) highlightLyric(t);
+    // 播放条那行歌词跟着进度走
+    updateBarLyric(t);
+  }
+
+  /** 播放条左侧的歌词行：取当前时间对应的那一句 */
+  var lastBarLyric = '';
+  function updateBarLyric(t) {
+    var line = document.getElementById('muBarLyric');
+    if (!line) return;
+    var parsed = currentLyric && currentLyric.parsed;
+    if (!parsed || !parsed.length) {
+      if (lastBarLyric) { line.textContent = ''; lastBarLyric = ''; }
+      return;
+    }
+    var lo = 0, hi = parsed.length - 1, idx = -1;
+    while (lo <= hi) {
+      var mid = (lo + hi) >> 1;
+      if (parsed[mid].time <= t) { idx = mid; lo = mid + 1; }
+      else hi = mid - 1;
+    }
+    var text = idx >= 0 ? parsed[idx].text : '';
+    if (text === lastBarLyric) return;
+    lastBarLyric = text;
+    line.textContent = text;
   }
 
   function onEnded() { nextTrack(true); }
@@ -713,6 +761,8 @@
     var dur = t.interval || (t.durMs ? fmtTime(t.durMs / 1000) : '');
     var sub = [t.artist, t.source ? String(t.source).toUpperCase() : ''].filter(Boolean).join(' · ');
     var playing = active && audio && !audio.paused;
+    // 收藏/加歌单常驻在时长左边，不做 hover 显隐：
+    // 藏起来既难发现，浮起来又会盖住时长
     return '<div class="mu-row' + (active ? ' active' : '') + '" data-play="' + listName + '" data-idx="' + i + '">' +
       '<span class="mu-row-ico">' +
         (t.cover
@@ -722,11 +772,11 @@
       '<span class="mu-row-main"><b>' + esc(t.title) + '</b>' +
         (sub ? '<i>' + esc(sub) + '</i>' : '') +
       '</span>' +
-      (dur ? '<span class="mu-row-dur">' + dur + '</span>' : '') +
       '<span class="mu-row-ops">' +
         '<button class="mu-love' + (loved ? ' on' : '') + '" data-love="' + i + '" title="' + (loved ? '取消收藏' : '收藏') + '">' + icon('Heart') + '</button>' +
         '<button class="mu-addlist" data-addlist="' + i + '" title="加入歌单">' + icon('ListPlus') + '</button>' +
       '</span>' +
+      (dur ? '<span class="mu-row-dur">' + dur + '</span>' : '') +
       '</div>';
   }
 
@@ -945,33 +995,52 @@
     var playing = audio && cur && !audio.paused;
     var cover = cur && cur.cover;
     var muted = state.volume <= 0;
+    var mode = playMode();          // 'one' | 'all' | 'shuffle'
+    var modeIcon = { one: 'Repeat1', all: 'Repeat', shuffle: 'Shuffle' }[mode];
+    var modeLabel = { one: '单曲循环', all: '顺序播放', shuffle: '随机播放' }[mode];
     return '<div class="mu-player">' +
       // 2px 进度条贴顶边缘
       '<div class="mu-bar"><span class="mu-time mu-time-cur">0:00</span>' +
         '<div class="mu-bar-progress"><i></i></div>' +
         '<input type="range" class="mu-seek" min="0" step="0.1" value="0">' +
         '<span class="mu-time mu-time-dur">0:00</span></div>' +
-      // 左列：封面 + 标题
-      '<div class="mu-disc' + (playing ? ' spin' : '') + '" id="muDisc">' +
+      // 左列：封面 + 标题/歌词轮播
+      '<div class="mu-disc' + (playing && cover ? ' spin' : '') + '" id="muDisc">' +
         (cover ? '<img src="' + esc(cover) + '" alt="">' : icon('Play')) +
       '</div>' +
-      '<div class="mu-player-title">' + (cur ? esc(cur.title) : '未在播放') +
-        (cur && cur.artist ? ' <i>· ' + esc(cur.artist) + '</i>' : '') + '</div>' +
+      '<div class="mu-player-text">' +
+        '<div class="mu-player-title">' + (cur ? esc(cur.title) : '未在播放') +
+          (cur && cur.artist ? ' <i>· ' + esc(cur.artist) + '</i>' : '') + '</div>' +
+        '<div class="mu-player-lyric" id="muBarLyric"></div>' +
+      '</div>' +
       // 中列：传输控件（播放/暂停用 morphicons 形变）
       '<div class="mu-ops mu-ops-main">' +
         '<button class="mu-op" id="muPrev" title="上一首">' + icon('SkipBack') + '</button>' +
         '<button class="mu-op big" id="muToggle" title="播放/暂停" data-morph="' + (playing ? 'Pause' : 'Play') + '">' + icon(playing ? 'Pause' : 'Play') + '</button>' +
         '<button class="mu-op" id="muNext" title="下一首">' + icon('SkipForward') + '</button>' +
       '</div>' +
-      // 右列：模式 / 音量 / 沉浸
+      // 右列：播放模式（三态） / 音量 / 沉浸
       '<div class="mu-ops mu-ops-side">' +
-        '<button class="mu-op' + (state.shuffle ? ' on' : '') + '" id="muShuffle" title="随机">' + icon('Shuffle') + '</button>' +
-        '<button class="mu-op' + (state.repeat !== 'off' ? ' on' : '') + '" id="muRepeat" title="循环：' + state.repeat + '">' + icon('Repeat') + '</button>' +
+        '<button class="mu-op' + (mode !== 'all' ? ' on' : '') + '" id="muMode" title="' + modeLabel + '">' + icon(modeIcon) + '</button>' +
         '<span class="mu-volwrap"><button class="mu-op" id="muMute" title="' + (muted ? '取消静音' : '静音') + '" data-morph="' + (muted ? 'VolumeX' : 'Volume2') + '">' + icon(muted ? 'VolumeX' : 'Volume2') + '</button>' +
           '<input type="range" class="mu-vol" min="0" max="1" step="0.01" value="' + state.volume + '"></span>' +
-        '<button class="mu-op imm" id="muImmersive" title="沉浸模式">' + icon('Maximize2') + '</button>' +
+        '<button class="mu-op imm" id="muImmersive" title="全屏播放">' + icon('Maximize2') + '</button>' +
       '</div>' +
     '</div>';
+  }
+
+  /** 播放模式：单曲 → 顺序 → 随机，一个按钮循环 */
+  function playMode() {
+    if (state.shuffle) return 'shuffle';
+    if (state.repeat === 'one') return 'one';
+    return 'all';
+  }  function cyclePlayMode() {
+    var next = { one: 'all', all: 'shuffle', shuffle: 'one' }[playMode()];
+    state.shuffle = next === 'shuffle';
+    state.repeat = next === 'one' ? 'one' : 'all';
+    saveState();
+    renderHome();
+    toast({ one: '单曲循环', all: '顺序播放', shuffle: '随机播放' }[next]);
   }
 
   function homeHtml() {
@@ -1212,14 +1281,8 @@
     var toggle = bar.querySelector('#muToggle'); if (toggle) toggle.onclick = togglePlay;
     var prev = bar.querySelector('#muPrev'); if (prev) prev.onclick = prevTrack;
     var next = bar.querySelector('#muNext'); if (next) next.onclick = function () { nextTrack(false); };
-    var shuf = bar.querySelector('#muShuffle');
-    if (shuf) shuf.onclick = function () { state.shuffle = !state.shuffle; saveState(); renderHome(); };
-    var rep = bar.querySelector('#muRepeat');
-    if (rep) rep.onclick = function () {
-      state.repeat = state.repeat === 'off' ? 'all' : state.repeat === 'all' ? 'one' : 'off';
-      saveState(); renderHome();
-      toast('循环：' + ({ off: '关闭', all: '列表循环', one: '单曲循环' })[state.repeat]);
-    };
+    var modeBtn = bar.querySelector('#muMode');
+    if (modeBtn) modeBtn.onclick = cyclePlayMode;
     var vol = bar.querySelector('.mu-vol');
     if (vol) vol.oninput = function () { setVolume(parseFloat(vol.value)); };
     var mute = bar.querySelector('#muMute');
@@ -1383,20 +1446,20 @@
         if (remote && remote.length) {
           html += '<div class="mu-suggest-head">搜索建议</div>' +
             remote.map(function (x) {
-              return '<div class="mu-suggest-item" data-sug="' + esc(x) + '">🔎 ' + esc(x) + '</div>';
+              return '<div class="mu-suggest-item" data-sug="' + esc(x) + '">' + icon('Search') + esc(x) + '</div>';
             }).join('');
         }
-        if (hist.length) {
+        // 只有输入框为空（还没开始打字）时才给搜索历史；
+        // 一旦输入了内容，这个位置应该只放真正的搜索建议
+        if (!kw && hist.length) {
           html += '<div class="mu-suggest-head">搜索历史</div>' +
             hist.map(function (x) {
-              return '<div class="mu-suggest-item" data-sug="' + esc(x) + '">🕘 ' + esc(x) + '</div>';
+              return '<div class="mu-suggest-item" data-sug="' + esc(x) + '">' + icon('History') + esc(x) + '</div>';
             }).join('');
-        }
-        if (kw) {
-          html += '<div class="mu-suggest-item" data-sug="' + esc(kw) + '">' + icon('Search') + esc(kw) + '</div>';
         }
         if (!html) { sug.hidden = true; sug.innerHTML = ''; return; }
         sug.innerHTML = html;
+        paintIcons(sug);
         sug.hidden = false;
       }
 
@@ -1504,16 +1567,17 @@
 
     var pickNew = document.getElementById('muPickNew');
     if (pickNew) pickNew.onclick = function () {
-      var name = window.prompt('新歌单名称');
-      if (!name) return;
-      var item = createList(name);
-      var track = searchResults[addTargetIndex];
-      if (item && track) {
-        addToList(item.id, track);
-        toast('已加入「' + item.name + '」');
-      }
-      addTargetIndex = -1;
-      renderHome();
+      askName('新建歌单', '歌单名称', '', function (name) {
+        if (!name) return;
+        var item = createList(name);
+        var track = searchResults[addTargetIndex];
+        if (item && track) {
+          addToList(item.id, track);
+          toast('已加入「' + item.name + '」');
+        }
+        addTargetIndex = -1;
+        renderHome();
+      });
     };
 
     var pickCancel = document.getElementById('muPickCancel');
@@ -1560,10 +1624,11 @@
 
     var listNew = el.querySelector('#muListNew');
     if (listNew) listNew.onclick = function () {
-      var name = window.prompt('新歌单名称');
-      if (!name) return;
-      var item = createList(name);
-      if (item) { activeListId = item.id; renderHome(); }
+      askName('新建歌单', '歌单名称', '', function (name) {
+        if (!name) return;
+        var item = createList(name);
+        if (item) { activeListId = item.id; renderHome(); }
+      });
     };
 
     var listDel = el.querySelector('#muListDel');
@@ -1720,19 +1785,14 @@
     return '<div class="mu-imm-bg"></div>' +
       '<div class="mu-imm-inner">' +
         '<div class="mu-imm-left">' +
-          // 黑胶唱机：唱片盘 + 唱臂。唱臂随播放状态在两种角度间摆动
+          // 黑胶：有封面时封面贴在盘上一起转；没有封面就让整张唱片转
           '<div class="mu-imm-deck">' +
-            '<div class="mu-imm-vinyl' + (playing ? ' spin' : '') + '">' +
-              // 纹路层：靠 CSS repeating-radial-gradient 画同心细圈
+            '<div class="mu-imm-vinyl' + (playing && !(cur && cur.cover) ? ' spin' : '') + '">' +
               '<span class="mu-imm-grooves"></span>' +
-              '<div class="mu-imm-disc' + (playing ? ' spin' : '') + '">' +
+              '<div class="mu-imm-disc' + (playing && cur && cur.cover ? ' spin' : '') + '">' +
                 (cur && cur.cover ? '<img src="' + esc(cur.cover) + '" alt="">' : icon('Play')) +
               '</div>' +
               '<span class="mu-imm-hole"></span>' +
-            '</div>' +
-            '<div class="mu-imm-tonearm' + (playing ? ' on' : '') + '">' +
-              '<span class="mu-imm-arm"></span>' +
-              '<span class="mu-imm-head"></span>' +
             '</div>' +
           '</div>' +
           '<div class="mu-imm-bars' + (playing ? ' on' : '') + '">' + bars + '</div>' +
@@ -1751,8 +1811,11 @@
             '<button class="mu-op" data-imm="prev" title="上一首">' + icon('SkipBack') + '</button>' +
             '<button class="mu-op big" data-imm="toggle" title="播放/暂停" data-morph="' + (playing ? 'Pause' : 'Play') + '">' + icon(playing ? 'Pause' : 'Play') + '</button>' +
             '<button class="mu-op" data-imm="next" title="下一首">' + icon('SkipForward') + '</button>' +
-            '<button class="mu-op' + (showLyric ? ' on' : '') + '" data-imm="lyric" title="' + (showLyric ? '隐藏歌词' : '显示歌词') + '">' + icon(showLyric ? 'Eye' : 'EyeOff') + '</button>' +
-            '<button class="mu-op" data-imm="exit" title="退出（Esc）">' + icon('X') + '</button>' +
+            // 歌词开关用「词」字：眼睛图标看不出是歌词
+            '<button class="mu-op lyric-btn' + (showLyric ? ' on' : '') + '" data-imm="lyric" title="' +
+              (showLyric ? '隐藏歌词' : '显示歌词') + '"><span class="mu-lyric-glyph' +
+              (showLyric ? '' : ' off') + '">词</span></button>' +
+            '<button class="mu-op" data-imm="exit" title="退出全屏（Esc）">' + icon('Minimize2') + '</button>' +
           '</div>' +
         '</div>' +
       '</div>';
@@ -1770,10 +1833,9 @@
       if (box) box.classList.toggle('hidden', !showLyric);
       this.classList.toggle('on', showLyric);
       this.title = showLyric ? '隐藏歌词' : '显示歌词';
-      // Eye ↔ EyeOff 形变，跟播放/暂停用同一套
-      var eyeFrom = showLyric ? 'EyeOff' : 'Eye';
-      var eyeTo = showLyric ? 'Eye' : 'EyeOff';
-      if (!morphIcon(this, morphKey(eyeFrom), morphKey(eyeTo))) setIcon(this, eyeTo);
+      // 「词」字开关：关闭时在字上画一道斜线
+      var glyph = this.querySelector('.mu-lyric-glyph');
+      if (glyph) glyph.classList.toggle('off', !showLyric);
       // 从隐藏切回时强制重算：lastLyricIndex 可能是隐藏前留下的旧值，
       // 且隐藏期间容器高度为 0，留白也得重新量。
       // 必须重写 innerHTML——showLyric=false 时 lyricLinesHtml() 返回空串，
@@ -1858,13 +1920,11 @@
       var vinyl = immEl.querySelector('.mu-imm-vinyl');
       var disc = immEl.querySelector('.mu-imm-disc');
       var bars = immEl.querySelector('.mu-imm-bars');
-      var arm = immEl.querySelector('.mu-imm-tonearm');
-      if (vinyl) vinyl.classList.toggle('spin', !!playing);
-      // 封面贴在盘上，跟着整张唱片转，不单独转
-      if (disc) disc.classList.toggle('spin', false);
+      var hasCover = !!(cur && cur.cover);
+      // 有封面：封面贴在盘上转；没封面：整张唱片转
+      if (vinyl) vinyl.classList.toggle('spin', !!playing && !hasCover);
+      if (disc) disc.classList.toggle('spin', !!playing && hasCover);
       if (bars) bars.classList.toggle('on', !!playing);
-      // 唱臂：播放时落针，暂停时抬起
-      if (arm) arm.classList.toggle('on', !!playing);
     }
     renderMini();
     if ('mediaSession' in navigator) {
@@ -1885,6 +1945,44 @@
     box.classList.add('show');
     clearTimeout(toastTimer);
     toastTimer = setTimeout(function () { box.classList.remove('show'); }, 2200);
+  }
+
+  /* ---------------- 页内输入弹层 ----------------
+     替代 window.prompt：原生弹窗在移动端样式突兀，也会被部分浏览器拦。 */
+  var askEl = null;
+  function askName(title, placeholder, defaultValue, onOk) {
+    closeAsk();
+    askEl = document.createElement('div');
+    askEl.className = 'mu-modal-mask';
+    askEl.innerHTML =
+      '<div class="mu-modal-box mu-ask-box">' +
+        '<h4 class="mu-modal-title">' + esc(title) + '</h4>' +
+        '<input class="mu-input mu-ask-input" id="muAskInput" placeholder="' + esc(placeholder) +
+          '" value="' + esc(defaultValue || '') + '" maxlength="30">' +
+        '<div class="mu-modal-ops">' +
+          '<button class="mu-btn" id="muAskCancel">取消</button>' +
+          '<button class="mu-btn primary" id="muAskOk">确定</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(askEl);
+
+    var input = askEl.querySelector('#muAskInput');
+    var submit = function () {
+      var v = input.value.trim();
+      closeAsk();
+      onOk(v);
+    };
+    askEl.querySelector('#muAskOk').onclick = submit;
+    askEl.querySelector('#muAskCancel').onclick = closeAsk;
+    askEl.onclick = function (e) { if (e.target === askEl) closeAsk(); };
+    input.onkeydown = function (e) {
+      if (e.key === 'Enter') { e.preventDefault(); submit(); }
+      else if (e.key === 'Escape') { e.preventDefault(); closeAsk(); }
+    };
+    setTimeout(function () { input.focus(); input.select(); }, 30);
+  }
+  function closeAsk() {
+    if (askEl) { askEl.remove(); askEl = null; }
   }
 
   /* ---------------- 模块键盘（仅本模块激活时；沉浸模式全局 Esc） ---------------- */
@@ -1984,6 +2082,7 @@
   function destroy() {
     /* 只卸模块级 UI；audio / 迷你条 / 键盘监听保留——跨模块继续播放 */
     closeImmersive();
+    closeAsk();
     // 弹层挂在 body 上、z=500，离开模块后没人会清它，会挡住整个页面
     addTargetIndex = -1;
     var mask = document.getElementById('muAddListMask');

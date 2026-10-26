@@ -2247,11 +2247,32 @@
      一段文字。这里把能识别的「歌名 - 歌手」逐条搜出来加入歌单，
      不依赖任何平台私有的歌单接口（那些接口大多要登录或被风控）。 */
   function importFromShare() {
-    askName('导入歌单', '把分享内容粘在这里，一行一首：\n歌名 - 歌手', '', function (text) {
+    askName('导入歌单', '粘贴歌单分享链接，或一行一首「歌名 - 歌手」', '', function (text) {
       if (!text) return;
+
+      // 先看是不是能直接识别的歌单链接（网易云 / QQ / 酷狗 / 酷我）
+      var parsed = parsePlaylistLink(text);
+      if (parsed) {
+        toast('正在读取「' + parsed.platform + '」歌单…');
+        fetchPlaylist(parsed).then(function (res) {
+          if (!res || !res.tracks.length) {
+            toast('歌单读取失败：' + ((res && res.error) || '没有取到歌曲'));
+            return;
+          }
+          var defName = res.name || ('导入 ' + new Date().toLocaleDateString('zh-CN'));
+          askName('命名歌单', '歌单名称', defName, function (name) {
+            var list = createList(name || defName);
+            if (!list) return;
+            addTracksToList(res.tracks, list);
+          });
+        });
+        return;
+      }
+
+      // 退回文本解析
       var items = parseShareText(text);
       if (!items.length) {
-        toast('没识别到歌曲，试试「歌名 - 歌手」每行一首');
+        toast('没识别到歌单链接或歌曲，试试粘贴分享链接');
         return;
       }
       var defName = '导入 ' + new Date().toLocaleDateString('zh-CN');
@@ -2262,7 +2283,166 @@
       });
     }, {
       multiline: true,
-      hint: '支持各平台分享文案；识别「歌名 - 歌手」或「歌名 歌手」形式的行'
+      hint: '支持网易云 / QQ音乐 / 酷狗 / 酷我 的歌单分享链接；也可以一行一首「歌名 - 歌手」'
+    });
+  }
+
+  /* ---------------- 歌单链接解析 ---------------- */
+  /**
+   * 从分享文本里认出平台和歌单 id。
+   * 各平台的分享文案形如：
+   *   分享歌单: 客 BiscuitNOC https://music.163.com/m/playlist?id=10055264299&creatorId=...
+   *   分享歌单: xxx https://y.qq.com/n/ryqq/playlist/7536573821
+   *   https://www.kugou.com/yy/special/single/1234567.html
+   */
+  function parsePlaylistLink(text) {
+    var s = String(text || '');
+
+    // 网易云：music.163.com/{m/,}/playlist?id=xxx 或 #/playlist?id=xxx
+    var wy = s.match(/music\.163\.com\/(?:[a-z]+\/)?(?:playlist|discover)?[^\s]*?[?&#]id=(\d+)/i) ||
+             s.match(/music\.163\.com\/(?:m\/)?playlist\/(\d+)/i);
+    if (wy) return { platform: '网易云音乐', kind: 'wy', id: wy[1] };
+
+    // QQ 音乐：y.qq.com/n/ryqq/playlist/{id} 或 c6.y.qq.com/.../playlist?id=
+    var qq = s.match(/y\.qq\.com\/n\/ryqq\/playlist\/(\d+)/i) ||
+             s.match(/y\.qq\.com\/[^\s]*?playlist[^\s]*?[?&]id=(\d+)/i) ||
+             s.match(/i\.y\.qq\.com\/[^\s]*?[?&]id=(\d+)/i);
+    if (qq) return { platform: 'QQ音乐', kind: 'tx', id: qq[1] };
+
+    // 酷狗：kugou.com/yy/special/single/{id}.html 或 m.kugou.com/plist/list/{id}
+    var kg = s.match(/kugou\.com\/yy\/special\/single\/(\d+)/i) ||
+             s.match(/kugou\.com\/plist\/list\/(\d+)/i) ||
+             s.match(/kugou\.com\/[^\s]*?specialid=(\d+)/i);
+    if (kg) return { platform: '酷狗音乐', kind: 'kg', id: kg[1] };
+
+    // 酷我：kuwo.cn/playlist_detail/{id}
+    var kw = s.match(/kuwo\.cn\/playlist_detail\/(\d+)/i) ||
+             s.match(/kuwo\.cn\/[^\s]*?playlistId=(\d+)/i);
+    if (kw) return { platform: '酷我音乐', kind: 'kw', id: kw[1] };
+
+    return null;
+  }
+
+  /** 按平台拉歌单，返回 { name, tracks: [{title, artist, cover}] } */
+  function fetchPlaylist(p) {
+    if (p.kind === 'wy') return fetchWyPlaylist(p.id);
+    // 其它平台暂时走「歌单名 + 搜索」的近似方案
+    return Promise.resolve({ name: '', tracks: [], error: p.platform + ' 歌单暂未支持，请改用文本导入' });
+  }
+
+  /** 网易云歌单：v6 detail 给歌单信息 + trackIds，再批量取歌曲详情 */
+  function fetchWyPlaylist(id) {
+    var detailUrl = 'https://music.163.com/api/v6/playlist/detail?id=' + encodeURIComponent(id);
+    return window.LxRequest.httpFetch(detailUrl, {
+      timeout: 10000,
+      headers: { Referer: 'https://music.163.com/' }
+    }).promise.then(function (resp) {
+      var pl = resp && resp.body && resp.body.playlist;
+      if (!pl) return { name: '', tracks: [], error: '歌单不存在或已设为私密' };
+      var ids = (pl.trackIds || []).map(function (x) { return x.id; });
+      // detail 里只带前 10 首，其余靠 trackIds 批量查
+      var fromTracks = (pl.tracks || []).map(function (t) { return normWyTrack(t); });
+      if (!ids.length) return { name: pl.name, tracks: fromTracks };
+      return fetchWySongs(ids).then(function (songs) {
+        return { name: pl.name, cover: pl.coverImgUrl || '', tracks: songs.length ? songs : fromTracks };
+      });
+    }).catch(function (e) {
+      return { name: '', tracks: [], error: (e && e.message) || '网络错误' };
+    });
+  }
+
+  /** 网易云 song/detail 一次最多查一批，分批并发 */
+  function fetchWySongs(ids) {
+    var CHUNK = 200;
+    var batches = [];
+    for (var i = 0; i < ids.length; i += CHUNK) batches.push(ids.slice(i, i + CHUNK));
+
+    return Promise.all(batches.map(function (batch) {
+      var form = 'ids=' + encodeURIComponent(JSON.stringify(batch)) +
+        '&c=' + encodeURIComponent(JSON.stringify(batch.map(function (x) { return { id: x }; })));
+      return window.LxRequest.httpFetch('https://music.163.com/api/song/detail', {
+        method: 'post',
+        body: form,
+        timeout: 15000,
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          Referer: 'https://music.163.com/'
+        }
+      }).promise.then(function (r) {
+        var songs = (r && r.body && r.body.songs) || [];
+        return songs.map(normWyTrack).filter(function (x) { return x.title; });
+      }).catch(function () { return []; });
+    })).then(function (arrs) {
+      // 按原顺序拼回来
+      var map = {};
+      arrs.forEach(function (arr) {
+        arr.forEach(function (t) { if (t.wyId) map[t.wyId] = t; });
+      });
+      return ids.map(function (id) { return map[id]; }).filter(Boolean);
+    });
+  }
+
+  /** 统一成 { title, artist, cover, wyId } */
+  function normWyTrack(t) {
+    var artists = t.ar || t.artists || [];
+    var album = t.al || t.album || {};
+    return {
+      title: String(t.name || '').trim(),
+      artist: artists.map(function (a) { return a.name; }).filter(Boolean).join('、'),
+      cover: album.picUrl || '',
+      wyId: t.id,
+      interval: t.dt ? fmtTime(t.dt / 1000) : (t.duration ? fmtTime(t.duration / 1000) : '')
+    };
+  }
+
+  /** 把平台歌单的歌曲加进本地列表：优先按「歌名+歌手」搜到可播的版本 */
+  function addTracksToList(tracks, list) {
+    var done = 0, added = 0, failed = 0;
+    var total = tracks.length;
+    toast('开始导入 ' + total + ' 首…');
+
+    // 4 路并发，比全串行快很多
+    var CONCURRENCY = 4;
+    var cursor = 0;
+
+    function worker() {
+      if (cursor >= total) return Promise.resolve();
+      var t = tracks[cursor++];
+      return window.LxMusic.search((t.title + ' ' + t.artist).trim(), 1)
+        .then(function (res) {
+          var hit = pickBestMatch(res.list || [], { title: t.title, artist: t.artist });
+          if (hit) {
+            if (!inList(list.id, hit)) {
+              addToList(list.id, {
+                id: hit.source + '_' + hit.songmid,
+                title: hit.name,
+                artist: hit.singer,
+                cover: hit.img || t.cover || '',
+                source: hit.source,
+                interval: hit.interval,
+                track: hit
+              });
+              added++;
+            }
+          } else failed++;
+        })
+        .catch(function () { failed++; })
+        .then(function () {
+          done++;
+          if (done % 10 === 0 || done === total) {
+            toast('导入中 ' + done + '/' + total + '（成功 ' + added + '）');
+          }
+          return worker();
+        });
+    }
+
+    var workers = [];
+    for (var i = 0; i < CONCURRENCY; i++) workers.push(worker());
+
+    return Promise.all(workers).then(function () {
+      activeListId = list.id;
+      renderHome();
+      toast('导入完成：成功 ' + added + ' 首' + (failed ? '，未匹配 ' + failed + ' 首' : ''));
     });
   }
 

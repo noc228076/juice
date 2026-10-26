@@ -75,18 +75,25 @@
       try { localStorage.removeItem(LIVE_KEY); } catch (e) {}
       return;
     }
-    var writePos = pendingSeek ? pendingSeek.pos : knownPos;    try {
+    // 只有 pendingSeek 指向当前这首时才用它，否则一律用 knownPos：
+    // 残留的 pendingSeek 会把存档那首的旧进度写进当前这首的记录
+    var livePos = (pendingSeek && cur && pendingSeek.id === cur.id)
+      ? pendingSeek.pos : knownPos;
+    try {
       localStorage.setItem(LIVE_KEY, JSON.stringify({
         v: 1,
         qi: qi,
         name: qName,
         at: Date.now(),
-        pos: pendingSeek ? pendingSeek.pos : knownPos,
+        pos: livePos,
         // 完整队列：track 里含取址所需的 songmid/hash/types
         queue: queue.map(function (x) {
           return {
             kind: x.kind, id: x.id, title: x.title, artist: x.artist,
-            cover: x.cover || '', url: x.url || '', source: x.source || '',
+            cover: x.cover || '',
+            // blob: 地址刷新后必然失效，留着还会撑爆配额
+            url: /^blob:/i.test(x.url || '') ? '' : (x.url || ''),
+            source: x.source || '',
             interval: x.interval || '', track: x.track || null
           };
         })
@@ -165,16 +172,31 @@
     audio.addEventListener('durationchange', onProgress);
     audio.addEventListener('ended', onEnded);
     audio.addEventListener('play', function () { syncPlayUI(true); });
-    audio.addEventListener('playing', function () { failStreak = 0; });
+    audio.addEventListener('playing', function () {
+      failStreak = 0;
+      if (cur) cur.retried = false;   // 这次成功了，下次失效还能再重取一次
+    });
     audio.addEventListener('pause', function () { syncPlayUI(false); });
     // 拖动进度条后立刻落盘：直接赋值 currentTime 不一定马上触发
     // timeupdate，用户拖完就关页面会把进度丢在拖动前的位置
-    audio.addEventListener('seeked', function () {      lastSavedAt = 0;                        // 绕过两秒节流
+    audio.addEventListener('seeked', function () {
+      lastSavedAt = 0;                        // 绕过两秒节流
       lastSavedSec = Math.floor(audio.currentTime || 0);
       knownPos = lastSavedSec;
       saveLive();
     });
     audio.addEventListener('error', function () {
+      // 地址失效（带 token 的直链几小时就过期，或跨平台链接被拦）时
+      // 先作废地址重取一次。不这么做的话 cur.url 一直被复用，
+      // 同一首每次点都是同一个死链，永远不会自愈。
+      if (cur && cur.track && !cur.retried) {
+        cur.retried = true;
+        cur.url = '';
+        try { audio.removeAttribute('src'); audio.load(); } catch (e) {}
+        toast('重新获取播放地址…');
+        playCurrent(true);
+        return;
+      }
       /* 搜索结果里相当比例是已下架曲（接口 403/404），点中时自动跳下一首 */
       if (qName === '搜索结果' && queue.length > 1 && failStreak < 8) {
         failStreak++;
@@ -225,7 +247,20 @@
 
   function playCurrent(wantPlay) {
     if (!queue.length) return;
+    var prev = cur;
     cur = queue[qi];
+    var deferPlay = false;
+    // 待恢复的进度只对存档里那一首有效。用户刷新后直接点了别的歌，
+    // 这个单槽会永远留着：maybeSaveProgress 里的 `if (pendingSeek) return`
+    // 会让此后所有曲目的进度都不再落盘，saveLive 还会把存档那首的旧进度
+    // 写进当前这首的记录里。
+    if (pendingSeek && pendingSeek.id !== (cur && cur.id)) pendingSeek = null;
+    // 换歌了就把「上一首的播放进度」清掉，否则新歌会被写成上一首的位置
+    if (cur !== prev) {
+      knownPos = 0;
+      lastSavedSec = -1;
+      lastSavedAt = 0;
+    }
     // 队列项可能还没有播放地址（榜单/搜索的条目要等音源脚本给）。
     // 关键：先把这首歌显示到播放条并提示「正在加载」，
     // 而不是等地址拿到才出现——用户点了歌，播放条应该立刻有反应。
@@ -279,28 +314,37 @@
     if (pendingSeek && pendingSeek.id === cur.id) {
       var seekTo = pendingSeek.pos;
       pendingSeek = null;
-      restoreAutoPlay = wantPlay;
+      var mySeek = ++seekSeq;          // 让上一轮还没触发的 applySeek 作废
+      deferPlay = !!wantPlay;          // 用户点了播放：等 seek 就位再起播
       var applied = false;
+      // 四个事件都要摘掉。挂的是全局唯一的 audio 元素，闭包捕获了旧歌的
+      // seekTo；不摘干净的话，切歌后新歌的 canplay 会把旧歌的进度 seek
+      // 到新歌上（实测能把新歌直接跳到 3 分钟处）。
+      var detachSeek = function () {
+        a.removeEventListener('loadedmetadata', applySeek);
+        a.removeEventListener('durationchange', applySeek);
+        a.removeEventListener('canplay', applySeek);
+        a.removeEventListener('canplaythrough', applySeek);
+      };
       var applySeek = function () {
         if (applied) return;
+        if (mySeek !== seekSeq) { detachSeek(); return; }   // 已经切到别的歌
         // 必须等到 readyState >= HAVE_FUTURE_DATA(3)：
         // 只有元数据（1）时设 currentTime 会被浏览器排队，
         // 期间任何一次 pause() 都会让这次 seek 被丢弃并回到 0
         // （实测 seeked 事件的 currentTime 就是 0，不是 100）。
         if (a.readyState < 3) return;
         if (!isFinite(a.duration) || a.duration <= 0) return;
-        applied = true;        a.removeEventListener('loadedmetadata', applySeek);
-        a.removeEventListener('durationchange', applySeek);
-        a.removeEventListener('canplay', applySeek);
-        a.removeEventListener('canplaythrough', applySeek);
+        applied = true;
+        detachSeek();
         if (seekTo > 0 && seekTo < a.duration - 2) {
           try { a.currentTime = seekTo; } catch (e) {}
         }
         onProgress();
         // 还原时是从暂停态点播放：seek 会被 pause/src 重置打断，
         // 所以要等这里真正就位后再起播
-        if (restoreAutoPlay) {
-          restoreAutoPlay = false;
+        if (deferPlay) {
+          deferPlay = false;
           a.play().catch(function () {});
         }
       };
@@ -315,8 +359,11 @@
       }
     }
     // 还原现场时由 applySeek 在 seek 完成后再起播，这里不能抢跑：
-    // src 刚赋值就 play 会被随后的 seek 打断，表现为点了播放却停在 0
-    if (!restoreAutoPlay) {
+    // src 刚赋值就 play 会被随后的 seek 打断，表现为点了播放却停在 0。
+    // deferPlay 是局部量，不再依赖模块级的 restoreAutoPlay——
+    // 那个变量一旦在失败路径上没被复位就会永久为 true，
+    // 之后每次切歌都只加载不出声。
+    if (!deferPlay) {
       a.play().catch(function () { /* 自动播放策略被拦：等用户点播放 */ });
     }
     updateMediaSession();
@@ -395,9 +442,12 @@
       return;
     }
     var a = ensureAudio();
-    // 刷新还原后 cur.url 是空的（地址在播放时才取），
-    // 此时直接 play() 只会播放一个空 src，必须走完整取址流程
-    if (!a.currentSrc && !cur.url) { playCurrent(true); return; }
+    // 没有真正挂上 src 就必须重走完整流程：
+    // 刷新还原后 audio 是空的（地址在播放时才取/赋），此时直接 play()
+    // 只会拿到一个 rejected Promise，播放键看起来完全没反应。
+    if (!a.getAttribute('src')) { playCurrent(true); return; }
+    // 上次播放失败留下的死链：清掉重取，否则点一次失败一次
+    if (a.error) { cur.url = ''; playCurrent(true); return; }
     if (a.paused) a.play().catch(function () {});
     else a.pause();
   }
@@ -466,8 +516,9 @@
    */
   var lastSavedSec = -1;
   var lastSavedAt = 0;
-  // 待恢复进度应用后是否要立刻起播（用户点播放时才为 true）
-  var restoreAutoPlay = false;
+  // 每次应用还原进度都递增，旧的回调（挂在 audio 上的事件监听）
+  // 凭序号判断自己是否已经过期，避免把旧歌的 seek 位置套到新歌上
+  var seekSeq = 0;
   function maybeSaveProgress(t) {
     // 还原现场期间不能写：audio 还没 src、currentTime 恒为 0，
     // 一写就把刚读出来的存档进度冲成 0，下次刷新就真的丢了。
@@ -3650,15 +3701,22 @@
 
   function applyLive(d) {
 
-    queue = d.queue.map(function (x) {
+    // 过滤失效 objectURL 时必须记下旧下标到新下标的映射：
+    // 直接把原 qi 用到过滤后的数组上，当前曲会错位成别人，
+    // 存档的进度随后就会被 seek 到那首错误的歌上。
+    var srcIdx = [];
+    queue = d.queue.map(function (x, i) {
       // 失效的 objectURL 留着只会让点播放时报「格式不支持」
       if (x.kind === 'local' && /^blob:/.test(x.url || '')) return null;
+      srcIdx.push(i);
       return x;
     }).filter(Boolean);
 
     if (!queue.length) { clearLive(); return; }
     qName = d.name || '';
-    qi = (typeof d.qi === 'number' && d.qi >= 0 && d.qi < queue.length) ? d.qi : 0;
+    var mappedQi = srcIdx.indexOf(d.qi);
+    qi = mappedQi >= 0 ? mappedQi
+      : (typeof d.qi === 'number' && d.qi >= 0 && d.qi < queue.length) ? d.qi : 0;
     cur = queue[qi];
     if (!cur) { clearLive(); return; }
 

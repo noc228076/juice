@@ -25,7 +25,10 @@
   function dedupe(items) {
     var seen = {};
     return items.filter(function (it) {
-      var key = it.source + '|' + it.songmid;
+      // songmid 缺失时不能只靠它：同平台所有缺 id 的条目会塌缩成
+      // "kw|undefined" 只留第一条，导致搜索结果莫名少一大半
+      var id = it.songmid || it.hash || it.albumAudioId || (it.name + '|' + it.singer);
+      var key = it.source + '|' + id;
       if (seen[key]) return false;
       seen[key] = true;
       return true;

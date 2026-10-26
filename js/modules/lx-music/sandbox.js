@@ -87,9 +87,26 @@
       var readyResolve = null;
       var readyPromise = new Promise(function (res) { readyResolve = res; });
 
+      /**
+       * 彻底拆掉这个沙箱。
+       * 之前超时/失败分支只 reject，iframe 和 message 监听都留着：
+       * 迟到的 ready 仍会触发 init，脚本在一个没人管理的孤儿 iframe 里
+       * 继续跑，还能继续命中残留的监听器发网络请求。内置 9 个脚本
+       * 串行加载时，每个失败的都留一份，越用越慢。
+       */
+      function teardown() {
+        clearTimeout(timer);
+        try { window.removeEventListener('message', onMessage); } catch (e) {}
+        try { if (iframe.parentNode) iframe.parentNode.removeChild(iframe); } catch (e) {}
+        sb.sources = {};
+        sb.dead = true;
+      }
+      sb.teardown = teardown;
+
       var timer = setTimeout(function () {
         if (settled) return;
         settled = true;
+        teardown();
         reject(new Error('音源「' + scriptInfo.name + '」加载超时'));
       }, SANDBOX_TIMEOUT);
 
@@ -114,7 +131,7 @@
             }
             if (!Object.keys(valid).length) {
               var msg = (data.data && data.data.message) || ('音源「' + scriptInfo.name + '」未声明任何可用平台');
-              if (!settled) { settled = true; clearTimeout(timer); reject(new Error(msg)); }
+              if (!settled) { settled = true; teardown(); reject(new Error(msg)); }
               break;
             }
             sb.sources = valid;
@@ -126,14 +143,21 @@
             (function (d) {
               var id = d.id;
               if (sb.aborted[id]) { delete sb.aborted[id]; return; }
+              // iframe 可能在请求途中被销毁，此时 contentWindow 为 null，
+              // 直接 postMessage 会抛错并产生未处理的 rejection
+              var reply = function (msg) {
+                var w = iframe.contentWindow;
+                if (!w) return;
+                try { w.postMessage(msg, '*'); } catch (e) {}
+              };
               forwardRequest(d.payload).then(function (resp) {
-                iframe.contentWindow.postMessage({ type: 'request-result', id: id, resp: resp }, '*');
+                reply({ type: 'request-result', id: id, resp: resp });
               }).catch(function (error) {
-                iframe.contentWindow.postMessage({
+                reply({
                   type: 'request-result',
                   id: id,
                   error: (error && error.message) || String(error)
-                }, '*');
+                });
               });
             })(data);
             break;
@@ -244,14 +268,16 @@
   }
 
   function destroy() {
-    sandboxes.forEach(function (sb) { sb.iframe.remove(); });
+    sandboxes.forEach(function (sb) {
+      if (sb.teardown) sb.teardown(); else sb.iframe.remove();
+    });
     sandboxes = [];
   }
 
   function removeByName(name, version) {
     sandboxes = sandboxes.filter(function (sb) {
       if (sb.scriptInfo.name === name && sb.scriptInfo.version === version) {
-        sb.iframe.remove();
+        if (sb.teardown) sb.teardown(); else sb.iframe.remove();
         return false;
       }
       return true;

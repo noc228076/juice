@@ -202,7 +202,9 @@
         clearTimeout(timer);
         a.onloadedmetadata = null;
         a.onerror = null;
-        try { a.src = ''; } catch (e) {}
+        // 不能用 a.src = ''：空字符串会解析成当前页面地址，
+        // 白白发起一次对 index.html 的请求。直接摘掉属性即可。
+        try { a.removeAttribute('src'); a.load(); } catch (e) {}
         resolve(v);
       }
       a.preload = 'metadata';
@@ -258,6 +260,10 @@
         if (i >= list.length) {
           return Promise.reject(new Error(errors.join('；') || '没有音源返回可用地址'));
         }
+        // 用户已经切走了就别再挨个试脚本了，白白占着 iframe
+        if (mySeq !== resolveSeq) {
+          return Promise.reject(new Error('已被更新的取址请求取代'));
+        }
         var sb = list[i];
         var next = function (why) {
           errors.push(sb.scriptInfo.name + ': ' + why);
@@ -280,18 +286,26 @@
     });
 
     // 总时限 18 秒：单个脚本 8 秒超时，7 个脚本串起来最坏要一分钟，
-    // 那对用户就是「永远在加载」。超过这个时间直接报错，
-    // 让界面能给出明确结局，而不是无限转圈。
+    // 那对用户就是「永远在加载」。超过这个时间只让**调用方**拿到错误，
+    // 但队列必须等真实任务结束再放行——之前是超时就放行，
+    // 于是下一条请求在旧任务还占着 iframe 时就并发进来，
+    // 正是「显示 A、放的却是 B」那个串号 bug 的温床。
+    var timer = null;
     var timed = new Promise(function (resolve, reject) {
-      var timer = setTimeout(function () {
+      timer = setTimeout(function () {
+        // 超时后把队列重置掉：旧 task 还会在后台跑完（它自己会因
+        // mySeq 检查提前放弃），但不能让它堵住用户接下来的操作
+        resolveChain = Promise.resolve();
         reject(new Error('音源全部无响应（超过 ' + Math.round(RESOLVE_LIMIT / 1000) + ' 秒）'));
       }, RESOLVE_LIMIT);
       task.then(function (v) { clearTimeout(timer); resolve(v); },
                 function (e) { clearTimeout(timer); reject(e); });
     });
 
-    // 队列本身要吞掉错误，否则一次失败会卡死后续所有请求
-    resolveChain = timed.catch(function () {});
+    // 队列跟的是 task 而不是 timed：真正的串行保证靠它。
+    // 只有一种情况例外——上面超时分支会主动把队列重置，
+    // 让用户不必干等一个已经没救的任务。
+    resolveChain = task.catch(function () {});
     return timed;
   }
   var RESOLVE_LIMIT = 18000;

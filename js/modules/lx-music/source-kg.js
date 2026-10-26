@@ -14,10 +14,14 @@
     var types = [];
     var _types = {};
     function addType(type, sizeField, hashField) {
-      if (rawData[sizeField] === 0) return;
-      var size = U.sizeFormate(rawData[sizeField]);
-      types.push({ type: type, size: size, hash: rawData[hashField] });
-      _types[type] = { size: size, hash: rawData[hashField] };
+      // 只挡 === 0 不够：字段缺失时是 undefined，会生成一个
+      // size='0 B'、hash=undefined 的无效音质项，脚本拿它取址必然失败
+      var raw = rawData[sizeField];
+      var hash = rawData[hashField];
+      if (!raw || !hash) return;
+      var size = U.sizeFormate(raw);
+      types.push({ type: type, size: size, hash: hash });
+      _types[type] = { size: size, hash: hash };
     }
     addType('128k', 'FileSize', 'FileHash');
     addType('320k', 'HQFileSize', 'HQFileHash');

@@ -185,13 +185,10 @@
     }
 
     function encryptBlock(block, ks) {
-      var state = []
-      for (var i = 0; i < 4; i++) state.push([block[i * 4], block[i * 4 + 1], block[i * 4 + 2], block[i * 4 + 3]])
-      // 转成列主序
-      var s = [[state[0][0], state[1][0], state[2][0], state[3][0]],
-               [state[0][1], state[1][1], state[2][1], state[3][1]],
-               [state[0][2], state[1][2], state[2][2], state[3][2]],
-               [state[0][3], state[1][3], state[2][3], state[3][3]]]
+      // state[i] 就是第 i 列（AES 状态按列主序存放）。
+      // 这里之前又做了一次转置，导致 shiftRows/mixColumns 的行列语义全部错位。
+      var s = []
+      for (var i = 0; i < 4; i++) s.push([block[i * 4], block[i * 4 + 1], block[i * 4 + 2], block[i * 4 + 3]])
 
       function addRoundKey(r) {
         for (var c = 0; c < 4; c++) {
@@ -220,7 +217,8 @@
       }
 
       addRoundKey(0)
-      for (var round = 1; round <= ks.Nr; round++) {
+      // 前 Nr-1 轮带 MixColumns，最后一轮不带
+      for (var round = 1; round < ks.Nr; round++) {
         subBytes(); shiftRows(); mixColumns(); addRoundKey(round)
       }
       subBytes(); shiftRows(); addRoundKey(ks.Nr)
@@ -386,6 +384,9 @@
   }
 
   window.addEventListener('message', function (event) {
+    // 只接受父窗口的指令。没有这道校验时，任何能拿到本 iframe 引用的
+    // 窗口都能发 init 注入一段脚本进来执行。
+    if (event.source !== window.parent) return
     var data = event.data
     if (!data || typeof data !== 'object') return
 

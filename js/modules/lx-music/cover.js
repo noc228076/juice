@@ -44,7 +44,11 @@
   }
 
   function cacheKey(track) {
-    return String(track.title || track.name || '') + '|' + String(track.artist || track.singer || '');
+    // 只用「歌名|歌手」会把同名不同版本（Live / 翻唱 / 不同专辑）串成一张图，
+    // 而且错图一旦写入就被永久缓存。带上平台和 id 才能区分开。
+    var id = track.songmid || track.hash || track.albumAudioId || track.id || '';
+    var base = String(track.title || track.name || '') + '|' + String(track.artist || track.singer || '');
+    return (track.source ? track.source + '|' : '') + (id || base);
   }
 
   /** 把 web_albumpic_short 拼成完整 URL；把 120 换成 500 拿大图 */

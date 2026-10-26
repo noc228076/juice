@@ -82,6 +82,7 @@
     var timeout = opts.timeout == null ? 9000 : opts.timeout;
     var timer = null;
     var aborted = false;
+    var timedOut = false;   // 区分「超时」和「主动取消」，错误码要用对
 
     var cancel = function () {
       aborted = true;
@@ -91,6 +92,7 @@
     var run = function () {
       if (timeout > 0) {
         timer = setTimeout(function () {
+          timedOut = true;
           aborted = true;
           controller.abort();
         }, timeout);
@@ -149,7 +151,10 @@
       if (timer) clearTimeout(timer);
       var message = (error && error.message) || String(error);
       var code = 'ENETWORK';
-      if (aborted) { message = 'cancel request'; code = 'ECANCELED'; }
+      // 超时和主动取消都走了 abort，必须先看 timedOut，
+      // 否则超时永远被报成 'cancel request'，上层区分不了两种情况
+      if (timedOut) { message = '请求超时'; code = 'ETIMEDOUT'; }
+      else if (aborted) { message = 'cancel request'; code = 'ECANCELED'; }
       else if (error && error.name === 'AbortError') { message = '请求超时'; code = 'ETIMEDOUT'; }
       else if (/Failed to fetch|NetworkError|Load failed/i.test(message)) { message = '无法连接到服务器'; }
       var err = new Error(message);

@@ -99,7 +99,10 @@
     }
 
     addRoundKey(0);
-    for (var round = 1; round <= ks.Nr; round++) {
+    // 前 Nr-1 轮带 MixColumns，最后一轮不带——这是 AES 的定义。
+    // 写成 round <= Nr 再补一轮，等于多做了 1 轮变换，
+    // 输出和标准实现完全不同（用 NIST 向量校验过）。
+    for (var round = 1; round < ks.Nr; round++) {
       subBytes(); shiftRows(); mixColumns(); addRoundKey(round);
     }
     subBytes(); shiftRows(); addRoundKey(ks.Nr);

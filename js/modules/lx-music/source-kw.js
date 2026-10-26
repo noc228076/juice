@@ -24,7 +24,10 @@
       var info = rawData[i];
       var songId = String(info.MUSICRID || '').replace('MUSIC_', '');
 
-      if (!info.N_MINFO) return null;
+      // 单条缺 N_MINFO 就跳过它，不能整批返回 null：
+      // 酷我搜索里混入广告/专辑/无版权条目很常见，
+      // 之前这里 return null，导致整个酷我源间歇性不可用。
+      if (!info.N_MINFO) continue;
 
       var types = [];
       var _types = {};

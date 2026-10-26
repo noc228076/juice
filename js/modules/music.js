@@ -315,20 +315,23 @@
         return;
       }
       Promise.resolve(p).then(function (url) {
+        // 无论哪条出口都必须先复位 loading：
+        // 被更新的取址请求取代（用户又点了别的歌）时这里会提前 return，
+        // loading 残留 true 的话，之后点回同一首会被重入保护静默拦掉，
+        // 表现为「点了永远没反应」（线上实测踩过）。
+        pending.loading = false;
         if (myResolve !== resolveToken || cur !== pending) return;   // 期间已切歌/重新取址
         if (!url) {
-          pending.loading = false;
           setBarLoading(false);
           handleResolveFail(pending, '音源未返回地址');
           return;
         }
         pending.url = url;
-        pending.loading = false;
         setBarLoading(false);
         playCurrent(wantPlay);
       }).catch(function (e) {
-        if (myResolve !== resolveToken || cur !== pending) return;
         pending.loading = false;
+        if (myResolve !== resolveToken || cur !== pending) return;
         setBarLoading(false);
         handleResolveFail(pending, e && e.message ? String(e.message).slice(0, 60) : 'unknown', e && e.code);
       });

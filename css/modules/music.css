@@ -2730,6 +2730,29 @@ html[data-theme="light"] .mu-immersive {
   background: rgba(18, 21, 27, 0.96);
   border-color: rgba(255, 255, 255, 0.12);
 }
+/* 沉浸页里的队列面板固定深色底，内部文字/分隔线也要跟着改浅色。
+   否则亮色主题下会「深底 + 深字」，歌名完全看不见。 */
+.mu-queue-mask.in-immersive .mu-queue-head { border-bottom-color: rgba(255, 255, 255, 0.1); }
+.mu-queue-mask.in-immersive .mu-queue-title b { color: #f8fafc; }
+.mu-queue-mask.in-immersive .mu-queue-title span { color: rgba(255, 255, 255, 0.5); }
+.mu-queue-mask.in-immersive .mu-queue-row:hover { background: rgba(255, 255, 255, 0.07); }
+.mu-queue-mask.in-immersive .mu-queue-row.active { background: rgba(20, 184, 166, 0.16); }
+.mu-queue-mask.in-immersive .mu-queue-idx { color: rgba(255, 255, 255, 0.42); }
+.mu-queue-mask.in-immersive .mu-queue-text b { color: #f1f5f9; }
+.mu-queue-mask.in-immersive .mu-queue-row.active .mu-queue-text b { color: var(--mod-ac); }
+.mu-queue-mask.in-immersive .mu-queue-text i { color: rgba(255, 255, 255, 0.45); }
+.mu-queue-mask.in-immersive .mu-queue-dur { color: rgba(255, 255, 255, 0.45); }
+.mu-queue-mask.in-immersive .mu-queue-grip { color: rgba(255, 255, 255, 0.3); }
+.mu-queue-mask.in-immersive .mu-queue-ops .mu-btn {
+  color: rgba(255, 255, 255, 0.7);
+  border-color: rgba(255, 255, 255, 0.16);
+}
+.mu-queue-mask.in-immersive .mu-queue-ops .mu-btn:hover {
+  color: #ff8fa3;
+  border-color: #ff8fa3;
+}
+.mu-queue-mask.in-immersive .mu-queue-close { color: rgba(255, 255, 255, 0.6); }
+.mu-queue-mask.in-immersive .mu-queue-close:hover { color: #fff; background: rgba(255, 255, 255, 0.1); }
 
 /* ==========================================================================
    沉浸页控件：播放键绝对居中，左右两组各自贴边

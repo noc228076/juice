@@ -274,6 +274,11 @@
         };
         return root.LxSandbox.getMusicUrlFrom(sb, track.source, musicInfo, quality || '128k').then(function (url) {
           if (!url) return next('空地址');
+          // 有的脚本出错时把错误 JSON/文本当结果返回（实测见过响应体片段
+          // 被当作地址塞给 audio，播放必然失败）。先校验基本形态。
+          if (typeof url !== 'string' || !/^https?:\/\//i.test(url)) {
+            return next('返回的不是音频地址（' + String(url).slice(0, 24) + '…）');
+          }
           // 没有可比对的时长就只能信它
           if (!expected) return url;
           return probeDuration(url).then(function (dur) {

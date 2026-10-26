@@ -32,6 +32,30 @@
     });
   }
 
+  /**
+   * 排序：先按相关度，同分时让各平台交替出现。
+   * 只按「相关度 + 原顺序」排，第一个平台（酷我）会把同名的高相关
+   * 结果全占满第一屏，看起来像「搜到的全是 KW」。
+   *
+   * 做法：给每条记一个「该平台到目前为止出现过几次」，
+   * 同分时出现次数少的优先 —— KW/KG/TX/MG 会轮流排。
+   */
+  function rankAndSort(items, keyword) {
+    var scored = items.map(function (it, i) {
+      return { it: it, i: i, s: relevanceScore(it, keyword) };
+    });
+    var srcSeen = {};
+    scored.forEach(function (x) {
+      var src = x.it.source || '';
+      x.n = srcSeen[src] || 0;
+      srcSeen[src] = x.n + 1;
+    });
+    scored.sort(function (a, b) {
+      return (b.s - a.s) || (a.n - b.n) || (a.i - b.i);
+    });
+    return scored.map(function (x) { return x.it; });
+  }
+
   /** 按关键词相似度排序：歌名完全匹配 > 开头匹配 > 包含 > 其他 */
   function relevanceScore(item, keyword) {
     var name = String(item.name || '').toLowerCase();
@@ -62,6 +86,15 @@
   function searchAll(keyword, page, limit, onProgress) {
     page = page || 1;
     limit = limit || 30;
+    // 兜底注册：正常走 LxMusic.search 会先 registerAll，
+    // 但直接调 LxSources.searchAll 时 SOURCES 可能是空的，
+    // 结果会静默返回空数组（排查时很容易误判成接口挂了）
+    if (!Object.keys(SOURCES).length && root.LxSourceKw) {
+      register(root.LxSourceKw);
+      register(root.LxSourceKg);
+      register(root.LxSourceTx);
+      register(root.LxSourceMg);
+    }
     var ids = ORDER.filter(function (id) { return SOURCES[id]; });
 
     var timings = {};
@@ -120,11 +153,7 @@
       });
 
       merged = dedupe(merged);
-      // 按相关度稳定排序，相关度相同时保留原顺序
-      merged = merged
-        .map(function (it, i) { return { it: it, i: i, s: relevanceScore(it, keyword) }; })
-        .sort(function (a, b) { return b.s - a.s || a.i - b.i; })
-        .map(function (x) { return x.it; });
+      merged = rankAndSort(merged, keyword);
 
       return { list: merged, bySource: bySource, errors: errors, timings: timings };
     });
@@ -152,10 +181,7 @@
         merged2 = merged2.concat(list);
       });
       merged2 = dedupe(merged2);
-      merged2 = merged2
-        .map(function (it, i) { return { it: it, i: i, s: relevanceScore(it, keyword) }; })
-        .sort(function (a, b) { return b.s - a.s || a.i - b.i; })
-        .map(function (x) { return x.it; });
+      merged2 = rankAndSort(merged2, keyword);
       if (pending > 0) errors2.push({ source: 'slow', message: pending + ' 个平台响应慢，已跳过' });
       return { list: merged2, bySource: bySource2, errors: errors2, timings: timings };
     });

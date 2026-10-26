@@ -1639,8 +1639,8 @@ html[data-theme="light"] .mu-immersive {
   background: #e5e7eb;
 }
 @keyframes muSpin { to { transform: rotate(360deg); } }
-.mu-imm-vinyl.spin,
-.mu-imm-disc.spin { animation: muSpin 22s linear infinite; }
+/* 只让整张唱片转：封面是贴在盘面上的，单独转会显得脱节 */
+.mu-imm-vinyl.spin { animation: muVinylSpin 26s linear infinite; }
 
 .mu-imm-bars {
   display: flex;
@@ -1961,3 +1961,187 @@ html[data-theme="light"] .mu-immersive {
 /* 音量按钮紧贴滑块 */
 .mu-volwrap { gap: 4px; }
 .mu-volwrap .mu-op { width: 28px; height: 28px; }
+
+/* ==========================================================================
+   沉浸页黑胶唱机（对齐网易云黑胶模式的视觉语言）
+   --------------------------------------------------------------------------
+   结构：deck（定位容器）
+           ├ vinyl（圆盘 + 纹路 + 封面 + 中心孔，整体旋转）
+           └ tonearm（唱臂，播放时摆进唱片）
+   ========================================================================== */
+.mu-imm-deck {
+  position: relative;
+  flex: none;
+  /* 唱片尺寸：给唱臂留出右上角的空间，所以整体比盘子略大 */
+  width: min(280px, 34vh, 56vw);
+  height: min(280px, 34vh, 56vw);
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mu-imm-vinyl {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  flex: none;
+  border-radius: 50%;
+  /* 清掉旧规则：边框会和新的 inset 高光叠成两道圈，
+     margin-bottom 会让唱片在 deck 里偏心 */
+  border: 0;
+  margin: 0;
+  /* 盘面：从中心到边缘的深色渐变，模拟黑胶的反光带 */
+  background:
+    radial-gradient(circle at 50% 50%,
+      #1c2129 0%, #12161c 28%, #0a0d11 46%,
+      #10151b 62%, #070a0d 78%, #0e1216 100%);
+  box-shadow:
+    0 26px 60px rgba(0, 0, 0, 0.62),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+    inset 0 0 60px rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* 旋转由 .spin 类驱动，绕自身中心 */
+  transform-origin: 50% 50%;
+}
+.mu-imm-vinyl.spin { animation: muVinylSpin 26s linear infinite; }
+@keyframes muVinylSpin { to { transform: rotate(360deg); } }
+
+/* 纹路：同心细圈。用 repeating-radial-gradient 一次画完，
+   比几十个 DOM 节点便宜，且天然跟随唱片旋转 */
+.mu-imm-grooves {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  pointer-events: none;
+  background: repeating-radial-gradient(
+    circle at 50% 50%,
+    rgba(255, 255, 255, 0.045) 0px,
+    rgba(255, 255, 255, 0.045) 1px,
+    transparent 1px,
+    transparent 4px
+  );
+  /* 只在靠外的环带显示，中心被封面盖住 */
+  mask-image: radial-gradient(circle at 50% 50%, transparent 34%, #000 40%, #000 96%, transparent 100%);
+  -webkit-mask-image: radial-gradient(circle at 50% 50%, transparent 34%, #000 40%, #000 96%, transparent 100%);
+}
+
+/* 封面：占唱片 62%，跟着唱片一起转（网易云里封面是贴在盘上的） */
+.mu-imm-disc {
+  position: relative;
+  width: 62%;
+  height: 62%;
+  border-radius: 50%;
+  overflow: hidden;
+  /* 旧规则有 2px 青色描边，会把封面画成一枚徽章，和黑胶质感不搭 */
+  border: 0;
+  display: grid;
+  place-items: center;
+  background: #14181f;
+  /* 封面外圈一道细亮边，把封面从盘面上「提」起来 */
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.08),
+    0 8px 24px rgba(0, 0, 0, 0.5);
+  font-size: 24px;
+  color: rgba(255, 255, 255, 0.35);
+}
+.mu-imm-disc img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* 中心孔：盖在封面正中，不随封面转（视觉上像压上去的轴） */
+.mu-imm-hole {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  /* translate 比负 margin 稳：min-width 生效时百分比 margin 会算错 */
+  transform: translate(-50%, -50%);
+  width: 9%;
+  height: 9%;
+  min-width: 14px;
+  min-height: 14px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #0b0e12 45%, #2a3038 100%);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+  pointer-events: none;
+  z-index: 3;
+}
+
+/* 唱臂：从右上角伸进来。播放时 head 落到盘面，暂停时抬起来。
+   这里刻意不用 transition/animation：唱臂处在合成层边缘，
+   两种动画都会卡在起始值或结束后回弹（实测过）。
+   瞬时切换在 0.5 秒的播放状态变化里几乎察觉不到。 */
+.mu-imm-tonearm {
+  position: absolute;
+  right: -2%;
+  top: -6%;
+  width: 46%;
+  height: 46%;
+  pointer-events: none;
+  z-index: 4;
+  /* 支点固定在右上角 */
+  transform-origin: 92% 8%;
+  /* 抬起位 */
+  transform: rotate(-26deg);
+}
+/* 落针位 */
+.mu-imm-tonearm.on { transform: rotate(-6deg); }
+.mu-imm-tonearm.on { transform: rotate(-6deg); }
+
+/* 臂杆 */
+.mu-imm-arm {
+  position: absolute;
+  right: 8%;
+  top: 8%;
+  width: 2px;
+  height: 78%;
+  border-radius: 2px;
+  background: linear-gradient(to bottom,
+    rgba(255, 255, 255, 0.55),
+    rgba(255, 255, 255, 0.22) 60%,
+    rgba(255, 255, 255, 0.32));
+  transform-origin: top center;
+  transform: rotate(28deg);
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
+}
+/* 唱头：臂杆末端的小方块 */
+.mu-imm-head {
+  position: absolute;
+  right: 6%;
+  top: 8%;
+  width: 10px;
+  height: 22px;
+  border-radius: 2px;
+  background: linear-gradient(160deg, #cfd6dd, #6b7681);
+  transform-origin: top center;
+  transform: rotate(28deg) translateY(78%);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.55);
+}
+/* 支点圆盘 */
+.mu-imm-tonearm::before {
+  content: "";
+  position: absolute;
+  right: 4%;
+  top: 2%;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #aeb6bf, #4c545d);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+/* 窄屏：唱片缩小，唱臂按比例缩 */
+@media (max-width: 860px) {
+  .mu-imm-deck {
+    width: min(96px, 26vw);
+    height: min(96px, 26vw);
+    margin-bottom: 0;
+  }
+  .mu-imm-tonearm { display: none; }
+  .mu-imm-disc { font-size: 16px; }
+}

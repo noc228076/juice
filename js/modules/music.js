@@ -883,25 +883,45 @@
     var saved = lxReady ? window.LxMusic.listScripts() : [];
     var loaded = lxReady ? window.LxMusic.listLoaded() : [];
 
-    var rows = saved.map(function (s) {
-      var on = loaded.some(function (x) { return x.name === s.name; });
-      return '<div class="mu-src' + (on ? ' on' : '') + '">' +
+    // 用户导入的脚本按 id 索引，用来给内置/导入的条目挂「删除」按钮
+    var savedByName = {};
+    saved.forEach(function (s) { savedByName[s.name] = s; });
+
+    // 以「已加载」为主来列：内置脚本也在这里，不再只显示用户导入的那几个。
+    // 同名脚本可能被加载两次（内置 + 用户导入），列表里只显示一条
+    var seen = {};
+    var rows = loaded.filter(function (x) {
+      if (seen[x.name]) return false;
+      seen[x.name] = 1;
+      return true;
+    }).map(function (x) {
+      var s = savedByName[x.name];
+      return '<div class="mu-src on">' +
+        '<b>' + esc(x.name) + (s && s.version ? ' <span class="mu-src-ver">' + esc(s.version) + '</span>' : '') + '</b>' +
+        '<span class="mu-src-ops">' +
+          '<span class="mu-src-tag">已加载</span>' +
+          (s ? '<button class="mu-btn mini danger" data-lx-del="' + esc(s.id) + '">删除</button>' : '') +
+        '</span></div>';
+    }).join('');
+
+    // 用户存了但没加载成功的（脚本报错 / 未启用）也列出来，否则用户看不到它
+    var failedRows = saved.filter(function (s) { return !seen[s.name]; }).map(function (s) {
+      return '<div class="mu-src">' +
         '<b>' + esc(s.name) + (s.version ? ' <span class="mu-src-ver">' + esc(s.version) + '</span>' : '') + '</b>' +
         '<span class="mu-src-ops">' +
-          '<span class="mu-src-tag">' + (on ? '已加载' : '未加载') + '</span>' +
+          '<span class="mu-src-tag">未加载</span>' +
           '<button class="mu-btn mini danger" data-lx-del="' + esc(s.id) + '">删除</button>' +
         '</span></div>';
     }).join('');
 
+    rows = rows + failedRows;
+
+    var loadedCount = Object.keys(seen).length;
     var status = '';
-    if (loaded.length) {
-      // 只说数量：脚本名一多这行会折成三四行，具体名字在下面的列表里都有
-      status = '<p class="mu-note ok">已加载 ' + loaded.length + ' 个音源，覆盖 ' +
-        (function () {
-          var set = {};
-          loaded.forEach(function (x) { (x.sources || []).forEach(function (s) { set[s] = 1; }); });
-          return Object.keys(set).map(function (s) { return s.toUpperCase(); }).join(' / ');
-        })() + '</p>';
+    if (loadedCount) {
+      status = '<p class="mu-note ok">已加载 ' + loadedCount + ' 个音源</p>';
+    } else {
+      status = '<p class="mu-note warn">还没有可用的音源，导入一个 .js 脚本才能播放</p>';
     }
 
     return '<div class="mu-panel">' +
@@ -997,8 +1017,12 @@
   function sourceStatusText() {
     if (!window.LxMusic) return '音源未就绪';
     var loaded = window.LxMusic.listLoaded ? window.LxMusic.listLoaded() : [];
-    if (!loaded.length) return '未加载音源';
-    return '已加载 ' + loaded.length + ' 个音源';
+    // 同名脚本可能被加载两次，按名字去重后再报数
+    var names = {};
+    loaded.forEach(function (x) { names[x.name] = 1; });
+    var n = Object.keys(names).length;
+    if (!n) return '未加载音源';
+    return '已加载 ' + n + ' 个音源';
   }
 
   function renderIfActive() {
@@ -1686,10 +1710,20 @@
     return '<div class="mu-imm-bg"></div>' +
       '<div class="mu-imm-inner">' +
         '<div class="mu-imm-left">' +
-          '<div class="mu-imm-vinyl' + (playing ? ' spin' : '') + '">' +
-            '<div class="mu-imm-disc' + (playing ? ' spin' : '') + '">' +
-              (cur && cur.cover ? '<img src="' + esc(cur.cover) + '" alt="">' : icon('Play')) +
-            '</div><div class="mu-imm-hole"></div>' +
+          // 黑胶唱机：唱片盘 + 唱臂。唱臂随播放状态在两种角度间摆动
+          '<div class="mu-imm-deck">' +
+            '<div class="mu-imm-vinyl' + (playing ? ' spin' : '') + '">' +
+              // 纹路层：靠 CSS repeating-radial-gradient 画同心细圈
+              '<span class="mu-imm-grooves"></span>' +
+              '<div class="mu-imm-disc' + (playing ? ' spin' : '') + '">' +
+                (cur && cur.cover ? '<img src="' + esc(cur.cover) + '" alt="">' : icon('Play')) +
+              '</div>' +
+              '<span class="mu-imm-hole"></span>' +
+            '</div>' +
+            '<div class="mu-imm-tonearm' + (playing ? ' on' : '') + '">' +
+              '<span class="mu-imm-arm"></span>' +
+              '<span class="mu-imm-head"></span>' +
+            '</div>' +
           '</div>' +
           '<div class="mu-imm-bars' + (playing ? ' on' : '') + '">' + bars + '</div>' +
           '<div class="mu-imm-title">' + (cur ? esc(cur.title) : '未在播放') + '</div>' +
@@ -1814,9 +1848,13 @@
       var vinyl = immEl.querySelector('.mu-imm-vinyl');
       var disc = immEl.querySelector('.mu-imm-disc');
       var bars = immEl.querySelector('.mu-imm-bars');
+      var arm = immEl.querySelector('.mu-imm-tonearm');
       if (vinyl) vinyl.classList.toggle('spin', !!playing);
-      if (disc) disc.classList.toggle('spin', !!playing);
+      // 封面贴在盘上，跟着整张唱片转，不单独转
+      if (disc) disc.classList.toggle('spin', false);
       if (bars) bars.classList.toggle('on', !!playing);
+      // 唱臂：播放时落针，暂停时抬起
+      if (arm) arm.classList.toggle('on', !!playing);
     }
     renderMini();
     if ('mediaSession' in navigator) {

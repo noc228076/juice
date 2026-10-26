@@ -154,6 +154,8 @@
     syncBarVisibility();
     renderIfActive();
     renderMini();
+    // 队列面板开着时同步高亮
+    if (queuePanelEl) renderQueuePanel();
     // 切歌后换歌词；沉浸页开着就立即刷新
     lastLyricIndex = -1;
     loadLyricFor(cur);
@@ -869,6 +871,7 @@
   /* ---------------- 加入歌单弹层 ---------------- */
   var addTargetIndex = -1; pickTarget = null;   // 当前要加入歌单的搜索结果索引
   var pickTarget = null;     // 非搜索结果（如榜单歌曲）要加入歌单时暂存于此
+  var importState = null;    // { listId, done, total, added, failed } 导入进度
 
   function addListModalHtml() {
     if (addTargetIndex < 0) return '';
@@ -946,7 +949,22 @@
             : '') +
         '</div>' +
       '</div>' +
+      importBannerHtml(current) +
       rows +
+    '</div>';
+  }
+
+  /** 导入进度条：只有当前歌单正在导入时显示 */
+  function importBannerHtml(current) {
+    if (!importState || !current || current.id !== importState.listId) return '';
+    var pct = importState.total ? Math.round(importState.done / importState.total * 100) : 0;
+    return '<div class="mu-import-banner">' +
+      '<div class="mu-import-row">' +
+        '<span class="mu-spinner"></span>' +
+        '<span class="mu-import-text">正在导入 ' + importState.done + '/' + importState.total + ' 首</span>' +
+        '<span class="mu-import-pct">' + pct + '%</span>' +
+      '</div>' +
+      '<div class="mu-import-track"><i style="width:' + pct + '%"></i></div>' +
     '</div>';
   }
 
@@ -1045,6 +1063,7 @@
         '<button class="mu-op' + (mode !== 'all' ? ' on' : '') + '" id="muMode" title="' + modeLabel + '">' + icon(modeIcon) + '</button>' +
         '<span class="mu-volwrap"><button class="mu-op" id="muMute" title="' + (muted ? '取消静音' : '静音') + '" data-morph="' + (muted ? 'VolumeX' : 'Volume2') + '">' + icon(muted ? 'VolumeX' : 'Volume2') + '</button>' +
           '<input type="range" class="mu-vol" min="0" max="1" step="0.01" value="' + state.volume + '"></span>' +
+        '<button class="mu-op" id="muQueueBtn" title="当前播放列表">' + icon('ListMusic') + '</button>' +
         '<button class="mu-op imm" id="muImmersive" title="全屏播放">' + icon('Maximize2') + '</button>' +
       '</div>' +
     '</div>';
@@ -1458,12 +1477,111 @@
       if (audio && audio.duration) audio.currentTime = parseFloat(seek.value);
     };
     var imm = bar.querySelector('#muImmersive'); if (imm) imm.onclick = openImmersive;
+    var queueBtn = bar.querySelector('#muQueueBtn');
+    if (queueBtn) queueBtn.onclick = toggleQueuePanel;
     // 点封面也进全屏（跟网易云/QQ音乐的习惯一致）
     var discEl = bar.querySelector('#muDisc');
     if (discEl) {
       discEl.onclick = openImmersive;
       discEl.style.cursor = 'pointer';
     }
+  }
+
+  /* ---------------- 当前播放列表 ----------------
+     从播放条上的列表按钮弹出，显示当前队列、高亮正在播的那首，
+     点其他项直接跳过去。之前没有任何地方能看到「下一首是什么」。 */
+  var queuePanelEl = null;
+
+  function toggleQueuePanel() {
+    if (queuePanelEl) { closeQueuePanel(); return; }
+    if (!queue.length) { toast('播放列表是空的'); return; }
+    openQueuePanel();
+  }
+
+  function openQueuePanel() {
+    closeQueuePanel();
+    queuePanelEl = document.createElement('div');
+    queuePanelEl.className = 'mu-queue-mask';
+    queuePanelEl.innerHTML = queuePanelHtml();
+    document.body.appendChild(queuePanelEl);
+    paintIcons(queuePanelEl);
+
+    queuePanelEl.querySelectorAll('[data-q-jump]').forEach(function (row) {
+      row.onclick = function () {
+        var i = parseInt(row.getAttribute('data-q-jump'), 10);
+        if (isNaN(i) || i === qi) { closeQueuePanel(); return; }
+        qi = i;
+        playCurrent();
+        // 面板留着，让用户继续挑（跟网易云的队列抽屉一致）
+        renderQueuePanel();
+      };
+    });
+    var clr = queuePanelEl.querySelector('#muQueueClear');
+    if (clr) clr.onclick = function () {
+      try { audio.pause(); audio.removeAttribute('src'); audio.load(); } catch (e) {}
+      cur = null; queue = []; qi = -1; qName = '';
+      closeQueuePanel();
+      syncPlayUI(false);
+      syncBarMeta();
+      syncBarVisibility();
+      renderIfActive();
+      toast('已清空播放列表');
+    };
+    queuePanelEl.querySelector('.mu-queue-close').onclick = closeQueuePanel;
+    queuePanelEl.onclick = function (e) {
+      if (e.target === queuePanelEl) closeQueuePanel();
+    };
+  }
+
+  function closeQueuePanel() {
+    if (queuePanelEl) { queuePanelEl.remove(); queuePanelEl = null; }
+  }
+
+  /** 面板只重建内部列表，不重建整个浮层（保住滚动位置） */
+  function renderQueuePanel() {
+    if (!queuePanelEl) return;
+    var body = queuePanelEl.querySelector('.mu-queue-body');
+    if (body) body.innerHTML = queueRowsHtml();
+    paintIcons(queuePanelEl);
+    queuePanelEl.querySelectorAll('[data-q-jump]').forEach(function (row) {
+      row.onclick = function () {
+        var i = parseInt(row.getAttribute('data-q-jump'), 10);
+        if (isNaN(i) || i === qi) { closeQueuePanel(); return; }
+        qi = i;
+        playCurrent();
+        renderQueuePanel();
+      };
+    });
+    var active = queuePanelEl.querySelector('.mu-queue-row.active');
+    if (active) active.scrollIntoView({ block: 'center' });
+  }
+
+  function queuePanelHtml() {
+    return '<div class="mu-queue-panel">' +
+      '<div class="mu-queue-head">' +
+        '<div class="mu-queue-title">' +
+          '<b>当前播放</b>' +
+          '<span>' + (qName ? esc(qName) + ' · ' : '') + queue.length + ' 首</span>' +
+        '</div>' +
+        '<div class="mu-queue-ops">' +
+          '<button class="mu-btn mini" id="muQueueClear">清空</button>' +
+          '<button class="mu-op mu-queue-close" title="关闭">' + icon('X') + '</button>' +
+        '</div>' +
+      '</div>' +
+      '<div class="mu-queue-body">' + queueRowsHtml() + '</div>' +
+    '</div>';
+  }
+
+  function queueRowsHtml() {
+    return queue.map(function (t, i) {
+      var on = i === qi;
+      return '<div class="mu-queue-row' + (on ? ' active' : '') + '" data-q-jump="' + i + '">' +
+        '<span class="mu-queue-idx">' + (on ? icon('Volume2') : (i + 1)) + '</span>' +
+        '<span class="mu-queue-text"><b>' + esc(t.title || '未知曲目') + '</b>' +
+          (t.artist ? '<i>' + esc(t.artist) + '</i>' : '') + '</span>' +
+        (t.interval ? '<span class="mu-queue-dur">' + esc(t.interval) + '</span>' : '') +
+        '</div>';
+    }).join('');
   }
 
   function bindHome() {
@@ -1478,18 +1596,30 @@
 
     // 列表播放
     el.querySelectorAll('[data-play]').forEach(function (r) {
-      r.onclick = function () {
+      r.onclick = function (e) {
+        // 收藏 / 加歌单按钮在行内，别触发播放
+        if (e.target.closest('[data-love]') || e.target.closest('[data-addlist]')) return;
         var name = r.getAttribute('data-play');
         var i = parseInt(r.getAttribute('data-idx'), 10);
         var list = name === '本机文件' ? localTracks() : name === '直链歌单' ? directList() : searchResults;
         var target = list[i];
         if (!target) return;
-        // 洛雪曲目没有现成 url，要先向音源脚本要地址
-        if (!target.url && target.track) {
-          playTrack(target, name);
-          return;
-        }
-        playQueue(list, name, i);
+        // 整页入队，从点击那首开始播——这样「当前播放列表」里能看到后续曲目，
+        // 上一首/下一首也有东西可切（之前只播单曲，队列里永远只有一首）
+        var q = list.map(function (t) {
+          return {
+            kind: name === '搜索结果' ? 'search' : 'local',
+            id: t.id || ((t.source || '') + '_' + (t.songmid || t.title)),
+            title: t.title,
+            artist: t.artist || '',
+            cover: t.cover || '',
+            url: t.url || '',
+            track: t.track || null,
+            source: t.source || '',
+            interval: t.interval || ''
+          };
+        });
+        playQueue(q, name, i);
       };
     });
 
@@ -2454,12 +2584,21 @@
   }
 
   /** 把平台歌单的歌曲加进本地列表：优先按「歌名+歌手」搜到可播的版本 */
+  /**
+   * 把平台歌单的歌曲加进本地列表。
+   * 关键体验：歌单先建好并立刻切过去，每匹配到一首就实时出现在列表里，
+   * 顶部显示「正在导入 12/136」的进度条。之前只在 toast 里报数，
+   * 用户根本看不出在导入。
+   */
   function addTracksToList(tracks, list) {
-    var done = 0, added = 0, failed = 0;
     var total = tracks.length;
-    toast('开始导入 ' + total + ' 首…');
+    if (!total) { toast('歌单里没有歌曲'); return Promise.resolve(); }
 
-    // 4 路并发，比全串行快很多
+    // 立刻切到目标歌单并渲染，让用户看到列表已经建好
+    activeListId = list.id;
+    importState = { listId: list.id, done: 0, total: total, added: 0, failed: 0, running: true };
+    renderHome();
+
     var CONCURRENCY = 4;
     var cursor = 0;
 
@@ -2480,16 +2619,15 @@
                 interval: hit.interval,
                 track: hit
               });
-              added++;
+              importState.added++;
             }
-          } else failed++;
+          } else importState.failed++;
         })
-        .catch(function () { failed++; })
+        .catch(function () { importState.failed++; })
         .then(function () {
-          done++;
-          if (done % 10 === 0 || done === total) {
-            toast('导入中 ' + done + '/' + total + '（成功 ' + added + '）');
-          }
+          importState.done++;
+          // 每匹配到一首就重绘列表 + 进度，肉眼能看到列表在长
+          if (tab === 'lists' && activeListId === list.id) renderHome();
           return worker();
         });
     }
@@ -2498,9 +2636,11 @@
     for (var i = 0; i < CONCURRENCY; i++) workers.push(worker());
 
     return Promise.all(workers).then(function () {
-      activeListId = list.id;
+      var ok = list.tracks.length;
+      var fail = importState ? importState.failed : 0;
+      importState = null;
       renderHome();
-      toast('导入完成：成功 ' + added + ' 首' + (failed ? '，未匹配 ' + failed + ' 首' : ''));
+      toast('导入完成：成功 ' + ok + ' 首' + (fail ? '，未匹配 ' + fail + ' 首' : ''));
     });
   }
 

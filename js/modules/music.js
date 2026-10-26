@@ -160,18 +160,42 @@
   function playCurrent() {
     if (!queue.length) return;
     cur = queue[qi];
-    // 队列项可能还没有播放地址（榜单/搜索的条目要等音源脚本给），
-    // 这时先取地址，取到再真正开始播
+
+    // 队列项可能还没有播放地址（榜单/搜索的条目要等音源脚本给）。
+    // 关键：先把这首歌显示到播放条并提示「正在加载」，
+    // 而不是等地址拿到才出现——用户点了歌，播放条应该立刻有反应。
     if (!cur.url && cur.track) {
       if (!window.LxMusic || !window.LxMusic.hasSource()) { toast('尚未导入音源脚本'); return; }
       var pending = cur;
-      toast('获取播放地址…');
+      cur.loading = true;
+      updateMediaSession();
+      syncBarMeta();
+      syncBarVisibility();
+      renderIfActive();
+      renderMini();
+      if (queuePanelEl) renderQueuePanel();
+      setBarLoading(true);
+      // 歌词和封面与取地址并行，别让播放条空着
+      lastLyricIndex = -1;
+      loadLyricFor(cur);
+      loadCoverFor(cur);
+
       window.LxMusic.resolveUrl(pending.track, state.quality || '128k').then(function (url) {
-        if (!url) { toast('音源未返回地址'); return; }
         if (cur !== pending) return;   // 期间已切歌
+        if (!url) {
+          pending.loading = false;
+          setBarLoading(false);
+          toast('音源未返回地址');
+          return;
+        }
         pending.url = url;
+        pending.loading = false;
+        setBarLoading(false);
         playCurrent();
       }).catch(function (e) {
+        if (cur !== pending) return;
+        pending.loading = false;
+        setBarLoading(false);
         toast('取地址失败：' + (e && e.message ? String(e.message).slice(0, 60) : 'unknown'));
       });
       return;
@@ -1501,6 +1525,16 @@
     if (titleEl) {
       titleEl.innerHTML = (cur ? esc(cur.title) : '未在播放') +
         (cur && cur.artist ? ' <i>· ' + esc(cur.artist) + '</i>' : '');
+      // 正在取地址时补回加载提示（innerHTML 会把它冲掉）
+      if (cur && cur.loading) {
+        var tip = document.createElement('span');
+        tip.className = 'mu-loading-tip';
+        tip.textContent = '正在加载…';
+        titleEl.appendChild(tip);
+        bar.classList.add('loading');
+      } else {
+        bar.classList.remove('loading');
+      }
     }
     var disc = bar.querySelector('#muDisc');
     if (disc) {
@@ -1601,6 +1635,29 @@
     // 播放条的音量键现在是普通图标（不再走 morph），直接换图更稳
     setIcon(btn, to);
     btn.title = muted ? '取消静音' : '静音';
+  }
+
+  /**
+   * 播放条的加载态：封面位置转圈、标题旁显示「正在加载…」。
+   * 取地址期间让用户看到明确反馈，而不是播放条毫无变化。
+   */
+  function setBarLoading(on) {
+    var bar = document.getElementById('muPlayerBar');
+    if (!bar) return;
+    bar.classList.toggle('loading', !!on);
+    var titleEl = bar.querySelector('.mu-player-title');
+    if (!titleEl) return;
+    var tip = titleEl.querySelector('.mu-loading-tip');
+    if (on) {
+      if (!tip) {
+        tip = document.createElement('span');
+        tip.className = 'mu-loading-tip';
+        tip.textContent = '正在加载…';
+        titleEl.appendChild(tip);
+      }
+    } else if (tip) {
+      tip.remove();
+    }
   }
 
   /**
@@ -1784,7 +1841,8 @@
     queuePanelEl.querySelectorAll('[data-q-jump]').forEach(function (row) {
       row.onclick = function (e) {
         // 拖动手柄不触发跳转
-        if (e.target.closest('.mu-queue-grip')) return;
+        // 拖动手柄和删除键都不触发跳转
+        if (e.target.closest('.mu-queue-grip') || e.target.closest('[data-q-del]')) return;
         var i = parseInt(row.getAttribute('data-q-jump'), 10);
         if (isNaN(i) || i === qi) { closeQueuePanel(); return; }
         qi = i;
@@ -1822,6 +1880,7 @@
         '<span class="mu-queue-text"><b>' + esc(t.title || '未知曲目') + '</b>' +
           (t.artist ? '<i>' + esc(t.artist) + '</i>' : '') + '</span>' +
         (t.interval ? '<span class="mu-queue-dur">' + esc(t.interval) + '</span>' : '') +
+        '<button class="mu-queue-del" data-q-del="' + i + '" title="从播放列表移除">' + icon('X') + '</button>' +
         '</div>';
     }).join('');
   }
@@ -1830,6 +1889,15 @@
   var dragFrom = -1;
 
   function bindQueueDrag(root) {
+    // 每行的删除键（跟拖动一起绑，两处调用点都能覆盖）
+    root.querySelectorAll('[data-q-del]').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var i = parseInt(btn.getAttribute('data-q-del'), 10);
+        removeQueueItem(i);
+      });
+    });
+
     var rows = root.querySelectorAll('[data-q-index]');
     rows.forEach(function (row) {
       row.addEventListener('dragstart', function (e) {
@@ -1857,6 +1925,40 @@
         dragFrom = -1;
       });
     });
+  }
+
+  /**
+   * 从队列里删掉第 i 首。
+   * 删的正好是正在播的那首时：切到下一首继续播；删完就没歌了则停掉。
+   */
+  function removeQueueItem(i) {
+    if (i < 0 || i >= queue.length) return;
+    var wasCurrent = i === qi;
+    queue.splice(i, 1);
+
+    if (!queue.length) {
+      try { audio.pause(); audio.removeAttribute('src'); audio.load(); } catch (e) {}
+      cur = null; qi = -1; qName = '';
+      setBarLoading(false);
+      syncPlayUI(false);
+      syncBarMeta();
+      syncBarVisibility();
+      renderIfActive();
+      closeQueuePanel();
+      toast('播放列表已清空');
+      return;
+    }
+
+    if (wasCurrent) {
+      // 删掉的是当前曲目：原位置现在指向下一首；到末尾则回到最后一首
+      if (qi >= queue.length) qi = queue.length - 1;
+      playCurrent();
+    } else if (i < qi) {
+      qi--;   // 删的是前面的，当前曲目索引左移
+    }
+    renderQueuePanel();
+    if (tab === 'lists') renderHome();
+    toast('已从播放列表移除');
   }
 
   /** 把队列里第 from 项移到 to 位置，正在播的那首跟着走 */

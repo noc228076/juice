@@ -2940,3 +2940,58 @@ html[data-theme="light"] .mu-player .mu-imm-vol-num { color: var(--mod-ac); }
 }
 .mu-queue-ops .mu-btn:hover { color: var(--warn-c); border-color: var(--warn-c); }
 .mu-queue-ops .mu-btn .mu-ico { width: 12px; height: 12px; }
+
+/* ==========================================================================
+   播放条加载态：封面转圈 + 标题旁「正在加载…」
+   ========================================================================== */
+.mu-player.loading #muDisc {
+  position: relative;
+}
+.mu-player.loading #muDisc::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 2px solid rgba(255, 255, 255, 0.18);
+  border-top-color: var(--mod-ac);
+  animation: muSpin 0.8s linear infinite;
+  pointer-events: none;
+}
+.mu-loading-tip {
+  margin-left: 6px;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--mod-ac);
+  opacity: .9;
+  white-space: nowrap;
+}
+
+/* ==========================================================================
+   播放列表每行的删除键
+   ========================================================================== */
+.mu-queue-del {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--tx-faint);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity var(--mu-t-fast) var(--mu-ease), color var(--mu-t-fast) var(--mu-ease);
+}
+.mu-queue-del .mu-ico { width: 11px; height: 11px; }
+.mu-queue-row:hover .mu-queue-del { opacity: .75; }
+.mu-queue-del:hover { opacity: 1; color: var(--warn-c); background: var(--btn-ghost-bg); }
+@media (hover: none) {
+  .mu-queue-del { opacity: .5; }
+}
+/* 沉浸页深色底下的删除键 */
+.mu-queue-mask.in-immersive .mu-queue-del { color: rgba(255, 255, 255, 0.4); }
+.mu-queue-mask.in-immersive .mu-queue-del:hover {
+  color: #ff8fa3;
+  background: rgba(255, 255, 255, 0.1);
+}

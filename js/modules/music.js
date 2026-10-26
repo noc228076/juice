@@ -449,6 +449,9 @@
       cur.cover = url;
       // 队列里同一条也补上，回头上一首/下一首不用再请求
       if (queue[qi]) queue[qi].cover = url;
+      // 封面是异步补的：mediaSession 的 metadata 在切歌时已经用空封面
+      // 设置过了，不在这里刷新的话，锁屏/控制中心整首歌都没图
+      updateMediaSession();
       syncBarMeta();
       var disc = document.getElementById('muDisc');
       if (disc) disc.classList.toggle('spin', !audio.paused && !!url);
@@ -1063,6 +1066,13 @@
             interval: t.interval
           };
         });
+        // 上一轮搜索留下的平台筛选，在新结果里可能已经没有对应平台。
+        // 不重置的话：chips 里没有 active 项、filteredResults 返回空，
+        // 页面显示「搜点什么听听」，看起来像没搜到结果。
+        if (srcFilter !== 'all') {
+          var has = searchResults.some(function (t) { return t.source === srcFilter; });
+          if (!has) srcFilter = 'all';
+        }
         renderHome();
         if (!searchResults.length) {
           toast(res.errors.length ? ('没有搜到结果（' + res.errors[0].message + '）') : '没有搜到结果');
@@ -1665,12 +1675,26 @@
     if (!window.LxDiscover) return;
     if (!discoverState.ranks || !discoverState.ranks.length) {
       if (!discoverState.rankLoading) {
+        // 失败后的自动重试要有退避：renderHome 在切歌等场景高频触发，
+        // 不限频的话接口一挂，每次切歌都会重发一次请求
+        var now = Date.now();
+        if (discoverState.rankFailAt && now - discoverState.rankFailAt < 30000) return;
         discoverState.rankLoading = true;
         window.LxDiscover.listRanks().then(function (list) {
           discoverState.rankLoading = false;
-          discoverState.ranks = list && list.length ? list : null;
+          discoverState.rankFailAt = 0;
+          // 失败必须落成 []：写 null 会让 rankHtml 永远走 spinner 分支
+          // （「加载失败」分支只认 !ranks.length），而且这里每次 renderHome
+          // 都会重新触发一次请求，切一首歌就重试一次，无退避。
+          discoverState.ranks = (list && list.length) ? list : [];
+          if (!discoverState.ranks.length) discoverState.rankFailAt = Date.now();
           if (tab === 'rank') renderHome();
-        }).catch(function () { discoverState.rankLoading = false; });
+        }).catch(function () {
+          discoverState.rankLoading = false;
+          discoverState.ranks = [];
+          discoverState.rankFailAt = Date.now();
+          if (tab === 'rank') renderHome();
+        });
       }
     }
   }
@@ -1759,10 +1783,17 @@
     if (!el) return;
 
     // 整块重建 DOM 会让输入框丢值（新元素没有旧值）。
-    // 重建前记下当前输入与焦点，重建后恢复，避免用户打字被打断。
-    var prevInput = el.querySelector('#muSearchKw');
-    var prevValue = prevInput ? prevInput.value : '';
-    var hadFocus = prevInput && document.activeElement === prevInput;
+    // 重建前记下所有 input/textarea 的值与焦点，重建后恢复。
+    // 之前只快照了搜索框：用户停在「音源」页往粘贴框里贴脚本时，
+    // 正在播的歌一自然切歌（renderIfActive → renderHome），
+    // 贴的内容就无提示丢了。
+    var snapshot = [];
+    el.querySelectorAll('input[id], textarea[id]').forEach(function (x) {
+      if (x.type === 'checkbox' || x.type === 'radio') return;
+      snapshot.push({ id: x.id, value: x.value,
+                      focused: document.activeElement === x,
+                      selStart: x.selectionStart, selEnd: x.selectionEnd });
+    });
 
     el.innerHTML = homeHtml();
     mountPlayerBar();
@@ -1773,15 +1804,31 @@
     paintIcons(document.getElementById('muPlayerBar'));
     paintIcons(document.getElementById('muAddListMask'));
 
-    if (prevValue) {
-      var next = el.querySelector('#muSearchKw');
-      if (next) {
-        next.value = prevValue;
-        if (hadFocus) {
+    snapshot.forEach(function (s) {
+      // 搜索框单独处理：它的 onfocus 会弹联想下拉，
+      // 必须在 suppressSuggest 保护下聚焦，不能走通用恢复
+      if (s.id === 'muSearchKw') return;
+      var sel = '#' + (window.CSS && CSS.escape ? CSS.escape(s.id) : s.id);
+      var next = el.querySelector(sel);
+      if (!next || next.value === s.value) return;
+      next.value = s.value;
+      if (s.focused) {
+        next.focus();
+        try { next.setSelectionRange(s.selStart, s.selEnd); } catch (e) {}
+      }
+    });
+
+    // 搜索框：值 + 焦点恢复（焦点要在 suppressSuggest 保护下设置）
+    var prevSearch = snapshot.filter(function (s) { return s.id === 'muSearchKw'; })[0];
+    if (prevSearch) {
+      var skw = el.querySelector('#muSearchKw');
+      if (skw) {
+        skw.value = prevSearch.value;
+        if (prevSearch.focused) {
           // 恢复焦点会触发 onfocus → renderSuggest，
           // 刚搜完结果就摆在那儿，不该再弹一个下拉框挡住它
           suppressSuggest = true;
-          next.focus();
+          skw.focus();
           suppressSuggest = false;
         }
       }
@@ -2302,16 +2349,20 @@
     if (from === to || from < 0 || to < 0 || from >= queue.length || to >= queue.length) return;
     var playing = queue[qi];
     var moved = queue.splice(from, 1)[0];
-    queue.splice(to, 0, moved);
+    // 指示线画在目标行的上缘（语义：插到它前面）。
+    // 向下拖时，先删后插会让目标行整体左移一位，
+    // 直接用 to 会插到目标行的后面——所见非所得。
+    // 向上拖不受影响（目标行下标没变）。
+    var insertAt = from < to ? to - 1 : to;
+    queue.splice(insertAt, 0, moved);
     // 重新定位当前曲目：位置可能因为插入/移除变了
     var newIdx = queue.indexOf(playing);
     if (newIdx > -1) qi = newIdx;
     saveLive();
+    // renderQueuePanel 内部会重建全部行并重新 bindQueueDrag。
+    // 不能在这里再手动绑一次：监听是 addEventListener 挂在同一批新节点上的，
+    // 重复绑会让删除键一次点击触发两次 removeQueueItem，连删两首。
     renderQueuePanel();
-    if (queuePanelEl) {
-      var body = queuePanelEl.querySelector('.mu-queue-body');
-      if (body) bindQueueDrag(body);
-    }
   }
 
   function bindHome() {
@@ -2875,6 +2926,11 @@
   /** 为当前歌曲取歌词（同一首不重复请求） */
   function loadLyricFor(track) {
     if (!track) { currentLyric = null; lyricTrackKey = ''; return; }
+    // 本机文件 / 直链没有平台 songmid，按文件名跨平台搜歌词会
+    // 给本地文件配上别人的歌词（文件名撞车很常见），直接跳过
+    if (track.kind === 'local' || track.kind === 'link') {
+      currentLyric = null; lyricTrackKey = ''; return;
+    }
     var key = (track.source || '') + '|' + (track.id || track.title || '');
     if (key === lyricTrackKey) return;
     lyricTrackKey = key;
@@ -2898,6 +2954,9 @@
       clearTimeout(slowTimer);
       if (key !== lyricTrackKey) return;
       currentLyric = { parsed: [] };
+      // 清掉 key：失败后同一首还有机会重试（播放重试、重新点进沉浸页）。
+      // 不清的话 key 已登记，loadLyricFor 会直接 return，这首歌永远没词。
+      lyricTrackKey = '';
       refreshImmersiveLyric();
     });
   }
@@ -3176,6 +3235,10 @@
     if (!immEl) return;
     immEl.remove();
     immEl = null;
+    // 队列面板在沉浸模式下会加 .in-immersive（z=500）改成深色主题。
+    // 沉浸页关掉时若不一起关面板，残留的全屏遮罩会挡住整个页面，
+    // 只能靠点击遮罩空白才能关。
+    closeQueuePanel();
     // 在别的模块里关沉浸页时，hashchange 和 class 变化都已经错过，
     // 不在这里重算，播放条会永久留在那个模块上盖住内容
     syncBarVisibility();
@@ -3556,9 +3619,18 @@
     var total = tracks.length;
     if (!total) { toast('歌单里没有歌曲'); return Promise.resolve(); }
 
+    // 重入保护：importState 是模块级单例，第一次导入没结束又点第二次导入时，
+    // 新对象会覆盖旧对象；先结束的那次把它置 null 后，仍在跑的 worker
+    // 一执行 importState.done++ 就 TypeError，递归链中断、剩余歌曲全丢。
+    if (importState && importState.running) {
+      toast('已有歌单正在导入，等它完成再试');
+      return Promise.resolve();
+    }
+
     // 立刻切到目标歌单并渲染，让用户看到列表已经建好
     activeListId = list.id;
-    importState = { listId: list.id, done: 0, total: total, added: 0, failed: 0, running: true };
+    // 状态对象捕获进闭包：worker 全程读写自己的这份，不碰模块级引用
+    var st = importState = { listId: list.id, done: 0, total: total, added: 0, failed: 0, running: true };
     renderHome();
 
     var CONCURRENCY = 4;
@@ -3571,7 +3643,7 @@
         .then(function (res) {
           var hit = pickBestMatch(res.list || [], { title: t.title, artist: t.artist });
           if (hit) {
-            if (!inList(list.id, hit)) {
+            if (!inList(list.id, { track: hit })) {
               addToList(list.id, {
                 id: hit.source + '_' + hit.songmid,
                 title: hit.name,
@@ -3581,13 +3653,13 @@
                 interval: hit.interval,
                 track: hit
               });
-              importState.added++;
+              st.added++;
             }
-          } else importState.failed++;
+          } else st.failed++;
         })
-        .catch(function () { importState.failed++; })
+        .catch(function () { st.failed++; })
         .then(function () {
-          importState.done++;
+          st.done++;
           // 每匹配到一首就重绘列表 + 进度，肉眼能看到列表在长
           if (tab === 'lists' && activeListId === list.id) renderHome();
           return worker();
@@ -3599,10 +3671,15 @@
 
     return Promise.all(workers).then(function () {
       var ok = list.tracks.length;
-      var fail = importState ? importState.failed : 0;
-      importState = null;
+      var fail = st.failed;
+      if (importState === st) importState = null;
       renderHome();
       toast('导入完成：成功 ' + ok + ' 首' + (fail ? '，未匹配 ' + fail + ' 首' : ''));
+    }).catch(function (e) {
+      // worker 链的意外异常不能让进度条永久挂着
+      if (importState === st) importState = null;
+      renderHome();
+      toast('导入中断：' + ((e && e.message) || 'unknown'));
     });
   }
 
@@ -3652,7 +3729,7 @@
         var kw = (it.title + ' ' + it.artist).trim();
         return window.LxMusic.search(kw, 1).then(function (res) {
           var hit = pickBestMatch(res.list || [], it);
-          if (hit && !inList(list.id, hit)) {
+          if (hit && !inList(list.id, { track: hit })) {
             addToList(list.id, {
               id: hit.source + '_' + hit.songmid,
               title: hit.name,
@@ -3907,6 +3984,9 @@
     /* 只卸模块级 UI；audio / 迷你条 / 键盘监听保留——跨模块继续播放 */
     closeImmersive();
     closeAsk();
+    // 队列面板也挂在 body 上：不在沉浸模式时 closeImmersive 会提前返回，
+    // 面板的全屏遮罩会跟着用户走到别的模块
+    closeQueuePanel();
     // 弹层挂在 body 上、z=500，离开模块后没人会清它，会挡住整个页面
     addTargetIndex = -1; pickTarget = null;
     var mask = document.getElementById('muAddListMask');

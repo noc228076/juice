@@ -420,7 +420,7 @@
           (item, idx) => `
         <div class="daily-60s-item" style="--i:${idx < 12 ? idx : 11}">
           <span class="daily-60s-num">${idx + 1}</span>
-          <span>${item}</span>
+          <span>${esc(String(item))}</span>
         </div>`
         )
         .join('')
@@ -633,7 +633,7 @@
             const link = (!isFallback && (item.link || item.url)) || meta.home;
             const t = esc(title);
             return `
-          <a class="daily-hot-item" style="--i:${idx < 14 ? idx : 13}" href="${esc(link)}" target="_blank" rel="noopener noreferrer">
+          <a class="daily-hot-item" style="--i:${idx < 14 ? idx : 13}" href="${window.escUrl(link)}" target="_blank" rel="noopener noreferrer">
             <div class="daily-hot-left">
               <span class="daily-hot-rank">${idx + 1}</span>
               <span class="daily-hot-title" title="${t}">${t}</span>

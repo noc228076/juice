@@ -166,15 +166,22 @@
       if (!root.LxSandbox || !root.LxSandbox.hasAny() || !root.LxSandbox.getLyric) {
         return Promise.resolve(null);
       }
-      return root.LxSandbox.getLyric(src, {
-        songmid: inner.songmid,
-        songId: inner.songmid,
-        hash: inner.hash,
-        albumId: inner.albumId,
-        copyrightId: inner.copyrightId,
-        name: inner.name,
-        singer: inner.singer
-      }).catch(function () { return null; });
+      // getLyric 里 postMessage 到已销毁的 iframe 等情况会同步抛错，
+      // 不接住的话整个 getLyric 直接 throw，调用方的 .then 链挂不上，
+      // 只能等 8 秒后的「加载中」提示
+      try {
+        return root.LxSandbox.getLyric(src, {
+          songmid: inner.songmid,
+          songId: inner.songmid,
+          hash: inner.hash,
+          albumId: inner.albumId,
+          copyrightId: inner.copyrightId,
+          name: inner.name,
+          singer: inner.singer
+        }).catch(function () { return null; });
+      } catch (eSync) {
+        return Promise.resolve(null);
+      }
     })();
 
     return viaScript.then(function (res) {

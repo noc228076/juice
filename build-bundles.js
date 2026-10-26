@@ -131,6 +131,44 @@ function readVersion() {
   return verMatch ? verMatch[1] : null;
 }
 
+/* ---- 版本号兜底：源码变了就自动递增 ----
+   /js/**、/css/** 在 Vercel 上是 immutable 一年缓存，入口全靠 ?v= 区分。
+   版本号过去纯手改：改了源码忘改 sw.js 的版本号时，构建照常成功，
+   所有用户最长一年拿旧文件，且无任何告警。
+   这里对所有进 bundle 的源码做指纹，指纹变了就把 sw.js 的版本号 +1，
+   人工只需「改代码 → 构建」，不再需要记得改版本。 */
+const crypto = require('crypto');
+
+function sourceFingerprint() {
+  const files = [];
+  Object.keys(chunks).forEach(name => files.push(...chunks[name]));
+  files.push(
+    ...coreJsFiles,
+    ...coreCssFiles,
+    ...moduleCssFiles,
+    'js/vendor/morphicons.js',
+    'js/vendor/lucide-icons.js',
+    'js/modules/lx-music/builtin/sources.json'
+  );
+  const h = crypto.createHash('sha256');
+  files.filter(f => fs.existsSync(path.join(__dirname, f))).forEach(f => {
+    h.update(f);
+    h.update(fs.readFileSync(path.join(__dirname, f)));
+  });
+  return h.digest('hex');
+}
+
+function bumpVersion() {
+  const swPath = path.join(__dirname, 'sw.js');
+  const swSrc = fs.readFileSync(swPath, 'utf8');
+  const m = swSrc.match(/CACHE_NAME\s*=\s*'juice-persona-v(\d+)'/);
+  if (!m) return null;
+  const next = String(Number(m[1]) + 1);
+  fs.writeFileSync(swPath,
+    swSrc.replace(/(CACHE_NAME\s*=\s*'juice-persona-v)(\d+)(')/, `$1${next}$3`), 'utf8');
+  return next;
+}
+
 function concatJs(files) {
   return files
     .map(f => `/* === ${f} === */\n` + fs.readFileSync(path.join(__dirname, f), 'utf8'))
@@ -149,6 +187,16 @@ fs.writeFileSync(path.join(__dirname, 'css/core.bundle.css'), coreCssOut, 'utf8'
 fs.writeFileSync(path.join(__dirname, 'css/modules.bundle.css'), moduleCssOut, 'utf8');
 // legacy css/app.bundle.css（v96 时代兼容产物）已删除：距其退役已 160+ 个版本，
 // 仍持有旧 index.html 的客户端早已被 must-revalidate 拉到新版。
+
+// 版本兜底：指纹与上次构建不同 → 自动递增 sw.js 的版本号
+const buildStatePath = path.join(__dirname, '.build-state.json');
+let buildState = {};
+try { buildState = JSON.parse(fs.readFileSync(buildStatePath, 'utf8')); } catch (e) {}
+const fp = sourceFingerprint();
+if (buildState.fp && buildState.fp !== fp) {
+  const nv = bumpVersion();
+  if (nv) console.log(`检测到源码变更，版本号自动递增 -> v${nv}`);
+}
 
 const version = readVersion();
 if (!version) {
@@ -194,3 +242,6 @@ console.log(
   `Built css/core.bundle.css (${(Buffer.byteLength(coreCssOut) / 1024).toFixed(1)} KB), css/modules.bundle.css (${(Buffer.byteLength(moduleCssOut) / 1024).toFixed(1)} KB) and js/app.bundle.js (${(Buffer.byteLength(jsOut) / 1024).toFixed(1)} KB)`
 );
 console.log(`Built js/chunks: ${chunkSizes.join(' | ')}`);
+
+// 构建成功才落指纹：半途失败的话下次还会重试递增
+fs.writeFileSync(buildStatePath, JSON.stringify({ fp, version, at: new Date().toISOString() }, null, 2), 'utf8');

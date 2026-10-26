@@ -28,8 +28,10 @@ const MIME = {
 // 本地跑 Serverless 函数：把 Vercel 的 req.query / req.body / res.status().json()
 // 补齐成同一套接口，线上和本地就是同一份 api/leaderboard.js
 function runApi(req, res, pathname) {
+  const apiRoot = path.join(__dirname, 'api') + path.sep;
   const file = path.join(__dirname, pathname);
-  if (!file.startsWith(path.join(__dirname, 'api'))) {
+  // 不带 path.sep 的话 /api/../apifoo.js 也会通过 startsWith('…/api')
+  if (!file.startsWith(apiRoot)) {
     res.writeHead(404);
     res.end('404 Not Found');
     return;
@@ -78,7 +80,13 @@ function runApi(req, res, pathname) {
 }
 
 const server = http.createServer((req, res) => {
-  let reqPath = decodeURI(req.url.split('?')[0]);
+  let reqPath;
+  try {
+    reqPath = decodeURI(req.url.split('?')[0]);
+  } catch (e) {
+    // 畸形 URL（如 /%E0%A4%A）会抛 URIError，回调里没接住会直接打挂进程
+    res.writeHead(400); res.end('400 Bad Request'); return;
+  }
   if (reqPath === '/' || reqPath === '') reqPath = '/index.html';
   if (reqPath.startsWith('/api/')) {
     runApi(req, res, reqPath);

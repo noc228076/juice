@@ -7,3 +7,9 @@ server.js
 build-bundle.js
 template.html
 AGENT_HANDOVER.md
+# 死文件：重构前的旧主流程与旧样式，无任何引用，
+# 不排除部署（它们只是浪费传输），但明确标记给维护者
+js/app.js
+js/data.js
+js/drinks-art.js
+css/style.css

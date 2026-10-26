@@ -135,7 +135,7 @@
         '</div>' +
         note +
         '<div class="films-actions">' +
-          '<a class="films-open' + (kind === 'download' ? ' alt' : '') + '" href="' + escapeHtml(r.url) + '" target="_blank" rel="noopener noreferrer">' + openLabel + '</a>' +
+          '<a class="films-open' + (kind === 'download' ? ' alt' : '') + '" href="' + safeHref(r.url) + '" target="_blank" rel="noopener noreferrer">' + openLabel + '</a>' +
           '<button class="films-copy" data-url="' + escapeHtml(r.url) + '">复制地址</button>' +
         '</div>' +
       '</div>';
@@ -176,6 +176,12 @@
   /* 统一委托 window.escHtml（js/esc.js，核心包） */
   function escapeHtml(str) {
     return window.escHtml(str);
+  }
+
+  // href 用：只放行 http(s)，其余一律回落 '#'（防 javascript: 协议注入）
+  function safeHref(url) {
+    var u = String(url || '');
+    return /^https?:///i.test(u) ? window.escUrl(u) : '#';
   }
 
   function loadFilms(force) {

@@ -520,15 +520,10 @@
       };
     }
 
-    // 绑定东西方玄学互跳开关
+    // 东西方玄学互跳：router.js 已经用 addEventListener 绑过一遍（还带音效），
+    // 这里再 onclick 绑一次会让每次点击响两声、导航走两次。
     document.querySelectorAll('[data-ew-jump]').forEach(btn => {
-      btn.onclick = () => {
-        const targetMod = btn.dataset.ewJump;
-        if (window.SFX && window.SFX.tap) window.SFX.tap();
-        if (window.AppRouter && typeof window.AppRouter.switchModule === 'function') {
-          window.AppRouter.switchModule(targetMod);
-        }
-      };
+      btn.onclick = null;
     });
   }
 

@@ -266,7 +266,9 @@
 
     let h = '';
     filtered.forEach(item => {
-      const color = item.color || '#D6FF4B';
+      // color 会进 style 属性：白名单校验，含引号/分号等就回落默认色，
+      // 否则一段恶意 color 就能突破 style="" 注入任意标签属性
+      const color = /^#[0-9a-fA-F]{3,8}$/.test(String(item.color || '')) ? item.color : '#D6FF4B';
       const bgRgba = hexToRgba(color, 0.12);
       const glowRgba = hexToRgba(color, 0.28);
       const tagRgba = hexToRgba(color, 0.16);
@@ -274,14 +276,14 @@
 
       h += `
         <div class="uni-hist-item" data-id="${item.id}" style="--card-accent:${color};--avatar-bg:${bgRgba};--avatar-glow:${glowRgba};--tag-bg:${tagRgba};--card-accent-border:${borderRgba};">
-          <div class="uni-hist-avatar">${item.avatar}</div>
+          <div class="uni-hist-avatar">${window.escHtml(String(item.avatar || ""))}</div>
           <div class="uni-hist-body">
             <div class="uni-hist-top">
-              <span class="uni-hist-mod-tag">${item.badge}</span>
-              <span class="uni-hist-time">${item.time}</span>
+              <span class="uni-hist-mod-tag">${window.escHtml(String(item.badge || ""))}</span>
+              <span class="uni-hist-time">${window.escHtml(String(item.time || ""))}</span>
             </div>
-            <div class="uni-hist-title">${item.title}</div>
-            <div class="uni-hist-sub">${item.subtitle}</div>
+            <div class="uni-hist-title">${window.escHtml(String(item.title || ""))}</div>
+            <div class="uni-hist-sub">${window.escHtml(String(item.subtitle || ""))}</div>
           </div>
           <div class="uni-hist-ops">
             <button class="uni-btn-view" data-view-id="${item.id}" title="查看并还原结果页面">查看 →</button>

@@ -19,8 +19,9 @@
   /* URL 属性专用：先做 HTML 转义防打断属性，再兜底只放行 http(s)/相对路径，
      拒绝 javascript: / data: 等协议（网络数据进 href/src 时的标准姿势） */
   function escUrl(v) {
+    // 浏览器解析 URL 前会剥除 scheme 里的制表符/换行（java\tscript: 仍按 javascript: 执行）
     const s = escHtml(v);
-    if (/^\s*(javascript|vbscript|data):/i.test(String(v == null ? '' : v))) return '#';
+    if (/^\s*(javascript|vbscript|data):/i.test(String(v == null ? '' : v).replace(/[\t\r\n]/g, ''))) return '#';
     return s;
   }
 

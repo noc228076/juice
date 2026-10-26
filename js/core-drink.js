@@ -3825,7 +3825,7 @@ const SFX = (function () {
       if (answers.length >= qList.length) {
         setTimeout(() => startShake(), 340);
       } else {
-        setTimeout(() => { qIdx++; renderQuestion(); SFX.page(); }, 280);
+        setTimeout(() => { qIdx = answers.length; renderQuestion(); SFX.page(); }, 280);
       }
       return;
     }
@@ -3854,7 +3854,7 @@ const SFX = (function () {
     if (answers.length >= qList.length) {
       setTimeout(() => startShake(), 340);
     } else {
-      setTimeout(() => { qIdx++; renderQuestion(); SFX.page(); }, 280);
+      setTimeout(() => { qIdx = answers.length; renderQuestion(); SFX.page(); }, 280);
     }
   }
 

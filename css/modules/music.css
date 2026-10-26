@@ -1534,10 +1534,19 @@ html[data-theme="light"] .mu-player .mu-bar-progress { background: rgba(20, 24, 
   .mu-op { width: 30px; height: 30px; }
   .mu-op.big { width: 36px; height: 36px; }
 }
-/* 极窄屏：只留传输控件与沉浸，模式按钮收进沉浸页 */
+/* 极窄屏：右列有 6 个按钮（模式/音量/收藏/词/列表/全屏），
+   中央传输控件是绝对定位居中——右列太宽就会压住上一首/下一首。
+   实测 504px 以下开始相交。480px 以下收掉收藏和模式。 */
 @media (max-width: 480px) {
-  .mu-ops-side #muShuffle,
-  .mu-ops-side #muRepeat { display: none; }
+  /* 旧版按钮 id 是 muShuffle/muRepeat，早已改名 muMode，原选择器从未生效 */
+  .mu-ops-side #muBarLove,
+  .mu-ops-side #muMode { display: none; }
+  .mu-ops-side .mu-op { width: 28px; height: 28px; }
+  .mu-ops-side .mu-op.big { width: 34px; height: 34px; }
+}
+@media (max-width: 400px) {
+  .mu-ops-side #muBarLyricBtn { display: none; }
+  .mu-player { padding: 0 8px; }
 }
 
 /* ==========================================================================

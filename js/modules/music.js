@@ -3262,10 +3262,14 @@
              s.match(/music\.163\.com\/(?:m\/)?playlist\/(\d+)/i);
     if (wy) return { platform: '网易云音乐', kind: 'wy', id: wy[1] };
 
-    // QQ 音乐：y.qq.com/n/ryqq/playlist/{id} 或 c6.y.qq.com/.../playlist?id=
-    var qq = s.match(/y\.qq\.com\/n\/ryqq\/playlist\/(\d+)/i) ||
-             s.match(/y\.qq\.com\/[^\s]*?playlist[^\s]*?[?&]id=(\d+)/i) ||
-             s.match(/i\.y\.qq\.com\/[^\s]*?[?&]id=(\d+)/i);
+    // QQ 音乐：y.qq.com/n/ryqq/playlist/{id}、c6.y.qq.com/.../playlist?id=、
+    // 以及手机端分享页 i2.y.qq.com/n3/other/pages/details/playlist.html?id=
+    // （子域名有 i / i2 / c6 / y 等，统一用 [a-z0-9]*\.y\.qq\.com 兜住）
+    var qq = s.match(/(?:[a-z0-9]+\.)?y\.qq\.com\/n\/ryqq\/playlist\/(\d+)/i) ||
+             s.match(/(?:[a-z0-9]+\.)?y\.qq\.com\/[^\s]*?playlist[^\s]*?[?&]id=(\d+)/i) ||
+             s.match(/(?:[a-z0-9]+\.)?y\.qq\.com\/[^\s]*?[?&]disstid=(\d+)/i) ||
+             // 手机端分享页没有 playlist 字样时，任何一个 id= 数字都按歌单 id 试
+             s.match(/(?:[a-z0-9]+\.)?y\.qq\.com\/[^\s]*?[?&]id=(\d+)/i);
     if (qq) return { platform: 'QQ音乐', kind: 'tx', id: qq[1] };
 
     // 酷狗：kugou.com/yy/special/single/{id}.html 或 m.kugou.com/plist/list/{id}
@@ -3285,8 +3289,60 @@
   /** 按平台拉歌单，返回 { name, tracks: [{title, artist, cover}] } */
   function fetchPlaylist(p) {
     if (p.kind === 'wy') return fetchWyPlaylist(p.id);
+    if (p.kind === 'tx') return fetchTxPlaylist(p.id);
     // 其它平台暂时走「歌单名 + 搜索」的近似方案
     return Promise.resolve({ name: '', tracks: [], error: p.platform + ' 歌单暂未支持，请改用文本导入' });
+  }
+
+  /**
+   * QQ 音乐歌单。
+   *
+   * 老的 c.y.qq.com/fcg-bin/fcg_ucc_getcdinfo_byids_cp.fcg 已经校验
+   * Referer，直接调返回 invalid referer；改用 u.y.qq.com 的 musicu.fcg
+   * （srfDissInfo.aiDissInfo / uniform_get_Dissinfo），一次就能拿到
+   * 歌单名、封面和全部歌曲（实测 141 首），且不需要登录。
+   */
+  function fetchTxPlaylist(id) {
+    var payload = {
+      req_1: {
+        module: 'music.srfDissInfo.aiDissInfo',
+        method: 'uniform_get_Dissinfo',
+        param: { disstid: Number(id), enc_host_uin: '', tag: 1, userinfo: 1, is_pc: 1 }
+      },
+      comm: { ct: 24, cv: 0 }
+    };
+    var url = 'https://u.y.qq.com/cgi-bin/musicu.fcg?format=json&data=' +
+      encodeURIComponent(JSON.stringify(payload));
+
+    return window.LxRequest.httpFetch(url, { timeout: 15000 }).promise.then(function (resp) {
+      var d = resp && resp.body && resp.body.req_1 && resp.body.req_1.data;
+      if (!d) return { name: '', tracks: [], error: '歌单不存在或已设为私密' };
+      var songs = (d.songlist || []).map(normTxTrack).filter(function (x) { return x.title; });
+      var dir = d.dirinfo || {};
+      return {
+        name: dir.title || d.dissname || '',
+        cover: dir.picurl || '',
+        tracks: songs,
+        error: songs.length ? '' : '歌单里没有歌曲'
+      };
+    }).catch(function (e) {
+      return { name: '', tracks: [], error: (e && e.message) || '网络错误' };
+    });
+  }
+
+  /** QQ 歌曲统一成 { title, artist, cover, interval } */
+  function normTxTrack(t) {
+    var singers = t.singer || [];
+    var album = t.album || {};
+    // 封面靠 albumMid 拼，接口里不一定直接给图
+    var cover = album.picurl || album.picUrl ||
+      (album.mid ? 'https://y.gtimg.cn/music/photo_new/T002R300x300M000' + album.mid + '.jpg' : '');
+    return {
+      title: String(t.name || t.title || '').trim(),
+      artist: singers.map(function (s) { return s.name; }).filter(Boolean).join('、'),
+      cover: cover,
+      interval: t.interval ? fmtTime(t.interval) : ''
+    };
   }
 
   /** 网易云歌单：v6 detail 给歌单信息 + trackIds，再批量取歌曲详情 */

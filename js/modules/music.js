@@ -58,6 +58,57 @@
     try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (e) {}
   }
 
+  /* ---------------- 播放现场（刷新后接着放） ----------------
+     队列、当前曲目索引、播放进度单独存一份，和歌单数据分开：
+     歌单是用户的长期资产，播放现场只是「上次听到哪」，
+     彼此污染会让一次坏数据同时毁掉两边。 */
+  var LIVE_KEY = 'juice_music_live_v1';
+  // 上次真正有效的播放进度。还原后如果用户没点播放，audio.currentTime
+  // 恒为 0，任何一次 saveLive 都会把这个 0 写进存档，把进度冲掉。
+  // 所以单独记一份，只有「确实在播放」时才更新它。
+  var knownPos = 0;
+
+  function saveLive() {
+    // 还原现场期间一律不写：此时 audio 还没 src，写进去的 pos 会是 0
+    if (restoringLive) return;
+    if (!queue.length || qi < 0) {
+      try { localStorage.removeItem(LIVE_KEY); } catch (e) {}
+      return;
+    }
+    var writePos = pendingSeek ? pendingSeek.pos : knownPos;    try {
+      localStorage.setItem(LIVE_KEY, JSON.stringify({
+        v: 1,
+        qi: qi,
+        name: qName,
+        at: Date.now(),
+        pos: pendingSeek ? pendingSeek.pos : knownPos,
+        // 完整队列：track 里含取址所需的 songmid/hash/types
+        queue: queue.map(function (x) {
+          return {
+            kind: x.kind, id: x.id, title: x.title, artist: x.artist,
+            cover: x.cover || '', url: x.url || '', source: x.source || '',
+            interval: x.interval || '', track: x.track || null
+          };
+        })
+      }));
+    } catch (e) {
+      // 队列里有本地文件（objectURL）时可能超配额；退化成只存元信息
+      try {
+        localStorage.setItem(LIVE_KEY, JSON.stringify({ v: 1, qi: qi, name: qName, at: Date.now(), pos: knownPos, queue: [] }));
+      } catch (e2) {}
+    }
+  }
+
+  function readLive() {
+    try {
+      var raw = localStorage.getItem(LIVE_KEY);
+      if (!raw) return null;
+      var d = JSON.parse(raw);
+      if (!d || !Array.isArray(d.queue) || !d.queue.length) return null;
+      return d;
+    } catch (e) { return null; }
+  }
+
   function esc(v) { return window.escHtml(v); }
   function uid() { return 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 
@@ -77,6 +128,14 @@
     s = Math.max(0, Math.floor(s || 0));
     var m = Math.floor(s / 60);
     return m + ':' + (s % 60 < 10 ? '0' : '') + (s % 60);
+  }
+  /** "04:19" → 259；解析不出来返回 0 */
+  function parseIntervalSec(v) {
+    var parts = String(v || '').split(':').map(Number);
+    if (parts.length < 2 || parts.some(isNaN)) return 0;
+    return parts.length === 3
+      ? parts[0] * 3600 + parts[1] * 60 + parts[2]
+      : parts[0] * 60 + parts[1];
   }
   function fileNameTitle(name) {
     return String(name || '').replace(/\.[a-zA-Z0-9]{2,5}$/, '');
@@ -108,6 +167,13 @@
     audio.addEventListener('play', function () { syncPlayUI(true); });
     audio.addEventListener('playing', function () { failStreak = 0; });
     audio.addEventListener('pause', function () { syncPlayUI(false); });
+    // 拖动进度条后立刻落盘：直接赋值 currentTime 不一定马上触发
+    // timeupdate，用户拖完就关页面会把进度丢在拖动前的位置
+    audio.addEventListener('seeked', function () {      lastSavedAt = 0;                        // 绕过两秒节流
+      lastSavedSec = Math.floor(audio.currentTime || 0);
+      knownPos = lastSavedSec;
+      saveLive();
+    });
     audio.addEventListener('error', function () {
       /* 搜索结果里相当比例是已下架曲（接口 403/404），点中时自动跳下一首 */
       if (qName === '搜索结果' && queue.length > 1 && failStreak < 8) {
@@ -128,7 +194,6 @@
     qi = (idx == null || idx < 0 || idx >= queue.length) ? 0 : idx;
     playCurrent();
   }
-
   /**
    * 插队播放：把单曲插到当前曲目后面，不打断正在播的歌。
    * 用户正在听自己的歌单时点搜索结果，期望是「加一首进来」，
@@ -155,12 +220,12 @@
     toast('已插到下一首播放');
     if (queuePanelEl) renderQueuePanel();
     if (tab === 'lists') renderHome();
+    saveLive();
   }
 
-  function playCurrent() {
+  function playCurrent(wantPlay) {
     if (!queue.length) return;
     cur = queue[qi];
-
     // 队列项可能还没有播放地址（榜单/搜索的条目要等音源脚本给）。
     // 关键：先把这首歌显示到播放条并提示「正在加载」，
     // 而不是等地址拿到才出现——用户点了歌，播放条应该立刻有反应。
@@ -191,7 +256,7 @@
         pending.url = url;
         pending.loading = false;
         setBarLoading(false);
-        playCurrent();
+        playCurrent(wantPlay);
       }).catch(function (e) {
         if (cur !== pending) return;
         pending.loading = false;
@@ -203,7 +268,51 @@
     var a = ensureAudio();
     try { a.pause(); } catch (e) {}
     a.src = cur.url;
-    a.play().catch(function () { /* 自动播放策略被拦：等用户点播放 */ });
+    // 刷新后恢复播放：把进度跳回去。必须等 metadata 就绪，
+    // 设得太早会被加载流程重置成 0。
+    if (pendingSeek && pendingSeek.id === cur.id) {
+      var seekTo = pendingSeek.pos;
+      pendingSeek = null;
+      restoreAutoPlay = wantPlay;
+      var applied = false;
+      var applySeek = function () {
+        if (applied) return;
+        // 必须等到 readyState >= HAVE_FUTURE_DATA(3)：
+        // 只有元数据（1）时设 currentTime 会被浏览器排队，
+        // 期间任何一次 pause() 都会让这次 seek 被丢弃并回到 0
+        // （实测 seeked 事件的 currentTime 就是 0，不是 100）。
+        if (a.readyState < 3) return;
+        if (!isFinite(a.duration) || a.duration <= 0) return;
+        applied = true;        a.removeEventListener('loadedmetadata', applySeek);
+        a.removeEventListener('durationchange', applySeek);
+        a.removeEventListener('canplay', applySeek);
+        a.removeEventListener('canplaythrough', applySeek);
+        if (seekTo > 0 && seekTo < a.duration - 2) {
+          try { a.currentTime = seekTo; } catch (e) {}
+        }
+        onProgress();
+        // 还原时是从暂停态点播放：seek 会被 pause/src 重置打断，
+        // 所以要等这里真正就位后再起播
+        if (restoreAutoPlay) {
+          restoreAutoPlay = false;
+          a.play().catch(function () {});
+        }
+      };
+      // readyState 已够就直接应用；否则挂满四个进度事件等首帧数据
+      if (a.readyState >= 3 && isFinite(a.duration) && a.duration > 0) {
+        applySeek();
+      } else {
+        a.addEventListener('loadedmetadata', applySeek);
+        a.addEventListener('durationchange', applySeek);
+        a.addEventListener('canplay', applySeek);
+        a.addEventListener('canplaythrough', applySeek);
+      }
+    }
+    // 还原现场时由 applySeek 在 seek 完成后再起播，这里不能抢跑：
+    // src 刚赋值就 play 会被随后的 seek 打断，表现为点了播放却停在 0
+    if (!restoreAutoPlay) {
+      a.play().catch(function () { /* 自动播放策略被拦：等用户点播放 */ });
+    }
     updateMediaSession();
     syncPlayUI(!a.paused);
     syncBarMeta();
@@ -217,6 +326,7 @@
     loadLyricFor(cur);
     loadCoverFor(cur);
     if (immEl) refreshImmersiveLyric();
+    saveLive();
   }
 
   /** 搜索接口大多不带封面，播放时补一张（结果按歌名+歌手缓存） */
@@ -252,6 +362,9 @@
       return;
     }
     var a = ensureAudio();
+    // 刷新还原后 cur.url 是空的（地址在播放时才取），
+    // 此时直接 play() 只会播放一个空 src，必须走完整取址流程
+    if (!a.currentSrc && !cur.url) { playCurrent(true); return; }
     if (a.paused) a.play().catch(function () {});
     else a.pause();
   }
@@ -282,6 +395,12 @@
   function onProgress() {
     var p = 0, t = 0, d = 0;
     if (audio) { t = audio.currentTime || 0; d = audio.duration || 0; p = d ? t / d : 0; }
+    // 还原现场时 duration 还是 0，进度条按存档位置估算一个比例，
+    // 免得播放条看起来像「刚从头开始」
+    if (!d && pendingSeek && cur && pendingSeek.id === cur.id) {
+      var known = parseIntervalSec(cur.interval);
+      if (known) p = Math.min(1, pendingSeek.pos / known);
+    }
     var bars = document.querySelectorAll('.mu-bar-progress i');
     for (var i = 0; i < bars.length; i++) bars[i].style.width = (p * 100).toFixed(2) + '%';
     var times = document.querySelectorAll('.mu-time-cur');
@@ -302,6 +421,37 @@
     // 播放条那行歌词跟着进度走
     updateBarLyric(t);
     updateBarTime(t, d);
+    // 播放位置定期落盘（约 2 秒一次），刷新后能接上
+    maybeSaveProgress(t);
+  }
+
+  /**
+   * 进度落盘节流。
+   * timeupdate 每秒触发 4 次左右，每次都 JSON.stringify 整个队列
+   * 在长列表上会造成明显卡顿，所以只在秒数变化且距上次写入超过
+   * 2 秒时才写。
+   */
+  var lastSavedSec = -1;
+  var lastSavedAt = 0;
+  // 待恢复进度应用后是否要立刻起播（用户点播放时才为 true）
+  var restoreAutoPlay = false;
+  function maybeSaveProgress(t) {
+    // 还原现场期间不能写：audio 还没 src、currentTime 恒为 0，
+    // 一写就把刚读出来的存档进度冲成 0，下次刷新就真的丢了。
+    if (restoringLive) return;
+    if (pendingSeek) return;
+    var sec = Math.floor(t || 0);
+    // 只有真正拿到了时长和进度才更新 knownPos：
+    // 地址还没加载、起点为 0 的瞬间不能当成「用户听到了 0 秒」
+    if (sec > 0 || (audio && audio.duration > 0 && audio.currentTime === 0)) {
+      knownPos = sec;
+    }
+    var now = Date.now();
+    if (sec === lastSavedSec && now - lastSavedAt < 4000) return;
+    if (now - lastSavedAt < 2000) return;
+    lastSavedSec = sec;
+    lastSavedAt = now;
+    saveLive();
   }
 
   /** 播放条上的「当前 / 总时长」。
@@ -312,6 +462,14 @@
     var curEl = document.getElementById('muPtCur');
     var durEl = document.getElementById('muPtDur');
     if (!curEl || !durEl) return;
+    // 还原现场时还没取到地址，duration 是 0、currentTime 恒为 0。
+    // 这里直接显示存档进度，而不是等 playCurrent 应用 seek——
+    // 否则刷新后播放条会显示 0:00，用户会以为进度丢了。
+    if (!d && pendingSeek && cur && pendingSeek.id === cur.id) {
+      curEl.textContent = fmtTime(pendingSeek.pos);
+      durEl.textContent = '0:00';
+      return;
+    }
     curEl.textContent = fmtTime(t);
     durEl.textContent = d ? fmtTime(d) : '0:00';
   }
@@ -1849,6 +2007,7 @@
     if (clr) clr.onclick = function () {
       try { audio.pause(); audio.removeAttribute('src'); audio.load(); } catch (e) {}
       cur = null; queue = []; qi = -1; qName = '';
+      saveLive();
       closeQueuePanel();
       syncPlayUI(false);
       syncBarMeta();
@@ -1980,6 +2139,7 @@
       syncBarVisibility();
       renderIfActive();
       closeQueuePanel();
+      saveLive();
       toast('播放列表已清空');
       return;
     }
@@ -1991,6 +2151,7 @@
     } else if (i < qi) {
       qi--;   // 删的是前面的，当前曲目索引左移
     }
+    saveLive();
     renderQueuePanel();
     if (tab === 'lists') renderHome();
     toast('已从播放列表移除');
@@ -2005,6 +2166,7 @@
     // 重新定位当前曲目：位置可能因为插入/移除变了
     var newIdx = queue.indexOf(playing);
     if (newIdx > -1) qi = newIdx;
+    saveLive();
     renderQueuePanel();
     if (queuePanelEl) {
       var body = queuePanelEl.querySelector('.mu-queue-body');
@@ -2914,6 +3076,7 @@
         else if (k === 'stop') {
           try { audio.pause(); audio.removeAttribute('src'); audio.load(); } catch (err) {}
           cur = null; queue = []; qi = -1;
+          saveLive();
           miniEl.style.display = 'none';
           renderIfActive();
         }
@@ -3361,7 +3524,77 @@
     else if (e.key === 'Escape' && imm) closeImmersive();
   }
 
-  /* ---------------- 模块接口 ---------------- */
+  /* ---------------- 还原播放现场 ----------------
+     刷新后把队列和进度放回去，但不自动播放：
+     浏览器的自动播放策略会拦掉没有用户手势的 play()，
+     真去调只会得到一个被拒绝的 Promise 和一条误导性的报错。
+     所以还原成「已加载、停在原进度、等用户点播放」。
+
+     也不复用上次存的播放地址：酷我的地址带过期 token，
+     放久了再刷新必然 403，只会给用户一条「播放失败」的假警报。
+     地址等真正点播放时重新取。 */
+  var liveRestored = false;
+  // 还原期间禁止进度回写，否则会把存档冲成 0
+  var restoringLive = false;
+  // 待恢复的播放位置：{ id, pos }，取到新地址后由 playCurrent 应用
+  var pendingSeek = null;
+
+  function restoreLive() {
+    if (liveRestored) return;
+    liveRestored = true;
+    var d = readLive();
+    if (!d) return;
+    restoringLive = true;
+    try {
+      applyLive(d);
+    } finally {
+      // 留一拍再解锁：renderHome 会在 init 末尾重建播放条，
+      // 期间还会有异步的 durationchange/loadedmetadata 触发 onProgress
+      setTimeout(function () { restoringLive = false; }, 1200);
+    }
+  }
+
+  function applyLive(d) {
+
+    queue = d.queue.map(function (x) {
+      // 失效的 objectURL 留着只会让点播放时报「格式不支持」
+      if (x.kind === 'local' && /^blob:/.test(x.url || '')) return null;
+      return x;
+    }).filter(Boolean);
+
+    if (!queue.length) { clearLive(); return; }
+    qName = d.name || '';
+    qi = (typeof d.qi === 'number' && d.qi >= 0 && d.qi < queue.length) ? d.qi : 0;
+    cur = queue[qi];
+    if (!cur) { clearLive(); return; }
+
+    // 队列里存下来的地址一律作废，播放时重新取
+    queue.forEach(function (x) { if (x.kind !== 'link') x.url = ''; });
+
+    var pos = Math.max(0, Number(d.pos) || 0);    knownPos = pos;         // 存档进度先记下，避免被 0 覆盖
+    lastSavedSec = Math.floor(pos);
+    if (pos > 0) pendingSeek = { id: cur.id, pos: pos };
+
+    // 存档时间：超过 6 小时就不再提示「上次听到这里」，
+    // 隔夜回来看到停在半首歌反而奇怪
+    var stale = d.at && (Date.now() - d.at > 6 * 3600 * 1000);
+    if (stale) pendingSeek = null;
+
+    updateMediaSession();
+    syncPlayUI(false);      // 暂停态：按钮显示播放三角
+    syncBarMeta();
+    syncBarVisibility();
+    renderIfActive();
+    renderMini();
+    loadLyricFor(cur);
+    loadCoverFor(cur);
+  }
+
+  function clearLive() {
+    try { localStorage.removeItem(LIVE_KEY); } catch (e) {}
+  }
+
+  /** 模块接口 ---------------- */
   function init() {
     el = document.getElementById('muRoot');
     if (!el) return;
@@ -3379,6 +3612,23 @@
         setTimeout(syncBarVisibility, 60);
         setTimeout(syncBarVisibility, 400);
       });
+      /* 离开/隐藏页面时立刻落盘一次。
+         timeupdate 的节流最多会丢 2 秒进度，直接关标签页时更是一点都存不下。
+         注意：这里必须用 knownPos，不能在 pagehide 里重读 audio.currentTime——
+         页面卸载时媒体元素可能已被浏览器拆掉，currentTime 会归零，
+         写下去的成了 0，刷新后进度就全丢了（这个坑真的踩过）。
+         visibilitychange 比 beforeunload 在移动端更可靠。 */
+      var flushLive = function () {        // 播放中才更新已知进度；暂停时 audio.currentTime 是可信的
+        if (audio && !audio.paused && isFinite(audio.currentTime) && audio.currentTime > 0) {
+          knownPos = Math.floor(audio.currentTime);
+        }
+        saveLive();
+      };
+      window.addEventListener('pagehide', flushLive);
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'hidden') flushLive();
+      });
+
       /* 路由切模块是异步的（等 chunk 加载完才摘 active 类），
          直接盯 #mod-music 的 class 变化最准 */
       var moTarget = document.getElementById('mod-music');
@@ -3398,6 +3648,7 @@
       });
       ensureAudio();
       ensureMini();
+      restoreLive();
 
       /* 首次进入时加载内置音源脚本 + 用户导入的脚本。
          内置脚本随包发布，开箱即可播放；用户导入的追加在后面。
@@ -3436,9 +3687,18 @@
       }
     }
     renderHome();
+    // renderHome 会重建整个播放条，上面还原时写进去的时间节点会被换成
+    // 新的 0:00；所以时间要在重建之后补一次
+    showRestoredTime();
   }
 
-  function restoreView() { renderHome(); }
+  /** 地址还没取到时，先把存档进度显示在播放条上 */
+  function showRestoredTime() {
+    if (!pendingSeek) return;
+    onProgress();
+  }
+
+  function restoreView() { renderHome(); showRestoredTime(); }
 
   function destroy() {
     /* 只卸模块级 UI；audio / 迷你条 / 键盘监听保留——跨模块继续播放 */
@@ -3452,4 +3712,5 @@
   }
 
   window.AppMusic = { init: init, restoreView: restoreView, destroy: destroy };
+
 })();

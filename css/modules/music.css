@@ -2708,3 +2708,46 @@ html[data-theme="light"] .mu-immersive {
   border-color: var(--mod-ac-glow);
 }
 .mu-sort-btn .mu-ico { width: 12px; height: 12px; }
+
+/* 沉浸页里的播放列表面板：要浮在沉浸页（z-index 400）之上，
+   而且底部不留播放条的空隙 */
+.mu-queue-mask.in-immersive {
+  z-index: 500;
+  padding-bottom: 16px;
+}
+.mu-queue-mask.in-immersive .mu-queue-panel {
+  background: rgba(18, 21, 27, 0.96);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+/* ==========================================================================
+   沉浸页控件：播放键绝对居中，左右两组各自贴边
+   ========================================================================== */
+.mu-immersive .mu-ops.imm {
+  position: relative;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 0;
+  padding: 6px 12px;
+  width: min(560px, 88vw);
+  box-sizing: border-box;
+}
+.mu-imm-ops-left {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  justify-self: start;
+}
+.mu-imm-ops-center {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-self: center;
+}
+.mu-imm-ops-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  justify-self: end;
+}

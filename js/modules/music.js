@@ -1592,16 +1592,17 @@
      点其他项直接跳过去。之前没有任何地方能看到「下一首是什么」。 */
   var queuePanelEl = null;
 
-  function toggleQueuePanel() {
+  function toggleQueuePanel(inImmersive) {
     if (queuePanelEl) { closeQueuePanel(); return; }
     if (!queue.length) { toast('播放列表是空的'); return; }
-    openQueuePanel();
+    openQueuePanel(inImmersive);
   }
 
-  function openQueuePanel() {
+  function openQueuePanel(inImmersive) {
     closeQueuePanel();
     queuePanelEl = document.createElement('div');
-    queuePanelEl.className = 'mu-queue-mask';
+    // 沉浸页 z-index 400，面板必须更高才能浮在上面
+    queuePanelEl.className = 'mu-queue-mask' + (inImmersive || immEl ? ' in-immersive' : '');
     queuePanelEl.innerHTML = queuePanelHtml();
     document.body.appendChild(queuePanelEl);
     paintIcons(queuePanelEl);
@@ -2169,11 +2170,23 @@
         if (!l) return;
         var target = l.tracks[i];
         if (!target) return;
-        if (!target.url && target.track) {
-          playTrack(target, l.name);
-          return;
-        }
-        playQueue(l.tracks, l.name, i);
+        // 整页入队，从点击那首开始播。之前走 playTrack 只播单曲，
+        // 队列里永远只有一首，上一首/下一首和播放列表都是空的
+        var q = l.tracks.map(function (t) {
+          var inner = t.track || t;
+          return {
+            kind: 'list',
+            id: t.id || ((t.source || inner.source || '') + '_' + (inner.songmid || t.title)),
+            title: t.title,
+            artist: t.artist || inner.singer || '',
+            cover: t.cover || inner.img || '',
+            url: t.url || '',
+            track: t.track || null,
+            source: t.source || inner.source || '',
+            interval: t.interval || inner.interval || ''
+          };
+        });
+        playQueue(q, l.name, i);
       };
     });
 
@@ -2413,15 +2426,26 @@
             '<div class="mu-bar-progress"><i></i></div>' +
             '<input type="range" class="mu-seek" min="0" step="0.1" value="0">' +
             '<span class="mu-time mu-time-dur">0:00</span></div>' +
+          // 三组：左组贴左、播放键绝对居中、右组贴右，
+          // 这样播放键永远在正中，两侧按钮各自向外排
           '<div class="mu-ops imm">' +
-            '<button class="mu-op" data-imm="prev" title="上一首">' + icon('SkipBack') + '</button>' +
-            '<button class="mu-op big" data-imm="toggle" title="播放/暂停" data-morph="' + (playing ? 'Pause' : 'Play') + '">' + icon(playing ? 'Pause' : 'Play') + '</button>' +
-            '<button class="mu-op" data-imm="next" title="下一首">' + icon('SkipForward') + '</button>' +
-            // 歌词开关用「词」字：眼睛图标看不出是歌词
-            '<button class="mu-op lyric-btn' + (showLyric ? ' on' : '') + '" data-imm="lyric" title="' +
-              (showLyric ? '隐藏歌词' : '显示歌词') + '"><span class="mu-lyric-glyph' +
-              (showLyric ? '' : ' off') + '">词</span></button>' +
-            '<button class="mu-op" data-imm="exit" title="退出全屏（Esc）">' + icon('Minimize2') + '</button>' +
+            '<div class="mu-imm-ops-left">' +
+              '<button class="mu-op lyric-btn' + (showLyric ? ' on' : '') + '" data-imm="lyric" title="' +
+                (showLyric ? '隐藏歌词' : '显示歌词') + '"><span class="mu-lyric-glyph' +
+                (showLyric ? '' : ' off') + '">词</span></button>' +
+              '<button class="mu-op" data-imm="queue" title="播放列表">' + icon('ListMusic') + '</button>' +
+            '</div>' +
+            '<div class="mu-imm-ops-center">' +
+              '<button class="mu-op" data-imm="prev" title="上一首">' + icon('SkipBack') + '</button>' +
+              '<button class="mu-op big" data-imm="toggle" title="播放/暂停" data-morph="' + (playing ? 'Pause' : 'Play') + '">' + icon(playing ? 'Pause' : 'Play') + '</button>' +
+              '<button class="mu-op" data-imm="next" title="下一首">' + icon('SkipForward') + '</button>' +
+            '</div>' +
+            '<div class="mu-imm-ops-right">' +
+              '<button class="mu-op' + (playMode() !== 'all' ? ' on' : '') + '" data-imm="mode" title="' +
+                ({ one: '单曲循环', all: '顺序播放', shuffle: '随机播放' }[playMode()]) + '">' +
+                icon({ one: 'Repeat1', all: 'Repeat', shuffle: 'Shuffle' }[playMode()]) + '</button>' +
+              '<button class="mu-op" data-imm="exit" title="退出全屏（Esc）">' + icon('Minimize2') + '</button>' +
+            '</div>' +
           '</div>' +
         '</div>' +
       '</div>';
@@ -2431,6 +2455,21 @@
     immEl.querySelector('[data-imm="next"]').onclick = function () { nextTrack(false); };
     immEl.querySelector('[data-imm="toggle"]').onclick = togglePlay;
     immEl.querySelector('[data-imm="exit"]').onclick = closeImmersive;
+    var qBtn = immEl.querySelector('[data-imm="queue"]');
+    if (qBtn) qBtn.onclick = function () { toggleQueuePanel(true); };
+    var modeBtn = immEl.querySelector('[data-imm="mode"]');
+    if (modeBtn) modeBtn.onclick = function () {
+      cyclePlayMode();
+      // 沉浸页不随 renderHome 重建，图标要手动同步
+      var m = playMode();
+      var b = immEl.querySelector('[data-imm="mode"]');
+      if (b) {
+        b.innerHTML = icon({ one: 'Repeat1', all: 'Repeat', shuffle: 'Shuffle' }[m]);
+        paintIcons(b);
+        b.classList.toggle('on', m !== 'all');
+        b.title = { one: '单曲循环', all: '顺序播放', shuffle: '随机播放' }[m];
+      }
+    };
     immEl.querySelector('[data-imm="lyric"]').onclick = function () {
       showLyric = !showLyric;
       try { localStorage.setItem('juice_music_show_lyric', showLyric ? '1' : '0'); } catch (e) {}

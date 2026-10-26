@@ -60,6 +60,19 @@
 
   function esc(v) { return window.escHtml(v); }
   function uid() { return 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+
+  /* ---------------- 图标 ----------------
+     统一走 lucide 图标集：SVG 描边图标比 emoji 更贴合本站的线性语汇，
+     且能配合 morphicons 做形变（播放/暂停、音量/静音、收藏/取消）。 */
+  function icon(name, cls) {
+    return '<svg class="mu-ico' + (cls ? ' ' + cls : '') + '" viewBox="0 0 24 24" ' +
+      'aria-hidden="true" data-lucide="' + name + '"></svg>';
+  }
+  /** 渲染容器内所有 data-lucide 占位（renderHome / 弹层 / 播放条重建后都要调） */
+  function paintIcons(root) {
+    if (window.paintLucideIcons) window.paintLucideIcons(root || document);
+  }
+
   function fmtTime(s) {
     s = Math.max(0, Math.floor(s || 0));
     var m = Math.floor(s / 60);
@@ -198,6 +211,8 @@
     saveState();
     var vols = document.querySelectorAll('.mu-vol');
     for (var i = 0; i < vols.length; i++) vols[i].value = String(state.volume);
+    // 拖到 0 或拖离 0 时，静音图标要跟着形变
+    if (typeof updateMuteIcon === 'function') updateMuteIcon();
   }
 
   function updateMediaSession() {
@@ -576,6 +591,7 @@
   var currentLyric = null;     // { parsed: [{time,text}], source }
   var lyricTrackKey = '';      // 当前歌词对应的歌，避免重复请求
   var searchResults = [];      // [{title,artist,cover,url,track}]
+  var lastVolume = 0.7;        // 静音前的音量，用于一键恢复
   function runSearch(kw) {
     if (!kw) return;
     var mode = state.src.builtin === 'custom' ? 'lx' : state.src.builtin;
@@ -701,15 +717,15 @@
       '<span class="mu-row-ico">' +
         (t.cover
           ? '<img src="' + esc(t.cover) + '" alt="" loading="lazy">'
-          : (playing ? '▶' : '♪')) +
+          : icon(playing ? 'Pause' : 'Play')) +
       '</span>' +
       '<span class="mu-row-main"><b>' + esc(t.title) + '</b>' +
         (sub ? '<i>' + esc(sub) + '</i>' : '') +
       '</span>' +
       (dur ? '<span class="mu-row-dur">' + dur + '</span>' : '') +
       '<span class="mu-row-ops">' +
-        '<button class="mu-love' + (loved ? ' on' : '') + '" data-love="' + i + '" title="' + (loved ? '取消收藏' : '收藏') + '">' + (loved ? '♥' : '♡') + '</button>' +
-        '<button class="mu-addlist" data-addlist="' + i + '" title="加入歌单">＋</button>' +
+        '<button class="mu-love' + (loved ? ' on' : '') + '" data-love="' + i + '" title="' + (loved ? '取消收藏' : '收藏') + '">' + icon('Heart') + '</button>' +
+        '<button class="mu-addlist" data-addlist="' + i + '" title="加入歌单">' + icon('ListPlus') + '</button>' +
       '</span>' +
       '</div>';
   }
@@ -834,13 +850,13 @@
           '<span class="mu-row-ico">' +
             (t.cover || inner.img
               ? '<img src="' + esc(t.cover || inner.img) + '" alt="" loading="lazy">'
-              : (active ? '▶' : '♪')) +
+              : icon(active && audio && !audio.paused ? 'Pause' : 'Play')) +
           '</span>' +
           '<span class="mu-row-main"><b>' + esc(t.title) + '</b>' +
             (sub ? '<i>' + esc(sub) + '</i>' : '') + '</span>' +
           (dur ? '<span class="mu-row-dur">' + esc(dur) + '</span>' : '') +
           '<span class="mu-row-ops">' +
-            '<button class="mu-addlist" data-list-remove="' + i + '" title="从歌单移除">✕</button>' +
+            '<button class="mu-addlist" data-list-remove="' + i + '" title="从歌单移除">' + icon('X') + '</button>' +
           '</span></div>';
       }).join('') + '</div>';
     } else {
@@ -879,9 +895,13 @@
 
     var status = '';
     if (loaded.length) {
-      status = '<p class="mu-note ok">运行中：' + loaded.map(function (x) {
-        return esc(x.name) + '（' + x.sources.join('/') + '）';
-      }).join('、') + '</p>';
+      // 只说数量：脚本名一多这行会折成三四行，具体名字在下面的列表里都有
+      status = '<p class="mu-note ok">已加载 ' + loaded.length + ' 个音源，覆盖 ' +
+        (function () {
+          var set = {};
+          loaded.forEach(function (x) { (x.sources || []).forEach(function (s) { set[s] = 1; }); });
+          return Object.keys(set).map(function (s) { return s.toUpperCase(); }).join(' / ');
+        })() + '</p>';
     }
 
     return '<div class="mu-panel">' +
@@ -904,6 +924,7 @@
   function playerBarHtml() {
     var playing = audio && cur && !audio.paused;
     var cover = cur && cur.cover;
+    var muted = state.volume <= 0;
     return '<div class="mu-player">' +
       // 2px 进度条贴顶边缘
       '<div class="mu-bar"><span class="mu-time mu-time-cur">0:00</span>' +
@@ -912,22 +933,23 @@
         '<span class="mu-time mu-time-dur">0:00</span></div>' +
       // 左列：封面 + 标题
       '<div class="mu-disc' + (playing ? ' spin' : '') + '" id="muDisc">' +
-        (cover ? '<img src="' + esc(cover) + '" alt="">' : '<span>♪</span>') +
+        (cover ? '<img src="' + esc(cover) + '" alt="">' : icon('Play')) +
       '</div>' +
       '<div class="mu-player-title">' + (cur ? esc(cur.title) : '未在播放') +
         (cur && cur.artist ? ' <i>· ' + esc(cur.artist) + '</i>' : '') + '</div>' +
-      // 中列：传输控件
+      // 中列：传输控件（播放/暂停用 morphicons 形变）
       '<div class="mu-ops mu-ops-main">' +
-        '<button class="mu-op" id="muPrev" title="上一首">⏮</button>' +
-        '<button class="mu-op big" id="muToggle" title="播放/暂停">' + (playing ? '⏸' : '▶') + '</button>' +
-        '<button class="mu-op" id="muNext" title="下一首">⏭</button>' +
+        '<button class="mu-op" id="muPrev" title="上一首">' + icon('SkipBack') + '</button>' +
+        '<button class="mu-op big" id="muToggle" title="播放/暂停" data-morph="' + (playing ? 'Pause' : 'Play') + '">' + icon(playing ? 'Pause' : 'Play') + '</button>' +
+        '<button class="mu-op" id="muNext" title="下一首">' + icon('SkipForward') + '</button>' +
       '</div>' +
       // 右列：模式 / 音量 / 沉浸
       '<div class="mu-ops mu-ops-side">' +
-        '<button class="mu-op' + (state.shuffle ? ' on' : '') + '" id="muShuffle" title="随机">🔀</button>' +
-        '<button class="mu-op' + (state.repeat !== 'off' ? ' on' : '') + '" id="muRepeat" title="循环：' + state.repeat + '">🔁</button>' +
-        '<span class="mu-volwrap">🔊<input type="range" class="mu-vol" min="0" max="1" step="0.01" value="' + state.volume + '"></span>' +
-        '<button class="mu-op imm" id="muImmersive" title="沉浸模式">⛶</button>' +
+        '<button class="mu-op' + (state.shuffle ? ' on' : '') + '" id="muShuffle" title="随机">' + icon('Shuffle') + '</button>' +
+        '<button class="mu-op' + (state.repeat !== 'off' ? ' on' : '') + '" id="muRepeat" title="循环：' + state.repeat + '">' + icon('Repeat') + '</button>' +
+        '<span class="mu-volwrap"><button class="mu-op" id="muMute" title="' + (muted ? '取消静音' : '静音') + '" data-morph="' + (muted ? 'VolumeX' : 'Volume2') + '">' + icon(muted ? 'VolumeX' : 'Volume2') + '</button>' +
+          '<input type="range" class="mu-vol" min="0" max="1" step="0.01" value="' + state.volume + '"></span>' +
+        '<button class="mu-op imm" id="muImmersive" title="沉浸模式">' + icon('Maximize2') + '</button>' +
       '</div>' +
     '</div>';
   }
@@ -940,7 +962,7 @@
     ];
     return '<div class="mu-wrap">' +
       '<div class="mu-header">' +
-        '<div class="mu-mark">♪</div>' +
+        '<div class="mu-mark">' + icon('Play') + '</div>' +
         '<div class="mu-headtext">' +
           '<h2 class="mu-title">我的音乐台</h2>' +
           '<p class="mu-sub">' + sourceStatusText() + '</p>' +
@@ -971,11 +993,12 @@
   }
 
   /** 头部副标题：用真实状态代替空泛文案 */
+  /** 头部副标题：只说数量，不再罗列每个音源名字（名字一多就撑破一行） */
   function sourceStatusText() {
     if (!window.LxMusic) return '音源未就绪';
     var loaded = window.LxMusic.listLoaded ? window.LxMusic.listLoaded() : [];
-    if (!loaded.length) return '未加载音源脚本';
-    return loaded.map(function (x) { return x.name; }).join(' · ');
+    if (!loaded.length) return '未加载音源';
+    return '已加载 ' + loaded.length + ' 个音源';
   }
 
   function renderIfActive() {
@@ -997,6 +1020,9 @@
     mountAddListModal();
     bindHome();
     onProgress();
+    paintIcons(el);
+    paintIcons(document.getElementById('muPlayerBar'));
+    paintIcons(document.getElementById('muAddListMask'));
 
     if (prevValue) {
       var next = el.querySelector('#muSearchKw');
@@ -1049,8 +1075,102 @@
     if (disc) {
       disc.innerHTML = (cur && cur.cover)
         ? '<img src="' + esc(cur.cover) + '" alt="">'
-        : '<span>♪</span>';
+        : icon('Play');
+      paintIcons(disc);
     }
+  }
+
+  /* ---------------- 图标形变 ----------------
+     morphicons 能把一个 SVG 路径平滑插值到另一个图标。
+     播放/暂停、音量/静音、收藏/取消这三组是「同一位置的状态切换」，
+     形变比直接换图标更有连续性。形变失败时静默退回静态图标。 */
+  var morphCache = new WeakMap();
+
+  /** 让 el 内的 SVG 从 from 形变到 to。
+      首次调用前先把 SVG 重绘成 from 的单 path 版本——
+      静态图标可能是 rect 组合（Pause 就是两个 rect），
+      morphicons 在非 path 元素上插值会写出非法属性。 */
+  function morphIcon(el, from, to) {
+    if (!el || !window.MorphDOM || !window.LUCIDE_ICONS) return false;
+    var svg = el.querySelector('svg');
+    if (!svg) return false;
+    var fromIcon = window.LUCIDE_ICONS[from];
+    var toIcon = window.LUCIDE_ICONS[to];
+    if (!fromIcon || !toIcon) return false;
+    // 只支持单 path 之间的形变，形状数不一致会错位
+    if (fromIcon.length !== 1 || toIcon.length !== 1) return false;
+    if (fromIcon[0][0] !== 'path' || toIcon[0][0] !== 'path') return false;
+    try {
+      var m = morphCache.get(svg);
+      if (!m) {
+        // 用 from 的 path 重建一个干净的起点
+        while (svg.firstChild) svg.removeChild(svg.firstChild);
+        var p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        var attrs = fromIcon[0][1] || {};
+        for (var k in attrs) p.setAttribute(k, attrs[k]);
+        p.setAttribute('fill', 'none');
+        p.setAttribute('stroke', 'currentColor');
+        p.setAttribute('stroke-width', '2');
+        p.setAttribute('stroke-linecap', 'round');
+        p.setAttribute('stroke-linejoin', 'round');
+        svg.appendChild(p);
+        m = window.MorphDOM.createMorph(p, fromIcon, {});
+        morphCache.set(svg, m);
+      }
+      m.set(toIcon);
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /** 兜底：直接把按钮内容换成目标图标 */
+  function setIcon(btn, name) {
+    if (!btn) return;
+    btn.innerHTML = icon(name);
+    paintIcons(btn);
+  }
+
+  /** 播放/暂停按钮：优先形变，失败则换图。
+      形变必须用单 path 版本（PlayPath/PausePath）——morphicons 是在现有
+      元素上插值路径，两端形状数/类型不一致时会写出非法属性。 */
+  var MORPH_NAME = {
+    Play: 'PlayPath', Pause: 'PausePath',
+    Volume2: 'VolumePath', VolumeX: 'MutePath',
+    Eye: 'EyePath', EyeOff: 'EyeOffPath',
+    Heart: 'HeartPath'
+  };
+  function morphKey(name) { return MORPH_NAME[name] || name; }
+
+  function updateToggleIcon(playing) {
+    var bar = document.getElementById('muPlayerBar');
+    var btn = bar && bar.querySelector('#muToggle');
+    var to = playing ? 'Pause' : 'Play';
+    if (btn) {
+      var from = btn.getAttribute('data-morph') || 'Play';
+      if (!morphIcon(btn, morphKey(from), morphKey(to))) setIcon(btn, to);
+      btn.setAttribute('data-morph', to);
+    }
+    // 沉浸页那个大按钮也一起同步
+    var immBtn = immEl && immEl.querySelector('[data-imm="toggle"]');
+    if (immBtn) {
+      var ifrom = immBtn.getAttribute('data-morph') || 'Play';
+      if (!morphIcon(immBtn, morphKey(ifrom), morphKey(to))) setIcon(immBtn, to);
+      immBtn.setAttribute('data-morph', to);
+    }
+  }
+
+  /** 音量/静音按钮 */
+  function updateMuteIcon() {
+    var bar = document.getElementById('muPlayerBar');
+    var btn = bar && bar.querySelector('#muMute');
+    if (!btn) return;
+    var muted = state.volume <= 0;
+    var from = btn.getAttribute('data-morph') || (muted ? 'VolumeX' : 'Volume2');
+    var to = muted ? 'VolumeX' : 'Volume2';
+    if (!morphIcon(btn, morphKey(from), morphKey(to))) setIcon(btn, to);
+    btn.setAttribute('data-morph', to);
+    btn.title = muted ? '取消静音' : '静音';
   }
 
   /** 播放条在 body 上，单独绑定 */
@@ -1068,6 +1188,17 @@
     };
     var vol = bar.querySelector('.mu-vol');
     if (vol) vol.oninput = function () { setVolume(parseFloat(vol.value)); };
+    var mute = bar.querySelector('#muMute');
+    if (mute) mute.onclick = function () {
+      // 静音前记住原音量，再点一次恢复
+      if (state.volume > 0) {
+        lastVolume = state.volume;
+        setVolume(0);
+      } else {
+        setVolume(lastVolume > 0 ? lastVolume : 0.7);
+      }
+      updateMuteIcon();
+    };
     var seek = bar.querySelector('.mu-seek');
     if (seek) seek.oninput = function () {
       if (audio && audio.duration) audio.currentTime = parseFloat(seek.value);
@@ -1228,7 +1359,7 @@
             }).join('');
         }
         if (kw) {
-          html += '<div class="mu-suggest-item" data-sug="' + esc(kw) + '">🔍 搜索「' + esc(kw) + '」</div>';
+          html += '<div class="mu-suggest-item" data-sug="' + esc(kw) + '">' + icon('Search') + esc(kw) + '</div>';
         }
         if (!html) { sug.hidden = true; sug.innerHTML = ''; return; }
         sug.innerHTML = html;
@@ -1530,6 +1661,7 @@
     immEl.className = 'mu-immersive';
     immEl.innerHTML = immHtml();
     document.body.appendChild(immEl);
+    paintIcons(immEl);
     bindImmersive();
     syncPlayUI(audio && !audio.paused);
     onProgress();
@@ -1556,7 +1688,7 @@
         '<div class="mu-imm-left">' +
           '<div class="mu-imm-vinyl' + (playing ? ' spin' : '') + '">' +
             '<div class="mu-imm-disc' + (playing ? ' spin' : '') + '">' +
-              (cur && cur.cover ? '<img src="' + esc(cur.cover) + '" alt="">' : '<span>♪</span>') +
+              (cur && cur.cover ? '<img src="' + esc(cur.cover) + '" alt="">' : icon('Play')) +
             '</div><div class="mu-imm-hole"></div>' +
           '</div>' +
           '<div class="mu-imm-bars' + (playing ? ' on' : '') + '">' + bars + '</div>' +
@@ -1572,11 +1704,11 @@
             '<input type="range" class="mu-seek" min="0" step="0.1" value="0">' +
             '<span class="mu-time mu-time-dur">0:00</span></div>' +
           '<div class="mu-ops imm">' +
-            '<button class="mu-op" data-imm="prev" title="上一首">⏮</button>' +
-            '<button class="mu-op big" data-imm="toggle" title="播放/暂停">' + (playing ? '⏸' : '▶') + '</button>' +
-            '<button class="mu-op" data-imm="next" title="下一首">⏭</button>' +
-            '<button class="mu-op' + (showLyric ? ' on' : '') + '" data-imm="lyric" title="' + (showLyric ? '隐藏歌词' : '显示歌词') + '">词</button>' +
-            '<button class="mu-op" data-imm="exit" title="退出（Esc）">✕</button>' +
+            '<button class="mu-op" data-imm="prev" title="上一首">' + icon('SkipBack') + '</button>' +
+            '<button class="mu-op big" data-imm="toggle" title="播放/暂停" data-morph="' + (playing ? 'Pause' : 'Play') + '">' + icon(playing ? 'Pause' : 'Play') + '</button>' +
+            '<button class="mu-op" data-imm="next" title="下一首">' + icon('SkipForward') + '</button>' +
+            '<button class="mu-op' + (showLyric ? ' on' : '') + '" data-imm="lyric" title="' + (showLyric ? '隐藏歌词' : '显示歌词') + '">' + icon(showLyric ? 'Eye' : 'EyeOff') + '</button>' +
+            '<button class="mu-op" data-imm="exit" title="退出（Esc）">' + icon('X') + '</button>' +
           '</div>' +
         '</div>' +
       '</div>';
@@ -1594,6 +1726,10 @@
       if (box) box.classList.toggle('hidden', !showLyric);
       this.classList.toggle('on', showLyric);
       this.title = showLyric ? '隐藏歌词' : '显示歌词';
+      // Eye ↔ EyeOff 形变，跟播放/暂停用同一套
+      var eyeFrom = showLyric ? 'EyeOff' : 'Eye';
+      var eyeTo = showLyric ? 'Eye' : 'EyeOff';
+      if (!morphIcon(this, morphKey(eyeFrom), morphKey(eyeTo))) setIcon(this, eyeTo);
       // 从隐藏切回时强制重算：lastLyricIndex 可能是隐藏前留下的旧值，
       // 且隐藏期间容器高度为 0，留白也得重新量。
       // 必须重写 innerHTML——showLyric=false 时 lyricLinesHtml() 返回空串，
@@ -1640,10 +1776,11 @@
     miniEl.innerHTML =
       '<span class="mu-mini-dot' + (playing ? ' on' : '') + '"></span>' +
       '<span class="mu-mini-title">' + esc(cur.title) + '</span>' +
-      '<button class="mu-mini-btn" data-mini="toggle" title="播放/暂停">' + (playing ? '⏸' : '▶') + '</button>' +
-      '<button class="mu-mini-btn" data-mini="next" title="下一首">⏭</button>' +
-      '<button class="mu-mini-btn" data-mini="goto" title="打开播放器">🎧</button>' +
-      '<button class="mu-mini-btn" data-mini="stop" title="停止">✕</button>';
+      '<button class="mu-mini-btn" data-mini="toggle" title="播放/暂停">' + icon(playing ? 'Pause' : 'Play') + '</button>' +
+      '<button class="mu-mini-btn" data-mini="next" title="下一首">' + icon('SkipForward') + '</button>' +
+      '<button class="mu-mini-btn" data-mini="goto" title="打开播放器">' + icon('Maximize2') + '</button>' +
+      '<button class="mu-mini-btn" data-mini="stop" title="停止">' + icon('X') + '</button>';
+    paintIcons(miniEl);
     miniEl.querySelectorAll('[data-mini]').forEach(function (b) {
       b.onclick = function (e) {
         e.stopPropagation();
@@ -1666,8 +1803,7 @@
 
   function syncPlayUI(playing) {
     var bar = document.getElementById('muPlayerBar');
-    var t = bar && bar.querySelector('#muToggle');
-    if (t) t.textContent = playing ? '⏸' : '▶';
+    updateToggleIcon(!!playing);
     var d = bar && bar.querySelector('#muDisc');
     if (d) d.classList.toggle('spin', !!playing);
     var tt = document.querySelectorAll('.mu-imm-title');
@@ -1678,11 +1814,9 @@
       var vinyl = immEl.querySelector('.mu-imm-vinyl');
       var disc = immEl.querySelector('.mu-imm-disc');
       var bars = immEl.querySelector('.mu-imm-bars');
-      var btn = immEl.querySelector('[data-imm="toggle"]');
       if (vinyl) vinyl.classList.toggle('spin', !!playing);
       if (disc) disc.classList.toggle('spin', !!playing);
       if (bars) bars.classList.toggle('on', !!playing);
-      if (btn) btn.textContent = playing ? '⏸' : '▶';
     }
     renderMini();
     if ('mediaSession' in navigator) {

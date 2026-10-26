@@ -1914,3 +1914,50 @@ html[data-theme="light"] .mu-immersive {
   box-shadow: var(--shadow);
   text-align: center;
 }
+
+/* ==========================================================================
+   图标：统一 lucide 线性图标（替代原来的 emoji）
+   ========================================================================== */
+.mu-ico {
+  width: 16px;
+  height: 16px;
+  flex: none;
+  display: block;
+  stroke-width: 2;
+  pointer-events: none;
+}
+
+/* 播放条按钮里的图标 */
+.mu-op .mu-ico { width: 16px; height: 16px; }
+.mu-op.big .mu-ico { width: 18px; height: 18px; }
+
+/* 列表行媒体槽里的占位图标 */
+.mu-row-ico .mu-ico { width: 18px; height: 18px; opacity: .7; }
+.mu-row.active .mu-row-ico .mu-ico { opacity: 1; }
+
+/* 行内操作按钮 */
+.mu-love .mu-ico,
+.mu-addlist .mu-ico { width: 15px; height: 15px; }
+.mu-love.on .mu-ico { fill: currentColor; }
+
+/* 头部 mark：图标比文字更耐看 */
+.mu-mark .mu-ico { width: 18px; height: 18px; }
+
+/* 迷你条 */
+.mu-mini-btn .mu-ico { width: 13px; height: 13px; }
+
+/* 搜索联想 */
+.mu-suggest-item .mu-ico {
+  width: 14px;
+  height: 14px;
+  color: var(--tx-faint);
+}
+
+/* 沉浸页控件（深色底，图标要比常态亮） */
+.mu-immersive .mu-op .mu-ico { width: 17px; height: 17px; }
+.mu-immersive .mu-op.big .mu-ico { width: 19px; height: 19px; }
+.mu-imm-disc .mu-ico { width: 28px; height: 28px; color: rgba(255, 255, 255, .5); }
+
+/* 音量按钮紧贴滑块 */
+.mu-volwrap { gap: 4px; }
+.mu-volwrap .mu-op { width: 28px; height: 28px; }

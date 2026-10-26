@@ -88,7 +88,9 @@ html[data-active-module="scratch"] {
 /* 音乐播放器：青绿。与所有模块色拉开距离（饮品黄绿/说明书天蓝/玄学紫/时钟黄） */
 html[data-active-module="music"] {
   --mod-ac: #14B8A6;
-  --mod-ac-ink: #FFFFFF;
+  /* 青色底上用深墨色：白字在 #14B8A6 上只有 2.3:1，
+     改成近黑的深青后约 8:1，线性图标也看得更清 */
+  --mod-ac-ink: #04211E;
   --mod-ac-glow: rgba(20, 184, 166, 0.35);
   --mod-ambient: rgba(20, 184, 166, 0.06);
 }

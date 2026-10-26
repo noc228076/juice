@@ -100,6 +100,10 @@
     audio.style.display = 'none';
     document.body.appendChild(audio);
     audio.addEventListener('timeupdate', onProgress);
+    // 元数据就绪/时长变化时立刻刷一次：renderHome 重建播放条后
+    // duration 可能还是 NaN，等下一次 timeupdate 之前总时长会显示 0:00
+    audio.addEventListener('loadedmetadata', onProgress);
+    audio.addEventListener('durationchange', onProgress);
     audio.addEventListener('ended', onEnded);
     audio.addEventListener('play', function () { syncPlayUI(true); });
     audio.addEventListener('playing', function () { failStreak = 0; });
@@ -276,16 +280,16 @@
     updateBarTime(t, d);
   }
 
-  /** 播放条上的「当前 / 总时长」 */
-  var lastBarCur = '', lastBarDur = '';
+  /** 播放条上的「当前 / 总时长」。
+      不做「值没变就跳过写入」的缓存优化——播放条会被 renderHome 整体重建，
+      缓存留着旧值就会让新元素永远写不进去（表现为总时长恒为 0:00、
+      当前时间在 0 和真实进度之间跳）。写两次 textContent 的开销可以忽略。 */
   function updateBarTime(t, d) {
     var curEl = document.getElementById('muPtCur');
     var durEl = document.getElementById('muPtDur');
     if (!curEl || !durEl) return;
-    var cur = fmtTime(t);
-    var dur = d ? fmtTime(d) : '0:00';
-    if (cur !== lastBarCur) { curEl.textContent = cur; lastBarCur = cur; }
-    if (dur !== lastBarDur) { durEl.textContent = dur; lastBarDur = dur; }
+    curEl.textContent = fmtTime(t);
+    durEl.textContent = d ? fmtTime(d) : '0:00';
   }
 
   /** 播放条左侧的歌词行：取当前时间对应的那一句 */
@@ -695,6 +699,7 @@
 
   var activeListId = 'love';   // 当前查看的歌单
   var searching = false;       // 搜索进行中，用于按钮/骨架屏状态
+  var suppressSuggest = false; // 恢复焦点时临时禁止弹联想
   var searchProgress = '';     // 逐源进度文案
   var showLyric = true;        // 沉浸页是否显示歌词
   var currentLyric = null;     // { parsed: [{time,text}], source }
@@ -1392,7 +1397,13 @@
       var next = el.querySelector('#muSearchKw');
       if (next) {
         next.value = prevValue;
-        if (hadFocus) next.focus();
+        if (hadFocus) {
+          // 恢复焦点会触发 onfocus → renderSuggest，
+          // 刚搜完结果就摆在那儿，不该再弹一个下拉框挡住它
+          suppressSuggest = true;
+          next.focus();
+          suppressSuggest = false;
+        }
       }
     }
   }
@@ -1430,8 +1441,6 @@
   function syncBarMeta() {
     var bar = document.getElementById('muPlayerBar');
     if (!bar) return;
-    // 播放条可能刚被重建，时间缓存要清掉才会重新写入
-    lastBarCur = ''; lastBarDur = '';
     var titleEl = bar.querySelector('.mu-player-title');
     if (titleEl) {
       titleEl.innerHTML = (cur ? esc(cur.title) : '未在播放') +
@@ -1904,6 +1913,14 @@
     /* 联想：本地历史立即出，平台热词异步补上（防抖 250ms） */
     function renderSuggest() {
       if (!sug || !skw) return;
+      // 搜索进行中不弹联想：结果列表马上就要出来，
+      // 这时挂着下拉框会挡住内容，也容易误点。
+      // suppressSuggest 用于「重建 DOM 后恢复焦点」那一下，避免刚出结果又弹下拉。
+      if (searching || suppressSuggest) {
+        sug.hidden = true;
+        sug.innerHTML = '';
+        return;
+      }
       var kw = skw.value.trim();
       var hist = matchHistory(kw);
       var seq = ++suggestSeq;
@@ -1964,6 +1981,8 @@
 
     function doSearch(kw) {
       if (!kw) return;
+      // 开始搜索就收起联想/历史，否则结果都出来了下面还挂着下拉框
+      if (sug) { sug.hidden = true; sug.innerHTML = ''; }
       addHistory(kw);
       runSearch(kw);
     }

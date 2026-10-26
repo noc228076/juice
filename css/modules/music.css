@@ -1034,7 +1034,15 @@ html[data-theme="light"] .mu-row:hover { background: rgba(20, 24, 18, 0.04); }
 }
 .mu-love:hover,
 .mu-addlist:hover { background: var(--btn-ghost-bg); color: var(--tx); }
-.mu-love.on { color: var(--mod-ac); }
+/* 收藏后：实心红心。lucide 的 Heart 是描边图标，
+   用 fill 填满 + 红色描边就变成实心 */
+.mu-love.on { color: #ff4d6a; }
+.mu-love.on .mu-ico {
+  fill: #ff4d6a;
+  stroke: #ff4d6a;
+}
+.mu-love.on:hover { color: #ff6b83; }
+.mu-love.on:hover .mu-ico { fill: #ff6b83; stroke: #ff6b83; }
 
 /* 「播放」胶囊：hover 时才出现在行尾 */
 .mu-row-go {
@@ -1434,6 +1442,7 @@ html[data-theme="light"] .mu-player .mu-bar-progress { background: rgba(20, 24, 
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
+  z-index: 2;
 }
 .mu-ops-side {
   grid-column: 4;
@@ -1442,7 +1451,19 @@ html[data-theme="light"] .mu-player .mu-bar-progress { background: rgba(20, 24, 
 }
 .mu-disc { grid-column: 1; grid-row: 1; }
 .mu-player-title { grid-column: 2; grid-row: 1; }
-.mu-player-lyric { grid-column: 3; grid-row: 1; }
+/* 歌词只占「播放键右边缘 → 右侧控件左边缘」这一段，并在其中居中。
+   不能让它横跨整个中间列——播放按钮是绝对定位居中的，会被歌词盖住，
+   导致按钮中间那一竖条点不动。 */
+.mu-player-lyric {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  /* 左边界：屏幕中线 + 播放控件一半宽 + 间距 */
+  left: calc(50% + 76px);
+  /* 右边界：右侧控件宽度 + 条内边距 */
+  right: 216px;
+  text-align: center;
+}
 .mu-ops {
   display: flex;
   align-items: center;
@@ -1526,17 +1547,25 @@ html[data-theme="light"] .mu-player .mu-bar-progress { background: rgba(20, 24, 
      它内部的 grid 1fr 行才有确定高度可供歌词收缩 */
   align-items: stretch;
   justify-content: center;
-  /* 沉浸页永远深色，不跟随亮色主题：
-     里面全是硬编码的白色文字，浅色底下对比度只有 1.09:1 完全看不清 */
-  background: rgba(8, 10, 14, 0.94);
+  /* 有全站壁纸时用壁纸，没有才用纯深色。
+     --daily-bg-url 是 daily 模块写入的全局变量，设置壁纸后才有值；
+     这里叠一层深色遮罩保证白色歌词始终可读 */
+  background:
+    linear-gradient(rgba(8, 10, 14, 0.82), rgba(8, 10, 14, 0.9)),
+    var(--daily-bg-url, none) center center / cover no-repeat,
+    rgba(8, 10, 14, 0.94);
   backdrop-filter: blur(28px) saturate(140%);
   -webkit-backdrop-filter: blur(28px) saturate(140%);
   /* clip 而不是 hidden：hidden 仍是滚动容器，
      scrollIntoView 会把整个沉浸页顶走，底部控件跟着上下跳 */
   overflow: clip;
 }
+/* 亮色主题也保持深色底（白字需要），但壁纸照样透出来 */
 html[data-theme="light"] .mu-immersive {
-  background: rgba(8, 10, 14, 0.94);
+  background:
+    linear-gradient(rgba(8, 10, 14, 0.82), rgba(8, 10, 14, 0.9)),
+    var(--daily-bg-url, none) center center / cover no-repeat,
+    rgba(8, 10, 14, 0.94);
 }
 .mu-imm-bg {
   position: absolute;
@@ -2136,8 +2165,8 @@ html[data-theme="light"] .mu-immersive {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  text-align: center;
   transition: opacity .2s ease;
+  pointer-events: none;
 }
 .mu-player-lyric:empty { opacity: 0; }
 @media (max-width: 720px) {
@@ -2430,4 +2459,49 @@ html[data-theme="light"] .mu-immersive {
 .mu-ask-box .mu-textarea {
   font-family: inherit;
   margin-bottom: 4px;
+}
+
+/* ==========================================================================
+   搜索历史：单条删除 + 清空
+   ========================================================================== */
+.mu-suggest-head-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.mu-suggest-clear {
+  border: 0;
+  background: transparent;
+  color: var(--tx-faint);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+.mu-suggest-clear:hover { color: var(--warn-c); }
+/* 历史条目里的删除按钮：默认淡一点，hover 才显眼 */
+.mu-suggest-item { position: relative; }
+.mu-suggest-del {
+  flex: none;
+  margin-left: auto;
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--tx-faint);
+  opacity: 0;
+  cursor: pointer;
+  transition: opacity var(--mu-t-fast) var(--mu-ease), color var(--mu-t-fast) var(--mu-ease);
+}
+.mu-suggest-del .mu-ico { width: 11px; height: 11px; }
+.mu-suggest-item:hover .mu-suggest-del { opacity: 1; }
+.mu-suggest-del:hover { color: var(--warn-c); background: var(--btn-ghost-bg); }
+/* 触屏没有 hover，删除按钮常显 */
+@media (hover: none) {
+  .mu-suggest-del { opacity: .6; }
 }

@@ -941,7 +941,8 @@
           '<button class="mu-btn mini" id="muListImport" title="从分享链接导入歌单">' + icon('Link') + '导入</button>' +
           '<button class="mu-btn mini" id="muListNew" title="新建歌单">' + icon('Plus') + '新建</button>' +
           (current && current.id !== LOVE_ID
-            ? '<button class="mu-btn mini danger" id="muListDel" title="删除此歌单">' + icon('Trash2') + '删除</button>'
+            ? '<button class="mu-btn mini" id="muListRename" title="重命名歌单">' + icon('Pencil') + '改名</button>' +
+              '<button class="mu-btn mini danger" id="muListDel" title="删除此歌单">' + icon('Trash2') + '删除</button>'
             : '') +
         '</div>' +
       '</div>' +
@@ -1614,9 +1615,13 @@
         // 只有输入框为空（还没开始打字）时才给搜索历史；
         // 一旦输入了内容，这个位置应该只放真正的搜索建议
         if (!kw && hist.length) {
-          html += '<div class="mu-suggest-head">搜索历史</div>' +
+          html += '<div class="mu-suggest-head mu-suggest-head-row">搜索历史' +
+            '<button class="mu-suggest-clear" id="muHistoryClear" title="清空搜索历史">清空</button>' +
+            '</div>' +
             hist.map(function (x) {
-              return '<div class="mu-suggest-item" data-sug="' + esc(x) + '">' + icon('History') + esc(x) + '</div>';
+              return '<div class="mu-suggest-item" data-sug="' + esc(x) + '">' + icon('History') + esc(x) +
+                '<button class="mu-suggest-del" data-sug-del="' + esc(x) + '" title="删除这条">' + icon('X') + '</button>' +
+                '</div>';
             }).join('');
         }
         if (!html) { sug.hidden = true; sug.innerHTML = ''; return; }
@@ -1664,6 +1669,24 @@
 
     if (sug) {
       sug.onclick = function (e) {
+        // 删除单条历史
+        var del = e.target.closest('[data-sug-del]');
+        if (del) {
+          e.stopPropagation();
+          var word = del.getAttribute('data-sug-del');
+          state.history = state.history.filter(function (x) { return x !== word; });
+          saveState();
+          renderSuggest();
+          return;
+        }
+        // 清空历史
+        if (e.target.closest('#muHistoryClear')) {
+          e.stopPropagation();
+          state.history = [];
+          saveState();
+          renderSuggest();
+          return;
+        }
         var item = e.target.closest('[data-sug]');
         if (!item) return;
         var val = item.getAttribute('data-sug');
@@ -1877,14 +1900,29 @@
       });
     };
 
+    var listRename = el.querySelector('#muListRename');
+    if (listRename) listRename.onclick = function () {
+      var l = getList(activeListId);
+      if (!l) return;
+      askName('重命名歌单', '歌单名称', l.name, function (name) {
+        if (!name || name === l.name) return;
+        l.name = name;
+        saveState();
+        renderHome();
+        toast('已改名为「' + name + '」');
+      });
+    };
+
     var listDel = el.querySelector('#muListDel');
     if (listDel) listDel.onclick = function () {
       var l = getList(activeListId);
       if (!l) return;
-      if (!window.confirm('删除歌单「' + l.name + '」？')) return;
-      removeList(l.id);
-      activeListId = LOVE_ID;
-      renderHome();
+      askConfirm('删除歌单', '确定删除「' + l.name + '」？此操作不可撤销。', function () {
+        removeList(l.id);
+        activeListId = LOVE_ID;
+        renderHome();
+        toast('已删除');
+      });
     };
   }
 
@@ -2240,6 +2278,26 @@
   }
   function closeAsk() {
     if (askEl) { askEl.remove(); askEl = null; }
+  }
+
+  /** 页内确认弹层（替代 window.confirm） */
+  function askConfirm(title, message, onOk) {
+    closeAsk();
+    askEl = document.createElement('div');
+    askEl.className = 'mu-modal-mask';
+    askEl.innerHTML =
+      '<div class="mu-modal-box mu-ask-box">' +
+        '<h4 class="mu-modal-title">' + esc(title) + '</h4>' +
+        '<p class="mu-ask-hint">' + esc(message) + '</p>' +
+        '<div class="mu-modal-ops">' +
+          '<button class="mu-btn" id="muAskCancel">取消</button>' +
+          '<button class="mu-btn danger" id="muAskOk">确定</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(askEl);
+    askEl.querySelector('#muAskOk').onclick = function () { closeAsk(); onOk(); };
+    askEl.querySelector('#muAskCancel').onclick = closeAsk;
+    askEl.onclick = function (e) { if (e.target === askEl) closeAsk(); };
   }
 
   /* ---------------- 从分享链接导入歌单 ----------------

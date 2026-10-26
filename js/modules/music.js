@@ -234,7 +234,19 @@
     for (var i = 0; i < queue.length; i++) {
       if (queue[i].id === item.id) { exist = i; break; }
     }
-    if (exist === qi) { toast('正在播放这首'); return; }
+    if (exist === qi) {
+      // 已是当前曲。但它可能上次取址失败（url 空、没在取址中）——
+      // 这种情况点它应该重试，而不是弹「正在播放这首」把用户挡在外面：
+      // 失败后这首歌就永远点不动了（线上实测踩过）。
+      var curItem = queue[qi];
+      if (!curItem.url && curItem.track && !curItem.loading) {
+        playCurrent();
+        toast('重新获取播放地址…');
+        return;
+      }
+      toast('正在播放这首');
+      return;
+    }
     if (exist > -1) {
       qi = exist;
       playCurrent();
@@ -277,6 +289,8 @@
           var aa = ensureAudio();
           if (aa.paused && aa.getAttribute('src')) {
             try { aa.play().catch(function () {}); } catch (e) {}
+          } else {
+            toast('正在获取播放地址，稍候…');
           }
         }
         return;

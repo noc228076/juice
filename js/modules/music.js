@@ -1334,13 +1334,35 @@
   }
 
   /** 音源异步加载完成后只刷状态文案，不重建整块 DOM */
+  /** 音源异步加载完成后只刷状态文案，不重建整块 DOM */
   function syncSourceStatus() {
     var sub = document.querySelector('.mu-sub');
     if (sub) sub.textContent = sourceStatusText();
-    var note = document.querySelector('.mu-panel .mu-note.ok, .mu-panel .mu-note.warn');
-    if (note && tab === 'script') note.outerHTML = '<p class="mu-note ' +
-      (window.LxMusic && window.LxMusic.hasSource() ? 'ok' : 'warn') + '">' +
-      sourceStatusText() + '</p>';
+
+    // 搜索页那条「还没有可用的音源脚本」警告要跟着消失
+    if (tab === 'search') {
+      var panel = document.querySelector('.mu-panel');
+      if (panel) {
+        var hint = panel.querySelector('.mu-note.warn');
+        var ready = !!(window.LxMusic && window.LxMusic.hasSource());
+        if (ready && hint) {
+          hint.remove();
+        } else if (!ready && !hint) {
+          var p = document.createElement('p');
+          p.className = 'mu-note warn';
+          p.textContent = '还没有可用的音源脚本。曲库负责搜到歌，播放地址需要音源脚本提供——去「音源」页导入一个。';
+          panel.insertBefore(p, panel.firstChild);
+        }
+      }
+    }
+
+    // 音源页的状态行
+    if (tab === 'script') {
+      var note = document.querySelector('.mu-panel .mu-note.ok, .mu-panel .mu-note.warn');
+      if (note) note.outerHTML = '<p class="mu-note ' +
+        (window.LxMusic && window.LxMusic.hasSource() ? 'ok' : 'warn') + '">' +
+        sourceStatusText() + '</p>';
+    }
   }
 
   function renderIfActive() {
@@ -3059,10 +3081,17 @@
          边加载边刷出来，而不是等 Promise 链结束。 */
       if (window.LxMusic) {
         srcLoading = true;
+        var hadSource = false;
         var pollTimer = setInterval(function () {
           syncSourceStatus();
           var n = window.LxMusic.listLoaded().length;
           if (n > 0) srcLoading = false;
+          // 音源从「没有」变成「有」的那一刻，搜索页的警告条要撤掉；
+          // renderHome 会保留输入框的值和焦点，不会打断打字
+          if (n > 0 && !hadSource) {
+            hadSource = true;
+            if (tab === 'search') renderHome();
+          }
         }, 800);
         window.LxMusic.loadBuiltinScripts()
           .then(function () { return window.LxMusic.loadSavedScripts(); })
@@ -3070,7 +3099,7 @@
             clearInterval(pollTimer);
             srcLoading = false;
             syncSourceStatus();
-            if (tab === 'script') renderHome();
+            if (tab === 'script' || tab === 'search') renderHome();
             renderMini();
           })
           .catch(function (e) {

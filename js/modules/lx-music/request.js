@@ -77,9 +77,9 @@
    */
   function fetchData(url, method, opts, cb) {
     var controller = new AbortController();
-    // 默认 8 秒：搜索场景下 15 秒太长，会让用户以为卡死。
-    // 单个平台超时不影响其他平台（聚合器是并行 + 单源降级）。
-    var timeout = opts.timeout == null ? 6000 : opts.timeout;
+    // 默认 9 秒：本地 6 秒够用，线上（尤其手机蜂窝）经常不够，
+    // 太短会出现「所有源都超时、一条结果都没有」。单源超时不拖累其他源。
+    var timeout = opts.timeout == null ? 9000 : opts.timeout;
     var timer = null;
     var aborted = false;
 

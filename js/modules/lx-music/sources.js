@@ -84,7 +84,9 @@
      * 用户只会看到 spinner 一直转。这里设 9 秒上限，超时就用已有结果
      * 先返回，慢的源标记为超时。
      */
-    var HARD_LIMIT = 9000;
+    // 线上网络比本地慢不少，9 秒会偶发「全部超时、一条都没有」。
+    // 放宽到 12 秒，超时仍然用已完成的部分返回，不会白等。
+    var HARD_LIMIT = 12000;
     var done = [];          // 已完成的源结果
     var pending = ids.length;
 
@@ -104,7 +106,11 @@
 
       results.forEach(function (r) {
         if (r.error) {
-          errors.push({ source: r.id, message: (r.error && r.error.message) || String(r.error) });
+          var msg = (r.error && r.error.message) || String(r.error);
+          // 超时/取消对用户没有意义，换成可读的说明
+          if (/cancel request|ECANCELED/i.test(msg)) msg = '请求超时';
+          else if (/ETIMEDOUT|请求超时/.test(msg)) msg = '请求超时';
+          errors.push({ source: r.id, message: msg });
           bySource[r.id] = { list: [], total: 0 };
           return;
         }

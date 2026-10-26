@@ -747,6 +747,9 @@
           toast(res.errors.length ? ('没有搜到结果（' + res.errors[0].message + '）') : '没有搜到结果');
         } else if (res.errors.length) {
           toast('搜到 ' + searchResults.length + ' 首，' + res.errors.length + ' 个平台失败');
+        } else {
+          // 成功也要给个提示，盖掉上一次可能残留的失败 toast
+          toast('搜到 ' + searchResults.length + ' 首');
         }
       }).catch(function (e) {
         // 失败也要复位，否则 spinner 会一直转

@@ -105,7 +105,12 @@
 
     var key = cacheKey(track);
     var cache = loadCache();
-    if (cache[key]) return Promise.resolve(cache[key]);
+    // 7 天 TTL：缓存值是「按歌名搜出来的版本」的封面，源站改版后旧图
+    // 会一直错下去。旧格式（纯字符串）当过期处理，重新覆盖写入。
+    var hit = cache[key];
+    var hitUrl = hit && typeof hit === 'object' ? hit.url : (typeof hit === 'string' ? hit : '');
+    var fresh = hit && typeof hit === 'object' && (Date.now() - (hit.at || 0)) < 7 * 24 * 3600 * 1000;
+    if (hitUrl && fresh) return Promise.resolve(hitUrl);
 
     return searchKwPic(track).then(function (pic) {
       if (pic) {

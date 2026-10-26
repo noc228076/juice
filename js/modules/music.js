@@ -3660,8 +3660,16 @@
         .catch(function () { st.failed++; })
         .then(function () {
           st.done++;
-          // 每匹配到一首就重绘列表 + 进度，肉眼能看到列表在长
-          if (tab === 'lists' && activeListId === list.id) renderHome();
+          // 每匹配到一首就把列表画长一点。500 首的歌单如果每首都全量
+          // renderHome 是 O(n²)——歌越长越卡。按 500ms 节流，
+          // 全部完成时 Promise.all 的回调必定再刷一次，不会少显示。
+          if (tab === 'lists' && activeListId === list.id) {
+            var nowTick = Date.now();
+            if (!st.lastRender || nowTick - st.lastRender > 500) {
+              st.lastRender = nowTick;
+              renderHome();
+            }
+          }
           return worker();
         });
     }

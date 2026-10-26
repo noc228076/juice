@@ -1,10 +1,6 @@
 {
   "builds": [
     { "src": "api/**/*.js", "use": "@vercel/node" },
-    { "src": "api/proxy.js", "use": "@vercel/node" },
-    { "src": "api/wall.js", "use": "@vercel/node" },
-    { "src": "api/douban.js", "use": "@vercel/node" },
-    { "src": "api/zhuiju.js", "use": "@vercel/node" },
     { "src": "index.html", "use": "@vercel/static" },
     { "src": "lx-user-api-sandbox.html", "use": "@vercel/static" },
     { "src": "sw.js", "use": "@vercel/static" },
@@ -61,15 +57,6 @@
           "key": "Cache-Control",
           "value": "public, max-age=604800, stale-while-revalidate=2592000"
         },
-        {
-          "key": "Access-Control-Allow-Origin",
-          "value": "*"
-        }
-      ]
-    },
-    {
-      "source": "/(.*)",
-      "headers": [
         {
           "key": "Access-Control-Allow-Origin",
           "value": "*"

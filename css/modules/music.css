@@ -2807,6 +2807,19 @@ html[data-theme="light"] .mu-immersive {
   gap: 4px;
   justify-self: end;
 }
+/* 极窄屏（360-373px 普遍命中）：三组按钮总宽超过 88vw 胶囊，
+   溢出部分被 overflow:clip 裁掉，词/退出全屏会点不到。
+   收紧按钮尺寸并隐藏次要项。 */
+@media (max-width: 480px) {
+  .mu-immersive .mu-ops.imm { width: min(560px, 96vw); padding: 6px 8px; }
+  .mu-immersive .mu-ops.imm .mu-op { width: 27px; height: 27px; }
+  .mu-immersive .mu-ops.imm .mu-op.big { width: 33px; height: 33px; }
+  .mu-imm-ops-left, .mu-imm-ops-right { gap: 2px; }
+}
+@media (max-width: 360px) {
+  .mu-immersive .mu-ops.imm [data-imm="love"],
+  .mu-immersive .mu-ops.imm [data-imm="queue"] { display: none; }
+}
 
 /* 沉浸页音量：默认只有图标，hover 向上弹出垂直滑条 */
 .mu-imm-vol {

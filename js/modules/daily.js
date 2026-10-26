@@ -969,6 +969,10 @@
         const inner = decodeURIComponent(url.split('u=')[1] || '');
         if (/^https:\/\/(www|cn)\.bing\.com\/th\?id=OHR\./.test(inner)) url = inner;
       } catch (e) {}
+    // url 会拼进 CSS url("...")：非 bing 直链一律拒绝，含引号/括号能突破 url() 写入任意 CSS
+    // 并随 localStorage 持久化
+    const __bg = String(url);
+    if (__bg.indexOf('https://www.bing.com/th?id=OHR.') !== 0 && __bg.indexOf('https://cn.bing.com/th?id=OHR.') !== 0) return;
     }
     document.documentElement.style.setProperty('--daily-bg-url', `url("${url}")`);
     document.body.style.setProperty('--daily-bg-url', `url("${url}")`);

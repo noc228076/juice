@@ -1226,7 +1226,14 @@
 
     updateTick();
     if (tickerInterval) clearInterval(tickerInterval);
-    tickerInterval = setInterval(updateTick, 100);
+    // 100ms 的 ticker 永不停止：离开模块后仍每 100ms 刷隐藏 DOM。
+    // 页面不可见或模块被切走时挂空转闸，回到前台再接上。
+    tickerInterval = setInterval(function () {
+      if (document.hidden) return;
+      var mod = document.getElementById('mod-clock');
+      if (mod && !mod.classList.contains('active')) return;
+      updateTick();
+    }, 100);
   }
 
   function restore(recordData) {

@@ -194,11 +194,26 @@
    * 请求播放地址（多音源 fallback：按加载顺序依次尝试）
    * @returns {Promise<string>} 音频 URL
    */
-  function getMusicUrl(sourceId, musicInfo, quality) {
-    var candidates = sandboxes.filter(function (sb) {
+  function candidatesFor(sourceId) {
+    return sandboxes.filter(function (sb) {
       var info = sb.sources[sourceId];
       return info && info.actions && info.actions.indexOf('musicUrl') > -1;
     });
+  }
+
+  /**
+   * 单个沙箱取址。bridge 拿它做「逐脚本校验」，所以必须能指定沙箱。
+   */
+  function getMusicUrlFrom(sb, sourceId, musicInfo, quality) {
+    return requestFromSandbox(sb, {
+      source: sourceId,
+      action: 'musicUrl',
+      info: { type: quality || '128k', musicInfo: musicInfo }
+    });
+  }
+
+  function getMusicUrl(sourceId, musicInfo, quality) {
+    var candidates = candidatesFor(sourceId);
     if (!candidates.length) {
       return Promise.reject(new Error('没有音源支持 ' + sourceId + ' 的播放地址获取'));
     }
@@ -209,11 +224,7 @@
         return Promise.reject(new Error(errors.join('\n')));
       }
       var sb = candidates[i];
-      return requestFromSandbox(sb, {
-        source: sourceId,
-        action: 'musicUrl',
-        info: { type: quality || '128k', musicInfo: musicInfo }
-      }).catch(function (err) {
+      return getMusicUrlFrom(sb, sourceId, musicInfo, quality).catch(function (err) {
         errors.push(sb.scriptInfo.name + ': ' + ((err && err.message) || err));
         return tryNext(i + 1);
       });
@@ -259,6 +270,8 @@
     parseScriptInfo: parseScriptInfo,
     load: load,
     getMusicUrl: getMusicUrl,
+    getMusicUrlFrom: getMusicUrlFrom,
+    candidatesFor: candidatesFor,
     getLyric: getLyric,
     destroy: destroy,
     removeByName: removeByName,

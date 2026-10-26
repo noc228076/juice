@@ -162,14 +162,49 @@
    * 必须串行：音源脚本跑在同一个 iframe 里，内部会用模块级变量缓存
    * musicId/url。实测连续快速请求两首不同的歌，第二首会返回第一首的
    * 地址（「显示可惜没如果、放的却是唯一」就是这么来的）。
-   * 用一条 Promise 链把请求排成队列，彻底避免脚本状态被覆盖。
+   *
+   * 但光串行不够：有的脚本（实测「K×H测试」）无论请求哪首，都回同一个
+   * 地址，而且不报错。getMusicUrl 原本是「第一个不报错就用」，于是坏脚本
+   * 永远胜出。所以这里逐脚本询问，并用真实音频时长和搜索结果里的时长对
+   * 一遍——对不上就换下一个脚本，并给该脚本记一次失败，下次排到最后。
    */
   var resolveChain = Promise.resolve();
-  // 上一首拿到的地址：用来识别脚本串号（两首不同的歌返回同一个 URL）
-  var lastResolved = { key: '', url: '' };
+  // 脚本名 → 校验失败次数；用来把不可靠脚本排到候选末尾
+  var scriptPenalty = {};
 
-  function trackKeyOf(track) {
-    return [track.source, track.songmid, track.hash, track.name].filter(Boolean).join('|');
+  /** 搜索结果里的 interval（"04:19"）换算成秒 */
+  function intervalSec(track) {
+    var parts = String(track.interval || '').split(':').map(Number);
+    if (parts.length < 2 || parts.some(isNaN)) return 0;
+    return parts.length === 3
+      ? parts[0] * 3600 + parts[1] * 60 + parts[2]
+      : parts[0] * 60 + parts[1];
+  }
+
+  /**
+   * 只读元数据探测时长（正常只拉几 KB）。
+   * 返回秒数；-1 加载失败、-2 超时——这两种都当作「无法校验」，
+   * 不能因此否掉一个可能正确的地址。
+   */
+  function probeDuration(url) {
+    return new Promise(function (resolve) {
+      var a = document.createElement('audio');
+      var done = false;
+      var timer = setTimeout(function () { finish(-2); }, 7000);
+      function finish(v) {
+        if (done) return;
+        done = true;
+        clearTimeout(timer);
+        a.onloadedmetadata = null;
+        a.onerror = null;
+        try { a.src = ''; } catch (e) {}
+        resolve(v);
+      }
+      a.preload = 'metadata';
+      a.onloadedmetadata = function () { finish(isFinite(a.duration) ? a.duration : -1); };
+      a.onerror = function () { finish(-1); };
+      a.src = url;
+    });
   }
 
   function resolveUrl(track, quality) {
@@ -191,26 +226,44 @@
       types: track.types,
       _types: track._types
     };
-    var key = trackKeyOf(track);
-
-    var once = function () {
-      return root.LxSandbox.getMusicUrl(track.source, musicInfo, quality || '128k');
-    };
+    var expected = intervalSec(track);
 
     var task = resolveChain.then(function () {
-      return once().then(function (url) {
-        // 两首不同的歌拿到同一个地址 = 脚本串号了。
-        // 等一拍再要一次（脚本内部缓存多半是同一 tick 内的旧值）。
-        if (url && key && key !== lastResolved.key && url === lastResolved.url) {
-          return new Promise(function (r) { setTimeout(r, 220); })
-            .then(once)
-            .then(function (url2) { return url2 || url; });
-        }
-        return url;
+      var list = root.LxSandbox.candidatesFor
+        ? root.LxSandbox.candidatesFor(track.source)
+        : [];
+      if (!list.length) {
+        return root.LxSandbox.getMusicUrl(track.source, musicInfo, quality || '128k');
+      }
+      // 失败过的脚本排后面，稳定脚本优先
+      list = list.slice().sort(function (a, b) {
+        return (scriptPenalty[a.scriptInfo.name] || 0) - (scriptPenalty[b.scriptInfo.name] || 0);
       });
-    }).then(function (url) {
-      if (url) lastResolved = { key: key, url: url };
-      return url;
+
+      var errors = [];
+      function attempt(i) {
+        if (i >= list.length) {
+          return Promise.reject(new Error(errors.join('；') || '没有音源返回可用地址'));
+        }
+        var sb = list[i];
+        var next = function (why) {
+          errors.push(sb.scriptInfo.name + ': ' + why);
+          return attempt(i + 1);
+        };
+        return root.LxSandbox.getMusicUrlFrom(sb, track.source, musicInfo, quality || '128k').then(function (url) {
+          if (!url) return next('空地址');
+          // 没有可比对的时长就只能信它
+          if (!expected) return url;
+          return probeDuration(url).then(function (dur) {
+            if (dur <= 0 || Math.abs(dur - expected) <= 5) return url;
+            scriptPenalty[sb.scriptInfo.name] = (scriptPenalty[sb.scriptInfo.name] || 0) + 1;
+            return next('时长不符（应为 ' + expected + 's，实际 ' + Math.round(dur) + 's）');
+          });
+        }, function (err) {
+          return next((err && err.message) || String(err));
+        });
+      }
+      return attempt(0);
     });
 
     // 队列本身要吞掉错误，否则一次失败会卡死后续所有请求

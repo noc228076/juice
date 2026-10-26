@@ -1012,8 +1012,8 @@
     if (mask) document.body.appendChild(mask);
   }
 
-  /** 头部副标题：用真实状态代替空泛文案 */
   /** 头部副标题：只说数量，不再罗列每个音源名字（名字一多就撑破一行） */
+  var srcLoading = false;   // 音源正在首次加载
   function sourceStatusText() {
     if (!window.LxMusic) return '音源未就绪';
     var loaded = window.LxMusic.listLoaded ? window.LxMusic.listLoaded() : [];
@@ -1021,8 +1021,18 @@
     var names = {};
     loaded.forEach(function (x) { names[x.name] = 1; });
     var n = Object.keys(names).length;
-    if (!n) return '未加载音源';
+    if (!n) return srcLoading ? '正在加载音源…' : '未加载音源';
     return '已加载 ' + n + ' 个音源';
+  }
+
+  /** 音源异步加载完成后只刷状态文案，不重建整块 DOM */
+  function syncSourceStatus() {
+    var sub = document.querySelector('.mu-sub');
+    if (sub) sub.textContent = sourceStatusText();
+    var note = document.querySelector('.mu-panel .mu-note.ok, .mu-panel .mu-note.warn');
+    if (note && tab === 'script') note.outerHTML = '<p class="mu-note ' +
+      (window.LxMusic && window.LxMusic.hasSource() ? 'ok' : 'warn') + '">' +
+      sourceStatusText() + '</p>';
   }
 
   function renderIfActive() {
@@ -1938,12 +1948,32 @@
       ensureMini();
 
       /* 首次进入时加载内置音源脚本 + 用户导入的脚本。
-         内置脚本随包发布，开箱即可播放；用户导入的追加在后面。 */
+         内置脚本随包发布，开箱即可播放；用户导入的追加在后面。
+         注意：9 个脚本是串行加载的，个别失效脚本要等满 12s 超时，
+         全链可能拖到一分钟以上。所以用一个轮询把「已加载 N 个」
+         边加载边刷出来，而不是等 Promise 链结束。 */
       if (window.LxMusic) {
+        srcLoading = true;
+        var pollTimer = setInterval(function () {
+          syncSourceStatus();
+          var n = window.LxMusic.listLoaded().length;
+          if (n > 0) srcLoading = false;
+        }, 800);
         window.LxMusic.loadBuiltinScripts()
           .then(function () { return window.LxMusic.loadSavedScripts(); })
-          .then(function () { renderIfActive(); })
-          .catch(function (e) { console.warn('[LxMusic] 音源加载失败', e); });
+          .then(function () {
+            clearInterval(pollTimer);
+            srcLoading = false;
+            syncSourceStatus();
+            if (tab === 'script') renderHome();
+            renderMini();
+          })
+          .catch(function (e) {
+            clearInterval(pollTimer);
+            srcLoading = false;
+            syncSourceStatus();
+            console.warn('[LxMusic] 音源加载失败', e);
+          });
       }
     }
     renderHome();

@@ -16,9 +16,16 @@
   var BASE = 'assets/vocab/';
   var cache = Object.create(null);
 
+  /* 词库 JSON 不参与 bundle，浏览器与 sw.js 对 /assets/ 都是强缓存。
+     带上构建版本号，换词库时 URL 就变了，不会继续读到旧数据。 */
+  function withVersion(url) {
+    var v = window.__APP_VERSION__;
+    return v ? url + '?v=' + v : url;
+  }
+
   function loadJson(name) {
     if (cache[name]) return cache[name];
-    var p = fetch(BASE + name + '.json', { credentials: 'same-origin' })
+    var p = fetch(withVersion(BASE + name + '.json'), { credentials: 'same-origin' })
       .then(function (res) {
         if (!res.ok) throw new Error('词库加载失败 HTTP ' + res.status);
         return res.json();

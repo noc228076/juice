@@ -150,12 +150,30 @@ function sourceFingerprint() {
     'js/vendor/lucide-icons.js',
     'js/modules/lx-music/builtin/sources.json'
   );
+  // 运行时按 URL 直接 fetch 的数据文件也必须计入指纹：sw.js 对 /assets/ 是
+  // cache-first，词库这类不进 bundle 的文件改了而不涨版本号，用户永远拿旧数据。
+  files.push(...listDataFiles());
   const h = crypto.createHash('sha256');
   files.filter(f => fs.existsSync(path.join(__dirname, f))).forEach(f => {
     h.update(f);
     h.update(fs.readFileSync(path.join(__dirname, f)));
   });
   return h.digest('hex');
+}
+
+/* assets/ 下所有 json（词库、例句、词根、真题等），递归收集 */
+function listDataFiles() {
+  const out = [];
+  const walk = (dir) => {
+    if (!fs.existsSync(dir)) return;
+    for (const name of fs.readdirSync(dir)) {
+      const full = path.join(dir, name);
+      if (fs.statSync(full).isDirectory()) walk(full);
+      else if (name.endsWith('.json')) out.push(path.relative(__dirname, full).replace(/\\/g, '/'));
+    }
+  };
+  walk(path.join(__dirname, 'assets'));
+  return out;
 }
 
 function bumpVersion() {

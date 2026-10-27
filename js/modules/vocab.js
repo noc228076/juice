@@ -360,9 +360,41 @@
     if (book) return Promise.resolve(book);
     if (loading) return loading;
     loading = window.AppVocabData.loadBook(state.book)
-      .then(function (b) { book = b; return b; })
+      .then(function (b) {
+        book = b;
+        pruneOrphans(state.book, b.words);
+        return b;
+      })
       .catch(function (err) { loadErr = err.message || '词库加载失败'; loading = null; throw err; });
     return loading;
+  }
+
+  /* 词库换版后，旧存档里可能有已经不在词库中的词。
+     留着会在生词本 / 已标熟列表里显示成没有释义的空行，这里清掉。
+     进度按词名存，所以只删不存在的词，其余记录不受影响。 */
+  function pruneOrphans(level, words) {
+    var bk = state.books && state.books[level];
+    if (!bk || !bk.words) return;
+    var alive = Object.create(null);
+    for (var i = 0; i < words.length; i++) alive[words[i][0]] = 1;
+    var dropped = 0;
+    for (var k in bk.words) {
+      if (!alive[k]) { delete bk.words[k]; dropped++; }
+    }
+    if (dropped) saveState();
+  }
+
+  /* 词库词数：优先用已加载的那本，其余按需读（用于设置页标签，不阻塞渲染） */
+  var bookCounts = Object.create(null);
+  function bookCount(level) {
+    if (book && level === state.book) return book.words.length;
+    if (bookCounts[level] != null) return bookCounts[level];
+    window.AppVocabData.loadBook(level).then(function (b) {
+      bookCounts[level] = b.words.length;
+      var chip = el && el.querySelector('.vc-chip[data-book="' + level + '"]');
+      if (chip) chip.textContent = (level === 'cet6' ? 'CET-6' : 'CET-4') + ' · ' + b.words.length + ' 词';
+    }).catch(function () {});
+    return '…';
   }
 
   /* 详情数据按需加载：只有需要卡片背面 / 填空题才拉 */
@@ -1072,8 +1104,8 @@
         '<div class="vc-field-h">词库</div>' +
         '<div class="vc-field-d">两个词库的进度各自独立保存，随时切换、互不清空。</div>' +
         '<div class="vc-chips">' +
-          '<button type="button" class="vc-chip' + (state.book === 'cet4' ? ' active' : '') + '" data-book="cet4">CET-4 · 4544 词</button>' +
-          '<button type="button" class="vc-chip' + (state.book === 'cet6' ? ' active' : '') + '" data-book="cet6">CET-6 · 3991 词</button>' +
+          '<button type="button" class="vc-chip' + (state.book === 'cet4' ? ' active' : '') + '" data-book="cet4">CET-4 · ' + bookCount('cet4') + ' 词</button>' +
+          '<button type="button" class="vc-chip' + (state.book === 'cet6' ? ' active' : '') + '" data-book="cet6">CET-6 · ' + bookCount('cet6') + ' 词</button>' +
         '</div>' +
       '</div>' +
 

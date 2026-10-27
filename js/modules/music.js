@@ -1487,6 +1487,9 @@
     '</div>';
   }
 
+  // 音源页粘贴框是否展开（默认收起，见 scriptHtml）
+  var lxPasteOpen = false;
+
   function scriptHtml() {
     var lxReady = !!window.LxMusic;
     var saved = lxReady ? window.LxMusic.listScripts() : [];
@@ -1539,12 +1542,18 @@
       status +
       '<div class="mu-btns">' +
         '<button class="mu-btn primary" id="muLxPickFile">导入 .js 文件</button>' +
+        '<button class="mu-btn" id="muLxPasteToggle">' + (lxPasteOpen ? '收起粘贴框' : '粘贴脚本导入') + '</button>' +
         '<input type="file" id="muLxFileInput" accept=".js,text/javascript" hidden>' +
       '</div>' +
-      '<textarea class="mu-textarea mono" id="muLxCode" rows="6" placeholder="或直接粘贴脚本内容…"></textarea>' +
-      '<div class="mu-btns">' +
-        '<button class="mu-btn primary" id="muLxAdd">保存并加载</button>' +
-      '</div>' +
+      // 粘贴框默认收起（大部分人只用文件导入），点上面的按钮展开。
+      // lxPasteOpen 常驻标记：renderHome 高频重建（音源加载轮询就会触发），
+      // 不能让一次重建把用户展开的框收回去了。
+      (lxPasteOpen
+        ? '<textarea class="mu-textarea mono" id="muLxCode" rows="6" placeholder="或直接粘贴脚本内容…"></textarea>' +
+          '<div class="mu-btns">' +
+            '<button class="mu-btn primary" id="muLxAdd">保存并加载</button>' +
+          '</div>'
+        : '') +
       (rows ? '<div class="mu-src-list">' + rows + '</div>' : '<div class="mu-empty">还没有导入音源脚本</div>') +
     '</div>';
   }
@@ -2537,6 +2546,11 @@
     var lxCode = el.querySelector('#muLxCode');
     var lxPick = el.querySelector('#muLxPickFile');
     var lxInput = el.querySelector('#muLxFileInput');
+    var lxToggle = el.querySelector('#muLxPasteToggle');
+    if (lxToggle) lxToggle.onclick = function () {
+      lxPasteOpen = !lxPasteOpen;
+      renderHome();
+    };
 
     function importLxScript(text) {
       if (!window.LxMusic) { toast('音源内核未加载'); return; }

@@ -367,9 +367,12 @@ html[data-theme="light"] .global-btn-pill .pill-badge {
   transform: scale(0.92);
 }
 
-/* 视口与模块容器：统一底色与丝滑转场 */
+/* 视口与模块容器：统一底色与丝滑转场。
+   html 画布必须显式上底色：body 的背景不会传播到
+   scrollbar-gutter 预留的槽位（且 gutter 属于浏览器绘制层），
+   留空的话 PC 端最右会露出一条浏览器默认白底——全屏也盖不掉。 */
 html {
-  scrollbar-gutter: stable;
+  background: var(--bg);
 }
 
 #modules-viewport {
@@ -379,7 +382,6 @@ html {
   overflow: hidden;
   z-index: 1;
   background: var(--bg);
-  scrollbar-gutter: stable;
 }
 
 /* ============ 首屏骨架 ============

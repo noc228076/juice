@@ -560,6 +560,7 @@
         '<p class="vc-dim">明天到期复习会自动排好；也可以现在多背一组。</p>' +
         '<div class="vc-actions">' +
           '<button class="vc-btn primary" id="vcExtra" type="button">再来一组新词</button>' +
+          '<button class="vc-btn ghost" id="vcHome" type="button">回到今日</button>' +
           '<button class="vc-btn ghost" id="vcGoStats" type="button">看统计</button>' +
         '</div></div>';
     }
@@ -639,6 +640,8 @@
     if (eb) eb.onclick = function () { bs().newDoneToday = 0; saveState(); buildAndStart(); };
     var gs = el.querySelector('#vcGoStats');
     if (gs) gs.onclick = function () { tab = 'stats'; renderHome(); };
+    var vcHome = el.querySelector('#vcHome');
+    if (vcHome) vcHome.onclick = function () { buildQueue(); qi = 0; answered = false; current = null; tab = 'today'; renderHome(); };
     var ex2 = el.querySelector('#vcExtra');
     if (ex2) ex2.onclick = function () { bs().newDoneToday = 0; saveState(); buildAndStart(); };
   }

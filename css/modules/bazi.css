@@ -1357,3 +1357,9 @@ html[data-theme="light"] .bz-dayun-age {
     max-width: 1440px;
   }
 }
+
+/* 顶部东西玄学互跳栏：bz-wrap 的 padding-top 是 16px，比基准 24px 少 8px，
+   靠 margin 补齐到全站子导航基准位置（--subnav-top 76px），切模块时不上下跳 */
+#mod-bazi .ew-mystic-bar {
+  margin: 8px auto 12px !important;
+}

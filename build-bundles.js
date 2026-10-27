@@ -148,7 +148,10 @@ function sourceFingerprint() {
     ...moduleCssFiles,
     'js/vendor/morphicons.js',
     'js/vendor/lucide-icons.js',
-    'js/modules/lx-music/builtin/sources.json'
+    'js/modules/lx-music/builtin/sources.json',
+    // index.html 里的静态标记（子导航条、模块骨架）不经过 bundle，
+    // 但同样受 ?v= 影响，必须计入指纹，否则改了 HTML 版本号不涨
+    'index.html'
   );
   // 运行时按 URL 直接 fetch 的数据文件也必须计入指纹：sw.js 对 /assets/ 是
   // cache-first，词库这类不进 bundle 的文件改了而不涨版本号，用户永远拿旧数据。

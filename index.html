@@ -17,10 +17,10 @@
 <meta property="og:title" content="饮料人格研究所 · 测测你的精神状态与灵魂特调">
 <meta property="og:description" content="当代年轻人精神状态测试 (SBTI) / 经典 16 型人格 (MBTI) / 16 款灵魂饮料特调，测出你的独家出厂配方与精神病友。">
 <meta property="og:image" content="assets/icons/icon-512.png">
-  <link rel="stylesheet" href="css/core.bundle.css?v=465">
-  <script defer src="js/vendor/morphicons.js?v=465"></script>
-  <script defer src="js/vendor/lucide-icons.js?v=465"></script>
-  <script defer src="js/app.bundle.js?v=465" fetchpriority="high"></script>
+  <link rel="stylesheet" href="css/core.bundle.css?v=471">
+  <script defer src="js/vendor/morphicons.js?v=471"></script>
+  <script defer src="js/vendor/lucide-icons.js?v=471"></script>
+  <script defer src="js/app.bundle.js?v=471" fetchpriority="high"></script>
   <script>
     (function(){
       // 主题必须在首次绘制前定下来。以前只有 <html data-theme="dark"> 的硬编码默认值，
@@ -959,14 +959,9 @@
     <section id="mod-decision" class="app-module">
       <div class="dec-screen active" id="sc-dec-home">
         <div class="dec-wrap">
-          <!-- 顶部 Header -->
-          <header class="dec-header">
-            <span class="dec-tag">DECISION LAB · 纠结终结所</span>
-            <h1 class="dec-title">纠结终结所</h1>
-            <p class="dec-sub">命运大转盘 · 正反抛硬币 · 3D 掷骰子 · 祈愿掷圣杯<br>告别内耗纠结，让宇宙常数为你裁定当下！</p>
-          </header>
-
-          <!-- 模式切换 Tabs (4 模式) -->
+          <!-- 模式切换 Tabs (4 模式)
+               放在 header 之前：全站子导航条都贴容器顶部，这样切模块时
+               这条和其他模块落在同一条水平线上（此前被 header 顶到 216px）。 -->
           <nav class="dec-subnav" id="decSubNav">
             <button class="dec-tab active" data-submod="wheel">
               <span class="dtab-icon">🍲</span>
@@ -985,6 +980,8 @@
               <span class="dtab-text">祈愿掷圣杯</span>
             </button>
           </nav>
+
+          <!-- 顶部标题区已移除：模块名在全局顶栏和页签里已有，这一块只占高度 -->
 
           <!-- 子模块视口容器 -->
           <div class="dec-stage-container">

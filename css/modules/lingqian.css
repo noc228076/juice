@@ -62,6 +62,8 @@ html[data-theme="light"] #mod-lingqian {
   -webkit-backdrop-filter: blur(14px);
   /* 见 nav.css 的 .subnav-pill-bar：flex item 会被宿主溢出压回自动高度 */
   flex-shrink: 0;
+  /* 基准：tr-screen / bz-wrap 等宿主容器自己补齐到 76px 线，这里不再加偏移。
+     容器 padding-top 不足 24px 的模块（lingqian/bazi）在各自 css 里单独补。 */
   margin: 0 auto 12px !important;
   max-width: 100%;
   box-sizing: border-box;
@@ -619,4 +621,10 @@ html[data-theme="light"] .lq-xj-item {
   .lq-num-title {
     font-size: 20px;
   }
+}
+
+/* 顶部东西玄学互跳栏：lq-screen 的 padding-top 是 16px，
+   比全站子导航基准少 8px，靠 margin 补齐到同一水平线 */
+#mod-lingqian .ew-mystic-bar {
+  margin: 8px auto 12px !important;
 }

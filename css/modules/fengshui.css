@@ -65,7 +65,14 @@ html[data-theme="light"] #mod-fengshui {
 }
 
 #mod-fengshui .ew-mystic-bar {
-  margin: 0 auto 12px !important;
+  /* fs-wrap 的 padding-top 随断点变化，分别补到全站子导航基准线：
+     基础 16px → 补 +8；≥900px 32px → 补 -8 */
+  margin: 8px auto 12px !important;
+}
+@media (min-width: 900px) {
+  #mod-fengshui .ew-mystic-bar {
+    margin: -8px auto 12px !important;
+  }
 }
 
 /* 顶部标题 */

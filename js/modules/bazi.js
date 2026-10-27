@@ -2051,8 +2051,13 @@
         return;
       }
       if (stage) stage.classList.remove('active');
-      const inpCard = document.querySelector('.bz-input-card');
-      if (inpCard) inpCard.scrollIntoView({ behavior: 'auto' });
+      /* 回到首页时不能滚动：这里原本无条件 scrollIntoView 到输入卡，
+         首次进入也会触发，把顶部的玄学互跳栏推出视野，和其他模块的子导航
+         不在同一高度。只有确实从结果页退回（需要把输入区带回视野）才滚。 */
+      if (view && view !== 'home') {
+        const inpCard = document.querySelector('.bz-input-card');
+        if (inpCard) inpCard.scrollIntoView({ behavior: 'auto' });
+      }
     },
     runBazi,
     exportBaziPoster

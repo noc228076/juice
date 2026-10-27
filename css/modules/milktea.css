@@ -586,3 +586,16 @@ html[data-theme="light"] #mod-milktea .mt-hero h1 {
     margin: 0 auto;
   }
 }
+
+/* 顶部特调/奶茶互跳栏：mt-screen 的 padding-top 随断点变化，
+   分别补到全站子导航基准线（--subnav-top 76px）：
+     基础/窄屏 18px → 补 +6
+     ≥900px   36px → 补 -12 */
+#mod-milktea .subnav-pill-bar {
+  margin: 6px auto 16px !important;
+}
+@media (min-width: 900px) {
+  #mod-milktea .subnav-pill-bar {
+    margin: -12px auto 16px !important;
+  }
+}

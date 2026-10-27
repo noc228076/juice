@@ -2623,3 +2623,11 @@ html[data-theme="light"] #mod-tarot .result-list.is-single .tr-single-hero {
   #mod-tarot .tr-dossier-sec-head { padding-bottom: 3px; }
   #mod-tarot .tr-dossier-kw-matrix { padding: 5px 8px; }
 }
+
+/* 顶部玄学互跳栏：tr-screen 的 padding-top 随断点变化，
+   ≤640px 是 12px，补齐到全站子导航基准线 */
+@media (max-width: 640px) {
+  #mod-tarot .ew-mystic-bar {
+    margin: 12px auto 12px !important;
+  }
+}

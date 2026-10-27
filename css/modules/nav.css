@@ -652,7 +652,13 @@ html.cover-ready #bootSkeleton {
      - 未选中项 --tx-dim → --tx，字号 12 → 13.5，字重 700 → 800
      - 选中项填充模块主色（下方 data-sub-jump 规则），带同色描边和光晕
      - 后缀「& 工资」降为 --tx-faint 且字号更小，主标题仍是最显眼的
-   高度仍固定 --ui-bar-h（3+32+1+3+1=40），切换模块时整条不跳。 */
+   高度仍固定 --ui-bar-h（3+32+1+3+1=40），切换模块时整条不跳。
+
+   顶距对齐：--subnav-top 是全站子导航条距视口的统一目标位置（52px 顶栏 + 24px）。
+   各模块容器自身的 padding-top 不一样（16/24/32/36px 都有），
+   靠 margin-top 吃掉差额，让 12 个模块的子导航条落在同一条水平线上。 */
+:root { --subnav-top: 76px; }
+
 .subnav-pill-bar {
   display: flex !important;
   width: -moz-fit-content !important;
@@ -676,7 +682,7 @@ html.cover-ready #bootSkeleton {
      实测封面页的同一条从 40px 掉到 26px，"统一 40px" 静默失效。 */
   flex-shrink: 0;
   box-sizing: border-box;
-  margin: 0 auto 16px !important;
+  margin: var(--subnav-mt, 0) auto 16px !important;
   max-width: 100%;
 }
 
@@ -1384,5 +1390,13 @@ html[data-theme="light"] #modalAbout .gp-tip {
 @media (max-width: 640px) {
   .gnav-menu {
     min-width: 152px;
+  }
+}
+
+/* 特调封面在 ≤480px 时 #scr-cover 的 padding-top 降到 8px，
+   补齐到全站子导航基准线（--subnav-top 76px） */
+@media (max-width: 480px) {
+  #scr-cover .subnav-pill-bar {
+    margin-top: 16px !important;
   }
 }

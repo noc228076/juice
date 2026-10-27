@@ -585,18 +585,6 @@
     var dueN = 0, newN = 0;
     queue.forEach(function (q) { if (q.isNew) newN++; else dueN++; });
 
-    if (!total) {
-      return '<div class="vc-panel vc-done">' + owl('sleep') +
-        '<h2>今天的单词都背完了</h2>' +
-        '<p>今天已背 <b>' + (bw().day.n || 0) + '</b> 个单词 · 已答 <b>' + bs().doneToday + '</b> 题 · 连续打卡 <b>' + bs().streak + '</b> 天</p>' +
-        '<p class="vc-dim">明天到期复习会自动排好；也可以现在多背一组。</p>' +
-        '<div class="vc-actions">' +
-          '<button class="vc-btn primary" id="vcExtra" type="button">再来一组新词</button>' +
-          '<button class="vc-btn ghost" id="vcHome" type="button">回到今日</button>' +
-          '<button class="vc-btn ghost" id="vcGoStats" type="button">看统计</button>' +
-        '</div></div>';
-    }
-
     var dueAll = 0;
     if (book) {
       var td = dayNum(todayKey());
@@ -605,29 +593,36 @@
         if (wr && !wr.known && wr.due <= td) dueAll++;
       }
     }
-    var donePct = Math.min(100, Math.round(bs().doneToday / Math.max(total, 1) * 100));
+    var donePct = total
+      ? Math.min(100, Math.round(bs().doneToday / total * 100))
+      : (bs().doneToday > 0 ? 100 : 0);
     /* 中间「今日重点」面板：把红框空白区变成有内容的行动区。
-       有到期词 → 重点=复习（主按钮变「开始复习」）；无 → 重点=新词任务 */
+       有到期词 → 重点=复习（主按钮变「开始复习」）；无 → 重点=新词任务。
+       队列清空时不再另开一屏「结算页」，仍用这套 hero 布局，只换行动区。 */
     var focusTitle, focusDesc, actionsHtml;
-    if (dueAll > 0) {
+    if (total === 0) {
+      var didSome = (bs().doneToday || 0) > 0;
+      focusTitle = didSome ? '今天的任务已完成' : '今天没有待办';
+      focusDesc = didSome
+        ? '明天到期复习会自动排好，也可以现在加练一组'
+        : '新词额度设为 0 且没有到期复习，去设置里调一下每天的词量';
+      actionsHtml =
+        '<button class="vc-btn primary" id="vcExtra" type="button">再加一组 →</button>' +
+        '<button class="vc-btn ghost" id="vcGoStats" type="button">看统计</button>';
+    } else if (dueAll > 0) {
       focusTitle = '今日重点 · 到期复习';
       focusDesc = '有 <b>' + dueAll + '</b> 个词等着巩固——今天做掉最划算';
       actionsHtml =
         '<button class="vc-btn primary" id="vcStartReview" type="button">开始复习 →</button>' +
         '<button class="vc-btn ghost" id="vcStart" type="button">开始背新词</button>';
-    } else if (total > 0) {
+    } else {
       focusTitle = '今日重点 · 背新词';
       focusDesc = '准备好 <b>' + newN + '</b> 个新词，开背大约 ' + Math.max(1, Math.round(total * 0.7 / 60)) + ' 分钟';
       actionsHtml =
         '<button class="vc-btn primary" id="vcStart" type="button">开始背 →</button>';
-    } else {
-      focusTitle = '今日额度已用完';
-      focusDesc = '想继续随时加练一组';
-      actionsHtml =
-        '<button class="vc-btn primary" id="vcExtra" type="button">再加一组 →</button>';
     }
     return '<div class="vc-hero">' +
-        '<div class="vc-hero-art">' + owl('think') + '</div>' +
+        '<div class="vc-hero-art">' + owl(total === 0 ? 'sleep' : 'think') + '</div>' +
         '<div class="vc-hero-main">' +
           '<div class="vc-hero-tag">' + (state.book === 'cet6' ? 'CET-6' : 'CET-4') +
             ' · 已连续 ' + bs().streak + ' 天 · ' + (state.order === 'random' ? '乱序' : '顺序') + '</div>' +
@@ -646,7 +641,9 @@
           '<div class="vc-hero-kpi"><b>' + (bw().week.n || 0) + '</b><span>本周(词)</span></div>' +
           '<div class="vc-hero-kpi"><b>' + (bw().all.n || 0) + '</b><span>累计(词)</span></div>' +
           '<div class="vc-bar"><i style="width:' + donePct + '%"></i></div>' +
-          '<span class="vc-hero-done">已答 ' + bs().doneToday + ' / ' + total + ' 题</span>' +
+          '<span class="vc-hero-done">' + (total
+            ? '已答 ' + bs().doneToday + ' / ' + total + ' 题'
+            : '今日 ' + bs().doneToday + ' 题已全部答完') + '</span>' +
         '</div>' +
       '</div>' +
       statStrip() + weekStrip();
@@ -672,10 +669,6 @@
     if (eb) eb.onclick = function () { bs().newDoneToday = 0; saveState(); buildAndStart(); };
     var gs = el.querySelector('#vcGoStats');
     if (gs) gs.onclick = function () { tab = 'stats'; renderHome(); };
-    var vcHome = el.querySelector('#vcHome');
-    if (vcHome) vcHome.onclick = function () { buildQueue(); qi = 0; answered = false; current = null; tab = 'today'; renderHome(); };
-    var ex2 = el.querySelector('#vcExtra');
-    if (ex2) ex2.onclick = function () { bs().newDoneToday = 0; saveState(); buildAndStart(); };
   }
 
   function statStrip() {
@@ -2009,8 +2002,16 @@
     if (ab) ab.onclick = function () { bs().newDoneToday = 0; saveState(); buildAndStart(); };
     var hb = el.querySelector('#vcHome');
     if (hb) hb.onclick = function () {
+      /* 必须重建队列：这一局把新词额度用完了，直接渲染会立刻又落回同一屏 */
       queue = buildQueue();
       qi = 0;
+      answered = false;
+      current = null;
+      sessionStats = { right: 0, wrong: 0 };
+      stage = 0;
+      redoSet = [];
+      redoRound = 0;
+      stageQueue = [];
       tab = 'today';
       renderHome();
     };

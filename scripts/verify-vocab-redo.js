@@ -24,20 +24,32 @@ const R=[]; function check(n,ok,d){R.push({n,ok:!!ok,d});console.log((ok?'PASS':
   const total0 = await page.evaluate(()=>document.querySelector('.vc-count')?.textContent?.trim());
   check('阶段1 起始 2 题', /^1 \/ 2$/.test(total0||''), total0);
 
-  // 第 1 题故意答错（点最后一个）
+  // 第 1 题故意答错：选项顺序是打散的，先从词库查出正确释义，
+  // 再点一个释义不同的选项（不能假定最后一个就是错的）
   const wrongWord = await page.evaluate(()=>document.querySelector('.vc-word')?.textContent?.trim());
-  await page.evaluate(()=>{ const o=document.querySelectorAll('.vc-opt'); o[o.length-1].click(); });
+  const pickedWrong = await page.evaluate(async (w)=>{
+    const dict = await (await fetch('assets/vocab/cet4.json')).json();
+    const row = dict.find(r => r[0].toLowerCase() === w.toLowerCase());
+    const answer = row ? row[2] : null;
+    const opts = [...document.querySelectorAll('.vc-opt')];
+    const bad = opts.find(o => {
+      const t = o.querySelector('.vc-opt-txt')?.textContent?.trim();
+      return answer && t && t !== answer;
+    }) || opts[opts.length - 1];
+    bad.click();
+    return !!answer;
+  }, wrongWord);
   await page.waitForTimeout(350);
   const fb = await page.evaluate(()=>document.getElementById('vcFb')?.classList.contains('bad'));
-  check('第 1 题判错', fb, {word: wrongWord});
+  check('第 1 题判错', fb, {word: wrongWord, foundInDict: pickedWrong});
   const wrong = await page.evaluate(()=>{const s0=JSON.parse(localStorage.getItem('juice_vocab_v1'));return ((s0.books||{cet4:s0}).cet4).words||{};});
   const wk = Object.keys(wrong).find(k=>wrong[k].wrong>0);
   check('答错的词 wrong+1', !!wk, {wrongWord: wk, wrong: wk && wrong[wk].wrong});
 
-  // 继续走完阶段1 原队列（第 2 题）
+  // 继续走完阶段1 原队列（第 2 题，随便选一个即可，不影响本轮断言）
   await page.keyboard.press(' ');
   await page.waitForTimeout(350);
-  await page.evaluate(()=>{ const o=document.querySelectorAll('.vc-opt'); o[o.length-1].click(); });
+  await page.evaluate(()=>{ document.querySelectorAll('.vc-opt')[0].click(); });
   await page.waitForTimeout(350);
   await page.keyboard.press(' ');
   await page.waitForTimeout(400);

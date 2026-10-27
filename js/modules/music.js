@@ -3107,6 +3107,7 @@
     bindImmersive();
     syncPlayUI(audio && !audio.paused);
     onProgress();
+    requestBrowserFullscreen();
     lastLyricIndex = -1;
     loadLyricFor(cur);
     // 首帧布局完成后才知道容器真实高度，此时才能算留白
@@ -3267,10 +3268,44 @@
       if (e.target === immEl || e.target.classList.contains('mu-imm-bg')) closeImmersive();
     });
   }
+  /* ---------------- 浏览器原生全屏 ----------------
+     沉浸页之前只是 CSS 铺满视口，浏览器地址栏还在——用户说的
+     「只是网页全屏没有真的全屏」就是这个。接上 Fullscreen API：
+     进入沉浸页时对 documentElement 申请全屏，退出时释放。
+     iPhone Safari 不支持 Element 级全屏，申请失败静默降级成
+     原来的网页全屏，行为不变。 */
+  function isFsActive() {
+    return !!(document.fullscreenElement || document.webkitFullscreenElement);
+  }
+
+  function requestBrowserFullscreen() {
+    var el = document.documentElement;
+    var req = el.requestFullscreen || el.webkitRequestFullscreen;
+    if (!req) return;                     // 不支持：保持网页全屏
+    try {
+      var p = req.call(el);
+      // 非用户手势调用（媒体键、代码触发）会被拒：静默降级
+      if (p && p.catch) p.catch(function () {});
+    } catch (e) {}
+  }
+
+  function exitBrowserFullscreen() {
+    if (!isFsActive()) return;
+    var exit = document.exitFullscreen || document.webkitExitFullscreen;
+    if (!exit) return;
+    try {
+      var p = exit.call(document);
+      if (p && p.catch) p.catch(function () {});
+    } catch (e) {}
+  }
+
   function closeImmersive() {
     if (!immEl) return;
+    // 先摘沉浸页再退全屏：fullscreenchange 回调看到 immEl 已空就不会
+    // 再触发一次 closeImmersive（否则两个退出路径互相触发死循环）
     immEl.remove();
     immEl = null;
+    exitBrowserFullscreen();
     // 队列面板在沉浸模式下会加 .in-immersive（z=500）改成深色主题。
     // 沉浸页关掉时若不一起关面板，残留的全屏遮罩会挡住整个页面，
     // 只能靠点击遮罩空白才能关。
@@ -3942,7 +3977,8 @@
          页面卸载时媒体元素可能已被浏览器拆掉，currentTime 会归零，
          写下去的成了 0，刷新后进度就全丢了（这个坑真的踩过）。
          visibilitychange 比 beforeunload 在移动端更可靠。 */
-      var flushLive = function () {        // 播放中才更新已知进度；暂停时 audio.currentTime 是可信的
+      var flushLive = function () {
+        // 播放中才更新已知进度；暂停时 audio.currentTime 是可信的
         if (audio && !audio.paused && isFinite(audio.currentTime) && audio.currentTime > 0) {
           knownPos = Math.floor(audio.currentTime);
         }
@@ -3952,6 +3988,14 @@
       document.addEventListener('visibilitychange', function () {
         if (document.visibilityState === 'hidden') flushLive();
       });
+      /* 用户按 ESC 退出浏览器原生全屏时，沉浸页要跟着关——
+         否则全屏没了，页面还罩着一层沉浸遮罩，看起来像坏了。
+         closeImmersive 自己触发的 fullscreenchange 会因 immEl 已空而短路。 */
+      var onFsChange = function () {
+        if (!isFsActive() && immEl) closeImmersive();
+      };
+      document.addEventListener('fullscreenchange', onFsChange);
+      document.addEventListener('webkitfullscreenchange', onFsChange);
 
       /* 路由切模块是异步的（等 chunk 加载完才摘 active 类），
          直接盯 #mod-music 的 class 变化最准 */

@@ -482,6 +482,28 @@
     }).catch(function () {});
   }
 
+  /**
+   * 跳转到第 sec 秒。
+   * 已加载的音频直接 seek；还原现场（地址还没取，audio 无 src）时
+   * 把拖到的位置记为待恢复进度——否则拖动完全无效，
+   * 点播放还是从存档的旧位置起播。
+   */
+  function seekTo(sec) {
+    sec = Math.max(0, isFinite(sec) ? sec : 0);
+    if (audio && audio.duration) {
+      try { audio.currentTime = sec; } catch (e) {}
+      return;
+    }
+    if (pendingSeek && cur && pendingSeek.id === cur.id) {
+      pendingSeek.pos = sec;
+      knownPos = Math.floor(sec);
+      lastSavedSec = Math.floor(sec);
+      lastSavedAt = 0;          // 绕过节流，立刻落盘
+      saveLive();
+      onProgress();             // 刷新进度条/时间显示
+    }
+  }
+
   function togglePlay() {
     if (!cur) {
       // 没有当前曲目时，从第一个可用列表开始
@@ -535,11 +557,16 @@
   function onProgress() {
     var p = 0, t = 0, d = 0;
     if (audio) { t = audio.currentTime || 0; d = audio.duration || 0; p = d ? t / d : 0; }
-    // 还原现场时 duration 还是 0，进度条按存档位置估算一个比例，
-    // 免得播放条看起来像「刚从头开始」
+    // 还原现场（地址还没取）时 audio.duration 是 0：
+    // 用搜索结果里的 interval 补出总时长，把存档位置当作当前时间——
+    // 否则播放条显示「0:02 / 0:00」，用户会以为进度没存上。
     if (!d && pendingSeek && cur && pendingSeek.id === cur.id) {
       var known = parseIntervalSec(cur.interval);
-      if (known) p = Math.min(1, pendingSeek.pos / known);
+      if (known) {
+        d = known;
+        t = pendingSeek.pos;
+        p = Math.min(1, t / d);
+      }
     }
     var bars = document.querySelectorAll('.mu-bar-progress i');
     for (var i = 0; i < bars.length; i++) bars[i].style.width = (p * 100).toFixed(2) + '%';
@@ -2112,9 +2139,7 @@
       updateMuteIcon();
     };
     var seek = bar.querySelector('.mu-seek');
-    if (seek) seek.oninput = function () {
-      if (audio && audio.duration) audio.currentTime = parseFloat(seek.value);
-    };
+    if (seek) seek.oninput = function () { seekTo(parseFloat(seek.value)); };
     var imm = bar.querySelector('#muImmersive'); if (imm) imm.onclick = openImmersive;
     var queueBtn = bar.querySelector('#muQueueBtn');
     if (queueBtn) queueBtn.onclick = toggleQueuePanel;
@@ -3264,7 +3289,7 @@
       }
     };
     var seek = immEl.querySelector('.mu-seek');
-    seek.oninput = function () { if (audio && audio.duration) audio.currentTime = parseFloat(seek.value); };
+    seek.oninput = function () { seekTo(parseFloat(seek.value)); };
     immEl.addEventListener('click', function (e) {
       if (e.target === immEl || e.target.classList.contains('mu-imm-bg')) closeImmersive();
     });
@@ -3870,8 +3895,14 @@
     }
     if (!active && !imm) return;
     if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
-    else if (e.key === 'ArrowRight' && audio) { audio.currentTime = Math.min((audio.duration || 0), audio.currentTime + 5); }
-    else if (e.key === 'ArrowLeft' && audio) { audio.currentTime = Math.max(0, audio.currentTime - 5); }
+    else if (e.key === 'ArrowRight' && audio) {
+      var baseR = audio.duration ? audio.currentTime : (pendingSeek ? pendingSeek.pos : 0);
+      seekTo(baseR + 5);
+    }
+    else if (e.key === 'ArrowLeft' && audio) {
+      var baseL = audio.duration ? audio.currentTime : (pendingSeek ? pendingSeek.pos : 0);
+      seekTo(baseL - 5);
+    }
     else if (e.key === 'ArrowUp') { e.preventDefault(); setVolume(state.volume + 0.05); }
     else if (e.key === 'ArrowDown') { e.preventDefault(); setVolume(state.volume - 0.05); }
     else if (e.key === 'Escape' && imm) closeImmersive();

@@ -1655,7 +1655,8 @@
 
     var main;
     if (!open) {
-      main = '<div class="mu-empty">从左边选一个榜单</div>';
+      // 手机端榜单横排在顶部，「从左边选」不成立，改成方向无关的说法
+      main = '<div class="mu-empty">选一个榜单看看</div>';
     } else if (discoverState.loading) {
       main = '<div class="mu-loading"><span class="mu-spinner"></span><span>正在加载榜单…</span></div>';
     } else {

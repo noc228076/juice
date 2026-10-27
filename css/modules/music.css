@@ -1524,29 +1524,46 @@ html[data-theme="light"] .mu-player .mu-bar-progress { background: rgba(20, 24, 
 /* 窄屏：隐藏音量与次要按钮 */
 @media (max-width: 720px) {
   .mu-volwrap { display: none; }
-  /* 三列必须显式声明：只写两列会让第二组 ops 自动换行掉出播放条 */
+  /* 手机端播放条重排（对齐网易云范式）：
+     封面 | 标题/歌手 | 播放+下一首 | 列表+全屏。
+     旧的 3 列断点是给 4 个流内子元素写的，现在有 5 个
+     （封面/标题/歌词/时间/右列），布局直接错乱——
+     标题与绝对居中的传输控件实测重叠 74px。 */
   .mu-player {
-    grid-template-columns: minmax(0, 1fr) auto auto;
-    gap: 6px;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    gap: 10px;
     padding: 0 12px;
   }
-  .mu-ops-side { justify-self: end; }
+  /* 歌词行与时间在手机上没有空间：进度走顶部 2px 条，时间在锁屏可见 */
+  .mu-player-lyric,
+  .mu-player-time { display: none; }
+  /* 中央传输控件回文档流，不再绝对居中压标题 */
+  .mu-ops-main {
+    position: static;
+    transform: none;
+    grid-column: 3;
+    grid-row: 1;
+  }
+  .mu-ops-side { grid-column: 4; grid-row: 1; justify-self: end; }
   .mu-op { width: 30px; height: 30px; }
   .mu-op.big { width: 36px; height: 36px; }
+  /* 上一首在手机上省去（队列面板可切），给标题让位 */
+  .mu-ops-main #muPrev { display: none; }
 }
-/* 极窄屏：右列有 6 个按钮（模式/音量/收藏/词/列表/全屏），
-   中央传输控件是绝对定位居中——右列太宽就会压住上一首/下一首。
-   实测 504px 以下开始相交。480px 以下收掉收藏和模式。 */
+/* 极窄屏：右列收掉收藏与模式，传输组收掉下一首，
+   最终一行 = 封面 | 标题 | 播放 | 列表 | 全屏 */
 @media (max-width: 480px) {
   /* 旧版按钮 id 是 muShuffle/muRepeat，早已改名 muMode，原选择器从未生效 */
   .mu-ops-side #muBarLove,
-  .mu-ops-side #muMode { display: none; }
-  .mu-ops-side .mu-op { width: 28px; height: 28px; }
-  .mu-ops-side .mu-op.big { width: 34px; height: 34px; }
+  .mu-ops-side #muMode,
+  .mu-ops-side .mu-imm-vol { display: none; }
+  .mu-ops-side .mu-op { width: 30px; height: 30px; }
+  .mu-ops-main .mu-op { width: 32px; height: 32px; }
+  .mu-ops-main .mu-op.big { width: 40px; height: 40px; }
 }
 @media (max-width: 400px) {
   .mu-ops-side #muBarLyricBtn { display: none; }
-  .mu-player { padding: 0 8px; }
+  .mu-player { padding: 0 8px; gap: 8px; }
 }
 
 /* ==========================================================================
@@ -1849,18 +1866,24 @@ html[data-theme="light"] .mu-immersive {
     padding: 20px 0 16px;
   }
   .mu-imm-left {
-    flex-direction: row;
-    gap: 14px;
-    justify-content: flex-start;
+    /* grid 两列：唱片 | 文本列（歌名/歌手竖排）。
+       之前 title 和 artist 各 flex:1 对半分行宽，
+       歌名占左半、歌手被推到右半，中间一大段空白。 */
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-rows: auto auto;
     align-items: center;
+    column-gap: 14px;
+    row-gap: 0;
     padding: 0;
   }
   .mu-imm-vinyl { margin-bottom: 0; width: min(88px, 22vw); height: min(88px, 22vw); }
   .mu-imm-bars { display: none; }
   /* 横排后文字必须能撑开，否则 nowrap + overflow:hidden 会压成 0 宽 */
+  .mu-imm-left > .mu-imm-deck { grid-row: 1 / span 2; grid-column: 1; }
   .mu-imm-left > .mu-imm-title,
   .mu-imm-left > .mu-imm-artist {
-    flex: 1 1 auto;
+    grid-column: 2;
     min-width: 0;
     text-align: left;
     margin: 0;
@@ -3042,4 +3065,82 @@ html[data-theme="light"] .mu-player .mu-imm-vol-num { color: var(--mod-ac); }
 .mu-queue-mask.in-immersive .mu-queue-del:hover {
   color: #ff8fa3;
   background: rgba(255, 255, 255, 0.1);
+}
+
+/* ==========================================================================
+   移动端（390px 档）修复 —— 2026-10 追加（手机端布局深度优化）
+   ========================================================================== */
+
+/* ---------- 0. 全局密度：窄屏收窄容器内边距 ---------- */
+@media (max-width: 480px) {
+  .mu-panel { padding: 14px; }
+  .mu-wrap  { padding-left: 12px; padding-right: 12px; }
+}
+
+/* ---------- 1. 排行榜页 ---------- */
+@media (max-width: 720px) {
+  /* 榜单横滑条加固：显式限宽，杜绝 min-content 溢出回归；
+     清掉桌面态残留的 padding-right:4px（右端按钮贴死裁切边） */
+  .mu-rank-side {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    padding-right: 0;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .mu-rank-side::-webkit-scrollbar { height: 0; }
+  .mu-rank-side-item { flex: 0 0 auto; }
+  .mu-rank-side-name { max-width: 96px; }
+
+  /* 歌曲行 390px 下主列仅 ~120px：收窄媒体槽与时长给标题让位 */
+  .mu-rank-main .mu-row-ico { width: 40px; height: 40px; }
+  .mu-rank-main .mu-row-dur { width: 40px; margin-right: 0; }
+}
+
+/* ---------- 2. 我的列表页 ---------- */
+@media (max-width: 560px) {
+  /* 5 个 mini 按钮约 328px > 390px 可用的 318px：
+     不换行会裁掉行尾「删除」键（.app-module overflow-x:hidden）——必修 */
+  .mu-list-actions { flex-wrap: wrap; row-gap: 6px; }
+}
+@media (max-width: 400px) {
+  .mu-row-dur { width: 40px; margin-right: 0; }
+  .mu-row .mu-addlist { width: 34px; height: 34px; }
+}
+
+/* ---------- 3. 音源页 ---------- */
+@media (max-width: 480px) {
+  .mu-textarea { font-size: 13px; }
+  .mu-btns .mu-btn { flex: 1 1 auto; }
+}
+
+/* ---------- 4. 队列面板 ---------- */
+@media (max-width: 560px) {
+  .mu-queue-panel { max-height: 62vh; }
+}
+@media (hover: none) {
+  /* 删除键 22px 太小：放大 + 伪元素外扩热区到 ~42px */
+  .mu-queue-del { position: relative; width: 28px; height: 28px; opacity: .6; }
+  .mu-queue-del::before { content: ""; position: absolute; inset: -7px; }
+  /* HTML5 拖拽触屏不触发，手柄是死控件：隐藏并给文本让位 */
+  .mu-queue-grip { display: none; }
+}
+
+/* ---------- 5. 沉浸页 ---------- */
+@media (max-width: 860px) {
+  /* viewport-fit=cover：全面屏底部控件会被 Home 条压住，补安全区 */
+  .mu-imm-inner {
+    padding-top:    calc(20px + env(safe-area-inset-top, 0px));
+    padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  }
+}
+@media (max-width: 480px) {
+  /* clamp 的 vw 项在 390px 全部落下限（16/18px），阶梯消失；
+     手机上改固定 16→21，恢复可感知的层级 */
+  .mu-imm-lyric-line { font-size: 16px; }
+  .mu-imm-lyric-line.active { font-size: 21px; }
 }

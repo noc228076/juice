@@ -645,6 +645,14 @@ html.cover-ready #bootSkeleton {
 }
 
 /* ============ 子模块二级切换胶囊条 (Sub-navigation Pill Bar) ============ */
+/* 此前容器是 5% 白的透明底、未选中项用 --tx-dim 的 12px 小字，
+   叠在每日壁纸这种照片背景上整条会糊掉，用户看不出这是可点的切换器。
+   现在改成实心面板 + 更亮的字 + 更大的点击区：
+     - 容器用 --card-solid + 毛玻璃，保证任何壁纸上都有一块稳定底色
+     - 未选中项 --tx-dim → --tx，字号 12 → 13.5，字重 700 → 800
+     - 选中项填充模块主色（下方 data-sub-jump 规则），带同色描边和光晕
+     - 后缀「& 工资」降为 --tx-faint 且字号更小，主标题仍是最显眼的
+   高度仍固定 --ui-bar-h（3+32+1+3+1=40），切换模块时整条不跳。 */
 .subnav-pill-bar {
   display: flex !important;
   width: -moz-fit-content !important;
@@ -652,10 +660,13 @@ html.cover-ready #bootSkeleton {
   align-items: stretch;
   justify-content: center;
   gap: 4px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--line);
+  background: var(--card-solid);
+  border: 1px solid var(--line-strong);
   border-radius: 999px;
   padding: 3px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   /* 统一子导航条高度：此前本条 36px，而 decision 48 / daily 51 /
      lifeguide 55，切模块时整条上下跳。3+32+1+3+1 = 40。
      固定 height + align-items:stretch 让标签填满内容区。 */
@@ -679,10 +690,11 @@ html.cover-ready #bootSkeleton {
     justify-content: center;
   }
   .subnav-pill-btn {
-    height: 32px;
+    height: 34px;
     flex: 1 1 44%;
     justify-content: center;
     padding: 0 8px;
+    font-size: 13px;
   }
   .sub-pill-x {
     display: none;
@@ -690,17 +702,22 @@ html.cover-ready #bootSkeleton {
 }
 
 html[data-theme="light"] .subnav-pill-bar {
-  background: rgba(0, 0, 0, 0.04);
+  background: var(--card-solid);
+  box-shadow: 0 6px 20px rgba(40, 46, 30, 0.16);
 }
 
 .subnav-pill-btn {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 0 14px;
+  padding: 0 15px;
+  /* 撑满容器内容区（40 - 3*2 padding - 1*2 border = 32），
+     不靠继承的高度，避免不同断点下标签比容器矮一截 */
+  align-self: stretch;
   border-radius: 999px;
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 13.5px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
   color: var(--tx-dim);
   background: transparent;
   border: 1px solid transparent;
@@ -711,9 +728,23 @@ html[data-theme="light"] .subnav-pill-bar {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* 「& 工资」「& 碎纸解压」这类副标题：比主标题弱一档，但仍要看得清。
+   此前只在窄屏定义过 display:none，桌面端没有基础样式，和主标题一样粗。 */
+.sub-pill-x {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--tx-faint);
+  letter-spacing: 0;
+}
+
+.subnav-pill-btn.active .sub-pill-x {
+  color: inherit;
+  opacity: 0.75;
+}
+
 .subnav-pill-btn:hover {
   color: var(--tx);
-  background: rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.09);
 }
 
 html[data-theme="light"] .subnav-pill-btn:hover {
@@ -725,10 +756,10 @@ html[data-theme="light"] .subnav-pill-btn:hover {
 }
 
 .subnav-pill-btn.active {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.16);
   color: var(--tx);
-  border-color: var(--line);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  border-color: var(--line-strong);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.22);
   font-weight: 800;
 }
 
@@ -739,77 +770,84 @@ html[data-theme="light"] .subnav-pill-btn.active {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
 
+/* 各子模块选中态：实心模块主色 + 深色字，比原来的 18% 半透明更明确 */
 .subnav-pill-btn.active[data-sub-jump="drinks"] {
-  background: rgba(214, 255, 75, 0.18);
-  color: #D6FF4B;
-  border-color: rgba(214, 255, 75, 0.4);
+  background: #D6FF4B;
+  color: #10120A;
+  border-color: #D6FF4B;
+  box-shadow: 0 3px 12px rgba(214, 255, 75, 0.35);
 }
 
 .subnav-pill-btn.active[data-sub-jump="milktea"] {
-  background: rgba(251, 191, 36, 0.18);
-  color: #FBBF24;
-  border-color: rgba(251, 191, 36, 0.45);
+  background: #FBBF24;
+  color: #261604;
+  border-color: #FBBF24;
+  box-shadow: 0 3px 12px rgba(251, 191, 36, 0.35);
 }
 
 .subnav-pill-btn.active[data-sub-jump="clock"] {
-  background: rgba(250, 204, 21, 0.18);
-  color: #FACC15;
-  border-color: rgba(250, 204, 21, 0.45);
+  background: #FACC15;
+  color: #241A00;
+  border-color: #FACC15;
+  box-shadow: 0 3px 12px rgba(250, 204, 21, 0.35);
 }
 
 .subnav-pill-btn.active[data-sub-jump="merit"] {
-  background: rgba(245, 158, 11, 0.18);
-  color: #F59E0B;
-  border-color: rgba(245, 158, 11, 0.45);
+  background: #F59E0B;
+  color: #241200;
+  border-color: #F59E0B;
+  box-shadow: 0 3px 12px rgba(245, 158, 11, 0.35);
 }
 
 .subnav-pill-btn.active[data-sub-jump="music"] {
-  background: rgba(20, 184, 166, 0.18);
-  color: #2DD4BF;
-  border-color: rgba(20, 184, 166, 0.45);
+  background: #14B8A6;
+  color: #04211E;
+  border-color: #14B8A6;
+  box-shadow: 0 3px 12px rgba(20, 184, 166, 0.35);
 }
 
 /* 刮刮乐并入摸鱼解压后的子标签高亮，沿用其模块琥珀主色 */
 .subnav-pill-btn.active[data-sub-jump="scratch"] {
-  background: rgba(245, 158, 11, 0.18);
-  color: #F59E0B;
-  border-color: rgba(245, 158, 11, 0.45);
+  background: #F59E0B;
+  color: #241200;
+  border-color: #F59E0B;
+  box-shadow: 0 3px 12px rgba(245, 158, 11, 0.35);
 }
 
 html[data-theme="light"] .subnav-pill-btn.active[data-sub-jump="drinks"] {
-  background: rgba(22, 163, 74, 0.12);
-  color: #15803D;
-  border-color: rgba(22, 163, 74, 0.35);
+  background: #BBF7D0;
+  color: #14532D;
+  border-color: #22C55E;
 }
 
 html[data-theme="light"] .subnav-pill-btn.active[data-sub-jump="milktea"] {
-  background: rgba(217, 119, 6, 0.12);
-  color: #B45309;
-  border-color: rgba(217, 119, 6, 0.35);
+  background: #FDE68A;
+  color: #713F12;
+  border-color: #F59E0B;
 }
 
 html[data-theme="light"] .subnav-pill-btn.active[data-sub-jump="clock"] {
-  background: rgba(202, 138, 4, 0.12);
-  color: #A16207;
-  border-color: rgba(202, 138, 4, 0.35);
+  background: #FDE68A;
+  color: #713F12;
+  border-color: #FACC15;
 }
 
 html[data-theme="light"] .subnav-pill-btn.active[data-sub-jump="merit"] {
-  background: rgba(217, 119, 6, 0.12);
-  color: #B45309;
-  border-color: rgba(217, 119, 6, 0.35);
+  background: #FDE68A;
+  color: #713F12;
+  border-color: #F59E0B;
 }
 
 html[data-theme="light"] .subnav-pill-btn.active[data-sub-jump="music"] {
-  background: rgba(13, 148, 136, 0.12);
-  color: #0F766E;
-  border-color: rgba(13, 148, 136, 0.35);
+  background: #99F6E4;
+  color: #115E59;
+  border-color: #14B8A6;
 }
 
 html[data-theme="light"] .subnav-pill-btn.active[data-sub-jump="scratch"] {
-  background: rgba(217, 119, 6, 0.12);
-  color: #B45309;
-  border-color: rgba(217, 119, 6, 0.35);
+  background: #FDE68A;
+  color: #713F12;
+  border-color: #F59E0B;
 }
 
 /* ============ 右上角玩家头像入口 ============

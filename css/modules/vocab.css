@@ -15,10 +15,13 @@
   gap: 6px;
   margin: 0 auto 16px;
   padding: 4px;
-  background: var(--card);
-  border: 1px solid var(--line);
+  background: var(--card-solid);
+  border: 1px solid var(--line-strong);
   border-radius: 999px;
   width: fit-content;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
 }
 .vc-tab {
   appearance: none;
@@ -26,14 +29,17 @@
   background: transparent;
   color: var(--tx-dim);
   font: inherit;
-  font-size: 13.5px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
   padding: 8px 22px;
   border-radius: 999px;
   cursor: pointer;
   transition: background 0.18s ease, color 0.18s ease;
 }
-.vc-tab:hover { color: var(--tx); }
+.vc-tab:hover { color: var(--tx); background: rgba(255, 255, 255, 0.08); }
+html[data-theme="light"] .vc-subnav { box-shadow: 0 6px 20px rgba(40, 46, 30, 0.16); }
+html[data-theme="light"] .vc-tab:hover { background: rgba(0, 0, 0, 0.05); }
 .vc-tab.active {
   background: var(--mod-ac);
   color: var(--mod-ac-ink);

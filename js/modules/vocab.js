@@ -556,7 +556,7 @@
     if (!total) {
       return '<div class="vc-panel vc-done">' + owl('sleep') +
         '<h2>今天的单词都背完了</h2>' +
-        '<p>已答 <b>' + bs().doneToday + '</b> 题 · 连续打卡 <b>' + bs().streak + '</b> 天</p>' +
+        '<p>今天已背 <b>' + (bw().day.n || 0) + '</b> 个单词 · 已答 <b>' + bs().doneToday + '</b> 题 · 连续打卡 <b>' + bs().streak + '</b> 天</p>' +
         '<p class="vc-dim">明天到期复习会自动排好；也可以现在多背一组。</p>' +
         '<div class="vc-actions">' +
           '<button class="vc-btn primary" id="vcExtra" type="button">再来一组新词</button>' +
@@ -599,6 +599,8 @@
           '<div class="vc-hero-tag">' + (state.book === 'cet6' ? 'CET-6' : 'CET-4') +
             ' · 已连续 ' + bs().streak + ' 天 · ' + (state.order === 'random' ? '乱序' : '顺序') + '</div>' +
           '<h1 class="vc-hero-title">今天的单词任务</h1>' +
+          '<p class="vc-hero-wordcount">今天已背 <b>' + (bw().day.n || 0) + '</b> 个单词' +
+            '（本周 ' + (bw().week.n || 0) + ' · 累计 ' + (bw().all.n || 0) + '）</p>' +
         '</div>' +
         '<div class="vc-hero-focus">' +
           '<b class="vc-focus-title">' + focusTitle + '</b>' +
@@ -607,9 +609,9 @@
           '</div>' +
         '</div>' +
         '<div class="vc-hero-side">' +
-          '<div class="vc-hero-kpi"><b>' + dueAll + '</b><span>待复习</span></div>' +
-          '<div class="vc-hero-kpi"><b>' + newN + '</b><span>新词</span></div>' +
-          '<div class="vc-hero-kpi"><b>' + (total - bs().doneToday < 0 ? 0 : total - bs().doneToday) + '</b><span>还剩</span></div>' +
+          '<div class="vc-hero-kpi main"><b>' + (bw().day.n || 0) + '</b><span>今日已背(词)</span></div>' +
+          '<div class="vc-hero-kpi"><b>' + (bw().week.n || 0) + '</b><span>本周(词)</span></div>' +
+          '<div class="vc-hero-kpi"><b>' + (bw().all.n || 0) + '</b><span>累计(词)</span></div>' +
           '<div class="vc-bar"><i style="width:' + donePct + '%"></i></div>' +
           '<span class="vc-hero-done">已答 ' + bs().doneToday + ' / ' + total + ' 题</span>' +
         '</div>' +
@@ -912,8 +914,12 @@
     }
     var boxLabels = ['新学', '1 档', '2 档', '3 档', '4 档', '熟练'];
 
-    /* 六个关键数字用紧凑网格（3 列 2 行），比原来的 2×3 省一半高度 */
+    var b = bw();
+    /* 九格：背完单词数（今日/本周/累计）居首——这是与排行榜同口径的核心指标 */
     var stats = [
+      { v: b.day.n || 0, k: '今日已背(词)' },
+      { v: b.week.n || 0, k: '本周已背(词)' },
+      { v: b.all.n || 0, k: '累计已背(词)' },
       { v: knownWords().length, k: '已标熟' },
       { v: masteredCount(), k: '已掌握' },
       { v: toughWords().length, k: '生词本' },

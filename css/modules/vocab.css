@@ -1113,7 +1113,7 @@
 .vc-statcell {
   background: var(--btn-ghost-bg);
   border-radius: 10px;
-  padding: 10px 8px;
+  padding: 7px 8px;
   text-align: center;
 }
 .vc-statcell b {
@@ -1334,9 +1334,9 @@
   #mod-vocab .vc-wrap {
     max-width: 980px;
   }
-  /* 统计页六格 3 列 → 宽屏 6 联排（数字卡天然适合一行） */
+  /* 统计页九格（词数三连居首）保持 3×3；行高紧凑 */
   #mod-vocab .vc-statgrid {
-    grid-template-columns: repeat(6, 1fr);
+    grid-template-columns: repeat(3, 1fr);
   }
   /* 档位条 6 行 → 3 列 × 2 行，一屏放下 */
   #mod-vocab .vc-boxes {

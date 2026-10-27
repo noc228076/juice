@@ -113,11 +113,13 @@ html[data-theme="light"] #mod-decision::before {
 }
 
 /* ============ 四合一子模式导航栏 ============ */
+/* 与其他模块的子导航条统一视觉：实心面板 + 13.5px/800 + 实心选中态。
+   此前底是 --card（深色下 4.5% 白），叠在壁纸上整条会糊掉。 */
 .dec-subnav {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 6px;
-  background: var(--card);
+  background: var(--card-solid);
   padding: 3px;
   /* 3+32+1+3+1 = 40，与其他模块子导航条一致（此前 48px）。
      用固定 height 而非 min-height：grid 默认 align-items:stretch，
@@ -129,8 +131,15 @@ html[data-theme="light"] #mod-decision::before {
   flex-shrink: 0;
   box-sizing: border-box;
   border-radius: 999px;
-  border: 1px solid var(--line);
-  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
+  border: 1px solid var(--line-strong);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+html[data-theme="light"] .dec-subnav {
+  background: var(--card-solid);
+  box-shadow: 0 6px 20px rgba(40, 46, 30, 0.16);
 }
 
 .dec-tab {
@@ -140,8 +149,9 @@ html[data-theme="light"] #mod-decision::before {
     gap: 5px;
     padding: 0 10px;
     border-radius: 999px;
-  font-size: 13px;
-  font-weight: 700;
+  font-size: 13.5px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
   color: var(--tx-dim);
   border: none;
   background: transparent;
@@ -153,6 +163,11 @@ html[data-theme="light"] #mod-decision::before {
 
 .dec-tab:hover {
   color: var(--tx);
+  background: rgba(255, 255, 255, 0.09);
+}
+
+html[data-theme="light"] .dec-tab:hover {
+  background: rgba(0, 0, 0, 0.05);
 }
 
 .dec-tab.active {
@@ -204,13 +219,13 @@ html[data-theme="light"] #mod-decision::before {
 
 .dec-preset-pill {
   flex: none;
-  padding: 6px 13px;
+  padding: 7px 14px;
   border-radius: 999px;
-  font-size: 12px;
-  font-weight: 700;
+  font-size: 12.5px;
+  font-weight: 800;
   color: var(--tx-dim);
-  background: var(--card);
-  border: 1px solid var(--line);
+  background: var(--card-solid);
+  border: 1px solid var(--line-strong);
   cursor: pointer;
   transition: all 0.18s ease;
   user-select: none;
@@ -222,10 +237,11 @@ html[data-theme="light"] #mod-decision::before {
 }
 
 .dec-preset-pill.active {
-  background: rgba(16, 185, 129, 0.14);
-  color: var(--dec-ac);
+  background: var(--dec-ac);
+  color: var(--dec-ac-ink);
   border-color: var(--dec-ac);
   font-weight: 800;
+  box-shadow: 0 3px 10px var(--dec-ac-glow);
 }
 
 /* 轮盘画布舞台 */

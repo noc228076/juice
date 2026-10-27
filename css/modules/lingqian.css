@@ -41,6 +41,8 @@ html[data-theme="light"] #mod-lingqian {
 }
 
 /* 东西方玄学合辑联动胶囊条 (在 tarot 与 lingqian 共享) */
+/* 与 nav.css 的 .subnav-pill-bar 保持同一套视觉：实心面板保证在任何壁纸上
+   都有稳定底色，未选中项提亮到 --tx-dim + 13.5px/800，选中项用实心模块色。 */
 .ew-mystic-bar {
   display: flex !important;
   width: -moz-fit-content !important;
@@ -48,13 +50,16 @@ html[data-theme="light"] #mod-lingqian {
   align-items: stretch;
   justify-content: center;
   gap: 4px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid var(--line);
+  background: var(--card-solid);
+  border: 1px solid var(--line-strong);
   border-radius: 999px;
   padding: 3px;
   /* 与 .subnav-pill-bar 同一基准，本条此前 35px。
      固定 height + align-items:stretch 让标签填满 32px 内容区。 */
   height: var(--ui-bar-h);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   /* 见 nav.css 的 .subnav-pill-bar：flex item 会被宿主溢出压回自动高度 */
   flex-shrink: 0;
   margin: 0 auto 12px !important;
@@ -70,17 +75,19 @@ html[data-theme="light"] #mod-lingqian {
 }
 
 html[data-theme="light"] .ew-mystic-bar {
-  background: rgba(0, 0, 0, 0.04);
+  background: var(--card-solid);
+  box-shadow: 0 6px 20px rgba(40, 46, 30, 0.16);
 }
 
 .ew-switch-btn {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 0 12px;
+  padding: 0 14px;
   border-radius: 999px;
-  font-size: 11.5px;
-  font-weight: 700;
+  font-size: 13.5px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
   color: var(--tx-dim);
   background: transparent;
   /* 关键：预留 1px 透明边框。.active.* 才加 border:1px solid，
@@ -94,47 +101,64 @@ html[data-theme="light"] .ew-mystic-bar {
 
 .ew-switch-btn:hover {
   color: var(--tx);
+  background: rgba(255, 255, 255, 0.09);
+}
+
+html[data-theme="light"] .ew-switch-btn:hover {
+  background: rgba(0, 0, 0, 0.05);
 }
 
 .ew-switch-btn.active.west {
-  background: rgba(192, 132, 252, 0.2);
-  color: #C084FC;
-  border: 1px solid rgba(192, 132, 252, 0.4);
+  background: #C084FC;
+  color: #1E0836;
+  border: 1px solid #C084FC;
+  box-shadow: 0 3px 12px rgba(192, 132, 252, 0.35);
   font-weight: 800;
 }
 
 .ew-switch-btn.active.east {
-  background: rgba(225, 29, 72, 0.18);
-  color: #FB7185;
-  border: 1px solid rgba(225, 29, 72, 0.4);
+  background: #FB7185;
+  color: #2B040E;
+  border: 1px solid #FB7185;
+  box-shadow: 0 3px 12px rgba(251, 113, 133, 0.35);
   font-weight: 800;
 }
 
 .ew-switch-btn.active.bazi {
-  background: rgba(245, 158, 11, 0.2);
-  color: #F59E0B;
-  border: 1px solid rgba(245, 158, 11, 0.45);
+  background: #F59E0B;
+  color: #1C1204;
+  border: 1px solid #F59E0B;
+  box-shadow: 0 3px 12px rgba(245, 158, 11, 0.35);
   font-weight: 800;
 }
 
 .ew-switch-btn.active.fengshui {
-  background: rgba(16, 185, 129, 0.18);
-  color: #10B981;
-  border: 1px solid rgba(16, 185, 129, 0.45);
+  background: #10B981;
+  color: #022C22;
+  border: 1px solid #10B981;
+  box-shadow: 0 3px 12px rgba(16, 185, 129, 0.35);
   font-weight: 800;
 }
 
 html[data-theme="light"] .ew-switch-btn.active.west {
-  color: #7E22CE;
+  background: #E9D5FF;
+  color: #6B21A8;
+  border-color: #C084FC;
 }
 html[data-theme="light"] .ew-switch-btn.active.east {
-  color: #BE123C;
+  background: #FECDD3;
+  color: #9F1239;
+  border-color: #FB7185;
 }
 html[data-theme="light"] .ew-switch-btn.active.bazi {
-  color: #B45309;
+  background: #FDE68A;
+  color: #713F12;
+  border-color: #F59E0B;
 }
 html[data-theme="light"] .ew-switch-btn.active.fengshui {
-  color: #047857;
+  background: #A7F3D0;
+  color: #065F46;
+  border-color: #10B981;
 }
 
 /* ============ 屏幕容器切换 ============ */

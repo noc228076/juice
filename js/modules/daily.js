@@ -16,7 +16,6 @@
     zhihu: { name: '知乎热榜', home: 'https://www.zhihu.com/hot' },
     bili: { name: 'B站热搜', home: 'https://www.bilibili.com/v/popular/rank/all' },
     douyin: { name: '抖音热点', home: 'https://www.douyin.com/hot' },
-    rednote: { name: '小红书', home: 'https://www.xiaohongshu.com/explore' },
     'ai-news': { name: 'AI 前沿快讯', home: 'https://www.jiqizhixin.com/' },
     toutiao: { name: '今日头条', home: 'https://www.toutiao.com/' }
   };
@@ -438,7 +437,8 @@
        v2.xxapi.cn     微博/B站/抖音 可用（ACAO: *）
      B站与抖音的官方接口虽然能拿到数据，但不返回 CORS 头，
      浏览器里必然失败，所以只能用这些聚合源。
-     小红书与头条暂无已验证的跨域实时源，直接走本地兜底并显示离线提示。
+     头条官方接口（hot-event/hot-board）同样不带 CORS 头，但服务端可拉，
+     已由自家 /api/toutiao 代理；小红书无公开接口（需签名），已移除该平台。
 
      注意：codelife 对未知 id 会返回 HTTP 200 + 空 data，
      所以不能只看 res.ok，必须校验列表非空。
@@ -465,13 +465,15 @@
       { url: 'https://api.codelife.cc/api/top/list?lang=cn&id=DpQvNABoNE', kind: 'codelife' },
       { url: 'https://v2.xxapi.cn/api/douyinhot', kind: 'xxapi' }
     ],
-    // 暂无已验证的跨域实时源：空数组表示直接走缓存 / 离线种子，不发死请求
-    rednote: [],
     'ai-news': [
       // 36kr 科技/AI 快讯（codelife 的科技频道），字段与普通热榜一致
       { url: 'https://api.codelife.cc/api/top/list?lang=cn&id=Q1Vd5Ko85R', kind: 'codelife' }
     ],
-    toutiao: []
+    // 头条官方接口不带 CORS 头，浏览器直连必失败，走自家 /api/toutiao 代理；
+    // 代理已把字段拉平成 { title, hot_value, link }，用 'any' 解析即可
+    toutiao: [
+      { url: '/api/toutiao', kind: 'any' }
+    ]
   };
 
   // 把 "108万" / "1.2亿" / "947.5w" / 数字 统一成数值，便于按热度排序与展示

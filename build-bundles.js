@@ -159,7 +159,14 @@ function sourceFingerprint() {
   const h = crypto.createHash('sha256');
   files.filter(f => fs.existsSync(path.join(__dirname, f))).forEach(f => {
     h.update(f);
-    h.update(fs.readFileSync(path.join(__dirname, f)));
+    // index.html 的 ?v= 是构建自己写进去的，直接参与哈希会自引用：
+    // 每次构建都把版本号改掉 → 下次哈希又不同 → 版本号永远在涨。
+    // 哈希前把版本号归一化掉，只反映真实内容变化。
+    let buf = fs.readFileSync(path.join(__dirname, f));
+    if (f === 'index.html') {
+      buf = Buffer.from(String(buf).replace(/\?v=\d+/g, '?v='), 'utf8');
+    }
+    h.update(buf);
   });
   return h.digest('hex');
 }

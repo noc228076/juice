@@ -15,6 +15,7 @@
     { "source": "/api/leaderboard", "destination": "/api/leaderboard.js" },
     { "source": "/api/wall", "destination": "/api/wall.js" },
     { "source": "/api/douban", "destination": "/api/douban.js" },
+    { "source": "/api/toutiao", "destination": "/api/toutiao.js" },
     { "source": "/api/zhuiju", "destination": "/api/zhuiju.js" },
     { "source": "/api/proxy", "destination": "/api/proxy.js" }
   ],

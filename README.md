@@ -252,7 +252,7 @@ juice/
 | 微博 / 知乎 / 抖音 | `api.codelife.cc` 热榜 API | 备用聚合源 → 缓存 → 离线示例 |
 | B站 / 微博 / 抖音备用 | `v2.xxapi.cn` | 缓存 → 离线示例 |
 | AI 快讯 | `api.codelife.cc` 科技/AI 频道（36kr 内容） | 缓存 → 离线示例 |
-| 小红书 / 今日头条 | 暂无稳定跨域实时源 | 直接显示离线精选，不发无效请求 |
+| 今日头条 | 官方 `toutiao.com/hot-event/hot-board`，经自家 `/api/toutiao` 代理（上游无 CORS 头） | 缓存 → 离线示例 |
 | 必应壁纸 | `bing.biturl.top`（今日 + 近 6 日） | 内置壁纸种子 |
 | 影视榜 | 本地片单（电影 / 华语剧 / 全球剧） | — |
 

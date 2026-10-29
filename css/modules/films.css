@@ -158,6 +158,8 @@ html[data-theme="dark"] .films-cat.active {
   flex: none;
   width: 24px;
   height: 24px;
+  /* 视觉 24px 但触控区扩到 44px：紧邻「打开」按钮，热区太小易误触/点不中 */
+  position: relative;
   border-radius: 50%;
   border: 1px solid var(--line);
   background: transparent;
@@ -167,6 +169,12 @@ html[data-theme="dark"] .films-cat.active {
   line-height: 1;
   cursor: pointer;
   transition: all 0.15s ease;
+}
+.films-fav::before {
+  content: "";
+  position: absolute;
+  inset: -10px;
+  border-radius: 50%;
 }
 .films-fav:hover { opacity: 0.9; }
 .films-fav.on {

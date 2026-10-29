@@ -313,6 +313,11 @@
         const rec = list.find(r => r.id === btn.dataset.copyId);
         if (rec) {
           const textToCopy = `【${rec.badge}】${rec.title}\n${rec.subtitle}\n测算时间：${rec.time}`;
+          /* 非 HTTPS（局域网 IP 调试）没有 clipboard API：回落 alert 展示全文 */
+          if (!(navigator.clipboard && navigator.clipboard.writeText)) {
+            alert(textToCopy);
+            return;
+          }
           navigator.clipboard.writeText(textToCopy).then(() => {
             const originalText = btn.innerHTML;
             btn.innerHTML = '✓';

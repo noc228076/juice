@@ -68,7 +68,7 @@
     box.innerHTML =
       items.map(function (it) {
         return '<button type="button" class="films-cat' + (filmsCat === it.key ? ' active' : '') +
-          '" data-cat="' + it.key + '">' + it.label + '</button>';
+          '" data-cat="' + escapeHtml(it.key) + '">' + escapeHtml(it.label) + '</button>';
       }).join('') +
       '<span class="films-cat-sep"></span>' +
       statusItems.map(function (it) {
@@ -129,7 +129,7 @@
         '</div>' +
         '<div class="films-sum">' + escapeHtml(r.summary || '暂无简介') + '</div>' +
         '<div class="films-meta">' +
-          '<span class="films-score">摸鱼 ' + (r.score || '-') + '</span>' +
+          '<span class="films-score">摸鱼 ' + escapeHtml(String(r.score != null ? r.score : '-')) + '</span>' +
           '<span class="films-status ' + st.cls + '">' + st.text + '</span>' +
           (r.checkedAt ? '<span class="films-date">' + escapeHtml(r.checkedAt) + '</span>' : '') +
         '</div>' +

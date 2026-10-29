@@ -1659,7 +1659,9 @@
     const pickY = isLunarSelected ? pickerState.lYear : pickerState.sYear;
     const pickM = isLunarSelected ? pickerState.lMonth : pickerState.sMonth;
     const pickD = isLunarSelected ? pickerState.lDay : pickerState.sDay;
-    if (new Date(pickY, pickM - 1, pickD, 23, 59, 59) > new Date()) {
+    /* 农历闰月 lMonth 是负数（如 -6 表示闰六月），直接进 Date 会把月份
+       下标算成 -7 滚回上一年，拦截窗口失真——取绝对值按平月近似判断 */
+    if (new Date(pickY, Math.abs(pickM) - 1, pickD, 23, 59, 59) > new Date()) {
       alert('出生时间不能晚于现在哦');
       return;
     }
@@ -2066,7 +2068,9 @@
         if (res) renderResult(res, false);
         return;
       }
-      if (stage) stage.classList.remove('active');
+      /* init 已静默算好默认命盘并点亮结果屏：home 视图不要把 active 摘掉，
+         否则首次进入八字模块只见输入卡、盘被藏起来 */
+      if (stage && view && view !== 'home') stage.classList.remove('active');
       /* 回到首页时不能滚动：这里原本无条件 scrollIntoView 到输入卡，
          首次进入也会触发，把顶部的玄学互跳栏推出视野，和其他模块的子导航
          不在同一高度。只有确实从结果页退回（需要把输入区带回视野）才滚。 */

@@ -168,6 +168,7 @@
   }
 
   function renderQuestion() {
+    if (autoTimer) { clearTimeout(autoTimer); autoTimer = null; }
     const q = QS[curQi];
     const sub = document.getElementById('mtQuizSub');
     const fill = document.getElementById('mtQbarFill');
@@ -551,6 +552,8 @@
     if (btnNext) {
       btnNext.onclick = () => {
         if (window.SFX && window.SFX.tap) window.SFX.tap();
+        if (btnNext.disabled) return;   // 双击防重入：档案不写重复记录
+        btnNext.disabled = true;
         if (curAnswers[curQi] >= 0) finish();
       };
     }

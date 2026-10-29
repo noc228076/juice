@@ -68,6 +68,8 @@ function runApi(req, res, pathname) {
     raw += chunk;
     // 请求体上限 1MB：本站 API 最大的是榜单提交/弹幕文本，远用不到这么大
     if (raw.length > 1e6) {
+      res.writeHead(413, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ ok: false, error: '请求体过大' }));
       req.destroy();
     }
   });

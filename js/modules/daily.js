@@ -863,7 +863,8 @@
     if (titleEl) titleEl.textContent = wp.title || '今日壁纸大片';
     if (descEl) descEl.textContent = wp.description || wp.main_text || wp.copyright || '';
     if (metaEl) metaEl.textContent = wp.copyright ? `📷 摄影版权：${wp.copyright}` : '';
-    if (dlBtn) dlBtn.href = wp.cover_4k || wp.cover;
+    // 下载链接走 escUrl：外部 API 返回的 URL 不直接进 href sink
+    if (dlBtn) dlBtn.href = window.escUrl(wp.cover_4k || wp.cover || '#');
 
     if (!imgEl) return;
     const src = wp.cover_4k || wp.cover;

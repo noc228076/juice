@@ -67,17 +67,29 @@
   // 所以单独记一份，只有「确实在播放」时才更新它。
   var knownPos = 0;
 
+  var POS_KEY = 'juice_music_pos_v1';   // 播放位置单独落盘（几十字节），大队列快照只在变化时重写
+  var liveSig = '';                      // 队列+曲目签名：没变就不重写全量快照
+
   function saveLive() {
     // 还原现场期间一律不写：此时 audio 还没 src，写进去的 pos 会是 0
     if (restoringLive) return;
     if (!queue.length || qi < 0) {
       try { localStorage.removeItem(LIVE_KEY); } catch (e) {}
+      try { localStorage.removeItem(POS_KEY); } catch (e) {}
+      liveSig = '';
       return;
     }
     // 只有 pendingSeek 指向当前这首时才用它，否则一律用 knownPos：
     // 残留的 pendingSeek 会把存档那首的旧进度写进当前这首的记录
     var livePos = (pendingSeek && cur && pendingSeek.id === cur.id)
       ? pendingSeek.pos : knownPos;
+    // 位置每 2 秒单独写（几十字节）；快照只在队列/曲目变化时才值得重写，
+    // 否则 118 首的队列会以 ~77KB/2秒 的频率全量 stringify + 落盘
+    try {
+      localStorage.setItem(POS_KEY, JSON.stringify({ id: cur ? cur.id : '', pos: livePos }));
+    } catch (e) {}
+    var sig = queue.map(function (x) { return x.id; }).join(',') + '|' + qName + '|' + qi;
+    if (sig === liveSig) return;
     try {
       localStorage.setItem(LIVE_KEY, JSON.stringify({
         v: 1,
@@ -97,10 +109,14 @@
           };
         })
       }));
+      liveSig = sig;
     } catch (e) {
-      // 队列里有本地文件（objectURL）时可能超配额；退化成只存元信息
+      // 队列太大超配额：保留旧快照不覆盖（降级写空队列会让还原现场全丢）
       try {
-        localStorage.setItem(LIVE_KEY, JSON.stringify({ v: 1, qi: qi, name: qName, at: Date.now(), pos: knownPos, queue: [] }));
+        if (liveSig !== 'MINI') {
+          localStorage.setItem(LIVE_KEY, JSON.stringify({ v: 1, qi: qi, name: qName, at: Date.now(), pos: knownPos, queue: [] }));
+          liveSig = 'MINI';
+        }
       } catch (e2) {}
     }
   }
@@ -111,6 +127,12 @@
       if (!raw) return null;
       var d = JSON.parse(raw);
       if (!d || !Array.isArray(d.queue) || !d.queue.length) return null;
+      // 播放位置以 POS_KEY 为准：快照里的 pos 是队列/曲目变化那一刻的旧值
+      try {
+        var pk = JSON.parse(localStorage.getItem(POS_KEY) || 'null');
+        var ct = d.queue[d.qi];
+        if (pk && ct && pk.id === ct.id && typeof pk.pos === 'number') d.pos = pk.pos;
+      } catch (e) {}
       return d;
     } catch (e) { return null; }
   }
@@ -691,10 +713,18 @@
         album: '我的音乐台',
         artwork: cur.cover ? [{ src: cur.cover, sizes: '512x512' }] : []
       });
-      navigator.mediaSession.setActionHandler('play', function () { audio.play(); });
+      navigator.mediaSession.setActionHandler('play', function () { audio.play().catch(function () {}); });
       navigator.mediaSession.setActionHandler('pause', function () { audio.pause(); });
       navigator.mediaSession.setActionHandler('previoustrack', prevTrack);
       navigator.mediaSession.setActionHandler('nexttrack', function () { nextTrack(false); });
+      // 锁屏 / 蓝牙耳机的拖进度条（支持的浏览器才生效）
+      try {
+        navigator.mediaSession.setActionHandler('seekto', function (e) {
+          if (audio && typeof e.seekTime === 'number' && isFinite(e.seekTime)) {
+            audio.currentTime = e.seekTime;
+          }
+        });
+      } catch (e2) {}
     } catch (e) {}
   }
 
@@ -2990,6 +3020,7 @@
   /** 渲染歌词行（带 data-time 供高亮） */
   function lyricLinesHtml() {
     if (!showLyric) return '';
+    if (!cur) return '<div class="mu-imm-lyric-tip">当前没有在播放的歌</div>';
     if (!currentLyric) return '<div class="mu-imm-lyric-tip">歌词加载中…</div>';
     var parsed = currentLyric.parsed || [];
     if (!parsed.length) {

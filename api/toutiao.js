@@ -53,6 +53,8 @@ module.exports = async function handler(req, res) {
     // 拿到数组后可直接按热榜列表消费
     res.status(200).json({ ok: true, data: list, updatedAt: Date.now() });
   } catch (err) {
-    res.status(502).json({ ok: false, error: '头条热榜代理失败：' + (err && err.message ? err.message : 'unknown') });
+    // 上游错误细节（含内部 URL）只进日志，对外固定文案
+    console.error('[toutiao] proxy failed:', err);
+    res.status(502).json({ ok: false, error: '头条热榜暂时不可用，请稍后再试' });
   }
 };

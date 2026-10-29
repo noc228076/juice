@@ -116,16 +116,15 @@
     var data = root.LX_BUILTIN_SOURCES;
     if (!Array.isArray(data) || !data.length) return Promise.resolve({ ok: 0, fail: 0 });
 
-    var ok = 0, fail = 0;
-    var chain = Promise.resolve();
-    data.forEach(function (item) {
-      chain = chain.then(function () {
-        return root.LxSandbox.load(item.script)
-          .then(function () { ok++; })
-          .catch(function () { fail++; });
-      });
-    });
-    return chain.then(function () {
+    /* 并行加载：脚本之间零依赖（resolveUrl 本就逐脚本 fallback）。
+       串行时单个失效脚本要等满 12s 超时，9 个最坏可拖到分钟级。 */
+    return Promise.all(data.map(function (item) {
+      return root.LxSandbox.load(item.script)
+        .then(function () { return 1; })
+        .catch(function () { return 0; });
+    })).then(function (results) {
+      var ok = results.reduce(function (a, b) { return a + b; }, 0);
+      var fail = results.length - ok;
       console.log('[LxMusic] 内置音源: ' + ok + ' 个加载成功，' + fail + ' 个失败');
       return { ok: ok, fail: fail };
     });

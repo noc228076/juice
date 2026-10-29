@@ -16,11 +16,13 @@
 <meta property="og:type" content="website">
 <meta property="og:title" content="饮料人格研究所 · 测测你的精神状态与灵魂特调">
 <meta property="og:description" content="当代年轻人精神状态测试 (SBTI) / 经典 16 型人格 (MBTI) / 16 款灵魂饮料特调，测出你的独家出厂配方与精神病友。">
-<meta property="og:image" content="assets/icons/icon-512.png">
-  <link rel="stylesheet" href="css/core.bundle.css?v=509">
-  <script defer src="js/vendor/morphicons.js?v=509"></script>
-  <script defer src="js/vendor/lucide-icons.js?v=509"></script>
-  <script defer src="js/app.bundle.js?v=509" fetchpriority="high"></script>
+<meta property="og:image" content="https://juice.noooc.dpdns.org/assets/icons/icon-512.png">
+<meta property="og:url" content="https://juice.noooc.dpdns.org/">
+<meta name="twitter:card" content="summary_large_image">
+  <link rel="stylesheet" href="css/core.bundle.css?v=511">
+  <script defer src="js/vendor/morphicons.js?v=511"></script>
+  <script defer src="js/vendor/lucide-icons.js?v=511"></script>
+  <script defer src="js/app.bundle.js?v=511" fetchpriority="high"></script>
   <script>
     (function(){
       // 主题必须在首次绘制前定下来。以前只有 <html data-theme="dark"> 的硬编码默认值，
@@ -33,7 +35,8 @@
       try {
         if (localStorage.getItem('daily_site_bg_active') === 'true') {
           var u = localStorage.getItem('daily_site_bg_url');
-          if (u) {
+          // 与 daily.js 的写入白名单保持一致：脏数据（历史版本写入的）不再注入 CSS
+          if (u && /^https:\/\/(www|cn)\.bing\.com\/th\?id=OHR\./.test(u) && !/["')\s]/.test(u)) {
             document.documentElement.style.setProperty('--daily-bg-url', 'url("' + u + '")');
             document.documentElement.classList.add('has-daily-ambient-bg');
             // body 此时还不存在，等解析到 <body> 立刻补类，别拖到 DOMContentLoaded

@@ -287,8 +287,8 @@
           </div>
           <div class="uni-hist-ops">
             <button class="uni-btn-view" data-view-id="${window.escHtml(item.id)}" title="查看并还原结果页面">查看 →</button>
-            <button class="uni-btn-copy-icon" data-copy-id="${item.id}" title="复制测评摘要">📋</button>
-            <button class="uni-btn-del" data-del="${item.id}" title="删除记录">✕</button>
+            <button class="uni-btn-copy-icon" data-copy-id="${window.escHtml(item.id)}" title="复制测评摘要">📋</button>
+            <button class="uni-btn-del" data-del="${window.escHtml(item.id)}" title="删除记录">✕</button>
           </div>
         </div>
       `;

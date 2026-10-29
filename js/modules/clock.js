@@ -146,7 +146,10 @@
         return { name: h.name, days: diffDays };
       }
     }
-    return { name: '元旦假期', days: 30 };
+    /* 表里只硬编码了当年（元旦有跨年项）。表末尾日期已过且无匹配时，
+       说明明年的调休安排还没录入——此前硬造「元旦 30 天」会把错误日期
+       当真展示。改为提示待更新，等当年 11 月国务院公布后再补表。 */
+    return { name: '假期日历更新中', days: null };
   }
 
   // 获取农历日期字符串（如：农历九月初六，逢节气如：农历九月十四 · 霜降）
@@ -804,6 +807,13 @@
       if (now > nextPayDate) {
         nextPayDate = new Date(now.getFullYear(), now.getMonth() + 1, pDay, 9, 0, 0);
       }
+      /* 小月没有 29/30/31 号：Date 会滚到下月 1 号，「4 月 31 号发薪」
+         实际滚成 5 月 1 号。钳到当月最后一天，与「每月 X 号」文案一致 */
+      const lastDay = new Date(nextPayDate.getFullYear(), nextPayDate.getMonth() + 1, 0).getDate();
+      const clampedDay = Math.min(pDay, lastDay);
+      if (nextPayDate.getDate() !== clampedDay) {
+        nextPayDate = new Date(nextPayDate.getFullYear(), nextPayDate.getMonth(), clampedDay, 9, 0, 0);
+      }
       const payDays = Math.ceil((nextPayDate - now) / (1000 * 86400));
       if (cdPayEl) cdPayEl.textContent = `${payDays} 天`;
       if (cdPaySub) cdPaySub.textContent = `每月 ${pDay} 号准时回血`;
@@ -813,8 +823,8 @@
     const hol = getNextHoliday(now);
     const cdHolEl = document.getElementById('ckCdHoliday');
     const cdHolSub = document.getElementById('ckCdHolidaySub');
-    if (cdHolEl) cdHolEl.textContent = `${hol.days} 天`;
-    if (cdHolSub) cdHolSub.textContent = `距离【${hol.name}】放假`;
+    if (cdHolEl) cdHolEl.textContent = hol.days == null ? '—' : `${hol.days} 天`;
+    if (cdHolSub) cdHolSub.textContent = hol.days == null ? `【${hol.name}】明年调休公布后更新` : `距离【${hol.name}】放假`;
 
     // 6. 3D 拟真机械翻页全屏屏保同步更新
     if (isZenOpen) {

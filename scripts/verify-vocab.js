@@ -50,7 +50,7 @@ function check(name, ok, detail) {
   await setState(() => {
     const s = { book:'cet4', day:'', newDoneToday:0, doneToday:0, streak:0, lastDone:'',
       words:{}, seq:0, dailyNew:3, order:'seq', totalMs:0, totalAnswered:0, totalRight:0, days:{} };
-    localStorage.setItem('juice_vocab_v1', JSON.stringify(s));
+    delete s.session; localStorage.setItem('juice_vocab_v1', JSON.stringify(s));
   });
   await fresh('/vocab');
 
@@ -128,7 +128,7 @@ function check(name, ok, detail) {
     bk.words['abruptly'] = { box: 0, due: today, seen: 6, wrong: 5 };
     bk.words['absorb'] = { box: 1, due: today, seen: 3, wrong: 2 };
     bk.newDoneToday = s.dailyNew || bk.newDoneToday || 3;
-    localStorage.setItem('juice_vocab_v1', JSON.stringify(s));
+    delete s.session; localStorage.setItem('juice_vocab_v1', JSON.stringify(s));
   });
   await fresh('/vocab');
   await page.click('.vc-tab[data-tab="words"]');
@@ -161,7 +161,7 @@ function check(name, ok, detail) {
     const s = JSON.parse(localStorage.getItem('juice_vocab_v1') || '{}');
     s.kinds = { recall: true, spell: true, cloze: false };
     s.dir = 'en2cn';
-    localStorage.setItem('juice_vocab_v1', JSON.stringify(s));
+    delete s.session; localStorage.setItem('juice_vocab_v1', JSON.stringify(s));
   });
   await fresh('/vocab');
   await page.click('.vc-tab[data-tab="settings"]');
@@ -184,7 +184,7 @@ function check(name, ok, detail) {
     const s = JSON.parse(localStorage.getItem('juice_vocab_v1') || '{}');
     const b4 = (s.books = s.books || {}).cet4 = s.books.cet4 || {};
     b4.words = {}; b4.seq = 0; b4.newDoneToday = 0; b4.doneToday = 0;
-    localStorage.setItem('juice_vocab_v1', JSON.stringify(s));
+    delete s.session; localStorage.setItem('juice_vocab_v1', JSON.stringify(s));
   });
   await fresh('/vocab');
   await page.click('#vcStart');
@@ -217,7 +217,7 @@ function check(name, ok, detail) {
     const today = Math.floor(Date.now() / 86400000);
     s.words = { abruptly: { box: 5, due: today, seen: 6, wrong: 0 } };
     s.newDoneToday = s.dailyNew || 15;
-    localStorage.setItem('juice_vocab_v1', JSON.stringify(s));
+    delete s.session; localStorage.setItem('juice_vocab_v1', JSON.stringify(s));
   });
   await fresh('/vocab');
   await page.click('#vcStart');
@@ -232,9 +232,11 @@ function check(name, ok, detail) {
     !box5.isCn && box5.opts === 4, box5);
 
   // ========== D. 90 天热力图 ==========
-  // 上一段停在答题屏，先回首页
+  // 上一段停在答题屏，先回首页；续局卡出现则放弃（本段只测统计页）
   await page.evaluate(() => { const b = document.getElementById('vcBack'); if (b) b.click(); });
   await page.waitForTimeout(500);
+  await page.evaluate(() => document.getElementById('vcDiscard')?.click());
+  await page.waitForTimeout(400);
   await page.click('.vc-tab[data-tab="stats"]');
   await page.waitForTimeout(500);
   const heat = await page.evaluate(() => ({
@@ -285,7 +287,7 @@ function check(name, ok, detail) {
     const bk = (s.books && (s.books[s.book || 'cet4'] = s.books[s.book || 'cet4'] || {})) || s;
     bk.words = {}; bk.seq = 0; bk.newDoneToday = 0; bk.doneToday = 0;
     s.order = 'seq'; s.dailyNew = 10;
-    localStorage.setItem('juice_vocab_v1', JSON.stringify(s));
+    delete s.session; localStorage.setItem('juice_vocab_v1', JSON.stringify(s));
   });
   await fresh('/vocab');
   await page.evaluate(async () => {
@@ -324,7 +326,7 @@ function check(name, ok, detail) {
     const y = new Date(Date.now() - 86400000);
     const key = d => d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
     bk.day = key(y); bk.newDoneToday = s.dailyNew || s.book && 3 || 3; bk.doneToday = 20;
-    localStorage.setItem('juice_vocab_v1', JSON.stringify(s));
+    delete s.session; localStorage.setItem('juice_vocab_v1', JSON.stringify(s));
   });
   await fresh('/vocab');
   const d2 = await saved();

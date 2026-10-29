@@ -350,8 +350,11 @@
           // 已离开模块/子页：自动敲击自停，避免常驻空转
           clearInterval(autoTimer);
           autoTimer = null;
-          const runBtn = document.querySelector('[data-auto]');
-          if (runBtn) { runBtn.classList.remove('running'); runBtn.textContent = '▶️ 自动连续敲击'; }
+          const runBtn = document.getElementById('mrBtnAutoMuyu');
+          if (runBtn) {
+            runBtn.classList.remove('running');
+            runBtn.textContent = '⚡ 开启自动连续敲击';
+          }
           return;
         }
         knockMuyu();

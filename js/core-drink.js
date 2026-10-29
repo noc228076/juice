@@ -4106,6 +4106,9 @@ const SFX = (function () {
       if (Math.random() < 0.7) SFX.bubble();
       if (step * per >= total) {
         clearInterval(timer);
+        /* 摇杯期间用户可能已切走模块：此时只落历史，不劫持别的模块的路由 */
+        const activeMod = document.querySelector('.app-module.active')?.id;
+        if (activeMod && activeMod !== 'mod-drinks') { SFX.reveal(); return; }
         persona = computePersona();
         renderResult();
         saveCurrentToHistory();

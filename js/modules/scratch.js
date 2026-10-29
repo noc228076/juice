@@ -167,8 +167,10 @@
     if (btnClearHist) {
       btnClearHist.onclick = () => {
         if (confirm('确定要清空所有刮彩账本记录吗？')) {
-          localStorage.removeItem('sc_history');
-          localStorage.removeItem('sc_stats');
+          try {
+            localStorage.removeItem('sc_history');
+            localStorage.removeItem('sc_stats');
+          } catch (e) {}
           loadStats();
           renderHistory();
         }

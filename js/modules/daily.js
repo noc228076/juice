@@ -1001,6 +1001,8 @@
        此前这段校验被缩进进了上面的 if 块里，只对代理残留格式生效，
        外部 API 返回的直链完全绕过校验——任意字符串可注入 CSS 并持久化。 */
     if (!/^https:\/\/(www|cn)\.bing\.com\/th\?id=OHR\./.test(String(url))) return;
+    /* URL 会拼进 CSS url("...")：再拦一道引号/括号/空白，防 CSS 字符串逃逸 */
+    if (/["')\s]/.test(String(url))) return;
     document.documentElement.style.setProperty('--daily-bg-url', `url("${url}")`);
     document.body.style.setProperty('--daily-bg-url', `url("${url}")`);
     document.documentElement.classList.add('has-daily-ambient-bg');

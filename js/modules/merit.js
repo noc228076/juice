@@ -387,6 +387,9 @@
 
       btn.addEventListener('pointerdown', (e) => {
         e.preventDefault();
+        /* 触屏 pointerdown 后隐式捕获，兄弟节点收不到 pointerenter——
+           主动释放，让「滑动连捏」在手机上也能用 */
+        try { btn.releasePointerCapture(e.pointerId); } catch (err) {}
         isPointerDownOnBubbles = true;
         popBubbleCell(btn);
       });

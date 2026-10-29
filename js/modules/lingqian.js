@@ -310,7 +310,9 @@
     }
 
     showScreen('sc-lq-result');
-    if (!isRestored && window.AppRouter && typeof window.AppRouter.replaceView === 'function') {
+    /* 摇签期间用户可能已切走模块：只渲染进隐藏屏，不劫持别的模块的路由 */
+    const activeMod = document.querySelector('.app-module.active')?.id;
+    if (!isRestored && activeMod === 'mod-lingqian' && window.AppRouter && typeof window.AppRouter.replaceView === 'function') {
       window.AppRouter.replaceView('result', { record: lastStickRecord });
     }
     if (window.SFX && window.SFX.reveal) window.SFX.reveal();

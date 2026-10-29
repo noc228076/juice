@@ -1161,7 +1161,8 @@ html[data-theme="light"] .subnav-pill-btn.active[data-sub-jump="scratch"] {
 }
 
 html[data-theme="light"] .app-ambient-backdrop::after {
-  background: radial-gradient(circle at 50% 35%, rgba(245, 246, 241, 0.45) 0%, rgba(245, 246, 241, 0.78) 100%);
+  /* 浅色遮罩加深：浅色壁纸接近纯白，0.45 起步时灰字几乎不可读 */
+  background: radial-gradient(circle at 50% 35%, rgba(245, 246, 241, 0.62) 0%, rgba(245, 246, 241, 0.86) 100%);
 }
 
 html.has-daily-ambient-bg .app-ambient-backdrop,

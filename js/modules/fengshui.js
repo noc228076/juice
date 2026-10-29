@@ -264,6 +264,24 @@
     if (copyBtn) {
       copyBtn.onclick = () => {
         const text = `🧭 工位风水报告\n评级：${r.grade.emoji} ${r.grade.label}（运势 ${r.score}/100）\n座向：${r.wx}行 · ${r.dirName}\n环境：${r.envName}\n领导气场：${r.bossName}\n对面景象：${r.faceName}\n开运法宝：${r.fix1}、${r.fix2}\n宜：${r.yis.join(' / ')}\n忌：${r.jis.join(' / ')}\n批注：${r.saying}\n口诀：${r.koujue}`;
+        /* 非安全上下文（局域网 IP 调试）没有 navigator.clipboard，走 execCommand 兜底 */
+        if (!(navigator.clipboard && navigator.clipboard.writeText)) {
+          const ta = document.createElement('textarea');
+          ta.value = text;
+          ta.style.position = 'fixed';
+          ta.style.opacity = '0';
+          document.body.appendChild(ta);
+          ta.select();
+          try { document.execCommand('copy'); } catch (err) {}
+          ta.remove();
+          copyBtn.textContent = '✅ 已复制';
+          copyBtn.classList.add('done');
+          setTimeout(() => {
+            copyBtn.textContent = '📋 复制签文';
+            copyBtn.classList.remove('done');
+          }, 1500);
+          return;
+        }
         navigator.clipboard.writeText(text).then(() => {
           copyBtn.textContent = '✅ 已复制';
           copyBtn.classList.add('done');

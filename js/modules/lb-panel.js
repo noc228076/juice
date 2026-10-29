@@ -153,16 +153,19 @@
       });
     }
 
-    // 返回本局在本机战绩里的名次（1 起），供结算文案引用
+    // 返回本局在本机战绩里的名次（1 起），供结算文案引用。
+    // 本机落盘不依赖网络模块：离线/脚本加载失败也要能存战绩。
     function submit(run) {
-      if (!window.AppLeaderboard) return 0;
       var d = cfg.describe(run);
       var stamp = Date.now();
       var rec = { score: d.score, at: stamp };
       if (d.extra) for (var k in d.extra) if (Object.prototype.hasOwnProperty.call(d.extra, k)) rec[k] = d.extra[k];
-      var list = loadLocal(storeKey);
+      var list = loadLocal(storeKey).filter(function (r) {
+        return r && typeof r.score === 'number' && isFinite(r.score);
+      });
       list.push(rec);
       list.sort(function (a, b) { return compareRuns(a, b, higher, cfg.tieBreak); });
+      list = list.slice(0, MAX_LOCAL);
       saveLocal(storeKey, list);
       var localRank = 0;
       for (var i = 0; i < list.length; i++) {
@@ -188,7 +191,16 @@
       // 虽然服务端幂等，但会白白吃掉限流额度（60 秒 20 次）。
       var mark = 'lb_synced_' + game;
       var sig = String(best.score) + '|' + String(best.at || 0);
-      try { if (localStorage.getItem(mark) === sig) return; } catch (e) {}
+      try {
+        if (localStorage.getItem(mark) === sig) return;
+        // 上次补交失败（如字段不全被 400）：10 分钟内不再重试，
+        // 避免每次挂载都发一次注定失败的请求
+        var failRaw = localStorage.getItem(mark + ':fail');
+        if (failRaw) {
+          var fail = failRaw.split('|');
+          if (fail[0] === sig && Date.now() - Number(fail[1]) < 600000) return;
+        }
+      } catch (e) {}
 
       var extra = {};
       // 补交历史最好成绩时必须带全服务端 parseRun 要校验的字段，
@@ -197,11 +209,15 @@
         'length', 'lines', 'level', 'popped', 'wave', 'kills', 'waves'].forEach(function (k) {
         if (best[k] != null) extra[k] = best[k];
       });
-      // 成功了才落标记：断网时下次进游戏还能再试一次
       post({ score: best.score, extra: extra }, true).then(function (res) {
-        if (res && res.ok) {
-          try { localStorage.setItem(mark, sig); } catch (e) {}
-        }
+        try {
+          if (res && res.ok) {
+            localStorage.setItem(mark, sig);
+            localStorage.removeItem(mark + ':fail');
+          } else {
+            localStorage.setItem(mark + ':fail', sig + '|' + Date.now());
+          }
+        } catch (e) {}
       });
     }
 

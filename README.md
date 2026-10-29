@@ -109,6 +109,8 @@ npm start
 
 浏览器打开 http://localhost:3456/ 即可。端口由 `server.js` 的 `PORT` 常量控制（当前 3456）。
 
+> 本地改 `api/*.js` 后需要重启 `node server.js`——`require` 有缓存，热改不生效。
+
 也可用任意其他静态服务器：
 
 ```bash
@@ -335,6 +337,8 @@ Vercel 托管，连接 GitHub `main` 分支自动部署，无需手动构建命�
 | `tank` | 坦克防线 | 单局总分 | 越高越好 | `jtank:z` / `jtank:p` |
 
 每个榜单的 `:z` 是 ZSET（成员 = 玩家随机 ID，分值 = 个人最好成绩，只保留前 1000 名），`:p` 是 HASH（存昵称、头像、日期与各游戏自己的附加字段）。反应榜、三档扫雷榜、三档舒尔特榜用 `ZRANGE`/`ZRANK` 升序取榜（共 7 个），`2048` 与 `color` 用 `ZREVRANGE`/`ZREVRANK` 降序取榜。
+
+坦克防线上报 `score/kills/waves`（kills = 击毁辆数，waves = 抵达关卡），服务端按 `score ≤ kills×400 + waves×2000` 粗校验（道具 500 分/个，每关最多 3 个），并拒绝 `score>0 且 kills=0` 的提交。
 
 舒尔特方格同样按难度分榜（5×5 / 6×6 / 7×7），排名就是总用时，点错次数只做记录不影响排名，用时限制 1–600 秒。
 

@@ -3097,6 +3097,9 @@ html[data-theme="light"] #mod-manual .tk-key.on {
   background: #84CC16;
   color: #14210A;
 }
+html[data-theme="light"] #mod-manual .tk-tips {
+  color: #6B6459;
+}
 @media (max-width: 640px) {
   #mod-manual .tk-key { width: 46px; height: 40px; }
   #mod-manual .tk-fire { width: 88px; height: 62px; }

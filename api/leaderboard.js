@@ -440,6 +440,9 @@ function parseRun(game, body) {
     if (kills == null) return { error: '击毁数不合法' };
     if (waves == null) return { error: '关卡数不合法' };
     if (score > kills * 400 + waves * 2000) return { error: '分数与战绩不匹配' };
+    // 得分只可能来自击毁（100-400）与道具（500，而道具车本身也要先击毁），
+    // score>0 而 kills=0 一定是伪造；intIn 会把 null/'' 归零，这里兜住
+    if (score > 0 && kills === 0) return { error: '击毁数不合法' };
     return { score, extra: { kills, waves } };
   }
 

@@ -92,7 +92,8 @@ function runApi(req, res, pathname) {
       return res;
     };
     Promise.resolve(handler(req, res)).catch((err) => {
-      if (!res.writableEnded) res.status(500).json({ ok: false, error: String(err) });
+      console.error('[api] handler error:', err);
+      if (!res.writableEnded) res.status(500).json({ ok: false, error: '服务器内部错误' });
     });
   });
 }

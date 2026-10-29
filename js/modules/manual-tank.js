@@ -107,6 +107,9 @@
         for (var i = 0; i < runs.length; i++) {
           var r = runs[i];
           if (!r || (r.kills != null && r.waves != null)) continue;
+          // 同分可能由不同组合达成：在所有同分历史记录里取时间戳最接近的一条，
+          // 且 detail 字段必须是有限数字，否则宁可不修（下游会跳过无效补交）
+          var bestJ = -1, bestGap = Infinity;
           for (var j = 0; j < hist.length; j++) {
             var rec = hist[j];
             var d = rec && rec.data;
@@ -114,10 +117,16 @@
             var det = d && d.res && d.res.detail;
             if (!rec || rec.module !== 'manual' || !test || test.id !== 'tank' || !det) continue;
             if (Number(det.score) !== Number(r.score)) continue;
-            r.kills = det.kills;
-            r.waves = det.waves;
+            if (typeof det.kills !== 'number' || !isFinite(det.kills) ||
+                typeof det.waves !== 'number' || !isFinite(det.waves)) continue;
+            var gap = Math.abs((rec.timestamp || 0) - (r.at || 0));
+            if (gap < bestGap) { bestGap = gap; bestJ = j; }
+          }
+          if (bestJ >= 0) {
+            var fixed = hist[bestJ].data.res.detail;
+            r.kills = fixed.kills;
+            r.waves = fixed.waves;
             changed = true;
-            break;
           }
         }
         if (changed) localStorage.setItem('sm_tank_runs', JSON.stringify(runs));
@@ -161,8 +170,9 @@
     var bullets = [];
     var explosions = [];
     var powerup = null;
-    var held = [false, false, false, false];
-    var heldOrder = [];
+    var keyHeld = [false, false, false, false];   // 键盘按住
+    var btnHeld = [false, false, false, false];   // 触屏/按钮按住
+    var heldOrder = [];                            // {src:'k'|'b', dir}，后按优先
     var moveDir = null;
 
     var score = 0, kills = 0, stage = 1, lives = LIVES, star = 0;
@@ -202,6 +212,23 @@
       c.closePath();
     }
     function opposite(dir) { return (dir + 2) % 4; }
+    /* 键盘与触屏按钮分开记账：按住 ↑ 键再点触屏 ▲ 再松开 ▲，
+       不能把键盘的按住状态一起清掉 */
+    function pushHeld(src, dir) { heldOrder.push({ src: src, dir: dir }); }
+    function removeHeld(src, dir) {
+      for (var i = heldOrder.length - 1; i >= 0; i--) {
+        if (heldOrder[i].src === src && heldOrder[i].dir === dir) { heldOrder.splice(i, 1); return; }
+      }
+    }
+    function recomputeMoveDir() {
+      moveDir = heldOrder.length ? heldOrder[heldOrder.length - 1].dir : null;
+    }
+    function clearInput() {
+      keyHeld = [false, false, false, false];
+      btnHeld = [false, false, false, false];
+      heldOrder = [];
+      moveDir = null;
+    }
 
     /* ---------- 关卡数据 ---------- */
     /* 原版砖墙 token：1 位 hex 时每一位代表一个 2×2 象限全有/全无；
@@ -579,6 +606,8 @@
     }
     function clearSpawnTile(c, r) {
       if (c < 0 || r < 0 || c >= GRID || r >= GRID) return;
+      // 原版只清阻挡地形；冰面/树林不挡路，保留（第 32 关出生点就是冰面）
+      if (tiles[r][c] !== BRICK && tiles[r][c] !== STEEL) return;
       tiles[r][c] = EMPTY;
       brickMask[r][c] = 0;
       steelMask[r][c] = 0;
@@ -591,9 +620,10 @@
     function updatePlayer(dt) {
       var t = player;
       if (!t || !t.alive) return;
-      if (t.shield > 0) t.shield -= dt;
       if (t.slotT > 0) t.slotT -= dt;
       if (isSpawning(t)) { t.spawnT -= dt; return; }
+      // 护盾从出膛才开始计时：出生动画期本就无敌，不能把 2.5s 烧掉 0.62s
+      if (t.shield > 0) t.shield -= dt;
       if (slideT > 0) {
         slideT -= dt;
         // 前 0.28 秒锁定方向，之后允许改向；松开也会继续滑
@@ -713,16 +743,16 @@
 
     /* ---------- 道具 ---------- */
     function spawnPowerUp() {
-      if (!player || !player.alive) return;
       var x, y, tries = 0;
       do {
         x = POWERUP_POS[(Math.random() * 4) | 0];
         y = POWERUP_POS[(Math.random() * 4) | 0];
         tries++;
-      } while (tries < 20 && Math.abs(x + TILE / 2 - tankCx(player)) < 30 &&
+      } while (tries < 20 && player && player.alive &&
+        Math.abs(x + TILE / 2 - tankCx(player)) < 30 &&
         Math.abs(y + TILE / 2 - tankCy(player)) < 30);
       var type = POWERUP_TABLE[(Math.random() * POWERUP_TABLE.length) | 0];
-      powerup = { x: x, y: y, type: type, t: 0 };
+      powerup = { x: x, y: y, type: type };
     }
     function applyPowerUp(type) {
       score += 500;
@@ -760,9 +790,8 @@
         if (window.SFX && window.SFX.win) window.SFX.win();
       }
     }
-    function updatePowerUp(dt) {
+    function updatePowerUp() {
       if (!powerup) return;
-      powerup.t += dt;
       if (!player || !player.alive || isSpawning(player)) return;
       var dx = Math.abs(powerup.x + TILE / 2 - tankCx(player));
       var dy = Math.abs(powerup.y + TILE / 2 - tankCy(player));
@@ -832,6 +861,7 @@
       return rectsOverlap(bulletRect(b), BASE_RECT);
     }
     function updateBullets(dt) {
+      var targets = [player].concat(enemies);
       for (var i = 0; i < bullets.length; i++) {
         var b = bullets[i];
         if (!b.alive) continue;
@@ -861,7 +891,6 @@
           if (hitBrick || hitSteel) {
             b.alive = false;
             addExplosion(b.x, b.y, false);
-            if (b.isPlayer && player) player.slotT = FIRE_SLOT_DELAY;
             break;
           }
           // 地形必须先于基地判定：否则子弹矩形同时压到护墙和基地时，
@@ -871,7 +900,7 @@
             destroyBase();
             break;
           }
-          var list = [player].concat(enemies);
+          var list = targets;
           for (var j = 0; j < list.length; j++) {
             var t = list[j];
             if (!t || !t.alive || t === b.owner || isSpawning(t)) continue;
@@ -881,10 +910,12 @@
             b.alive = false;
             if (result === 'killed') onTankKilled(t);
             else if (result === 'blocked') addExplosion(b.x, b.y, false);
-            if (b.isPlayer && player) player.slotT = FIRE_SLOT_DELAY;
             break;
           }
         }
+        // 原版：命中砖/钢/边界/坦克/老鹰后槽位 9 帧（150ms）才空；
+        // 出界也算命中。子弹互撞除外（立即空出）。
+        if (!b.alive && b.isPlayer && player) player.slotT = FIRE_SLOT_DELAY;
       }
       // 原版只有玩家子弹会与其它子弹对撞；敌人子弹之间互相穿过
       for (var a = 0; a < bullets.length; a++) {
@@ -990,7 +1021,7 @@
       stageTime += dt;
       if (freezeT > 0) freezeT = Math.max(0, freezeT - dt);
       updateShovel(dt);
-      updatePowerUp(dt);
+      updatePowerUp();
 
       if (player && player.alive) updatePlayer(dt);
       else if (respawnT > 0) {
@@ -1454,8 +1485,8 @@
       var d = KEYMAP[e.key];
       if (d !== undefined) {
         e.preventDefault();
-        if (!held[d]) { held[d] = true; heldOrder.push(d); }
-        moveDir = d;
+        if (!keyHeld[d]) { keyHeld[d] = true; pushHeld('k', d); }
+        recomputeMoveDir();
         return;
       }
       if (e.key === ' ' || e.key === 'Spacebar' || e.key === 'j' || e.key === 'J') {
@@ -1466,10 +1497,9 @@
     function onKeyUp(e) {
       var d = KEYMAP[e.key];
       if (d !== undefined) {
-        held[d] = false;
-        var i = heldOrder.indexOf(d);
-        if (i >= 0) heldOrder.splice(i, 1);
-        moveDir = heldOrder.length ? heldOrder[heldOrder.length - 1] : null;
+        keyHeld[d] = false;
+        removeHeld('k', d);
+        recomputeMoveDir();
       }
     }
     function addKeyListeners() {
@@ -1485,15 +1515,14 @@
         e.preventDefault();
         try { btn.setPointerCapture(e.pointerId); } catch (err) {}
         btn.classList.add('on');
-        if (!held[dir]) { held[dir] = true; heldOrder.push(dir); }
-        moveDir = dir;
+        if (!btnHeld[dir]) { btnHeld[dir] = true; pushHeld('b', dir); }
+        recomputeMoveDir();
       });
       function release() {
         btn.classList.remove('on');
-        held[dir] = false;
-        var i = heldOrder.indexOf(dir);
-        if (i >= 0) heldOrder.splice(i, 1);
-        moveDir = heldOrder.length ? heldOrder[heldOrder.length - 1] : null;
+        btnHeld[dir] = false;
+        removeHeld('b', dir);
+        recomputeMoveDir();
       }
       btn.addEventListener('pointerup', release);
       btn.addEventListener('pointercancel', release);
@@ -1539,10 +1568,10 @@
       score = 0; kills = 0; stage = 1; lives = LIVES; star = 0;
       shotsFired = 0; shotsHit = 0;
       enemies = []; bullets = []; explosions = []; powerup = null;
-      held = [false, false, false, false]; heldOrder = []; moveDir = null;
+      clearInput();
       pendingOver = 0; readyT = 0; clearT = 0; bannerT = 0;
       respawnT = 0; baseAlive = true; extraLife = false;
-      freezeT = 0; shovelT = 0; slideT = 0;
+      freezeT = 0; shovelT = 0; slideT = 0; slideDir = UP;
       startStage(1);
     }
     function startGame() {
@@ -1672,6 +1701,8 @@
         suspended = true;
         stopLoop();
         removeKeyListeners();
+        // 松键事件可能已丢失（切走时还按着方向键），回章节前必须清输入
+        clearInput();
         if (overTimer) { clearTimeout(overTimer); overTimer = 0; }
       },
       repaint: function () {
@@ -1683,6 +1714,7 @@
           onFinish(res);
           return;
         }
+        clearInput();
         addKeyListeners();
         if (mode === 'play' && !paused && !finished) { lastTs = 0; ensureLoop(); }
       },

@@ -42,6 +42,7 @@
     sleepy: '<path d="M5 9.5h6l-6 5.5h6M14.5 4h4.7l-4.7 4.7h4.7"/>',
     list: '<path d="M8.5 6h12M8.5 12h12M8.5 18h12M4 6h.01M4 12h.01M4 18h.01"/>',
     zap: '<path d="M13 2.5 4.8 13.4h6L9.6 21.5l8.7-11.4h-6.1L13 2.5Z"/>',
+    smile: '<circle cx="12" cy="12" r="8.5"/><path d="M8.6 13.6c.9 1.5 2 2.3 3.4 2.3s2.5-.8 3.4-2.3"/><path d="M9.2 9.6h.01M14.8 9.6h.01"/>',
     bubble: '<circle cx="9" cy="10" r="5.2"/><circle cx="17.6" cy="6.4" r="2.6"/><circle cx="16.2" cy="16.4" r="3.6"/><path d="M6.4 8.6a3.2 3.2 0 0 1 2-1.8"/>',
     shield: '<path d="M12 2.8 4.5 6v6.2c0 4.4 3.1 7.6 7.5 9 4.4-1.4 7.5-4.6 7.5-9V6L12 2.8Z"/><path d="m8.8 12 2.2 2.2 4.2-4.4"/>'
   };
@@ -95,6 +96,8 @@
     }
 
     html += '<div class="rtext">' + res.text + '</div>';
+    // 顶层 quip：11 个交互游戏一直把 disclaimer 放在这里，此前从未被渲染
+    if (res.quip) html += '<div class="quip" style="margin-top:12px">『 ' + res.quip + ' 』</div>';
 
     if (res.bars && res.bars.length) {
       html += '<div class="bars">';

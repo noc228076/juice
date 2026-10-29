@@ -1536,6 +1536,23 @@ html[data-theme="light"] .vc-tab:hover { background: rgba(0, 0, 0, 0.05); }
 }
 .vc-hero-kpi b { font-size: 19px; font-weight: 900; color: var(--tx); }
 .vc-hero-kpi span { font-size: 11px; color: var(--tx-faint); }
+
+/* hero 侧栏的今日目标环（替代细进度条） */
+.vc-ring-mini { width: 92px; height: 92px; margin: 0 auto 8px; }
+.vc-ring-mini svg { width: 92px; height: 92px; }
+.vc-ring-mini .vc-ring-num b { font-size: 22px; }
+.vc-ring-mini .vc-ring-num span { font-size: 10px; }
+.vc-hero-kpis {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 4px 14px;
+  font-size: 12px;
+  color: var(--tx-dim);
+  margin-bottom: 8px;
+}
+.vc-hero-kpis span { white-space: nowrap; }
+.vc-hero-kpis b { color: var(--tx); font-weight: 800; }
 .vc-hero-side .vc-bar { grid-column: 1 / -1; margin-top: 6px; height: 5px; }
 .vc-hero-done {
   grid-column: 1 / -1;

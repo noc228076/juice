@@ -759,12 +759,18 @@
           '</div>' +
         '</div>' +
         '<div class="vc-hero-side">' +
-          '<div class="vc-hero-kpi main"><b>' + (bw().day.n || 0) + '</b><span>今日已背(词)</span></div>' +
-          '<div class="vc-hero-kpi"><b>' + (bw().week.n || 0) + '</b><span>本周(词)</span></div>' +
-          '<div class="vc-hero-kpi"><b>' + (bw().all.n || 0) + '</b><span>累计(词)</span></div>' +
-          '<div class="vc-bar"><i style="width:' + donePct + '%"></i></div>' +
+          '<div class="vc-ring vc-ring-mini"><svg viewBox="0 0 128 128">' +
+            '<circle cx="64" cy="64" r="54" fill="none" stroke="var(--line)" stroke-width="11"/>' +
+            '<circle cx="64" cy="64" r="54" fill="none" stroke="var(--mod-ac)" stroke-width="11" stroke-linecap="round" ' +
+              'stroke-dasharray="339.3" stroke-dashoffset="' + Math.round(339.3 * (1 - donePct / 100)) + '" transform="rotate(-90 64 64)"/>' +
+          '</svg>' +
+          '<div class="vc-ring-num"><b>' + (bw().day.n || 0) + '</b><span>今日已背</span></div></div>' +
+          '<div class="vc-hero-kpis">' +
+            '<span>本周 <b>' + (bw().week.n || 0) + '</b></span>' +
+            '<span>累计 <b>' + (bw().all.n || 0) + '</b></span>' +
+          '</div>' +
           '<span class="vc-hero-done">' + (total
-            ? '已答 ' + bs().doneToday + ' / ' + total + ' 题'
+            ? '本轮 ' + total + ' 题 · 已答 ' + bs().doneToday
             : '今日 ' + bs().doneToday + ' 题已全部答完') + '</span>' +
         '</div>' +
       '</div>' +

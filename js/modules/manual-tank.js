@@ -458,14 +458,22 @@
     function isSpawning(t) { return t.spawnT > 0; }
     function isInvulnerable(t) { return t.spawnT > 0 || t.shield > 0; }
 
-    function tankBlocked(t) {
+    function tankBlocked(t, prevX, prevY) {
       if (rectHitsSolid(t.x, t.y, TILE, TILE)) return true;
-      if (player && player !== t && player.alive && !isSpawning(player) &&
-          rectsOverlap(tankRect(t), tankRect(player))) return true;
+      var dest = tankRect(t);
+      // 已经重叠的两辆坦克不再互相阻挡，否则它们往哪个方向走都重叠，
+      // 会永久锁死。原版按 8×8 格占位，不会出现这种死锁。
+      function blocks(other) {
+        var orect = tankRect(other);
+        var wasOverlapping = prevX !== undefined && prevY !== undefined &&
+          rectsOverlap({ x: prevX, y: prevY, w: TILE, h: TILE }, orect);
+        return !wasOverlapping && rectsOverlap(dest, orect);
+      }
+      if (player && player !== t && player.alive && !isSpawning(player) && blocks(player)) return true;
       for (var i = 0; i < enemies.length; i++) {
         var e = enemies[i];
         if (e === t || !e.alive || isSpawning(e)) continue;
-        if (rectsOverlap(tankRect(t), tankRect(e))) return true;
+        if (blocks(e)) return true;
       }
       return false;
     }
@@ -478,9 +486,11 @@
       if (Math.abs(diff) < 0.5) { t[axis] = nearest; return; }
       var stepMag = Math.min(Math.abs(diff), t.moveSpeed * dt);
       var signs = [diff > 0 ? 1 : -1, diff > 0 ? -1 : 1];
+      var prevX = axis === 'x' ? cur : t.x;
+      var prevY = axis === 'y' ? cur : t.y;
       for (var i = 0; i < signs.length; i++) {
         t[axis] = cur + signs[i] * stepMag;
-        if (!tankBlocked(t)) return;
+        if (!tankBlocked(t, prevX, prevY)) return;
         t[axis] = cur;
       }
     }
@@ -494,7 +504,7 @@
       var ox = t.x, oy = t.y;
       t.x += v.x * step;
       t.y += v.y * step;
-      if (tankBlocked(t)) {
+      if (tankBlocked(t, ox, oy)) {
         t.x = ox; t.y = oy;
         return false;
       }
@@ -655,11 +665,21 @@
       if (canFire(e) && Math.random() < perFrame(1 / 32, dt)) fireBullet(e);
     }
     function spawnEnemy() {
-      if (!enemyQueue.length) return;
+      if (!enemyQueue.length) return false;
+      // 出生点被占就换一个；三个都占就稍后再出，避免两辆坦克叠在同一格
+      var c = null;
+      for (var k = 0; k < ENEMY_SPAWN_X.length; k++) {
+        var idx = (spawnIdx + k) % ENEMY_SPAWN_X.length;
+        var x = ENEMY_SPAWN_X[idx] * TILE;
+        if (!occupiedAt(x, 0)) {
+          c = ENEMY_SPAWN_X[idx];
+          spawnIdx = (idx + 1) % ENEMY_SPAWN_X.length;
+          break;
+        }
+      }
+      if (c === null) return false;
       var kind = enemyQueue.shift();
       var cfg = ENEMY_TYPES[kind] || ENEMY_TYPES.basic;
-      var c = ENEMY_SPAWN_X[spawnIdx];
-      spawnIdx = (spawnIdx + 1) % ENEMY_SPAWN_X.length;
       clearSpawnTile(c, 0);
       var e = makeTank({
         x: c * TILE,
@@ -675,11 +695,20 @@
       });
       spawnedCount++;
       enemies.push(e);
+      return true;
     }
     function activeEnemies() {
       var n = 0;
       for (var i = 0; i < enemies.length; i++) if (enemies[i].alive) n++;
       return n;
+    }
+    function occupiedAt(x, y) {
+      var r = { x: x, y: y, w: TILE, h: TILE };
+      if (player && player.alive && rectsOverlap(r, tankRect(player))) return true;
+      for (var i = 0; i < enemies.length; i++) {
+        if (enemies[i].alive && rectsOverlap(r, tankRect(enemies[i]))) return true;
+      }
+      return false;
     }
 
     /* ---------- 道具 ---------- */
@@ -977,8 +1006,8 @@
 
       spawnTimer -= dt;
       if (spawnTimer <= 0 && enemyQueue.length && activeEnemies() < MAX_ACTIVE) {
-        spawnEnemy();
-        spawnTimer = spawnIntervalFrames(stage) / 60;
+        if (spawnEnemy()) spawnTimer = spawnIntervalFrames(stage) / 60;
+        else spawnTimer = 0.2;   // 出生点全被占，稍后重试
       }
       if (remaining <= 0 && activeEnemies() === 0 && clearT <= 0) stageClear();
     }

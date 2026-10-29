@@ -82,9 +82,9 @@ v97 相对 v96 三件套 Brotli 190,739 B 再减少约 **27.6%**，主要是 CSS
 
 | 概念 | 数量 | 真值来源 |
 |---|---|---|
-| 顶层导航 Tab | **7** | `index.html` 的 `button.nav-tab[data-mod]`：`drinks manual tarot clock decision daily scratch` |
-| 实际路由 | **13** | `js/modules/router.js` 的 `ALLOWED_MODS`：`drinks milktea manual fengshui tarot lingqian decision clock merit lifeguide bazi daily scratch` |
-| `#mod-*` section | **12** | 无 `mod-lifeguide`（已并入 manual）、无 `mod-history`（抽屉） |
+| 顶层导航 Tab | **9** | `index.html` 的 `button.nav-tab[data-mod]`：`drinks manual tarot clock decision daily scratch vocab music` |
+| 实际路由 | **17** | `js/modules/router.js` 的 `ALLOWED_MODS`：`drinks milktea manual fengshui tarot lingqian decision clock merit films lifeguide bazi daily scratch wall vocab music` |
+| `#mod-*` section | **15** | 无 `mod-lifeguide`（已并入 manual）、无 `mod-history`（抽屉） |
 
 `MOD_PARENT_MAP` 只决定**顶栏哪个 Tab 高亮**，不决定激活哪个 section：
 `milktea→drinks`、`tarot/lingqian/bazi/fengshui→tarot`、`clock/merit→clock`、

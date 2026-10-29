@@ -4032,6 +4032,8 @@
 
   function clearLive() {
     try { localStorage.removeItem(LIVE_KEY); } catch (e) {}
+    try { localStorage.removeItem(POS_KEY); } catch (e) {}
+    liveSig = '';
   }
 
   /** 模块接口 ---------------- */

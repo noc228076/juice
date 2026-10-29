@@ -536,7 +536,10 @@
       var pool = [];
       for (var i = 0; i < words.length; i++) {
         var r0 = bs().words[words[i][0]];
-        if (!r0 || !r0.known) pool.push(i);
+        /* 与顺序分支同口径：有记录（已学/在学/已标熟）的词都不是「新词」。
+           原先只排除 known，随机模式下在学词会被当新词重复出题 */
+        if (r0) continue;
+        pool.push(i);
       }
       window.AppVocabData.shuffle(pool);
       for (var k = 0; k < pool.length && out.length < count; k++) {
@@ -1532,16 +1535,20 @@
   function persistSession() {
     if (!book || !stageQueue.length || qi >= stageQueue.length) return;
     state.session = {
-      words: sessionWords.map(function (it) { return { idx: it.idx, isNew: it.isNew }; }),
+      words: sessionWords.map(function (it) {
+        /* 冗余存词名：词库换版 idx 可能错位，恢复时双重校验 */
+        return { idx: it.idx, w: book.words[it.idx] ? book.words[it.idx][0] : '', isNew: it.isNew };
+      }),
       stage: stage,
       qi: qi,
       stageQueue: stageQueue.map(function (it) {
-        return { idx: it.idx, kind: it.kind, isRedo: !!it.isRedo };
+        return { idx: it.idx, w: book.words[it.idx] ? book.words[it.idx][0] : '', kind: it.kind, isRedo: !!it.isRedo };
       }),
       redoSet: redoSet.slice(),
       redoRound: redoRound,
       stats: { right: sessionStats.right, wrong: sessionStats.wrong },
       counted: Object.keys(countedWords).map(Number),
+      day: todayKey(),
       savedAt: Date.now()
     };
     saveState();
@@ -1551,20 +1558,21 @@
   }
   function resumeAvailable() {
     var sn = state.session;
-    return !!(sn && sn.stageQueue && sn.stageQueue.length &&
+    /* 跨天的会话不续：昨日中断的题今日重新组卷（词级进度已随答随存，不丢） */
+    return !!(sn && sn.day === todayKey() && sn.stageQueue && sn.stageQueue.length &&
       (sn.qi || 0) < sn.stageQueue.length && sn.words && sn.words.length);
   }
   function resumeSession() {
     var sn = state.session;
-    if (!sn || !book) { clearSession(); return; }
+    if (!sn || !book || sn.day !== todayKey()) { clearSession(); return; }
     sessionWords = (sn.words || []).filter(function (it) {
-      return book.words[it.idx];
+      return book.words[it.idx] && book.words[it.idx][0] === it.w;
     }).map(function (it) {
       return { idx: it.idx, rec: bs().words[book.words[it.idx][0]] || null, isNew: it.isNew };
     });
     stage = Math.min(sn.stage || 0, STEPS.length - 1);
     stageQueue = (sn.stageQueue || []).filter(function (it) {
-      return book.words[it.idx];
+      return book.words[it.idx] && book.words[it.idx][0] === it.w;
     }).map(function (it) {
       return { idx: it.idx, rec: bs().words[book.words[it.idx][0]] || null, kind: it.kind, isRedo: !!it.isRedo };
     });

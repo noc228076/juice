@@ -29,7 +29,10 @@ const MIME = {
 // 补齐成同一套接口，线上和本地就是同一份 api/leaderboard.js
 function runApi(req, res, pathname) {
   const apiRoot = path.join(__dirname, 'api') + path.sep;
-  const file = path.join(__dirname, pathname);
+  // 客户端按 Vercel 约定请求 /api/leaderboard（不带 .js），
+  // 本地文件系统需要把后缀补回来，否则所有榜单接口都是 404。
+  let file = path.join(__dirname, pathname);
+  if (!fs.existsSync(file) && fs.existsSync(file + '.js')) file += '.js';
   // 不带 path.sep 的话 /api/../apifoo.js 也会通过 startsWith('…/api')
   if (!file.startsWith(apiRoot)) {
     res.writeHead(404);

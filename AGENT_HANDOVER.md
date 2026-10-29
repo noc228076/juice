@@ -93,7 +93,7 @@ v97 相对 v96 三件套 Brotli 190,739 B 再减少约 **27.6%**，主要是 CSS
 `lifeguide` 是唯一没有独立 section 的路由：老链接 `#/lifeguide` 会先进说明书，
 再 `AppManual.openTest('lifeguide')` 翻开第 05 章。保留它只为兼容旧链接。
 
-### 说明书章节（14 章，`js/modules/manual-data.js`）
+### 说明书章节（16 章，`js/modules/manual-data.js`）
 
 | # | id | 类型 |
 |---|---|---|
@@ -111,10 +111,19 @@ v97 相对 v96 三件套 Brotli 190,739 B 再减少约 **27.6%**，主要是 CSS
 | 12 | `slide` | 小游戏（数字华容道，自动存档，步数排名） |
 | 13 | `tetris` | 小游戏（俄罗斯方块，暂停/自动存档，分数排名） |
 | 14 | `snake` | 小游戏（贪吃蛇，三档速度，暂停/自动存档，分数排名） |
+| 15 | `bubble` | 小游戏（泡泡猫泡泡龙，双难度分榜） |
+| 16 | `tank` | 小游戏（坦克防线，NES 原版 35 关，分数排名） |
 
+> 第 16 章的引擎单独放在 `js/modules/manual-tank.js`（约 1670 行），
+> 35 关地图与敌军配置在 `manual-tank-stages.js`（约 810 行只读数据），
+> 由 `window.SMGameKit` 复用 `manual-games.js` 里的舞台/榜单工具。
+> 规则与数值按 1985 年 NES 原版逐条对照 ROM 反汇编实现：
+> 13×13 战场、每关 20 辆、35 关、三条命、点按开火、吃星升级、
+> 第 4/11/18 辆带道具、出生间隔 190−4×关卡号 帧、前 1/8 时间随机游走。
+> 数据来源：MIT 项目 `feichao93/battle-city`，版权头保留在文件顶部。
 > `index.html` 的 `#sm-homebody` 现在只保留空容器，章节目录完全由
-> `manual.js` 的 `renderHome()` 按 `SM_ORDER` 渲染，不再维护第二份 8 tile 骨架。
-> `#sm-rail-sum` 的静态文案已同步为 14 章，运行时仍由 `updateSummary()` 覆盖。
+> `manual.js` 的 `renderHome()` 按 `SM_ORDER` 渲染，不再维护第二份 tile 骨架。
+> `#sm-rail-sum` 的静态文案已同步为 16 章，运行时仍由 `renderHome()` 覆盖。
 > 详见第五节教训 14。
 
 ### 图片资源（实测）

@@ -1,6 +1,7 @@
 /* =========================================================
    模块 3：自我说明书 (Self Manual Module) 控制中枢
-   10 章打工人说明书：4 个问答 + 人间清醒 + 5 个交互小游戏
+   16 章：4 个问答 + 12 个交互小游戏
+   （第 16 章坦克防线的引擎在 manual-tank.js）
    ========================================================= */
 
 (function () {
@@ -96,8 +97,8 @@
 
     var html = '';
     html += '<div class="home-head"><div class="brandmark">我</div><div>'
-      + '<div class="home-title">自我说明书</div><div class="home-sub">SELF MANUAL · 十五份关于你的出厂说明书</div></div></div>';
-    html += '<div class="home-desc">你是哪种拖延病患者？社交电量还剩多少？反应能力几岁？2048能合出多大？还有一份人间清醒防坑指南。挑一章，把自己拆开看看。</div>';
+      + '<div class="home-title">自我说明书</div><div class="home-sub">SELF MANUAL · 十六份关于你的出厂说明书</div></div></div>';
+    html += '<div class="home-desc">你是哪种拖延病患者？社交电量还剩多少？反应能力几岁？2048 能合出多大？还有反应擂台、扫雷、数独、坦克防线……挑一章，把自己拆开看看。</div>';
 
     html += '<div class="stat-strip"><div style="display:flex;gap:5px">'
       + ORDER.map(function (id) {
@@ -358,8 +359,36 @@
     'slide': { scr: 'scr-sm-slide', top: 'sm-slidetop', body: 'sm-slidebody', start: 'startSlidePuzzle' },
     'tetris': { scr: 'scr-sm-tetris', top: 'sm-tetristop', body: 'sm-tetrisbody', start: 'startTetris' },
     'snake': { scr: 'scr-sm-snake', top: 'sm-snaketop', body: 'sm-snakebody', start: 'startSnake' },
-    'bubble': { scr: 'scr-sm-bubble', top: 'sm-bubbletop', body: 'sm-bubblebody', start: 'startBubbleCat' }
+    'bubble': { scr: 'scr-sm-bubble', top: 'sm-bubbletop', body: 'sm-bubblebody', start: 'startBubbleCat' },
+    'tank': { scr: 'scr-sm-tank', top: 'sm-tanktop', body: 'sm-tankbody', start: 'startTank' }
   };
+
+  /* 顶栏返回键的统一绑定。恢复暂停实例时顶栏会被整体重渲，
+     新按钮必须重新绑定——之前恢复分支在绑定前就 return，
+     导致从目录回到坦克/2048/扫雷后左上角返回键没反应。 */
+  function bindGameBack(topEl) {
+    if (!topEl) return;
+    var backBtn = topEl.querySelector('.mt-iconbtn');
+    if (!backBtn) return;
+    backBtn.onclick = function () {
+      if (window.SFX && window.SFX.tap) window.SFX.tap();
+      // 走统一的暂停/销毁通道：2048/扫雷/坦克只暂停（切回来进度还在），
+      // 其余游戏销毁。不要在这里直接 destroy——那会把保留进度打穿。
+      if (window.AppManual && typeof window.AppManual.stopActiveGame === 'function') {
+        window.AppManual.stopActiveGame();
+      } else if (state.gameCtl && state.gameCtl.destroy) {
+        state.gameCtl.destroy();
+        state.gameCtl = null;
+        state.gameId = null;
+      }
+      if (window.AppRouter && typeof window.AppRouter.back === 'function') {
+        window.AppRouter.back(function () { renderHome(); showScreen('scr-sm-home'); });
+      } else {
+        renderHome();
+        showScreen('scr-sm-home');
+      }
+    };
+  }
 
   function openGame(t, options) {
     options = options || {};
@@ -373,7 +402,10 @@
       state.test = t;
       var gsSame = GAME_SCREENS[t.id] || GAME_SCREENS['game-2048'];
       var topElSame = document.getElementById(gsSame.top);
-      if (topElSame) topElSame.innerHTML = topbarHTML(t);
+      if (topElSame) {
+        topElSame.innerHTML = topbarHTML(t);
+        bindGameBack(topElSame);
+      }
       showScreen(gsSame.scr);
       state.gameCtl.repaint();
       return;
@@ -394,27 +426,7 @@
       topEl.innerHTML = topbarHTML(t);
     }
     showScreen(scrId);
-
-    var backBtn = topEl ? topEl.querySelector('.mt-iconbtn') : null;
-    if (backBtn) {
-      backBtn.onclick = function () {
-        if (window.SFX && window.SFX.tap) window.SFX.tap();
-        // 走统一的暂停/销毁通道：2048/扫雷只暂停（切回来进度还在），
-        // 其余游戏销毁。不要在这里直接 destroy——那会把保留进度打穿。
-        if (window.AppManual && typeof window.AppManual.stopActiveGame === 'function') {
-          window.AppManual.stopActiveGame();
-        } else if (state.gameCtl && state.gameCtl.destroy) {
-          state.gameCtl.destroy();
-          state.gameCtl = null;
-          state.gameId = null;
-        }
-        if (window.AppRouter && typeof window.AppRouter.back === 'function') window.AppRouter.back(function () { renderHome(); showScreen('scr-sm-home'); });
-        else {
-          renderHome();
-          showScreen('scr-sm-home');
-        }
-      };
-    }
+    bindGameBack(topEl);
 
     var startFn = window[gs.start];
     var bodyEl = document.getElementById(bodyId);

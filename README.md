@@ -21,7 +21,7 @@
 - **`milktea` 奶茶人格配方** — 26 个品牌 logo + 人格解析
 
 ### 2. 📖 自我说明书
-`manual` — 15 章出厂说明书，分问答型（4 章）与小游戏型（11 章）：
+`manual` — 16 章出厂说明书，分问答型（4 章）与小游戏型（12 章）：
 
 | # | 测试 | 英文名 | 类型 |
 |---|---|---|---|
@@ -40,6 +40,11 @@
 | 13 | 俄罗斯方块 | TETRIS | 交互小游戏 |
 | 14 | 贪吃蛇 | SNAKE | 交互小游戏 |
 | 15 | 泡泡猫泡泡龙 | BUBBLE CAT | 交互小游戏 |
+| 16 | 坦克防线 | TANK DEFENSE | 交互小游戏 |
+
+> 第 16 章的引擎独立在 `js/modules/manual-tank.js`，按 1985 年 NES 原版规则实现：
+> 数值逐条对照 ROM 反汇编（`feichao93/battle-city` 的 `resources/nes-values`），
+> 35 关地图与每关敌军配置来自该 MIT 项目的 `src/stages`，版权与许可声明保留在文件头部。
 
 ### 3. ☯️ 东西玄学
 四个子屏通过「西方塔罗 / 东方灵签 / 生辰八字 / 工位风水」切换条互跳：
@@ -177,7 +182,9 @@ juice/
 │       ├── bazi.js / bazi-cities.js
 │       ├── manual.js               # 自我说明书主控
 │       │   ├── manual-data.js      #   └ 题库与结果
-│       │   ├── manual-games.js     #   └ 反应擂台 / 色彩 / 2048 / 扫雷 / 舒尔特
+│       │   ├── manual-games.js     #   └ 反应擂台 / 色彩 / 2048 / 扫雷 / 舒尔特 / 靶场 / 数独 / 华容道 / 方块 / 贪吃蛇 / 泡泡猫
+│       │   ├── manual-tank.js        #   └ 坦克防线（NES 原版规则）
+│       │   ├── manual-tank-stages.js #   └ 原版 35 关地图与敌军配置（只读数据）
 │       │   └── manual-report.js    #   └ 报告渲染
 │       ├── decision.js / clock.js / merit.js
 │       ├── profile.js              # 玩家头像 / 昵称
@@ -304,7 +311,7 @@ Vercel 托管，连接 GitHub `main` 分支自动部署，无需手动构建命�
 
 ### 全服排行榜（需要一次性配置）
 
-`api/leaderboard.js` 提供全服榜（25 个 game key：各小游戏分档榜 + 背单词日/周/总榜，另有 legacy `minesweeper`），使用 Upstash Redis 存储，**不配置也能部署**——此时接口返回 503，前端自动退回本机战绩，游戏不受影响。
+`api/leaderboard.js` 提供全服榜（29 个 game key：各小游戏分档榜 + 背单词日/周/总榜，另有 legacy `minesweeper`），使用 Upstash Redis 存储，**不配置也能部署**——此时接口返回 503，前端自动退回本机战绩，游戏不受影响。
 
 开启全服榜：
 
@@ -325,6 +332,7 @@ Vercel 托管，连接 GitHub `main` 分支自动部署，无需手动构建命�
 | `schulte_easy` | 舒尔特 · 初级 | 总用时（秒） | **越低越好** | `jsch_e:z` / `jsch_e:p` |
 | `schulte_medium` | 舒尔特 · 中级 | 总用时（秒） | **越低越好** | `jsch_m:z` / `jsch_m:p` |
 | `schulte_hard` | 舒尔特 · 高级 | 总用时（秒） | **越低越好** | `jsch_h:z` / `jsch_h:p` |
+| `tank` | 坦克防线 | 单局总分 | 越高越好 | `jtank:z` / `jtank:p` |
 
 每个榜单的 `:z` 是 ZSET（成员 = 玩家随机 ID，分值 = 个人最好成绩，只保留前 1000 名），`:p` 是 HASH（存昵称、头像、日期与各游戏自己的附加字段）。反应榜、三档扫雷榜、三档舒尔特榜用 `ZRANGE`/`ZRANK` 升序取榜（共 7 个），`2048` 与 `color` 用 `ZREVRANGE`/`ZREVRANK` 降序取榜。
 

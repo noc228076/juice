@@ -766,6 +766,32 @@
       ]
     },
 
+    /* ============ 16 坦克防线 ============
+       经典「守基地」坦克玩法：13×13 战场，砖墙可打穿、钢墙不可，
+       敌方坦克成波来袭。基地被毁或三条命耗尽即结束。
+       美术用 Canvas 绘制；35 关地图与敌军配置来自 MIT 开源项目
+       feichao93/battle-city，不引用任何商业作品素材。 */
+    tank: {
+      id: 'tank', num: '16', mode: 'interactive', engine: 'tank',
+      title: '坦克防线', en: 'TANK DEFENSE',
+      tagline: '守住基地，顶住一波又一波的钢铁洪流',
+      icon: 'shield', color: '#84CC16',
+      meta: '35 关 · 三命 · 原版规则',
+      intro: [
+        '按 1985 年 NES 原版规则：13×13 战场，每关 20 辆敌军，共 35 关。',
+        '方向键 / WASD 移动，空格或鼠标左键点按开火（按住不连发）；触屏用左下方向键与右下开火键。',
+        '砖墙可逐块打穿，钢墙挡弹，河流挡车，树林遮视线，冰面会打滑。',
+        '第 4 / 11 / 18 辆敌军带道具：星、头盔、时钟、铁锹、手雷、加命；三条命耗尽或基地被毁即结束。'
+      ],
+      disclaimer: '本作按 NES 原版规则实现，地图与敌军配置来自 MIT 开源项目 feichao93/battle-city；与任何商业作品无关。成绩受设备与手感影响，仅供参考。',
+      certs: [
+        { min: 12000, icon: 'crown', name: '钢铁元帅', text: '基地纹丝不动，敌人连你的影子都没摸到——这份战场掌控力已经可以写进教材。' },
+        { min: 7000, icon: 'gem', name: '装甲指挥官', text: '关卡推进有条不紊，火力与走位都在线，差的是最后那点极限操作。' },
+        { min: 3000, icon: 'bolt', name: '前线中尉', text: '已经能稳住阵脚了，记住：先清侧翼，再管正面。' },
+        { min: 0, icon: 'shield', name: '守备新兵', text: '基地还在，就还有下一局。坦克不是开得越快越好，是活得越久越好。' }
+      ]
+    },
+
     /* ============ 10 定位射击靶场 ============
        FPS 式定位训练：场上恒定三颗球，打掉补新，点空扣分。
        30 秒限时，按总分进全服排行榜。 */
@@ -791,5 +817,5 @@
     }
   };
   /* 首页章节顺序 */
-  window.SM_ORDER = ['social-battery', 'procrastination', 'slacking', 'night-owl', 'reaction', 'color', 'game-2048', 'minesweeper', 'schulte', 'aim', 'sudoku', 'slide', 'tetris', 'snake', 'bubble'];
+  window.SM_ORDER = ['social-battery', 'procrastination', 'slacking', 'night-owl', 'reaction', 'color', 'game-2048', 'minesweeper', 'schulte', 'aim', 'sudoku', 'slide', 'tetris', 'snake', 'bubble', 'tank'];
 })();

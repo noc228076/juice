@@ -162,6 +162,10 @@
     win() { tone(587, 0.12, 'triangle', 0.16); tone(880, 0.22, 'triangle', 0.20, null, 0.10); },
     tick() { tone(1200, 0.02, 'sine', 0.08); },
 
+    /* —— 坦克防线：开炮与爆炸 —— */
+    shoot() { tone(420, 0.05, 'square', 0.10, 150); },
+    boom() { noise(0.22, 900, 90, 0.30, 0, 1.2); tone(90, 0.22, 'sine', 0.18); vib(20); },
+
     save() { tone(660, 0.10, 'sine', 0.2); tone(880, 0.16, 'sine', 0.2, null, 0.09); vib(15); },
     toggle() {
       const next = !state.sound;

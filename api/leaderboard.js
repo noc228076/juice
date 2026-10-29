@@ -1,6 +1,6 @@
 /* =========================================================
    小游戏全服排行榜 API (Vercel Serverless Function)
-   支持 10 个 game key（9 个在役 + legacy minesweeper）
+   支持 29 个 game key（28 个在役 + legacy minesweeper）
    存储：Upstash Redis REST（Vercel Marketplace 安装后自动注入环境变量）
    零依赖：只用 Node 18+ 内置 fetch，不需要 npm install
    ---------------------------------------------------------
@@ -58,6 +58,8 @@ const GAMES = {
   // 泡泡猫泡泡龙按难度分榜：简单（警戒线固定）与挑战（线上移）分数不可比
   bubble_easy: { z: 'jbubble_e:z', p: 'jbubble_e:p', higher: true },
   bubble_hard: { z: 'jbubble_h:z', p: 'jbubble_h:p', higher: true },
+  // 坦克防线：单局总分（击毁敌军 + 道具分），越高越好
+  tank: { z: 'jtank:z', p: 'jtank:p', higher: true },
   // 旧版三档共用一个榜。保留只为兼容尚未刷新的客户端和后台删除接口，
   // 前端已经不再写这里。
   minesweeper: { z: 'jmine:z', p: 'jmine:p', higher: false, legacy: true }
@@ -428,6 +430,19 @@ function parseRun(game, body) {
     return { score, extra: { lv: BUBBLE_LEVELS[game] } };
   }
 
+  if (game === 'tank') {
+    // 坦克防线（NES 原版规则）：击毁敌军 100/200/300/400 分，道具 500 分/个。
+    // 每关最多 3 个道具，按「每辆都当装甲车 + 每关 4 个道具」粗校验。
+    const score = intIn(body.score, 0, 2000000);
+    const kills = intIn(body.kills, 0, 9999);
+    const waves = intIn(body.waves, 1, 9999);
+    if (score == null) return { error: '分数不合法' };
+    if (kills == null) return { error: '击毁数不合法' };
+    if (waves == null) return { error: '关卡数不合法' };
+    if (score > kills * 400 + waves * 2000) return { error: '分数与战绩不匹配' };
+    return { score, extra: { kills, waves } };
+  }
+
   return { error: '未知游戏' };
 }
 
@@ -471,6 +486,8 @@ async function readBoard(game, limit, cfgOverride) {
     if (d && d.sec != null) extra.sec = d.sec;
     if (d && d.lv != null) extra.lv = d.lv;
     if (d && d.err != null) extra.err = d.err;
+    if (d && d.kills != null) extra.kills = d.kills;
+    if (d && d.waves != null) extra.waves = d.waves;
     if (d && d.ms != null) extra.ms = d.ms;   // 背单词榜：学习时长
     return {
       id,
@@ -715,6 +732,8 @@ module.exports = async function handler(req, res) {
         if (run.extra.sec != null) detail.sec = run.extra.sec;
         if (run.extra.lv != null) detail.lv = run.extra.lv;
         if (run.extra.err != null) detail.err = run.extra.err;
+        if (run.extra.kills != null) detail.kills = run.extra.kills;
+        if (run.extra.waves != null) detail.waves = run.extra.waves;
       } else if (prevDetail) {
         if (prevDetail.at != null) detail.at = prevDetail.at;
         if (prevDetail.mt != null) detail.mt = prevDetail.mt;
@@ -723,6 +742,8 @@ module.exports = async function handler(req, res) {
         if (prevDetail.sec != null) detail.sec = prevDetail.sec;
         if (prevDetail.lv != null) detail.lv = prevDetail.lv;
         if (prevDetail.err != null) detail.err = prevDetail.err;
+        if (prevDetail.kills != null) detail.kills = prevDetail.kills;
+        if (prevDetail.waves != null) detail.waves = prevDetail.waves;
       }
       if (detail.at == null) detail.at = stamp;
 

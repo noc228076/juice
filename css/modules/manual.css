@@ -2973,3 +2973,131 @@ html[data-theme="light"] #mod-manual .sm-restart {
   top: 10px;
   right: 10px;
 }
+
+/* ============ 16 坦克防线 ============ */
+#mod-manual .tk-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  user-select: none;
+  -webkit-user-select: none;
+}
+#mod-manual .tk-canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #0B0E14;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+  touch-action: none;
+}
+#mod-manual .tk-pad {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+#mod-manual .tk-dpad {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+#mod-manual .tk-dpad-mid { display: flex; gap: 6px; }
+#mod-manual .tk-key {
+  width: 52px;
+  height: 44px;
+  border-radius: 10px;
+  background: #23202B;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #F2EEE3;
+  font-size: 16px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  touch-action: none;
+}
+#mod-manual .tk-key:active,
+#mod-manual .tk-key.on {
+  background: #84CC16;
+  color: #14210A;
+  transform: scale(0.94);
+}
+#mod-manual .tk-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+#mod-manual .tk-mini-row { display: flex; gap: 6px; }
+#mod-manual .tk-fire {
+  width: 104px;
+  height: 70px;
+  border-radius: 16px;
+  background: linear-gradient(160deg, #B91C1C, #7F1D1D);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: #FFF3E0;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  touch-action: none;
+}
+#mod-manual .tk-fire:active {
+  transform: scale(0.94);
+  background: #EF4444;
+}
+#mod-manual .tk-mini {
+  padding: 5px 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #F2EEE3;
+  font-size: 12px;
+  cursor: pointer;
+}
+#mod-manual .tk-mini:hover { border-color: #84CC16; }
+#mod-manual .tk-overlay {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  border-radius: 14px;
+  background: rgba(8, 10, 14, 0.86);
+  color: #F2EEE3;
+  font-size: 22px;
+  font-weight: 800;
+  line-height: 1.9;
+  z-index: 5;
+}
+#mod-manual .tk-overlay.is-active { display: flex; }
+#mod-manual .tk-overlay small {
+  font-size: 13px;
+  font-weight: 400;
+  color: #9A948A;
+}
+#mod-manual .tk-tips {
+  margin-top: 14px;
+  font-size: 12.5px;
+  color: #9A948A;
+  line-height: 1.9;
+}
+html[data-theme="light"] #mod-manual .tk-key,
+html[data-theme="light"] #mod-manual .tk-mini {
+  background: rgba(255, 255, 255, 0.72);
+  border-color: rgba(0, 0, 0, 0.18);
+  color: #2D2721;
+}
+html[data-theme="light"] #mod-manual .tk-key:active,
+html[data-theme="light"] #mod-manual .tk-key.on {
+  background: #84CC16;
+  color: #14210A;
+}
+@media (max-width: 640px) {
+  #mod-manual .tk-key { width: 46px; height: 40px; }
+  #mod-manual .tk-fire { width: 88px; height: 62px; }
+}

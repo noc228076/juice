@@ -79,6 +79,8 @@ const chunks = {
     'js/modules/manual-data.js',
     'js/modules/manual-report.js',
     'js/modules/manual-games.js',
+    'js/modules/manual-tank-stages.js',
+    'js/modules/manual-tank.js',
     'js/modules/manual.js'
   ],
   mystic: [

@@ -191,7 +191,10 @@
       try { if (localStorage.getItem(mark) === sig) return; } catch (e) {}
 
       var extra = {};
-      ['sec', 'lv', 'acc', 'age', 'maxTile', 'moves', 'merges'].forEach(function (k) {
+      // 补交历史最好成绩时必须带全服务端 parseRun 要校验的字段，
+      // 否则整条提交会被「分数与战绩不匹配」拒收。
+      ['sec', 'lv', 'acc', 'age', 'maxTile', 'moves', 'merges', 'err',
+        'length', 'lines', 'level', 'popped', 'wave', 'kills', 'waves'].forEach(function (k) {
         if (best[k] != null) extra[k] = best[k];
       });
       // 成功了才落标记：断网时下次进游戏还能再试一次

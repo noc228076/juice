@@ -4884,5 +4884,14 @@
       }
     };
   };
+
+  /* 供拆分出去的独立引擎（manual-tank.js 等）复用的舞台工具。
+     这些函数原本是 IIFE 私有的，拆文件后必须显式暴露一次。 */
+  window.SMGameKit = {
+    makeRoot: makeRoot,
+    hud: hud,
+    mountLbHostFor: mountLbHostFor,
+    heartsHTML: heartsHTML
+  };
 })();
 

@@ -438,7 +438,7 @@
 
   /* ---------- 数据 ---------- */
   var book = null;
-  var extra = { roots: null, exam: null };
+  var extra = { ex: null, roots: null, exam: null };
   var loading = null;
   var loadErr = '';
 
@@ -488,16 +488,17 @@
     return '…';
   }
 
-  /* 详情数据按需加载：卡片背面（拆词/词族/真题）用。
-     例句数据 _ex.json 曾被这里强拉但从未消费，已砍掉（每局省 ~640KB） */
+  /* 详情数据按需加载：卡片背面（拆词/词族/真题/例句）用 */
   function ensureExtra() {
-    if (extra.roots && extra.exam) return Promise.resolve(extra);
+    if (extra.roots && extra.exam && extra.ex) return Promise.resolve(extra);
     return Promise.all([
       window.AppVocabData.loadRoots(state.book),
-      window.AppVocabData.loadExam(state.book)
+      window.AppVocabData.loadExam(state.book),
+      window.AppVocabData.loadExamples(state.book)
     ]).then(function (r) {
       extra.roots = r[0];
       extra.exam = r[1];
+      extra.ex = r[2];
       return extra;
     }).catch(function () { return extra; });
   }
@@ -2063,8 +2064,15 @@
     var idx = current.idx;
     var roots = extra.roots && extra.roots[idx];
     var exam = extra.exam && extra.exam[idx];
+    var ex = extra.ex && extra.ex[idx];
     var parts = [];
 
+    /* 例句放最前：语境优先于词源拆解 */
+    if (ex && ex[0]) {
+      parts.push('<div class="vc-bp-block"><div class="vc-bp-h">💬 例句</div>' +
+        '<div class="vc-bp-txt vc-bp-ex-sen">' + esc(ex[0]) + '</div>' +
+        '<div class="vc-bp-src">' + esc(ex[1] || '') + '</div></div>');
+    }
     if (roots && roots[0]) {
       parts.push('<div class="vc-bp-block"><div class="vc-bp-h">🧩 拆词</div>' +
         '<div class="vc-bp-txt">' + esc(roots[0]) + '</div></div>');

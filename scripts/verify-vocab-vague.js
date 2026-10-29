@@ -37,7 +37,7 @@ const R=[]; function check(n,ok,d){R.push({n,ok:!!ok,d});console.log((ok?'PASS':
     const info = await page.evaluate(async () => {
       const isCn = !!document.querySelector('.vc-word.cn');
       const front = document.querySelector('.vc-word')?.textContent?.trim() || '';
-      const opts = [...document.querySelectorAll('.vc-opt')].map(b => b.textContent.trim());
+      const opts = [...document.querySelectorAll('.vc-opt')].map(b => b.querySelector('.vc-opt-txt')?.textContent?.trim() || b.textContent.trim());
       const book = await (await fetch('assets/vocab/cet4.json')).json();
       const row = book.find(r => r[0] === front) || book.find(r => r[2] === front);
       let want = '';

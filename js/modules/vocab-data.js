@@ -194,6 +194,7 @@
       });
     },
     loadRoots: function (level) { return loadJson(level + '_roots'); },
+    loadExamples: function (level) { return loadJson(level + '_ex'); },
     loadExam: function (level) { return loadJson(level + '_exam'); },
     makeOptions: makeOptions,
     makeWordOptions: makeWordOptions,

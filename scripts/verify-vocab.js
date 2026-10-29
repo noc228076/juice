@@ -195,7 +195,7 @@ function check(name, ok, detail) {
     const st = await page.evaluate(() => ({
       front: document.querySelector('.vc-word')?.textContent,
       isCn: !!document.querySelector('.vc-word.cn'),
-      opts: [...document.querySelectorAll('.vc-opt')].map(b => b.textContent.trim())
+      opts: [...document.querySelectorAll('.vc-opt')].map(b => b.querySelector('.vc-opt-txt')?.textContent?.trim() || b.textContent.trim())
     }));
     if (!st.isCn && st.opts.length && /^[a-zA-Z]/.test(st.front || '')) { en2cn = st; break; }
     const rate = await page.$('[data-rate="know"]');

@@ -703,6 +703,35 @@ curl -s "https://juice.noooc.dpdns.org/js/app.bundle.js?v=100" | grep -c "你的
 > **Temp 目录可能被系统清理**。如果找不到了，脚本里的断言逻辑值得重新写，
 > 但第五节记录的**踩坑点请务必保留**。
 
+
+---
+
+## 附：2026-10-30 凌晨多 agent 审查轮的存量变更（v493→v509）
+
+本节记录一轮 8 个 subagent 交叉审查后的结构性变更，供后续会话快速对齐：
+
+### 背单词（vocab.js / vocab-data.js，v502+）
+- 调度已从 Leitner 盒子升级为 **FSRS-4.5 简化版**：每词 {S 稳定性, D 难度, due, last, reps, lapses, st}；
+  官方 17 权重硬编码在 vocab.js 顶部；落档唯一入口是自评阶段 commitWord → commitReview
+  （客观题阶段不落档——同词一局升 3 档的旧口径已废弃）。
+- 存档 ver=3：loadState 走 migrateV3（v1 分支要先把 state.ver 置 2 再迁移，踩过：emptyState 已是 3 导致跳过）。
+- 会话可续局：state.session 快照（words/stage/qi/stageQueue/redoSet/stats/counted），
+  今日页 resumeAvailable() 出「继续上局/放弃重排」；切词库/清空/整局完成时清理。
+- 老坑已修：restoreView 必须重挂键盘监听（destroy 摘掉后 keyBound=false）；导入备份白名单化；
+  accuracy 口径统一（自评认识=答对）；streak 显示改 streakFromDays() 按 days 表回溯。
+- e2e：scripts/verify-vocab*.js 共 8 套 110+ 断言，CHROME_PATH 环境变量可覆盖浏览器路径。
+
+### 坦克防线（manual-tank.js / manual-tank-stages.js）
+- 引擎独立文件，SMGameKit 复用；规则按 NES 原版（见文件头版权注）。
+- 帧率无关概率 perFrame(p,dt)；碰撞 20px 子格；敌人尸体 0.8s 占槽；出生不查占用。
+
+### 全站竞态修复
+- core-drink 摇杯 / lingqian 摇签的定时完成回调必须检查 .app-module.active 再 replaceView，
+  否则跨模块劫持路由（12 题结果丢失的根因）。新模块的异步完成回调一律照此加闸。
+- music saveLive 拆双键：LIVE_KEY 只在队列/曲目变化时写，位置进 POS_KEY 每 2s 写。
+- lx 内置音源并行加载（串行时单个失效 12s 连坐）。
+
+
 ---
 
 *本文档随代码一起版本管理（仓库根目录，`.vercelignore` 已排除，不会部署上线）。

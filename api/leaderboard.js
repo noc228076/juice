@@ -832,9 +832,12 @@ module.exports = async function handler(req, res) {
            昵称在这两个榜上永远同步不了。这类榜无法枚举全部周期键，
            只能跳过（昵称由下一次 POST 上报时同步）。 */
         if (cfgGame.vocab && g !== 'vocab_all') continue;
+        /* memory 模式下 vocab 榜读写走 game:period 动态键（POST/GET 一致）；
+           走到这里只剩 vocab_all（day/week 已 continue），period 为空 → 'all' */
+        const storeKey = (useMemory && cfgGame.vocab) ? g + ':' + ((body && body.period) || 'all') : g;
         let raw;
         if (useMemory) {
-          raw = memStore.hget(g, id);
+          raw = memStore.hget(storeKey, id);
         } else {
           raw = await call(['HGET', cfgGame.p, id]);
         }
@@ -847,7 +850,7 @@ module.exports = async function handler(req, res) {
         d.a = avatar;
 
         if (useMemory) {
-          memStore.hset(g, id, JSON.stringify(d));
+          memStore.hset(storeKey, id, JSON.stringify(d));
         } else {
           await call(['HSET', cfgGame.p, id, JSON.stringify(d)]);
         }
@@ -908,9 +911,14 @@ module.exports = async function handler(req, res) {
         res.status(400).json({ ok: false, error: '背单词日/周榜需要 period 参数（日榜 YYYYMMDD / 周榜 YYYYWW）' });
         return;
       }
+      /* memory 模式下 vocab 榜的读写走 game:period 动态键（POST/GET 一致），
+         DELETE 必须用同一个键，否则删的是从未写入的键——0 条却报成功 */
+      const memDelKey = (useMemory && cfgGame.vocab)
+        ? game + ':' + ((body && body.period) || 'all')
+        : game;
       if (useMemory) {
-        memStore.zrem(game, id);
-        memStore.hdel(game, id);
+        memStore.zrem(memDelKey, id);
+        memStore.hdel(memDelKey, id);
       } else {
         await pipeline([
           ['ZREM', delCfg.z, id],

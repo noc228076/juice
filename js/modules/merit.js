@@ -346,7 +346,14 @@
       knockMuyu();
       autoTimer = setInterval(() => {
         const mod = document.getElementById('mod-merit');
-        if (!mod || !mod.classList.contains('active') || curSubmod !== 'muyu') return;
+        if (!mod || !mod.classList.contains('active') || curSubmod !== 'muyu') {
+          // 已离开模块/子页：自动敲击自停，避免常驻空转
+          clearInterval(autoTimer);
+          autoTimer = null;
+          const runBtn = document.querySelector('[data-auto]');
+          if (runBtn) { runBtn.classList.remove('running'); runBtn.textContent = '▶️ 自动连续敲击'; }
+          return;
+        }
         knockMuyu();
       }, 650);
       if (btn) {

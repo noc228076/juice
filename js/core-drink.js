@@ -5250,7 +5250,7 @@ const SFX = (function () {
     } else {
       show('cover');
     }
-    if (urlParams.get('autocard')) {
+    if (urlParams.get('autocard') && location.hostname === 'localhost') {
       setTimeout(() => {
         try {
           const cv = drawShareCard();

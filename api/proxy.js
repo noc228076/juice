@@ -262,6 +262,24 @@ module.exports = async function handler(req, res) {
   }
   const kind = q.kind || 'api';
 
+  /* 准入门禁：本代理此前对任意公网主机完全开放（无身份门槛），
+     可被第三方当匿名中继刷流量，滥用记录落在自己域名上。
+     前端全部是同源调用（lx-music 沙箱走自家页面 fetch），
+     校验 Origin/Referer 同源即可拦掉站外滥用，不影响正常功能。 */
+  const reqOrigin = String(req.headers.origin || req.headers.referer || '');
+  if (reqOrigin) {
+    let originHost = '';
+    try { originHost = new URL(reqOrigin).hostname; } catch (e) {}
+    const selfHost = String(req.headers.host || '').split(':')[0];
+    if (originHost && selfHost && originHost !== selfHost) {
+      res.status(403).send('cross-origin proxy denied');
+      return;
+    }
+  } else if (req.method !== 'GET' && req.method !== 'HEAD') {
+    // 无 Origin/Referer 且非幂等方法：多半是脚本直调，拒绝
+    res.status(403).send('missing origin');
+    return;
+  }
 
   if (!target) {
     res.status(400).send('missing url');
@@ -276,8 +294,21 @@ module.exports = async function handler(req, res) {
     return;
   }
 
+  /* 端口白名单：只代理标准 web 端口，防被用来探内网非常规服务 */
+  const port = targetUrl.port || (targetUrl.protocol === 'https:' ? '443' : '80');
+  if (port !== '80' && port !== '443') {
+    res.status(403).send('port not allowed');
+    return;
+  }
+
   if (kind === 'media' && !/^(GET|HEAD)$/i.test(req.method || 'GET')) {
     res.status(405).send('media proxy only supports GET/HEAD');
+    return;
+  }
+  /* api 中继也收敛到幂等方法 + POST：音源搜索/取链只用到这些，
+     PUT/DELETE/PATCH 等写方法没有合法用途 */
+  if (kind !== 'media' && !/^(GET|HEAD|POST)$/i.test(req.method || 'GET')) {
+    res.status(405).send('api proxy only supports GET/HEAD/POST');
     return;
   }
 
@@ -390,7 +421,13 @@ function doForward(targetUrl, method, headers, redirectCount, res, kind, body, i
           return resolve();
         }
         const nextMethod = (status === 303 || status === 301 || status === 302) ? 'GET' : method;
-        resolve(forward(next, nextMethod, headers, redirectCount + 1, res, kind, nextMethod === 'GET' ? null : body));
+        /* 重定向要重建 Host、清掉 Content-Length：
+           301/302/303 已把 body 置 null，带着旧的 Content-Length 会让上游
+           一直等请求体直到超时；跨域跳转时旧 Host 会让新上游路由错虚拟主机 */
+        const nextHeaders = Object.assign({}, headers);
+        delete nextHeaders['content-length'];
+        nextHeaders.host = next.hostname + (next.port ? ':' + next.port : '');
+        resolve(forward(next, nextMethod, nextHeaders, redirectCount + 1, res, kind, nextMethod === 'GET' ? null : body));
         return;
       }
 

@@ -453,6 +453,10 @@ html[data-theme="light"] .bz-solar-hint {
   .bz-solar-select-row {
     grid-template-columns: 1fr 1fr;
   }
+  /* 时辰选项文案最长（11:00 - 12:59 (午时)），两列布局里必然截断，独占一行 */
+  .bz-solar-select-row > :nth-child(4) {
+    grid-column: 1 / -1;
+  }
 }
 
 .bz-solar-group {

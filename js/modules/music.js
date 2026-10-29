@@ -1065,6 +1065,7 @@
 
   var activeListId = 'love';   // 当前查看的歌单
   var searching = false;       // 搜索进行中，用于按钮/骨架屏状态
+  var searchSeq = 0;           // 搜索代次：聚合搜索可达 12s，连搜时旧响应后到必须丢弃
   var suppressSuggest = false; // 恢复焦点时临时禁止弹联想
   var searchProgress = '';     // 逐源进度文案
   var showLyric = true;        // 沉浸页是否显示歌词
@@ -1081,6 +1082,7 @@
       if (!window.LxMusic) { toast('音源内核未加载'); return; }
       searching = true;
       searchProgress = '正在连接各平台…';
+      var mySearch = ++searchSeq;   // 过期令牌：连搜两个词时旧响应后到不得覆盖
       renderHome();
       window.LxMusic.search(kw, 1, function (p) {
         // 实时进度：让用户看到具体哪个平台慢，而不是无限转圈
@@ -1095,6 +1097,7 @@
         var tip = document.querySelector('.mu-loading-text');
         if (tip) tip.textContent = searchProgress;
       }).then(function (res) {
+        if (mySearch !== searchSeq) return;   // 已有更新的搜索，丢弃旧结果
         searching = false;
         searchProgress = '';
         searchResults = res.list.map(function (t) {
@@ -1127,6 +1130,7 @@
           toast('搜到 ' + searchResults.length + ' 首');
         }
       }).catch(function (e) {
+        if (mySearch !== searchSeq) return;
         // 失败也要复位，否则 spinner 会一直转
         searching = false;
         searchProgress = '';

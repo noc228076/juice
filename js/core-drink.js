@@ -3598,15 +3598,27 @@ const SFX = (function () {
     }
   }
 
+  let currentDrinkUrl = '';   // 当前饮料 SVG 的 blob URL：换图时回收，否则每次测试泄漏一个
   function updateDrinkImage(code) {
     if (curTest === 'drink' && typeof DRINK_SVGS !== 'undefined' && DRINK_SVGS[code]) {
       const svg = DRINK_SVGS[code];
       const blob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const img = new Image();
-      img.onload = () => { currentDrinkImg = img; };
+      img.onload = () => {
+        // 旧图已换下才回收：正在显示的 URL 不能先 revoke
+        if (currentDrinkUrl && currentDrinkUrl !== url) {
+          try { URL.revokeObjectURL(currentDrinkUrl); } catch (e) {}
+        }
+        currentDrinkUrl = url;
+        currentDrinkImg = img;
+      };
       img.src = url;
     } else {
+      if (currentDrinkUrl) {
+        try { URL.revokeObjectURL(currentDrinkUrl); } catch (e) {}
+        currentDrinkUrl = '';
+      }
       currentDrinkImg = null;
     }
   }
@@ -5039,16 +5051,24 @@ const SFX = (function () {
       }
     }
 
-    const cv = drawShareCard();
-    const data = cv.toDataURL('image/png');
-    if (window.AndroidBridge && AndroidBridge.saveImage) {
-      AndroidBridge.saveImage(data);
-    } else {
-      const a = document.createElement('a');
-      a.href = data;
-      const pre = (curTest === 'sbti') ? `SBTI-${persona.code || code}-` : ((curTest !== 'drink') ? `MBTI-${code}-` : `Drink-${code}-`);
-      a.download = pre + persona.name + '.png';
-      a.click();
+    let cv;
+    try {
+      cv = drawShareCard();
+      const data = cv.toDataURL('image/png');
+      if (window.AndroidBridge && AndroidBridge.saveImage) {
+        AndroidBridge.saveImage(data);
+      } else {
+        const a = document.createElement('a');
+        a.href = data;
+        const pre = (curTest === 'sbti') ? `SBTI-${persona.code || code}-` : ((curTest !== 'drink') ? `MBTI-${code}-` : `Drink-${code}-`);
+        a.download = pre + persona.name + '.png';
+        a.click();
+      }
+    } catch (e) {
+      /* 画布被跨域图污染时 toDataURL 抛 SecurityError；
+         async 函数不接住就是 unhandled rejection，用户点了没任何反馈 */
+      console.warn('[saveShare] failed:', e && e.message);
+      alert('保存失败，请截图保存结果页');
     }
   }
 
@@ -5098,21 +5118,10 @@ const SFX = (function () {
     setMode('drink');
 
     updateHistoryBadge();
-    if (!window.UniversalHistory) {
-      const btnHist = $('btnOpenHistory');
-      if (btnHist) btnHist.addEventListener('click', showHistoryDrawer);
-      const btnHistRes = $('btnResultHistory');
-      if (btnHistRes) btnHistRes.addEventListener('click', showHistoryDrawer);
-      const btnHistResPc = $('btnResultHistoryPc');
-      if (btnHistResPc) btnHistResPc.addEventListener('click', showHistoryDrawer);
-      const btnCloseHist = $('btnCloseHistory');
-      if (btnCloseHist) btnCloseHist.addEventListener('click', hideHistoryDrawer);
-      const backdropHist = $('historyBackdrop');
-      if (backdropHist) backdropHist.addEventListener('click', hideHistoryDrawer);
-      const btnClrHist = $('btnClearHistory');
-      if (btnClrHist) btnClrHist.addEventListener('click', clearAllHistory);
-    }
-
+    /* 历史抽屉按钮不在绑定：history.js 与本文件同包且后执行，
+       会对同一批按钮做 onclick 绑定（含确认框）。
+       此前的 addEventListener 兜底会在点击时先于确认框执行
+       clearAllHistory——无确认直接清空全部档案，且打开抽屉每次点两遍。 */
 
     $('btnStart').addEventListener('click', () => { SFX.pour(); startQuiz(); });
 

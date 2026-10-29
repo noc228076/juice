@@ -5,8 +5,9 @@
 .fl-wrap {
   max-width: 1440px;
   margin: 0 auto;
-  /* 对齐 ck-wrap/mr-wrap 的顶部留白，四子页子导航条同高不下跳 */
-  padding-top: var(--screen-pad-block);
+  /* 对齐 ck-wrap/mr-wrap 的顶部留白，四子页子导航条同高不下跳。
+     左右 24px：此前整模块横向 0 内边距，筛选行和卡片全贴屏幕边 */
+  padding: var(--screen-pad-block) 24px 0;
 }
 .fl-header {
   text-align: center;
@@ -270,6 +271,9 @@ html[data-theme="dark"] .films-score {
 }
 
 @media (max-width: 640px) {
+  .fl-wrap {
+    padding: var(--screen-pad-block) 14px 0;
+  }
   .films-grid {
     grid-template-columns: 1fr;
   }

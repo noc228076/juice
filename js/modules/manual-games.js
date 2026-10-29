@@ -53,18 +53,16 @@
           morphEl = window.MorphDOM.createMorph(pathEl, window.LUCIDE_ICONS.RotateCcw, {});
         }
       } catch (e) { morphEl = null; }
-      var oldOnclick = b.onclick;
+      /* 此前这里有一段先 onclick 再被下一段覆盖的死代码：
+         oldOnclick 在新建按钮上恒为 undefined，调换顺序会直接 TypeError */
       b.onclick = function (e) {
+        e.stopPropagation();
         if (morphEl) {
           try {
             morphEl.set(window.LUCIDE_ICONS.RefreshCw);
             setTimeout(function () { morphEl.set(window.LUCIDE_ICONS.RotateCcw); }, 500);
           } catch (err) {}
         }
-        oldOnclick.call(this, e);
-      };
-      b.onclick = function (e) {
-        e.stopPropagation();
         if (window.SFX && window.SFX.tap) window.SFX.tap();
         onRestart();
       };
@@ -2272,6 +2270,12 @@
     /* ---------- 开始页：不点不开计时（与舒尔特同一约定） ---------- */
     function intro() {
       clearTimers();
+      /* 中途重开必须掐掉旧回合的 rAF 和 running 标志：
+         不清的话旧回合 30 秒计时到期会照常 endRound——
+         把残局分数上榜，并把用户从说明页拽到结算页 */
+      running = false;
+      if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
+      while (balls.length) removeBall(balls[0]);
       el.innerHTML = hud() +
         '<div class="rz-stage">' +
         '<div class="rz-big" style="font-size:30px">30 秒 · 打小球</div>' +

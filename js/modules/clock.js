@@ -975,7 +975,7 @@
     ctx.textAlign = 'center';
     ctx.fillStyle = '#9CA3AF';
     ctx.font = '22px monospace';
-    ctx.fillText('灵感人格研究所 · 摸鱼发薪实时时钟', 540, 1460);
+    ctx.fillText('饮料人格研究所 · 摸鱼发薪实时时钟', 540, 1460);
 
     const a = document.createElement('a');
     a.download = `摸鱼发薪战报_${Date.now()}.png`;

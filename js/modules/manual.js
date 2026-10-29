@@ -96,7 +96,7 @@
 
     var html = '';
     html += '<div class="home-head"><div class="brandmark">我</div><div>'
-      + '<div class="home-title">自我说明书</div><div class="home-sub">SELF MANUAL · 十三份关于你的出厂说明书</div></div></div>';
+      + '<div class="home-title">自我说明书</div><div class="home-sub">SELF MANUAL · 十五份关于你的出厂说明书</div></div></div>';
     html += '<div class="home-desc">你是哪种拖延病患者？社交电量还剩多少？反应能力几岁？2048能合出多大？还有一份人间清醒防坑指南。挑一章，把自己拆开看看。</div>';
 
     html += '<div class="stat-strip"><div style="display:flex;gap:5px">'

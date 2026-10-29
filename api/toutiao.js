@@ -19,7 +19,9 @@ module.exports = async function handler(req, res) {
         'User-Agent': UA,
         Referer: 'https://www.toutiao.com/',
         Accept: 'application/json'
-      }
+      },
+      // 与其他 api 一致：8s 上游超时，避免拖到平台函数上限
+      signal: AbortSignal.timeout ? AbortSignal.timeout(8000) : undefined
     });
 
     if (!upstream.ok) {
@@ -31,13 +33,14 @@ module.exports = async function handler(req, res) {
     const rows = Array.isArray(data && data.data) ? data.data : [];
 
     const list = rows.map(function (it) {
+      if (!it) return null;
       return {
         title: String(it.Title || '').trim(),
         // HotValue 是数字热度，前端按数值排序
         hot_value: Number(it.HotValue) || 0,
         link: String(it.Url || '').trim()
       };
-    }).filter(function (x) { return x.title; });
+    }).filter(function (x) { return x && x.title; });
 
     if (!list.length) {
       res.status(502).json({ ok: false, error: '上游返回空榜单' });

@@ -359,7 +359,7 @@
     ctx.textAlign = 'center';
     ctx.fillStyle = '#D97706';
     ctx.font = 'bold 26px system-ui, sans-serif';
-    ctx.fillText('东方祈福灵签 · 灵感研究所', 540, 175);
+    ctx.fillText('东方祈福灵签 · 饮料人格研究所', 540, 175);
 
     ctx.fillStyle = isDark ? '#FDF2F8' : '#29151B';
     ctx.font = '900 58px serif';

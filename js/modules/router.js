@@ -823,7 +823,7 @@
             '<div class="gp-backdrop" data-about-close></div>' +
             '<div class="gp-dialog" role="dialog" aria-modal="true" aria-label="关于本站">' +
             '<div class="gp-head">' +
-            '<div><h3>关于本站</h3><p>灵感人格研究所 · Inspiration Persona Lab</p></div>' +
+            '<div><h3>关于本站</h3><p>饮料人格研究所 · Drink Persona Lab</p></div>' +
             '<button class="gp-close" type="button" data-about-close aria-label="关闭">✕</button>' +
             '</div>' +
             '<div class="gp-body">' +
@@ -943,7 +943,13 @@
     bindGlobalControls();
     window.addEventListener('popstate', handlePopState);
     window.addEventListener('hashchange', handleHashChange);
-    window.addEventListener('resize', () => updateGlider());
+    /* 拖拽窗口时 resize 高频触发，updateGlider 读写 offsetWidth 会强制 reflow，
+       rAF 合帧到每帧一次 */
+    let gliderRaf = 0;
+    window.addEventListener('resize', () => {
+      if (gliderRaf) return;
+      gliderRaf = requestAnimationFrame(() => { gliderRaf = 0; updateGlider(); });
+    });
     initializeHistory();
     setTimeout(() => updateGlider(), 100);
   }

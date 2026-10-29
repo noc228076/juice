@@ -17,10 +17,10 @@
 <meta property="og:title" content="饮料人格研究所 · 测测你的精神状态与灵魂特调">
 <meta property="og:description" content="当代年轻人精神状态测试 (SBTI) / 经典 16 型人格 (MBTI) / 16 款灵魂饮料特调，测出你的独家出厂配方与精神病友。">
 <meta property="og:image" content="assets/icons/icon-512.png">
-  <link rel="stylesheet" href="css/core.bundle.css?v=476">
-  <script defer src="js/vendor/morphicons.js?v=476"></script>
-  <script defer src="js/vendor/lucide-icons.js?v=476"></script>
-  <script defer src="js/app.bundle.js?v=476" fetchpriority="high"></script>
+  <link rel="stylesheet" href="css/core.bundle.css?v=479">
+  <script defer src="js/vendor/morphicons.js?v=479"></script>
+  <script defer src="js/vendor/lucide-icons.js?v=479"></script>
+  <script defer src="js/app.bundle.js?v=479" fetchpriority="high"></script>
   <script>
     (function(){
       // 主题必须在首次绘制前定下来。以前只有 <html data-theme="dark"> 的硬编码默认值，
@@ -208,7 +208,7 @@
           <div class="cup-shadow"></div>
         </div>
         <p class="cover-eyebrow">PERSONA & MBTI LAB · 双重性格探索</p>
-        <h1 class="cover-title">灵感人格<br>研究所</h1>
+        <h1 class="cover-title">饮料人格<br>研究所</h1>
         <p class="cover-sub" id="coverSub">多元测评任选 · 探索真实的自我<br><b>16</b> 种特调饮料 · 当代 <b>SBTI</b> 发疯测试 · 经典 <b>MBTI</b> 深度档案</p>
       </div>
       <div class="cover-bottom">
@@ -237,7 +237,7 @@
                 <div class="mc-info">
                   <div class="mc-title-row">
                     <strong class="mc-name">SBTI · 精神状态测试</strong>
-                    <span class="mc-badge badge-pro">31 题 · 精神状态</span>
+                    <span class="mc-badge badge-pro">31-32 题 · 精神状态</span>
                   </div>
                   <p class="mc-desc">专治各种精神内耗，测测你的当代网络精神状态与打工魂</p>
                 </div>
@@ -471,7 +471,7 @@
       </div>
     </section>
 
-    <!-- 模块 3：自我说明书 (14 章) -->
+    <!-- 模块 3：自我说明书 (15 章) -->
     <section id="mod-manual" class="app-module">
       <aside class="sm-rail" id="sm-rail">
         <div class="sm-rail-head">
@@ -481,7 +481,7 @@
             <p>SELF MANUAL</p>
           </div>
         </div>
-        <div class="sm-rail-sum" id="sm-rail-sum">已测 0/14 章 · 存档 0 份</div>
+        <div class="sm-rail-sum" id="sm-rail-sum">已测 0/15 章 · 存档 0 份</div>
         <nav class="sm-rail-nav" id="sm-rail-nav"></nav>
         <button class="sm-rail-home" id="sm-rail-home">← 返回目录</button>
       </aside>
@@ -1438,10 +1438,10 @@
               <label>休息制度 (单双休/大小周)</label>
               <select id="ckInpRestMode">
                 <option value="double">🎉 双休 (周六、周日休)</option>
-                <option value="single_sun">🐂 单休 (仅周日休·周六上班)</option>
+                <option value="single_sun">🐂 周日单休（周六上班）</option>
                 <option value="bi_small">📅 大小周·本周小周 (周六上班)</option>
                 <option value="bi_big">🏖️ 大小周·本周大周 (休六日)</option>
-                <option value="single_sat">📆 单休 (仅周六休·周日上班)</option>
+                <option value="single_sat">📆 周六单休（周日上班）</option>
                 <option value="none">⚙️ 全年无休 / 今日正常排班</option>
               </select>
             </div>
@@ -1646,6 +1646,7 @@
         <div class="films-note">
           <div class="films-legend">
             <span><b class="ok">可用</b> 主站可正常访问</span>
+            <span><b class="dim">未检测</b> 尚未探测</span>
             <span><b class="warn">谨慎</b> 能打开，但地址/内容来源需自行判断（多数资源站属于此类）</span>
             <span><b class="bad">失效</b> 已确认无法访问</span>
           </div>
@@ -2007,7 +2008,7 @@
             <div class="daily-card-head">
               <span class="daily-card-title">🔥 实时热点追踪</span>
               <div class="daily-card-tools">
-                <span style="font-size:12px;color:var(--tx-dim);">自动每 25 分钟更新</span>
+                <span style="font-size:12px;color:var(--tx-dim);">缓存 25 分钟 · 重进页面自动拉新</span>
               </div>
             </div>
 
@@ -2294,7 +2295,7 @@
           <div class="sc-history-head">
             <div class="sc-hist-title">
               <span>🏆 我的刮彩账本</span>
-              <span class="sc-hist-sub" id="scHistSub">记录最近 20 次刮奖战绩</span>
+              <span class="sc-hist-sub" id="scHistSub">记录最近 30 次刮奖战绩</span>
             </div>
             <button class="sc-btn-clear" id="scBtnClearHistory">清空战绩</button>
           </div>
@@ -2452,7 +2453,7 @@
       </div>
 
       <div class="zen-hint-pill">
-        <span>💡 双击屏幕或按 <b>ESC</b> 键退出全屏屏保 · 鼠标静止 2.5 秒后自动沉浸隐藏控制栏</span>
+        <span>💡 双击屏幕或按 <b>ESC</b> 键退出全屏屏保 · 鼠标静止 2.5 秒自动隐藏控制栏，进入沉浸模式</span>
       </div>
     </div>
   </div>

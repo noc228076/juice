@@ -205,8 +205,10 @@
   }
 
   // 4. 生成一张符合彩票店真实规则与概率的刮刮乐
+  let ticketGen = 0;   // 票据代次：换一张/切票种时自增，在途的自动刮开动画按此作废
   function generateTicket(themeKey) {
     const config = THEMES[themeKey];
+    ticketGen++;
     isSettled = false;
     isQuickRevealing = false;
     isScratching = false;
@@ -511,7 +513,9 @@
     canvas.style.width = w + 'px';
     canvas.style.height = h + 'px';
 
-    const ctx = canvas.getContext('2d');
+    // 刮擦过程每 ~60ms getImageData 回读，必须声明 willReadFrequently，
+    // 否则 Chrome 强制走 CPU 回读且每次告警，移动端掉帧
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
     ctx.scale(dpr, dpr);
 
     const config = THEMES[curThemeKey];
@@ -725,7 +729,7 @@
     if (!curTicketData || isSettled) return;
     if (!canvas) canvas = document.getElementById('scCanvasOverlay');
     if (!canvas) return;
-    if (!ctx) ctx = canvas.getContext('2d');
+    if (!ctx) ctx = canvas.getContext('2d', { willReadFrequently: true });
 
     if (!imgData) {
       try {
@@ -945,7 +949,7 @@
           const luckyList = (curTicketData.luckyNums || ['88', '66']).join(', ');
           settleBox.innerHTML = `
             <div class="sc-settle-alert lose">
-              😢 <b>未中奖 · 与大奖擦肩而过！</b> 中奖号码为【${luckyList}】，你的号码【${nm.myNum}】仅差 1 位数字！与 <b>${nm.prize}</b> 头奖擦肩而过！下一张必中！
+              😢 <b>未中奖 · 与大奖擦肩而过！</b> 中奖号码为【${luckyList}】，你的号码【${nm.myNum}】仅差 1 位数字！与 <b>${nm.prize}</b> 头奖擦肩而过！下一张手气更好！
             </div>
           `;
         }
@@ -965,6 +969,7 @@
     if (!canvas) return;
 
     isQuickRevealing = true;
+    const myGen = ++ticketGen;   // 锁定本票据代次：换一张/切票种后旧动画作废
     const w = canvas.getBoundingClientRect().width;
     const h = canvas.getBoundingClientRect().height;
     const ctx = canvas.getContext('2d');
@@ -973,6 +978,7 @@
     const duration = 380; // 380ms 畅快扫掠动画
 
     function animSweep(now) {
+      if (myGen !== ticketGen) return;   // 票已换，旧动画不得结算新票
       const elapsed = now - startTime;
       const progress = Math.min(1, elapsed / duration);
       // 缓动曲线
@@ -1075,7 +1081,28 @@
     }
 
     ctx.restore();
-    animFrameId = requestAnimationFrame(renderParticles);
+    /* 粒子空了就停帧：此前无条件续帧，刮完一轮后即使切走模块
+       也以 ~60fps 清一整块画布直到页面关闭 */
+    if (particles.length) {
+      animFrameId = requestAnimationFrame(renderParticles);
+    } else {
+      animFrameId = 0;
+    }
+  }
+
+  // 刮擦音效复用同一个 AudioContext：Chrome 每页上限约 6 个，
+  // 此前每次冷却到期都 new 一个且从不 close，刮一两秒就把配额耗尽，音效必然失效
+  let _scratchCtx = null;
+  function getScratchCtx() {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return null;
+    if (!_scratchCtx) {
+      try { _scratchCtx = new AC(); } catch (_) { return null; }
+    }
+    if (_scratchCtx && _scratchCtx.state === 'suspended') {
+      _scratchCtx.resume().catch(() => {});
+    }
+    return _scratchCtx;
   }
 
   // 11. 真实刮擦与音效系统
@@ -1086,9 +1113,8 @@
 
     if (window.SFX && !window.SFX.isMuted()) {
       try {
-        const AC = window.AudioContext || window.webkitAudioContext;
-        if (!AC) return;
-        const c = new AC();
+        const c = getScratchCtx();
+        if (!c) return;
         const dur = 0.04;
         const buf = c.createBuffer(1, Math.floor(c.sampleRate * dur), c.sampleRate);
         const ch = buf.getChannelData(0);
@@ -1363,7 +1389,7 @@
     if (curTicketData.isWin) {
       ctx.fillText(`✦ 命中 ${curTicketData.matchedCount} 个奖项 · 愿此等鸿运常伴左右 ✦`, 540, py + 480);
     } else {
-      ctx.fillText(`✦ 仅差 1 位数字与头奖擦肩 · 下一张必中 ✦`, 540, py + 480);
+      ctx.fillText(`✦ 仅差 1 位数字与头奖擦肩 · 下一张手气更好 ✦`, 540, py + 480);
     }
 
     // 盖印章

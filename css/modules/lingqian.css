@@ -76,6 +76,15 @@ html[data-theme="light"] #mod-lingqian {
   display: none;
 }
 
+/* 窄屏单行滚动时必须改左对齐：flex 居中 + overflow 的经典坑——
+   内容超宽时左侧（首项「西方塔罗」甚至当前选中项）会被裁在可视区外且滚不到。
+   桌面端内容放得下，居中不受影响。 */
+@media (max-width: 700px) {
+  .ew-mystic-bar {
+    justify-content: flex-start;
+  }
+}
+
 html[data-theme="light"] .ew-mystic-bar {
   background: var(--card-solid);
   box-shadow: 0 6px 20px rgba(40, 46, 30, 0.16);
@@ -277,16 +286,19 @@ html[data-theme="light"] .ew-switch-btn.active.fengshui {
   width: 100%;
   padding: 10px 14px;
   border-radius: 12px;
-  background: var(--card);
-  border: 1px solid var(--line);
+  background: transparent;
+  border: 1px dashed var(--line-strong);
   color: var(--tx);
   font-size: 13.5px;
   outline: none;
   box-sizing: border-box;
-  text-align: center;
+  /* 左对齐 + 虚线边框：此前全宽实底居中灰字，和下方「诚心摇签」按钮
+     视觉语言一致，会被当成点了就摇签的按钮 */
+  text-align: left;
 }
 
 .lq-wish-input:focus {
+  border-style: solid;
   border-color: var(--lq-gold);
 }
 

@@ -36,12 +36,21 @@ function runApi(req, res, pathname) {
     res.end('404 Not Found');
     return;
   }
+  // 不存在的 api 直接 404：此前落到 require 的 MODULE_NOT_FOUND，
+  // 500 响应里带着服务器绝对路径
+  if (!fs.existsSync(file) || !fs.statSync(file).isFile()) {
+    res.writeHead(404);
+    res.end('404 Not Found');
+    return;
+  }
   let handler;
   try {
     handler = require(file);
   } catch (e) {
+    // 路径细节只进日志，不回显给客户端
+    console.error('[runApi] api load failed:', pathname, e.message);
     res.writeHead(500, { 'Content-Type': 'application/json; charset=utf-8' });
-    res.end(JSON.stringify({ ok: false, error: 'API 加载失败: ' + e.message }));
+    res.end(JSON.stringify({ ok: false, error: 'API 加载失败' }));
     return;
   }
 
@@ -52,7 +61,13 @@ function runApi(req, res, pathname) {
   // 一个中文字/emoji 正好被切在边界上时会变成乱码。
   req.setEncoding('utf8');
   let raw = '';
-  req.on('data', (chunk) => { raw += chunk; });
+  req.on('data', (chunk) => {
+    raw += chunk;
+    // 请求体上限 1MB：本站 API 最大的是榜单提交/弹幕文本，远用不到这么大
+    if (raw.length > 1e6) {
+      req.destroy();
+    }
+  });
   req.on('end', () => {
     if (raw) {
       try { req.body = JSON.parse(raw); } catch (e) { req.body = raw; }
@@ -116,6 +131,8 @@ const server = http.createServer((req, res) => {
 });
 
 const PORT = 3456;
-server.listen(PORT, () => {
+// 只绑回环：这是本地预览服务器，绑 0.0.0.0 会把整个项目目录（含 .git、
+// scratch、node_modules）暴露到局域网
+server.listen(PORT, '127.0.0.1', () => {
   console.log(`Local preview server running at http://localhost:${PORT}/#/daily`);
 });

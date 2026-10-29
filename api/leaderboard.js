@@ -826,6 +826,12 @@ module.exports = async function handler(req, res) {
       const updated = [];
       for (const g of games) {
         const cfgGame = GAMES[g];
+        /* 背单词日/周榜的存储键带客户端周期号（jvocab:d:YYYYMMDD:p），
+           GAMES 表里没有 z/p——直接取值会变成 HGET "null" <id>，
+           Upstash 把 null 当字符串执行，返回空后静默 continue，
+           昵称在这两个榜上永远同步不了。这类榜无法枚举全部周期键，
+           只能跳过（昵称由下一次 POST 上报时同步）。 */
+        if (cfgGame.vocab && g !== 'vocab_all') continue;
         let raw;
         if (useMemory) {
           raw = memStore.hget(g, id);
@@ -859,7 +865,8 @@ module.exports = async function handler(req, res) {
         res.status(403).json({ ok: false, error: '未配置 ADMIN_TOKEN，删除接口已禁用' });
         return;
       }
-      const given = String((req.headers && (req.headers['x-admin-token'] || req.headers['X-Admin-Token'])) || '');
+      // Node 把请求头名统一小写，X-Admin-Token 形式的读取是死代码
+      const given = String((req.headers && req.headers['x-admin-token']) || '');
       // 常数时间比较，防计时侧信道逐字节猜 token（与 api/wall.js 同款）
       const eq = (() => {
         const a = Buffer.from(given);
@@ -891,13 +898,23 @@ module.exports = async function handler(req, res) {
       }
 
       const cfgGame = GAMES[game];
+      /* 背单词日/周榜没有固定 z/p 键（键带客户端周期号），
+         需要调用方带上 period 才能定位到真实键——否则会 ZREM "null" <id>
+         删 0 条却返回成功，管理员以为删掉了其实没有。 */
+      const delCfg = cfgGame.vocab && game !== 'vocab_all'
+        ? vocabCfg(game, body && body.period)
+        : cfgGame;
+      if (!delCfg) {
+        res.status(400).json({ ok: false, error: '背单词日/周榜需要 period 参数（日榜 YYYYMMDD / 周榜 YYYYWW）' });
+        return;
+      }
       if (useMemory) {
         memStore.zrem(game, id);
         memStore.hdel(game, id);
       } else {
         await pipeline([
-          ['ZREM', cfgGame.z, id],
-          ['HDEL', cfgGame.p, id]
+          ['ZREM', delCfg.z, id],
+          ['HDEL', delCfg.p, id]
         ]);
       }
       res.status(200).json({ ok: true, game, removed: id });
@@ -906,6 +923,8 @@ module.exports = async function handler(req, res) {
 
     res.status(405).json({ ok: false, error: 'Method Not Allowed' });
   } catch (err) {
-    res.status(500).json({ ok: false, error: '排行榜服务暂时不可用：' + (err && err.message ? err.message : 'unknown') });
+    // 固定文案：err.message 可能带 Upstash 配额/网络细节，不回显给客户端
+    console.error('[leaderboard] error:', err && err.message);
+    res.status(500).json({ ok: false, error: '排行榜服务暂时不可用，请稍后再试' });
   }
 };

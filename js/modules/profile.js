@@ -266,7 +266,7 @@
     p.avatar = draft.avatar || '🙂';
     write(p);
     close();
-    if (window.SFX && window.SFX.ok) window.SFX.ok();
+    if (window.SFX && window.SFX.save) window.SFX.save();
 
     // 服务端榜单里已经存着旧昵称，改完要立刻推上去，
     // 否则玩家改完头像回来一看，榜上还是旧名字。
@@ -277,6 +277,13 @@
 
   function onChange(fn) {
     if (typeof fn === 'function') listeners.push(fn);
+  }
+
+  /* 退订：面板 create/destroy 循环里必须成对调用，
+     否则 listeners 只增不减，闭包链长期持有已销毁面板的宿主引用 */
+  function off(fn) {
+    const i = listeners.indexOf(fn);
+    if (i >= 0) listeners.splice(i, 1);
   }
 
   function init() {
@@ -305,6 +312,7 @@
     open: open,
     close: close,
     onChange: onChange,
+    off: off,
     AVATARS: AVATARS
   };
 })();

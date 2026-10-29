@@ -1101,22 +1101,27 @@
     return y;
   }
 
+  let lastPosterKey = '';   // 同一命盘只入库一次：连点「保存画报」不再插 N 条重复档案
   function exportBaziPoster() {
     if (!currentBaziResult) return;
-    if (window.SFX && window.SFX.done) window.SFX.done();
+    if (window.SFX && window.SFX.save) window.SFX.save();
     const res = currentBaziResult;
 
     // 写入统一历史档案
     if (window.UniversalHistory && typeof window.UniversalHistory.add === 'function') {
-      window.UniversalHistory.add({
-        module: 'bazi',
-        title: `八字命盘：${res.archetype.name}`,
-        subtitle: `${res.eightCharStr} · 骨重${res.boneData.weightStr}`,
-        color: '#F59E0B',
-        badge: '📜 八字命盘',
-        avatar: '📜',
-        data: res.rawOptions
-      });
+      const dedupeKey = res.eightCharStr + '|' + (res.rawOptions && res.rawOptions.hour);
+      if (lastPosterKey !== dedupeKey) {
+        lastPosterKey = dedupeKey;
+        window.UniversalHistory.add({
+          module: 'bazi',
+          title: `八字命盘：${res.archetype.name}`,
+          subtitle: `${res.eightCharStr} · 骨重${res.boneData.weightStr}`,
+          color: '#F59E0B',
+          badge: '📜 八字命盘',
+          avatar: '📜',
+          data: res.rawOptions
+        });
+      }
     }
 
     const canvas = document.createElement('canvas');
@@ -1643,10 +1648,21 @@
   }
 
   function handleCalculate(shouldScroll = true) {
-    if (shouldScroll && window.SFX && window.SFX.confirm) window.SFX.confirm();
+    if (shouldScroll && window.SFX && window.SFX.select) window.SFX.select();
 
     const chkSolar = document.getElementById('bzChkSolar');
     const useSolar = chkSolar ? chkSolar.checked : false;
+
+    /* 未来日期拦截：给还没出生的人排盘语义错误。
+       注意农历分支：lunar→solar 转换在 runBazi 内部，这里按公历近似拦截，
+       农历年底 1 天的误差可接受（农历 2035 年腊月可能落在公历 2036 年初）。 */
+    const pickY = isLunarSelected ? pickerState.lYear : pickerState.sYear;
+    const pickM = isLunarSelected ? pickerState.lMonth : pickerState.sMonth;
+    const pickD = isLunarSelected ? pickerState.lDay : pickerState.sDay;
+    if (new Date(pickY, pickM - 1, pickD, 23, 59, 59) > new Date()) {
+      alert('出生时间不能晚于现在哦');
+      return;
+    }
 
     let activeLng = currentLng;
     if (isCustomLng) {
@@ -1840,7 +1856,7 @@
     if (btnGeo) {
       btnGeo.addEventListener('click', () => {
         if (!navigator.geolocation) {
-          alert('您的浏览器不支持 Geolocation 定位');
+          alert('你的浏览器不支持定位，选个城市也一样');
           return;
         }
         btnGeo.textContent = '📍 定位中...';

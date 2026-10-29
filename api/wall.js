@@ -313,6 +313,8 @@ module.exports = async function handler(req, res) {
 
     res.status(405).json({ ok: false, error: '方法不支持' });
   } catch (err) {
-    res.status(500).json({ ok: false, error: '弹幕墙服务暂时不可用：' + (err && err.message ? err.message : 'unknown') });
+    // 固定文案：上游错误细节（配额/网络）不回显给客户端
+    console.error('[wall] error:', err && err.message);
+    res.status(500).json({ ok: false, error: '弹幕墙服务暂时不可用，请稍后再试' });
   }
 };

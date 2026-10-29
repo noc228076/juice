@@ -181,7 +181,9 @@
   // href 用：只放行 http(s)，其余一律回落 '#'（防 javascript: 协议注入）
   function safeHref(url) {
     var u = String(url || '');
-    return /^https?:///i.test(u) ? window.escUrl(u) : '#';
+    // 斜杠必须转义：此前 /^https?:///i 在第二个 / 就闭合正则，
+    // 后半行整段成了注释，函数永远返回正则对象，全站「打开」链接失效
+    return /^https?:\/\//i.test(u) ? window.escUrl(u) : '#';
   }
 
   function loadFilms(force) {

@@ -191,13 +191,23 @@
     }
   }
 
+  // 本地时区的 YYYY-MM-DD：toISOString 是 UTC 日，东八区 0-8 点会把「今日功德」记到昨天
+  function localDayStr(d) {
+    return d.getFullYear() + '-' +
+      String(d.getMonth() + 1).padStart(2, '0') + '-' +
+      String(d.getDate()).padStart(2, '0');
+  }
+
   function loadState() {
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = localDayStr(new Date());
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
-        state = { ...state, ...parsed };
+        // 形状校验：字符串/数组 spread 进来会污染 state 的数字键
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+          state = { ...state, ...parsed };
+        }
       }
     } catch (e) {}
     if (state.lastDate !== todayStr) {
@@ -349,7 +359,7 @@
   /* =========================================================
      子模式 2：无尽减压泡泡纸 (Bubble Wrap)
      ========================================================= */
-  const POP_WORDS = ['爽!', '噗!', '解压+1', '内耗-1', '舒坦', '波~', '焦虑-1'];
+  const POP_WORDS = ['爽！', '噗！', '解压+1', '内耗-1', '舒坦', '波~', '焦虑-1'];
   let sheetPopped = 0;
   const SHEET_TOTAL = 36;
 
@@ -398,7 +408,7 @@
 
     if (isGold) {
       playMeritSound('goldpop');
-      cell.textContent = '暴富!';
+      cell.textContent = '暴富！';
       addMerit(10);
     } else {
       playMeritSound('pop');
@@ -512,7 +522,7 @@
           const dx = ((i - stripCount / 2) * 1.8 + (Math.random() * 6 - 3)).toFixed(1);
           const rotMid = ((Math.random() * 8 - 4)).toFixed(1);
           const rotEnd = ((i % 2 === 0 ? 1 : -1) * (5 + Math.random() * 14)).toFixed(1);
-          html += `<div class="shred-strip" style="--delay:${delay}s;--dx:${dx}px;--rotMid:${rotMid}deg;--rotEnd:${rotEnd}deg;">${stripChars}</div>`;
+          html += `<div class="shred-strip" style="--delay:${delay}s;--dx:${dx}px;--rotMid:${rotMid}deg;--rotEnd:${rotEnd}deg;">${window.escHtml(stripChars)}</div>`;
         }
         stripsBox.innerHTML = html;
         void stripsBox.offsetWidth;
@@ -661,7 +671,7 @@
 
     ctx.fillStyle = '#94A3B8';
     ctx.font = '22px monospace';
-    ctx.fillText('灵感人格研究所 · 静心功德局', 540, 1485);
+    ctx.fillText('饮料人格研究所 · 静心功德局', 540, 1485);
 
     const a = document.createElement('a');
     a.download = `静心功德凭证_${Date.now()}.png`;

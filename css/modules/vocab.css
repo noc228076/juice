@@ -629,7 +629,17 @@ html[data-theme="light"] .vc-tab:hover { background: rgba(0, 0, 0, 0.05); }
   .vc-playfoot .vc-owl { width: 62px; height: 62px; }
   .vc-strip { grid-template-columns: repeat(2, 1fr); }
   .vc-heat { grid-template-columns: repeat(10, 1fr); }
-  .vc-tab { padding: 8px 16px; font-size: 13px; }
+  .vc-tab { padding: 8px 14px; font-size: 13px; }
+  /* 手机端五个 tab 放不下一行：文字换行后 pill 高低参差像坏了。
+     改单行不换行 + 容器横向滚动 */
+  .vc-subnav {
+    max-width: 100%;
+    overflow-x: auto;
+    scrollbar-width: none;
+    justify-content: flex-start;
+  }
+  .vc-subnav::-webkit-scrollbar { display: none; }
+  .vc-tab { white-space: nowrap; flex: 0 0 auto; }
 }
 
 @media (prefers-reduced-motion: reduce) {

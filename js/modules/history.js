@@ -275,7 +275,7 @@
       const borderRgba = hexToRgba(color, 0.35);
 
       h += `
-        <div class="uni-hist-item" data-id="${item.id}" style="--card-accent:${color};--avatar-bg:${bgRgba};--avatar-glow:${glowRgba};--tag-bg:${tagRgba};--card-accent-border:${borderRgba};">
+        <div class="uni-hist-item" data-id="${window.escHtml(item.id)}" style="--card-accent:${color};--avatar-bg:${bgRgba};--avatar-glow:${glowRgba};--tag-bg:${tagRgba};--card-accent-border:${borderRgba};">
           <div class="uni-hist-avatar">${window.escHtml(String(item.avatar || ""))}</div>
           <div class="uni-hist-body">
             <div class="uni-hist-top">
@@ -286,7 +286,7 @@
             <div class="uni-hist-sub">${window.escHtml(String(item.subtitle || ""))}</div>
           </div>
           <div class="uni-hist-ops">
-            <button class="uni-btn-view" data-view-id="${item.id}" title="查看并还原结果页面">查看 →</button>
+            <button class="uni-btn-view" data-view-id="${window.escHtml(item.id)}" title="查看并还原结果页面">查看 →</button>
             <button class="uni-btn-copy-icon" data-copy-id="${item.id}" title="复制测评摘要">📋</button>
             <button class="uni-btn-del" data-del="${item.id}" title="删除记录">✕</button>
           </div>
@@ -408,6 +408,7 @@
       });
       if (changed) {
         records.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+        if (records.length > 50) records.length = 50;   // 与 add() 同一上限，迁移批量导入不挤爆
         saveRecords(records);
       }
       // 迁移完成后移除旧键，避免后续删除单条记录后刷新又从旧键复活

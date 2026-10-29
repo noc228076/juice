@@ -370,7 +370,13 @@
   }
 
   function shuffleDeck() {
-    deck = [...CARDS].map(c => ({ ...c, isRev: Math.random() < 0.5 })).sort(() => Math.random() - 0.5);
+    deck = [...CARDS].map(c => ({ ...c, isRev: Math.random() < 0.5 }));
+    /* Fisher–Yates：sort(() => Math.random() - 0.5) 依赖排序算法实现，
+       部分牌更可能留在原位——占卜的结果公平性是核心诉求 */
+    for (let i = deck.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const tmp = deck[i]; deck[i] = deck[j]; deck[j] = tmp;
+    }
   }
 
   function buildDeck() {
@@ -657,7 +663,10 @@
     }, 250);
   }
 
+  let isFinishing = false;   // 重入守卫：末张牌双击「查看报告」会连调两次 finish，重复入库
   function finish(restoredData) {
+    if (isFinishing) return;
+    isFinishing = true;
     const isRestored = !!(restoredData && Array.isArray(restoredData.items) && restoredData.items.length > 0);
     if (!isRestored && window.SFX && window.SFX.tarotDone) window.SFX.tarotDone();
     if (restoredData && restoredData.spread) {
@@ -876,7 +885,7 @@
           <div class="tr-summary-header">
             <span class="tr-summary-pill">✦ ${dLabel} · ${cfg.name}</span>
             <h3>${cfg.title}</h3>
-            <p class="tr-summary-lead">${qText ? `求问：「${qText}」 ｜ ` : ''}${cfg.lead}</p>
+            <p class="tr-summary-lead">${qText ? `求问：「${escapeHtml(qText)}」 ｜ ` : ''}${cfg.lead}</p>
           </div>
         `;
       }
@@ -978,6 +987,7 @@
 
   function startTest() {
     isQuickDraw = false;
+    isFinishing = false;   // 新一轮占卜解锁 finish
     const qInput = document.getElementById('trQuestionInput');
     curQuestion = qInput ? qInput.value.trim() : "";
     picks = [];
@@ -991,6 +1001,7 @@
 
   function quickDraw() {
     isQuickDraw = true;
+    isFinishing = false;   // 新一轮占卜解锁 finish
     const qInput = document.getElementById('trQuestionInput');
     curQuestion = qInput ? qInput.value.trim() : "";
     shuffleDeck();
@@ -1775,6 +1786,10 @@
 
   function restore(data) {
     if (!data || !data.items) return;
+    /* 畸形记录防御：截断/手改的历史记录会让 item.card.no 抛 TypeError，
+       页面停在空白结果屏 */
+    if (!Array.isArray(data.items) || !data.items.every(it => it && it.card && typeof it.card.no === 'number')) return;
+    isFinishing = false;   // 回放走独立入口，不受上一轮 finish 锁影响
     lastTarotResult = data;
     curSpread = data.spread || (data.items.length > 1 ? 'three' : 'one');
     deck = data.items.map(function (item) {

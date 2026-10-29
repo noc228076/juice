@@ -89,7 +89,7 @@
         + '<div class="bm-val">' + res.big.value + '</div></div>';
       if (res.big.battery) {
         html += '<div class="battery"><div class="bshell"><div class="bfill" id="bfill" style="background:' + batteryColor(res.big.pct) + '"></div></div>'
-          + '<div class="blabel">剩余电量 · 会随社交波动,仅供参考</div></div>';
+          + '<div class="blabel">剩余电量 · 会随社交波动，仅供参考</div></div>';
       }
     }
 
@@ -205,7 +205,7 @@
 
     // 纸底 + 纹理
     c.fillStyle = '#F5F1E8'; c.fillRect(0, 0, W, H);
-    c.fillStyle = 'rgba(120,100,60,0.03)';
+    c.fillStyle = 'rgba(120，100，60，0.03)';
     for (var y = 0; y < H; y += 6) c.fillRect(0, y, W, 1);
 
     var M = 54;
@@ -262,7 +262,7 @@
     c.font = '600 24px -apple-system, "PingFang SC", "Noto Sans SC", sans-serif';
     c.fillText(cleanText(res.tag), cx, 492);
     if (res.cert) {
-      c.strokeStyle = 'rgba(176,138,62,.6)'; c.lineWidth = 1.5;
+      c.strokeStyle = 'rgba(176，138，62,.6)'; c.lineWidth = 1.5;
       var certClean = cleanText(res.cert);
       var cw = c.measureText('已认证 · ' + certClean).width + 44;
       rr(c, cx - cw / 2, 516, cw, 40, 20); c.stroke();
@@ -412,7 +412,7 @@
   }
   function dash(c, x, y, w) {
     c.save();
-    c.strokeStyle = 'rgba(138,129,114,.5)'; c.lineWidth = 1;
+    c.strokeStyle = 'rgba(138，129，114,.5)'; c.lineWidth = 1;
     c.setLineDash([6, 6]);
     c.beginPath(); c.moveTo(x, y); c.lineTo(x + w, y); c.stroke();
     c.restore();

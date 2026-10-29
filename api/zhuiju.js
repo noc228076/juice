@@ -80,7 +80,9 @@ async function loadResources() {
 
       const resp = await fetch(src, {
         headers: headers,
-        signal: AbortSignal.timeout ? AbortSignal.timeout(12000) : undefined
+        // Vercel Hobby 函数上限 10s：两个源都慢时 12s 根本等不到，
+        // 平台先杀函数返回 504，下面的旧缓存兜底就没机会执行了
+        signal: AbortSignal.timeout ? AbortSignal.timeout(8000) : undefined
       });
 
       if (resp.status === 304) { notModified = true; break; }

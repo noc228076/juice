@@ -144,7 +144,15 @@
     try {
       const savedCustom = localStorage.getItem('juice_decision_wheel_custom');
       if (savedCustom) {
-        WHEEL_PRESETS.custom.items = JSON.parse(savedCustom);
+        const parsed = JSON.parse(savedCustom);
+        /* 形状校验：坏数据（旧版本格式/手改）会让 renderWheelChips 的 map
+           在 init 同步段抛错，后续所有事件绑定全部跳过，整个模块假死 */
+        if (Array.isArray(parsed)) {
+          WHEEL_PRESETS.custom.items = parsed
+            .filter(x => typeof x === 'string' && x.trim())
+            .map(x => x.slice(0, 14))
+            .slice(0, 20);
+        }
       }
     } catch (e) {}
 
@@ -162,10 +170,11 @@
 
     wrap.innerHTML = wheelItems.map((item, idx) => {
       const color = SLICE_COLORS[idx % SLICE_COLORS.length];
+      // 选项文本是用户输入且会写进 localStorage 反复渲染，必须转义
       return `
         <div class="dec-chip">
           <span class="chip-dot" style="background:${color}"></span>
-          <span>${item}</span>
+          <span>${window.escHtml(item)}</span>
           <span class="chip-del" data-idx="${idx}" title="删除此项">×</span>
         </div>
       `;
@@ -174,6 +183,7 @@
     wrap.querySelectorAll('.chip-del').forEach(btn => {
       btn.onclick = (e) => {
         e.stopPropagation();
+        if (isSpinningWheel) return;   // 旋转中快照了数组长度，增删会让结果 undefined/错位
         if (wheelItems.length <= 2) {
           alert('轮盘至少需要保留 2 个选项哦！');
           return;
@@ -638,7 +648,12 @@
   function showReceipt(data, isRestored = false, options = {}) {
     const modal = document.getElementById('decReceiptModal');
     if (!modal) return;
-    if (!options.fromRouter && window.AppRouter && typeof window.AppRouter.openLayer === 'function') {
+    /* 动画最长 3.8s，期间切走模块的话 openLayer 会把 decision 图层
+       挂到当前所在的别的模块上并写进浏览历史——小票错位、后退行为被污染。
+       模块已不活跃就静默作废这次回调。 */
+    const hostActive = document.getElementById('mod-decision');
+    if (!options.fromRouter && hostActive && hostActive.classList.contains('active') &&
+        window.AppRouter && typeof window.AppRouter.openLayer === 'function') {
       window.AppRouter.openLayer('decision', data);
       if (!isRestored) options.history = data;
       if (options.history) {
@@ -1007,7 +1022,7 @@
     grid.innerHTML = [1, 2, 3, 4, 5, 6].map((pt, i) => `
       <div class="dice-face-item">
         <span class="dice-face-badge ${pt === 1 || pt === 4 ? 'is-red' : ''}">${pt}</span>
-        <input type="text" data-face-idx="${i}" value="${diceCustomFaces[i] || ''}" maxlength="10" placeholder="第 ${pt} 点执行...">
+        <input type="text" data-face-idx="${i}" value="${window.escHtml(diceCustomFaces[i] || '')}" maxlength="10" placeholder="第 ${pt} 点执行...">
       </div>
     `).join('');
 
@@ -1233,6 +1248,9 @@
             }, 400);
             return r;
           };
+          /* 重新挂事件：btnSpin.onclick 在上面绑的是原始 spinWheel，
+             包装版只在局部变量里——不重绑的话 morph 永远不执行 */
+          if (btnSpin) btnSpin.onclick = spinWheel;
         }
       } catch (e) {}
     }, 0);
@@ -1241,7 +1259,8 @@
     const inputNewOpt = document.getElementById('wheelNewOptInput');
     if (btnAddOpt && inputNewOpt) {
       const doAdd = () => {
-        const val = inputNewOpt.value.trim();
+        if (isSpinningWheel) return;   // 旋转中快照了数组长度，增删会让结果 undefined/错位
+        const val = inputNewOpt.value.trim().slice(0, 14);
         if (!val) return;
         if (wheelItems.length >= 20) {
           alert('轮盘选项最多不能超过 20 项哦！');
@@ -1423,7 +1442,9 @@ window.AppDecision = {
     restore,
     openReceiptLayer,
     closeReceipt,
-    spinWheel,
+    /* getter 而非值引用：spinWheel 在 init 后被 morph 包装重绑，
+       值引用会在 IIFE 求值时固化成原始版本 */
+    get spinWheel() { return spinWheel; },
     flipCoin,
     rollDice,
     tossBwei,

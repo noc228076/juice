@@ -361,6 +361,12 @@
 
     function destroy() {
       destroyed = true;
+      // 退订资料变更：面板是按局/按难度反复 create 的，
+      // 不退订的话 listeners 只增不减，闭包链长期持有已销毁面板的引用
+      if (onProfileChange && window.AppProfile && window.AppProfile.off) {
+        window.AppProfile.off(onProfileChange);
+      }
+      onProfileChange = null;
       host = null;
     }
 

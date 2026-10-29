@@ -211,7 +211,11 @@
     ].filter(function (j) {
       return j.count && j.count > (b.posted[j.pk] || 0);
     });
+    /* 水位线在成功后才落盘：先写后报的话，弱网下这批计数
+       会因水位已推过而永远不再补报（这局白背）。失败回滚到请求前的值。 */
+    var prev = {};
     jobs.forEach(function (j) {
+      prev[j.pk] = b.posted[j.pk] || 0;
       b.posted[j.pk] = j.count;
     });
     saveState();
@@ -226,23 +230,15 @@
           count: j.count, ms: Math.round(j.ms || 0),
           acc: j.acc == null ? undefined : j.acc
         })
-      }).catch(function () {});
-    })).then(function () { if (after) after(true); }, function () { if (after) after(true); });
+      }).then(function (r) {
+        return r.json();
+      }).then(function (d) {
+        if (!d || !d.ok) throw new Error('bad');
+      }).catch(function () {
+        b.posted[j.pk] = prev[j.pk];   // 失败回滚，下次进排行页会补报
+      });
+    })).then(function () { saveState(); if (after) after(true); }, function () { if (after) after(true); });
   }
-
-  var state = emptyState();
-
-  function todayKey() {
-    var d = new Date();
-    return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
-  }
-
-  function dayNum(key) {
-    if (!key) return 0;
-    var p = key.split('-');
-    return Math.floor(Date.UTC(+p[0], +p[1] - 1, +p[2]) / 86400000);
-  }
-
 
   var state = emptyState();
 
@@ -359,10 +355,15 @@
   function ensureBook() {
     if (book) return Promise.resolve(book);
     if (loading) return loading;
-    loading = window.AppVocabData.loadBook(state.book)
+    var wantLevel = state.book;   // 发起时锁定词库：切库后旧请求迟到不得落任何状态
+    loading = window.AppVocabData.loadBook(wantLevel)
       .then(function (b) {
+        /* 竞态防线：加载中用户切到别的词库时，state.book 已变。
+           若不校验，旧请求会用 CET-4 的词表去 pruneOrphans('cet6')，
+           把另一个词库的进度记录整体删光并落盘——不可恢复。 */
+        if (state.book !== wantLevel) return b;
         book = b;
-        pruneOrphans(state.book, b.words);
+        pruneOrphans(wantLevel, b.words);
         return b;
       })
       .catch(function (err) { loadErr = err.message || '词库加载失败'; loading = null; throw err; });
@@ -466,7 +467,7 @@
   var sessionStats = { right: 0, wrong: 0 };
   /* 混合队列：每个词都出三种题型（英选中 / 中选英 / 自评），
      全部展开后打散，同一个词不会连着出现。进度按「题」算。
-     自评改判「不认识」→ 这个词的三种题型再排到队尾重来一遍。 */
+     自评改判「不认识」→ 该词在阶段末按当前题型补走一轮。 */
   var STEPS = ['en2cn', 'cn2en', 'selfrate'];
   /* 三阶段，严格按顺序：
        阶段 1 英选中：本局全部词
@@ -948,8 +949,8 @@
       { v: b.day.n || 0, k: '今日已背(词)' },
       { v: b.week.n || 0, k: '本周已背(词)' },
       { v: b.all.n || 0, k: '累计已背(词)' },
-      { v: knownWords().length, k: '已标熟' },
-      { v: masteredCount(), k: '已掌握' },
+      { v: knownWords().length, k: '已标熟(手动)' },
+      { v: masteredCount(), k: '熟词(自动)' },
       { v: toughWords().length, k: '生词本' },
       { v: bs().totalAnswered || 0, k: '累计答题' },
       { v: accuracy() + '%', k: '正确率' },
@@ -1049,7 +1050,7 @@
 
       '<div class="vc-field">' +
         '<div class="vc-field-h">每天新词数量</div>' +
-        '<div class="vc-field-d">决定每天从词库里取多少个新词，到期复习另算（上限 60）。</div>' +
+        '<div class="vc-field-d">决定每天从词库里取多少个新词，到期复习另算（上限 50）。</div>' +
         '<div class="vc-chips">' + DAILY_CHOICES.map(function (n) {
           return '<button type="button" class="vc-chip' + (state.dailyNew === n ? ' active' : '') +
             '" data-daily="' + n + '">' + n + ' 个</button>';
@@ -1073,7 +1074,7 @@
           '第二轮 中选英：看中文挑英文单词。' +
           '第三轮 自评：给单词，自己判断「认识 / 模糊 / 不认识」，点完揭示释义。' +
           '选择题答错的词，会在当轮结束前多走一轮；' +
-          '自评点「认识」后若发现其实不会，可以改判成「不认识」，这个词会从英选中重新完整走一遍三种题型。' +
+          '自评点「认识」后若发现其实不会，可以改判成「不认识」，这个词会在本轮结束前再出现一次。' +
         '</div>' +
         '<div class="vc-flow">' +
           '<span class="vc-flow-step">① 英选中</span>' +
@@ -1209,6 +1210,7 @@
 
   function switchBook(bk) {
     /* v2 起两库进度各自独立保存，切换只换指针，不再清空 */
+    sessionSeq++;   // 作废在途的出题回调
     state.book = bk;
     bs();   // 确保该词库的进度对象存在
     saveState();
@@ -1252,6 +1254,7 @@
 
 
   /* ---------- 答题屏 ---------- */
+  var sessionSeq = 0;   // 会话代号：离开/切换词库后自增，迟到的 ensureExtra 回调作废
   function startSession() {
     if (!queue.length) { buildAndStart(); return; }
     sessionWords = queue.map(function (q) { return { idx: q.idx, rec: q.rec || null, isNew: q.isNew }; });
@@ -1264,7 +1267,11 @@
     sessionStats = { right: 0, wrong: 0 };
     countedWords = {};
     tickStart();
+    var my = ++sessionSeq;
     ensureExtra().then(function () {
+      /* 会话守卫：出题是异步的，等待期间按 Esc（stageQueue 清空）或切词库
+         （book 置 null）会让这里拿到 undefined——幽灵答题屏 + TypeError */
+      if (my !== sessionSeq || !stageQueue.length || !book) return;
       current = makeQuestion(stageQueue[0]);
       renderQuestion();
     });
@@ -1599,7 +1606,7 @@
 
     if (rate === 'unknown' || current.amended) {
       applySchedule(idx, false);
-      /* 改判 / 不认识 → 三种题型排到队尾，从头再来一遍 */
+      /* 改判 / 不认识 → 记入 redoSet，本阶段结束前按当前题型补一轮 */
       queueRedo(idx);
       advanceStep();
       return;
@@ -1794,8 +1801,7 @@
     finishSession();
   }
 
-  /* 改判：这个词的三种题型依次插到队尾，从英选中重新完整走一遍 */
-  /* 答错 / 改判：记下这个词，本阶段末按同一题型再补一轮。
+  /* 答错 / 改判：记下这个词，本阶段末按当前阶段题型再补一轮。
      不能直接塞进 stageQueue——advanceStep 换阶段时会整表重建，
      塞进去的题会被丢掉。 */
   function queueRedo(idx) {
@@ -1807,6 +1813,7 @@
     if (window.SFX && window.SFX.back) window.SFX.back();
     tickFlush();
     saveState();
+    sessionSeq++;   // 作废在途的出题回调
     stageQueue = [];
     qi = 0;
     answered = false;

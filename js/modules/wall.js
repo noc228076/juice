@@ -103,6 +103,13 @@
     ensureLoop();
   }
 
+  // 模块是否处于激活态：切走后 .app-module 是 display:none，
+  // rAF 照跑、补发链照转，纯属空转耗电——必须停在源头
+  function modActive() {
+    const mod = document.getElementById('mod-wall');
+    return !!(mod && mod.classList.contains('active'));
+  }
+
   function frame(now) {
     const dt = Math.min((now - engine.last) / 1000, 0.1);
     engine.last = now;
@@ -118,7 +125,9 @@
         scheduleCycle();
       }
     }
-    if (engine.items.length || engine.queue.length) {
+    /* 只在模块激活时续帧；visibilitychange 里已有 ensureLoop 兜底重启，
+       切回模块时同样由 primeStage 重新拉起 */
+    if ((engine.items.length || engine.queue.length) && modActive()) {
       engine.raf = requestAnimationFrame(frame);
     } else {
       engine.raf = 0;
@@ -126,7 +135,7 @@
   }
 
   function scheduleCycle() {
-    if (!engine.queue.length || document.hidden) return;
+    if (!engine.queue.length || document.hidden || !modActive()) return;
     const item = engine.queue[engine.qi % engine.queue.length];
     engine.qi++;
     setTimeout(function () { spawn(item, false); }, 250 + Math.random() * 900);
@@ -255,6 +264,9 @@
     const input = document.getElementById('wlInput');
     const errEl = document.getElementById('wlErr');
     if (!input) return;
+    /* 发送中按钮已禁用，但回车不走按钮——不拦的话可连发重复弹幕 */
+    const sendBtn = document.getElementById('wlSend');
+    if (sendBtn && sendBtn.disabled) return;
     const text = (input.value || '').trim();
     errEl.textContent = '';
     if (!text) { errEl.textContent = '写点内容再发吧'; return; }

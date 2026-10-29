@@ -60,8 +60,8 @@
       title: '蓝与绿的交响曲',
       copyright: '普利特维采湖群国家公园，克罗地亚 (© Jan Wlodarczyk/Alamy)',
       description: '普利特维采湖群国家公园是克罗地亚最著名的国家公园，拥有 16 个由钙华屏障连接的梯级湖泊与飞瀑，湖水在蓝、绿、青之间变幻莫测。',
-      cover: 'https://bing.com/th?id=OHR.PlitviceAutumn_ZH-CN5646237897_1920x1080.jpg',
-      cover_4k: 'https://bing.com/th?id=OHR.PlitviceAutumn_ZH-CN5646237897_UHD.jpg',
+      cover: 'https://www.bing.com/th?id=OHR.PlitviceAutumn_ZH-CN5646237897_1920x1080.jpg',
+      cover_4k: 'https://www.bing.com/th?id=OHR.PlitviceAutumn_ZH-CN5646237897_UHD.jpg',
       date: new Date().toISOString().split('T')[0]
     },
     movies: [
@@ -292,6 +292,22 @@
     return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
   }
 
+  // 60s 新闻缓存按日期开新键，不清理的话 localStorage 每天膨胀几 KB 且永不回收。
+  // 写入后只保留最近 5 天。
+  function trimNews60sCache(keepDays) {
+    try {
+      const keys = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.indexOf(CACHE_PREFIX + 'news_60s_') === 0) keys.push(k);
+      }
+      keys.sort();
+      keys.slice(0, Math.max(0, keys.length - (keepDays || 5))).forEach(function (k) {
+        try { localStorage.removeItem(k); } catch (_) {}
+      });
+    } catch (_) {}
+  }
+
   // 静态源不带星期与农历，用本地日期推导，避免依赖任何第三方日历接口。
   function newsDateMeta(dateStr) {
     const d = new Date(dateStr + 'T12:00:00');
@@ -366,6 +382,7 @@
               CACHE_PREFIX + cacheKey,
               JSON.stringify({ ts: Date.now(), data: json })
             );
+            trimNews60sCache(5);
           } catch (_) {}
           return { data: json, source: 'network' };
         } finally {
@@ -705,8 +722,10 @@
     };
   }
 
+  let movieLoadToken = 0;   // 竞态令牌：快速连点分类时旧响应后到不得覆盖
   async function loadMovieList(type = 'weekly_movie') {
     curMovieType = type;
+    const my = ++movieLoadToken;
     const grid = document.getElementById('dlMovieGrid');
     if (!grid) return;
 
@@ -720,13 +739,19 @@
     let list = null;
     const collection = MOVIE_COLLECTION[type] || MOVIE_COLLECTION.weekly_movie;
     try {
-      const resp = await fetch('/api/douban?list=' + encodeURIComponent(collection), { headers: { Accept: 'application/json' } });
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 7500);
+      const resp = await fetch('/api/douban?list=' + encodeURIComponent(collection), {
+        headers: { Accept: 'application/json' },
+        signal: controller.signal
+      }).finally(() => clearTimeout(timer));
       const data = await resp.json();
       if (resp.ok && data && data.ok && Array.isArray(data.items) && data.items.length) {
         list = data.items.slice(0, 10).map(normalizeMovieSeed);
       }
     } catch (e) { /* 走下面的种子兜底 */ }
 
+    if (my !== movieLoadToken) return;   // 用户已切到别的分类，丢弃旧结果
     if (!list || !list.length) {
       const seeds = MOVIE_SEEDS[type] || MOVIE_SEEDS.weekly_movie;
       list = seeds.map(normalizeMovieSeed);
@@ -736,7 +761,7 @@
       grid,
       list
         .map((m, idx) => {
-          const poster = m.cover_proxy || m.cover || LOCAL_POSTER;
+          const poster = esc(m.cover_proxy || m.cover || LOCAL_POSTER);
           const rating = m.rating ? `★ ${m.rating}` : '暂无评分';
           const tags = Array.isArray(m.tags) ? m.tags : [];
           return `
@@ -965,17 +990,17 @@
 
   function applySiteBackground(url, title) {
     if (!url) return;
-    /* 防线：v301/v302 代理残留地址（本地/其他浏览器同步或旧代码写入）一律还原直链 */
+    /* 防线一：v301/v302 代理残留地址（本地/其他浏览器同步或旧代码写入）一律还原直链 */
     if (url.indexOf('/api/bing-img?u=') === 0) {
       try {
         const inner = decodeURIComponent(url.split('u=')[1] || '');
         if (/^https:\/\/(www|cn)\.bing\.com\/th\?id=OHR\./.test(inner)) url = inner;
       } catch (e) {}
-    // url 会拼进 CSS url("...")：非 bing 直链一律拒绝，含引号/括号能突破 url() 写入任意 CSS
-    // 并随 localStorage 持久化
-    const __bg = String(url);
-    if (__bg.indexOf('https://www.bing.com/th?id=OHR.') !== 0 && __bg.indexOf('https://cn.bing.com/th?id=OHR.') !== 0) return;
     }
+    /* 防线二：url 会拼进 CSS url("...")，只接受 bing 直链。
+       此前这段校验被缩进进了上面的 if 块里，只对代理残留格式生效，
+       外部 API 返回的直链完全绕过校验——任意字符串可注入 CSS 并持久化。 */
+    if (!/^https:\/\/(www|cn)\.bing\.com\/th\?id=OHR\./.test(String(url))) return;
     document.documentElement.style.setProperty('--daily-bg-url', `url("${url}")`);
     document.body.style.setProperty('--daily-bg-url', `url("${url}")`);
     document.documentElement.classList.add('has-daily-ambient-bg');
@@ -1106,6 +1131,7 @@
     document.querySelectorAll('.daily-plat-pill').forEach(pill => {
       pill.onclick = () => {
         const plat = pill.dataset.plat;
+        if (plat === curPlatform) return;   // 已在该平台，重复点不重拉
         document.querySelectorAll('.daily-plat-pill').forEach(p => p.classList.remove('active'));
         pill.classList.add('active');
         loadHotList(plat);
@@ -1156,6 +1182,9 @@
         const text = `📰 【每天 60 秒读懂世界】\n${items}\n\n✦ 灵感来源：饮料人格研究所 · 今日风向标`;
         navigator.clipboard.writeText(text).then(() => {
           copyBtn.textContent = '✓ 已复制早报';
+          setTimeout(() => (copyBtn.textContent = '📋 复制文本'), 1800);
+        }).catch(() => {
+          copyBtn.textContent = '✗ 复制失败';
           setTimeout(() => (copyBtn.textContent = '📋 复制文本'), 1800);
         });
       };

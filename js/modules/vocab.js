@@ -1576,6 +1576,7 @@
         '<div class="vc-opts" id="vcOpts">' +
           w.options.map(function (o, i) {
             return '<button class="vc-opt" type="button" data-i="' + i + '">' +
+              '<i class="vc-opt-key" aria-hidden="true">' + (i + 1) + '</i>' +
               '<span class="vc-opt-txt">' + esc(o.text) + '</span>' +
               '<span class="vc-opt-more"></span>' +
             '</button>';
@@ -1587,6 +1588,7 @@
         '<div class="vc-opts word-opts" id="vcOpts">' +
           w.options.map(function (o, i) {
             return '<button class="vc-opt word-opt" type="button" data-i="' + i + '">' +
+              '<i class="vc-opt-key" aria-hidden="true">' + (i + 1) + '</i>' +
               '<span class="vc-opt-txt">' + esc(o.text) + '</span>' +
               '<span class="vc-opt-more"></span>' +
             '</button>';
@@ -1755,6 +1757,15 @@
       }
     }
     if (!ok) btn.classList.add('wrong');
+    /* 答错抖动：卡片 300ms 轻震（仅 transform） */
+    if (!ok) {
+      var card = el.querySelector('.vc-card');
+      if (card) {
+        card.classList.remove('shake');
+        void card.offsetWidth;
+        card.classList.add('shake');
+      }
+    }
     finishAnswer(ok, opt.text);
   }
 
@@ -2231,10 +2242,15 @@
 
     el.innerHTML =
       '<div class="vc-wrap">' + subnav() +
-      '<div class="vc-panel vc-done">' + owl(pose) +
+      '<div class="vc-panel vc-done">' +
+      '<div class="vc-ring"><svg viewBox="0 0 128 128" width="128" height="128">' +
+        '<circle cx="64" cy="64" r="54" fill="none" stroke="var(--line)" stroke-width="10"/>' +
+        '<circle cx="64" cy="64" r="54" fill="none" stroke="' + (acc >= 60 ? 'var(--ok)' : 'var(--warn-c)') + '" stroke-width="10" stroke-linecap="round" stroke-dasharray="' + Math.round(2 * Math.PI * 54) + '" stroke-dashoffset="' + Math.round(2 * Math.PI * 54 * (1 - acc / 100)) + '" transform="rotate(-90 64 64)"/>' +
+      '</svg>' +
+      '<div class="vc-ring-num"><b>' + acc + '%</b><span>正确率</span></div></div>' +
       '<h2>本局完成</h2>' +
-      '<p>本局答对 <b>' + right + '</b> · 答错 <b>' + wrong +
-        '</b> · 正确率 <b>' + acc + '%</b></p>' +
+      '<p>答对 <b>' + right + '</b> · 答错 <b>' + wrong + '</b>' +
+        ' · 本局新词 <b>' + usedNew + '</b></p>' +
       '<p class="vc-dim">连续打卡 ' + streakFromDays() + ' 天 · 累计 ' + fmtDuration(bs().totalMs) + '</p>' +
       '<div class="vc-actions">' +
         '<button class="vc-btn primary" id="vcAgain" type="button">再来一组</button>' +

@@ -528,6 +528,42 @@ html[data-theme="light"] .vc-tab:hover { background: rgba(0, 0, 0, 0.05); }
   background: rgba(255, 122, 107, 0.12);
 }
 
+/* PC 键盘数字提示（≥900px 显示；触屏隐藏） */
+.vc-opt-key {
+  display: none;
+}
+@media (min-width: 900px) {
+  .vc-opt { position: relative; }
+  .vc-opt-key {
+    display: grid;
+    place-items: center;
+    position: absolute;
+    top: 50%;
+    left: 10px;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    border-radius: 6px;
+    background: var(--line);
+    color: var(--tx-dim);
+    font-size: 11.5px;
+    font-weight: 700;
+    font-style: normal;
+  }
+  .vc-opt { padding-left: 42px; }
+  .vc-opt.right .vc-opt-key, .vc-opt.wrong .vc-opt-key { color: inherit; opacity: 0.75; }
+}
+
+/* 答错抖动（300ms，仅 transform） */
+@keyframes vcShake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+.vc-card.shake { animation: vcShake 0.3s ease; }
+
 .vc-feedback {
   display: none;
   margin-top: 12px;
@@ -1012,7 +1048,12 @@ html[data-theme="light"] .vc-tab:hover { background: rgba(0, 0, 0, 0.05); }
 .vc-rate-btn:active:not(:disabled) { transform: scale(0.97); }
 .vc-rate-btn:disabled { cursor: default; opacity: 0.55; }
 
-.vc-rate-btn.know:hover:not(:disabled) { border-color: var(--ok); background: rgba(123,229,139,0.10); }
+.vc-rate-btn.know {
+  border-color: var(--ok);
+  background: rgba(123, 229, 139, 0.14);
+  color: var(--ok);
+}
+.vc-rate-btn.know:hover:not(:disabled) { border-color: var(--ok); background: rgba(123,229,139,0.10); color: var(--ok); }
 .vc-rate-btn.vague:hover:not(:disabled) { border-color: #FBBF24; background: rgba(251,191,36,0.10); }
 .vc-rate-btn.unknown:hover:not(:disabled) { border-color: var(--warn-c); background: rgba(255,122,107,0.10); }
 
@@ -1351,6 +1392,10 @@ html[data-theme="light"] .vc-tab:hover { background: rgba(0, 0, 0, 0.05); }
 @media (min-width: 1100px) {
   #mod-vocab .vc-wrap {
     max-width: 980px;
+  }
+  /* 答题屏始终回到 640px 阅读宽度：宽屏下拉满 980 会让选项行长失控 */
+  #mod-vocab .vc-wrap.vc-play {
+    max-width: 640px;
   }
   /* 统计页九格（词数三连居首）保持 3×3；行高紧凑 */
   #mod-vocab .vc-statgrid {

@@ -238,17 +238,6 @@ function readBody(req) {
   });
 }
 
-/** 清洗 header 值：Node 对 header 有严格校验，含换行/非 ASCII 会抛 ERR_INVALID_CHAR */
-function sanitizeHeaderValue(value) {
-  return String(value == null ? '' : value)
-    .replace(/[\r\n]+/g, ' ')
-    .replace(/[^\x20-\x7E]/g, function (ch) {
-      const code = ch.charCodeAt(0);
-      return code < 256 ? '%' + code.toString(16).padStart(2, '0') : encodeURIComponent(ch);
-    })
-    .trim();
-}
-
 module.exports = async function handler(req, res) {
   const q = req.query || {};
 

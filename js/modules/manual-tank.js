@@ -470,10 +470,12 @@
         maxHp: opts.hp || 1,
         scoreValue: opts.score || 0,
         alive: true,
-        spawnT: opts.spawnT || 0,
+        spawnT: opts.spawnT === undefined ? 0 : opts.spawnT,
         shield: opts.shield || 0,
         slotT: 0,
         waitT: 0,
+        turnPending: null,
+        corpseT: 0,
         tread: 0,
         carrier: !!opts.carrier,
         dropped: false
@@ -680,36 +682,47 @@
     function updateAI(e, dt) {
       if (isSpawning(e)) { e.spawnT -= dt; return; }
       if (freezeT > 0) return;
-      if (e.waitT > 0) { e.waitT -= dt; return; }
+      if (e.waitT > 0) {
+        e.waitT -= dt;
+        // 原版开火判定每帧都掷，撞墙等待的 2 帧也不例外
+        if (canFire(e) && Math.random() < perFrame(1 / 32, dt)) fireBullet(e);
+        return;
+      }
+      // 上一 tick 掉头后在格点上的后续：50% 重新决策 / 50% 左转或右转 90°
+      if (e.turnPending) {
+        var act = e.turnPending;
+        e.turnPending = null;
+        if (act === 'decide') e.dir = chooseTargetDir(e);
+        else e.dir = (e.dir + (act === 'left' ? 3 : 1)) % 4;
+      }
       var grid = TILE / 2;
       var atGrid = Math.abs(e.x - Math.round(e.x / grid) * grid) < 0.7 &&
         Math.abs(e.y - Math.round(e.y / grid) * grid) < 0.7;
       if (atGrid && Math.random() < perFrame(1 / 16, dt)) e.dir = chooseTargetDir(e);
       var moved = tankMove(e, e.dir, dt);
       if (!moved) {
-        // 原版：75% 原地等 2 帧继续撞，25% 掉头；概率同样按 60fps 折算
-        if (Math.random() < perFrame(0.25, dt)) e.dir = opposite(e.dir);
-        else e.waitT = 2 / 60;
-        if (atGrid && Math.random() < 0.5) e.dir = chooseTargetDir(e);
+        // 原版：75% 原地停 2 帧继续撞；25% 掉头，掉头瞬间在格点上的话
+        // 下一 tick 再 50% 重新决策 / 50% 在掉头方向上左转或右转 90°
+        if (Math.random() < perFrame(0.25, dt)) {
+          e.dir = opposite(e.dir);
+          if (atGrid) {
+            e.turnPending = Math.random() < 0.5
+              ? 'decide'
+              : (Math.random() < 0.5 ? 'left' : 'right');
+          }
+        } else {
+          e.waitT = 2 / 60;
+        }
       }
       if (canFire(e) && Math.random() < perFrame(1 / 32, dt)) fireBullet(e);
     }
     function spawnEnemy() {
       if (!enemyQueue.length) return false;
-      // 出生点被占就换一个；三个都占就稍后再出，避免两辆坦克叠在同一格
-      var c = null;
-      for (var k = 0; k < ENEMY_SPAWN_X.length; k++) {
-        var idx = (spawnIdx + k) % ENEMY_SPAWN_X.length;
-        var x = ENEMY_SPAWN_X[idx] * TILE;
-        if (!occupiedAt(x, 0)) {
-          c = ENEMY_SPAWN_X[idx];
-          spawnIdx = (idx + 1) % ENEMY_SPAWN_X.length;
-          break;
-        }
-      }
-      if (c === null) return false;
+      // 原版不检查出生点占用、重叠照样出生；重叠分离逻辑保证不会锁死
       var kind = enemyQueue.shift();
       var cfg = ENEMY_TYPES[kind] || ENEMY_TYPES.basic;
+      var c = ENEMY_SPAWN_X[spawnIdx];
+      spawnIdx = (spawnIdx + 1) % ENEMY_SPAWN_X.length;
       clearSpawnTile(c, 0);
       var e = makeTank({
         x: c * TILE,
@@ -728,17 +741,12 @@
       return true;
     }
     function activeEnemies() {
+      // 原版：出生动画与爆炸中的坦克都占同屏槽位，爆炸结束才释放
       var n = 0;
-      for (var i = 0; i < enemies.length; i++) if (enemies[i].alive) n++;
-      return n;
-    }
-    function occupiedAt(x, y) {
-      var r = { x: x, y: y, w: TILE, h: TILE };
-      if (player && player.alive && rectsOverlap(r, tankRect(player))) return true;
       for (var i = 0; i < enemies.length; i++) {
-        if (enemies[i].alive && rectsOverlap(r, tankRect(enemies[i]))) return true;
+        if (enemies[i].alive || enemies[i].corpseT > 0) n++;
       }
-      return false;
+      return n;
     }
 
     /* ---------- 道具 ---------- */
@@ -763,8 +771,11 @@
       } else if (type === 'clock') {
         freezeT = 10;
       } else if (type === 'shovel') {
-        shovelT = 20.5;
-        setBaseWalls(STEEL);
+        // 原版：老鹰已毁时 shovel 什么也不做（500 分照给）
+        if (baseAlive) {
+          shovelT = 20.5;
+          setBaseWalls(STEEL);
+        }
       } else if (type === 'grenade') {
         grenadeAll();
       } else if (type === 'tank') {
@@ -778,6 +789,7 @@
         var e = enemies[i];
         if (!e.alive || isSpawning(e)) continue;
         e.alive = false;
+        e.corpseT = 0.8;
         remaining = Math.max(0, remaining - 1);
         addExplosion(tankCx(e), tankCy(e), true);
       }
@@ -909,13 +921,13 @@
             var result = hitByBullet(t, b);
             b.alive = false;
             if (result === 'killed') onTankKilled(t);
-            else if (result === 'blocked') addExplosion(b.x, b.y, false);
+            else if (result === 'blocked') b.silentDeath = true;   // 头盔/出生保护：无爆炸、槽位立即空出
             break;
           }
         }
         // 原版：命中砖/钢/边界/坦克/老鹰后槽位 9 帧（150ms）才空；
-        // 出界也算命中。子弹互撞除外（立即空出）。
-        if (!b.alive && b.isPlayer && player) player.slotT = FIRE_SLOT_DELAY;
+        // 出界也算命中。互撞与头盔挡弹除外（立即空出）。
+        if (!b.alive && b.isPlayer && player && !b.silentDeath) player.slotT = FIRE_SLOT_DELAY;
       }
       // 原版只有玩家子弹会与其它子弹对撞；敌人子弹之间互相穿过
       for (var a = 0; a < bullets.length; a++) {
@@ -948,6 +960,7 @@
       kills++;
       score += t.scoreValue;
       remaining = Math.max(0, remaining - 1);
+      t.corpseT = 0.8;   // 原版：爆炸期间仍占同屏槽位，爆炸结束才释放
       addExplosion(tankCx(t), tankCy(t), true);
       if (window.SFX && window.SFX.boom) window.SFX.boom();
       checkExtraLife();
@@ -987,7 +1000,7 @@
       updateHud();
     }
     function stageClear() {
-      clearT = 2.5;
+      clearT = 2.13;   // 原版：48f 爆炸(0.8s 由 corpseT 承担) + 128f 收尾
       bannerTitle = '第 ' + stage + ' 关完成';
       bannerSub = '准备进入下一关';
       bannerT = 2.2;
@@ -1029,11 +1042,13 @@
         if (respawnT <= 0) spawnPlayer();
       }
       for (var i = 0; i < enemies.length; i++) {
-        if (enemies[i].alive) updateAI(enemies[i], dt);
+        var en = enemies[i];
+        if (en.alive) updateAI(en, dt);
+        else if (en.corpseT > 0) en.corpseT -= dt;
       }
       updateBullets(dt);
       updateExplosions(dt);
-      enemies = enemies.filter(function (e) { return e.alive; });
+      enemies = enemies.filter(function (e) { return e.alive || e.corpseT > 0; });
 
       spawnTimer -= dt;
       if (spawnTimer <= 0 && enemyQueue.length && activeEnemies() < MAX_ACTIVE) {

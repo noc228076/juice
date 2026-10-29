@@ -714,7 +714,15 @@
        有到期词 → 重点=复习（主按钮变「开始复习」）；无 → 重点=新词任务。
        队列清空时不再另开一屏「结算页」，仍用这套 hero 布局，只换行动区。 */
     var focusTitle, focusDesc, actionsHtml;
-    if (total === 0) {
+    if (resumeAvailable()) {
+      var sn = state.session;
+      var left = sn.stageQueue.length - (sn.qi || 0);
+      focusTitle = '上局还没答完';
+      focusDesc = '还剩 <b>' + left + '</b> 题（已完成 ' + (sn.qi || 0) + ' 题），接着答完这一组';
+      actionsHtml =
+        '<button class="vc-btn primary" id="vcResume" type="button">继续上局 →</button>' +
+        '<button class="vc-btn ghost" id="vcDiscard" type="button">放弃重排</button>';
+    } else if (total === 0) {
       var didSome = (bs().doneToday || 0) > 0;
       focusTitle = didSome ? '今天的任务已完成' : '今天没有待办';
       focusDesc = didSome
@@ -764,6 +772,18 @@
   }
 
   function bindToday() {
+    var rb2 = el.querySelector('#vcResume');
+    if (rb2) rb2.onclick = function () {
+      if (window.SFX && window.SFX.tap) window.SFX.tap();
+      resumeSession();
+    };
+    var db2 = el.querySelector('#vcDiscard');
+    if (db2) db2.onclick = function () {
+      if (window.SFX && window.SFX.tap) window.SFX.tap();
+      clearSession();
+      queue = buildQueue();
+      renderHome();
+    };
     var sb = el.querySelector('#vcStart');
     if (sb) sb.onclick = function () { startSession(); };
     /* 开始复习：只排 due 词（到期复习不含新词） */
@@ -1446,6 +1466,7 @@
   function switchBook(bk) {
     /* v2 起两库进度各自独立保存，切换只换指针，不再清空 */
     sessionSeq++;   // 作废在途的出题回调
+    clearSession(); // 跨词库的会话无法续答
     state.book = bk;
     bs();   // 确保该词库的进度对象存在
     saveState();
@@ -1501,6 +1522,62 @@
 
   /* ---------- 答题屏 ---------- */
   var sessionSeq = 0;   // 会话代号：离开/切换词库后自增，迟到的 ensureExtra 回调作废
+  /* ---------- 会话续局：进度随存档走，中途退出可接着答 ---------- */
+  function persistSession() {
+    if (!book || !stageQueue.length || qi >= stageQueue.length) return;
+    state.session = {
+      words: sessionWords.map(function (it) { return { idx: it.idx, isNew: it.isNew }; }),
+      stage: stage,
+      qi: qi,
+      stageQueue: stageQueue.map(function (it) {
+        return { idx: it.idx, kind: it.kind, isRedo: !!it.isRedo };
+      }),
+      redoSet: redoSet.slice(),
+      redoRound: redoRound,
+      stats: { right: sessionStats.right, wrong: sessionStats.wrong },
+      counted: Object.keys(countedWords).map(Number),
+      savedAt: Date.now()
+    };
+    saveState();
+  }
+  function clearSession() {
+    if (state.session) { state.session = null; saveState(); }
+  }
+  function resumeAvailable() {
+    var sn = state.session;
+    return !!(sn && sn.stageQueue && sn.stageQueue.length &&
+      (sn.qi || 0) < sn.stageQueue.length && sn.words && sn.words.length);
+  }
+  function resumeSession() {
+    var sn = state.session;
+    if (!sn || !book) { clearSession(); return; }
+    sessionWords = (sn.words || []).filter(function (it) {
+      return book.words[it.idx];
+    }).map(function (it) {
+      return { idx: it.idx, rec: bs().words[book.words[it.idx][0]] || null, isNew: it.isNew };
+    });
+    stage = Math.min(sn.stage || 0, STEPS.length - 1);
+    stageQueue = (sn.stageQueue || []).filter(function (it) {
+      return book.words[it.idx];
+    }).map(function (it) {
+      return { idx: it.idx, rec: bs().words[book.words[it.idx][0]] || null, kind: it.kind, isRedo: !!it.isRedo };
+    });
+    qi = Math.min(sn.qi || 0, stageQueue.length);
+    redoSet = (sn.redoSet || []).filter(function (idx) { return book.words[idx]; });
+    redoRound = sn.redoRound || 0;
+    sessionStats = { right: (sn.stats && sn.stats.right) || 0, wrong: (sn.stats && sn.stats.wrong) || 0 };
+    countedWords = {};
+    (sn.counted || []).forEach(function (idx) { countedWords[idx] = 1; });
+    if (!stageQueue.length || qi >= stageQueue.length) { clearSession(); queue = buildQueue(); renderHome(); return; }
+    var my = ++sessionSeq;
+    tickStart();
+    ensureExtra().then(function () {
+      if (my !== sessionSeq || !stageQueue.length || !book) return;
+      current = makeQuestion(stageQueue[qi]);
+      renderQuestion();
+    });
+  }
+
   function startSession() {
     if (!queue.length) { buildAndStart(); return; }
     sessionWords = queue.map(function (q) { return { idx: q.idx, rec: q.rec || null, isNew: q.isNew }; });
@@ -1512,6 +1589,7 @@
     answered = false;
     sessionStats = { right: 0, wrong: 0 };
     countedWords = {};
+    persistSession();
     tickStart();
     var my = ++sessionSeq;
     ensureExtra().then(function () {
@@ -2023,6 +2101,7 @@
     qi++;
     if (qi < stageQueue.length) {
       current = makeQuestion(stageQueue[qi]);
+      persistSession();
       renderQuestion();
       return;
     }
@@ -2037,6 +2116,7 @@
       redoRound++;      // 每阶段最多补一轮，防止一直答错导致无限循环
       qi = 0;
       current = makeQuestion(stageQueue[0]);
+      persistSession();
       renderQuestion();
       return;
     }
@@ -2047,6 +2127,7 @@
       stageQueue = buildStage(stage);
       qi = 0;
       current = makeQuestion(stageQueue[0]);
+      persistSession();
       renderQuestion();
       return;
     }
@@ -2064,7 +2145,7 @@
   function leaveSession() {
     if (window.SFX && window.SFX.back) window.SFX.back();
     tickFlush();
-    saveState();
+    persistSession();   // 保留进度：今日页会出现「继续上局」
     sessionSeq++;   // 作废在途的出题回调
     stageQueue = [];
     qi = 0;
@@ -2201,6 +2282,7 @@
 
   function finishSession() {
     tickFlush();
+    state.session = null;
     var right = sessionStats.right, wrong = sessionStats.wrong;
     var acc = right + wrong ? Math.round(right / (right + wrong) * 100) : 0;
     var pose = acc >= 80 ? 'cheer' : acc >= 60 ? 'happy' : 'sad';

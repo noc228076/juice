@@ -17,12 +17,63 @@
   'use strict';
 
   var SAVE_KEY = 'juice_vocab_v1';
-  var INTERVALS = [0, 1, 2, 4, 7, 15, 30];
-  var MAX_BOX = 5;
+  var INTERVALS = [0, 1, 2, 4, 7, 15, 30];   // 仅供 v2→v3 迁移时反推稳定性
   var REVIEW_CAP = 60;
   var DAILY_CHOICES = [10, 15, 25, 50];
   var IDLE_CAP_MS = 30 * 60 * 1000;
   var HEAT_DAYS = 90;
+
+  /* ---------- FSRS-4.5 简化版调度（权重为官方默认，勿改） ----------
+     R(t,S) = (1 + 19/81 · t/S)^(−1/2)：S 天后保留率恰为 90%。
+     复习间隔由目标保留率 requestRetention 反解；每次落档更新 D/S。 */
+  var DECAY = -0.5;
+  var FACTOR = 19 / 81;
+  var W = [0.4872, 1.4003, 3.7145, 13.8206,   // 首评稳定性：Again/Hard/Good/Easy
+           5.1618, 1.2298, 0.8975, 0.031,     // D₀ 与难度更新
+           1.6474, 0.1367, 1.0461,            // 记住后的稳定性增长
+           2.1072, 0.0793, 0.3246, 1.587,     // 遗忘后的稳定性
+           0.2272, 2.8755];                   // Hard / Easy 乘数
+  function clampNum(x, lo, hi) { return Math.min(hi, Math.max(lo, x)); }
+  function retrievability(elapsedDays, S) {
+    if (!(S > 0)) return 0;
+    return Math.pow(1 + FACTOR * elapsedDays / S, DECAY);
+  }
+  function intervalFor(S, r, maxIvl) {
+    var ivl = S / FACTOR * (Math.pow(r, 1 / DECAY) - 1);
+    return clampNum(Math.round(ivl), 1, maxIvl || 365);
+  }
+  /* 唯一的落档入口：G = 1 不认识 / 2 模糊 / 3 认识。就地更新 rec 并返回间隔 */
+  function commitReview(rec, G, todayNum) {
+    var rT = typeof state.requestRetention === 'number' ? clampNum(state.requestRetention, 0.8, 0.98) : 0.9;
+    var maxIvl = state.maxInterval || 365;
+    if (!(rec.S > 0)) {
+      rec.S = W[G - 1];
+      rec.D = clampNum(W[4] - (G - 3) * W[5], 1, 10);
+      rec.reps = 1;
+      rec.lapses = (G === 1) ? 1 : 0;
+    } else {
+      var elapsed = Math.max(0, todayNum - (rec.last || todayNum));
+      var R = retrievability(elapsed, rec.S);
+      var d = rec.D - W[6] * (G - 3) * (10 - rec.D) / 9;
+      rec.D = clampNum(W[7] * W[4] + (1 - W[7]) * d, 1, 10);
+      if (G === 1) {
+        rec.S = W[11] * Math.pow(rec.D, -W[12]) *
+                (Math.pow(rec.S + 1, W[13]) - 1) * Math.exp(W[14] * (1 - R));
+        rec.lapses = (rec.lapses || 0) + 1;
+      } else {
+        var inc = Math.exp(W[8]) * (11 - rec.D) * Math.pow(rec.S, -W[9]) *
+                  (Math.exp(W[10] * (1 - R)) - 1);
+        if (G === 2) inc *= W[15];
+        rec.S = Math.max(0.1, rec.S * (inc + 1));
+      }
+      rec.reps = (rec.reps || 0) + 1;
+    }
+    rec.last = todayNum;
+    rec.st = rec.st || 1;
+    var ivl = intervalFor(rec.S, rT, maxIvl);
+    rec.due = todayNum + ivl;
+    return ivl;
+  }
 
   /* ---------- 状态 ---------- */
   function emptyBook() {
@@ -32,27 +83,27 @@
       doneToday: 0,
       streak: 0,
       lastDone: '',
-      words: {},         // 词 → { box, due, seen, wrong }
+      words: {},         // 词 → { S, D, due, last, reps, lapses, st, seen, wrong, known?, ... }
       seq: 0,
       totalMs: 0,
       totalAnswered: 0,
       totalRight: 0,
-      days: {}
+      days: {},
+      newPerDay: {}      // 每日完成新词数（预计完成日期用）
     };
   }
 
   function emptyState() {
     return {
-      ver: 2,
+      ver: 3,
       book: 'cet4',
       dailyNew: 15,
       order: 'seq',
-      /* 选择题方向：en2cn = 英选中；cn2en = 中选英 */
-      dir: 'en2cn',
-      /* 题型开关：关掉的题型不参与轮转 */
-      kinds: { recall: true, spell: true, cloze: false },
       /* 自动朗读：英选中出题时自动读一遍单词（s 键随时手动读） */
       autoSpeak: false,
+      /* FSRS 目标保留率与最大间隔（仅有的两个算法参数） */
+      requestRetention: 0.9,
+      maxInterval: 365,
       /* 全服榜计数（跨词库累计） */
       bw: null,
       /* 每个词库一份独立进度，切换词库不再清空 */
@@ -284,21 +335,60 @@
         state.order = s.order === 'random' ? 'random' : 'seq';
         state.bw = s.bw || null;
         state.books[bk1] = old1;
+        state.ver = 2;   // v1 存档还没做过 box→S 迁移，强制走 migrateV3
+        migrateV3(state);
         saveState();
         return;
       }
       state = Object.assign(emptyState(), s);
       if (!state.books || typeof state.books !== 'object') state.books = {};
       if (state.book !== 'cet6') state.book = 'cet4';
-      if (!state.kinds || typeof state.kinds !== 'object') {
-        state.kinds = { recall: true, spell: true, cloze: false };
-      }
-      if (state.dir !== 'cn2en') state.dir = 'en2cn';
+      /* v1 存档归一化时可能残留已废弃的 kinds/dir 字段，交给 migrateV3 之后的
+         emptyState 缺省即可；这里只做调度算法迁移（box → S/D，幂等） */
+      migrateV3(state);
       bs();
     } catch (e) {
       state = emptyState();
     }
     /* 不能在这里把 day 改成今天：跨天判定要读存档里的旧日期 */
+  }
+
+  /* v2 → v3：Leitner box → FSRS 的 S/D。逐词合并、幂等（有 S 就跳过）。
+     旧「档位间隔」≈ 上次落档时的稳定性；错误率线性映射难度。 */
+  function migrateV3(s) {
+    if ((s.ver || 0) >= 3) {
+      if (typeof s.requestRetention !== 'number') s.requestRetention = 0.9;
+      if (typeof s.maxInterval !== 'number') s.maxInterval = 365;
+      return;
+    }
+    var books = s.books || {};
+    Object.keys(books).forEach(function (bk) {
+      var b = books[bk];
+      b.newPerDay = b.newPerDay || {};
+      var words = b.words || {};
+      for (var w in words) {
+        var r = words[w];
+        if (!r || typeof r !== 'object' || typeof r.S === 'number') continue;
+        var box = clampNum(r.box | 0, 0, 5);
+        var ivl = INTERVALS[box] || 0;
+        if (r.known) {
+          r.S = 365;
+          r.D = 5;
+          r.st = 2;
+          r.last = dayNum(todayKey());
+        } else {
+          r.S = clampNum(Math.max(ivl, 0.5), 0.5, 365);
+          r.D = clampNum(4 + 4 * (r.wrong || 0) / Math.max(r.seen || 0, 1), 1, 10);
+          r.st = 1;
+          r.last = Math.max(0, (r.due || 0) - ivl);
+        }
+        r.reps = r.seen || 0;
+        r.lapses = r.wrong || 0;
+      }
+    });
+    s.ver = 3;
+    if (typeof s.requestRetention !== 'number') s.requestRetention = 0.9;
+    if (typeof s.maxInterval !== 'number') s.maxInterval = 365;
   }
 
   function saveState() {
@@ -348,7 +438,7 @@
 
   /* ---------- 数据 ---------- */
   var book = null;
-  var extra = { ex: null, roots: null, exam: null };
+  var extra = { roots: null, exam: null };
   var loading = null;
   var loadErr = '';
 
@@ -398,17 +488,16 @@
     return '…';
   }
 
-  /* 详情数据按需加载：只有需要卡片背面 / 填空题才拉 */
+  /* 详情数据按需加载：卡片背面（拆词/词族/真题）用。
+     例句数据 _ex.json 曾被这里强拉但从未消费，已砍掉（每局省 ~640KB） */
   function ensureExtra() {
-    if (extra.roots && extra.exam && extra.ex) return Promise.resolve(extra);
+    if (extra.roots && extra.exam) return Promise.resolve(extra);
     return Promise.all([
       window.AppVocabData.loadRoots(state.book),
-      window.AppVocabData.loadExam(state.book),
-      window.AppVocabData.loadExamples(state.book)
+      window.AppVocabData.loadExam(state.book)
     ]).then(function (r) {
       extra.roots = r[0];
       extra.exam = r[1];
-      extra.ex = r[2];
       return extra;
     }).catch(function () { return extra; });
   }
@@ -418,17 +507,24 @@
     if (!book) return [];
     var today = dayNum(todayKey());
     var words = book.words;
+    var recs = bs().words;
     var due = [];
 
     for (var i = 0; i < words.length; i++) {
-      var rec = bs().words[words[i][0]];
-      if (!rec || rec.known) continue;   // 已标熟的不再轮回
+      var rec = recs[words[i][0]];
+      if (!rec || rec.known || rec.st === 2) continue;   // 已标熟不再轮回
+      if (!(rec.S > 0)) continue;                        // 未学过的新词
       if (rec.due <= today) due.push({ idx: i, rec: rec, isNew: false });
     }
-    due.sort(function (a, b) { return a.rec.due - b.rec.due; });
+    due.sort(function (a, b) {
+      /* 超期越久越先（≈ 可提取性最低）；同天到期时稳定性低者先 */
+      return (a.rec.due - b.rec.due) || ((a.rec.S || 0) - (b.rec.S || 0));
+    });
     if (due.length > REVIEW_CAP) due = due.slice(0, REVIEW_CAP);
 
-    return due.concat(pickNew(newLeftToday()));
+    /* 墨墨式规则：复习积压时先清欠账，不加新词 */
+    var newWords = due.length >= REVIEW_CAP ? [] : pickNew(newLeftToday());
+    return due.concat(newWords);
   }
 
   function pickNew(count) {
@@ -532,6 +628,23 @@
     return a ? Math.round((bs().totalRight || 0) / a * 100) : 0;
   }
 
+  /* 连续打卡：按 days 表回溯（当天没学不打断昨天的连续）。
+     旧口径只在「完整走完一局」时 +1，中途退出当天不打卡，与打卡日历矛盾 */
+  function streakFromDays() {
+    var days = bs().days || {};
+    var d = new Date();
+    var key = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+    if (!(days[key] > 0)) d = new Date(d.getTime() - 86400000);
+    var s = 0;
+    for (;;) {
+      var k2 = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+      if (!(days[k2] > 0)) break;
+      s++;
+      d = new Date(d.getTime() - 86400000);
+    }
+    return s;
+  }
+
   /* 生词本：答错过 2 次以上的词 */
   function toughWords() {
     var out = [];
@@ -568,7 +681,7 @@
     else body = settingsHtml();
 
     el.innerHTML = head + body +
-      '<div class="vc-note">词库 KyleBing/english-vocabulary（BSD-3-Clause）· 进度只存本机</div>' +
+      '<div class="vc-note">词库 KyleBing/english-vocabulary（BSD-3-Clause）· 进度存本机 · 背词数上报全服榜</div>' +
       '</div>';
 
     paintLucide(el);
@@ -626,7 +739,7 @@
         '<div class="vc-hero-art">' + owl(total === 0 ? 'sleep' : 'think') + '</div>' +
         '<div class="vc-hero-main">' +
           '<div class="vc-hero-tag">' + (state.book === 'cet6' ? 'CET-6' : 'CET-4') +
-            ' · 已连续 ' + bs().streak + ' 天 · ' + (state.order === 'random' ? '乱序' : '顺序') + '</div>' +
+            ' · 已连续 ' + streakFromDays() + ' 天 · ' + (state.order === 'random' ? '乱序' : '顺序') + '</div>' +
           '<h1 class="vc-hero-title">今天的单词任务</h1>' +
           '<p class="vc-hero-wordcount">今天已背 <b>' + (bw().day.n || 0) + '</b> 个单词' +
             '（本周 ' + (bw().week.n || 0) + ' · 累计 ' + (bw().all.n || 0) + '）</p>' +
@@ -676,7 +789,7 @@
     var items = [
       { k: '累计学过', v: knownCount(), u: '词' },
       { k: '已标熟', v: knownWords().length, u: '词' },
-      { k: '连续打卡', v: bs().streak, u: '天' },
+      { k: '连续打卡', v: streakFromDays(), u: '天' },
       { k: '学习时长', v: fmtDuration(bs().totalMs), u: '' }
     ];
     return '<div class="vc-strip">' + items.map(function (it) {
@@ -839,10 +952,13 @@
       b.onclick = function () {
         var w = b.getAttribute('data-know');
         if (bs().words[w]) {
-          bs().words[w].known = true;
-          bs().words[w].knownAt = Date.now();
-          bs().words[w].box = MAX_BOX;
-          bs().words[w].due = dayNum(todayKey()) + 3650;
+          var rw = bs().words[w];
+          rw.known = true;
+          rw.knownAt = Date.now();
+          rw.st = 2;
+          rw.S = Math.max(rw.S || 0.5, 365);
+          rw.D = Math.min(rw.D || 5, 5);
+          rw.due = dayNum(todayKey()) + 3650;
           saveState();
         }
         renderHome();
@@ -906,10 +1022,13 @@
       b.onclick = function () {
         var w = b.getAttribute('data-know');
         if (bs().words[w]) {
-          bs().words[w].known = true;
-          bs().words[w].knownAt = Date.now();
-          bs().words[w].box = MAX_BOX;
-          bs().words[w].due = dayNum(todayKey()) + 3650;
+          var rw = bs().words[w];
+          rw.known = true;
+          rw.knownAt = Date.now();
+          rw.st = 2;
+          rw.S = Math.max(rw.S || 0.5, 365);
+          rw.D = Math.min(rw.D || 5, 5);
+          rw.due = dayNum(todayKey()) + 3650;
           saveState();
         }
         renderHome();
@@ -920,10 +1039,13 @@
       b.onclick = function () {
         var w = b.getAttribute('data-unknow');
         if (bs().words[w]) {
-          bs().words[w].known = false;
-          bs().words[w].knownAt = 0;
-          bs().words[w].box = 0;
-          bs().words[w].due = dayNum(todayKey());
+          var rw2 = bs().words[w];
+          rw2.known = false;
+          rw2.knownAt = 0;
+          rw2.st = 1;
+          rw2.S = Math.min(rw2.S || 1, 1);
+          rw2.last = dayNum(todayKey());
+          rw2.due = dayNum(todayKey());
           saveState();
         }
         renderHome();
@@ -936,12 +1058,46 @@
     var known = knownCount();
     var total = book ? book.words.length : 0;
     var pct = total ? Math.round(known / total * 100) : 0;
-    var boxes = [0, 0, 0, 0, 0, 0];
-    for (var k in bs().words) {
-      var b = bs().words[k].box || 0;
-      boxes[Math.min(MAX_BOX, b)]++;
+
+    /* FSRS 记忆状态：按下次复习日分桶 + 未来 7 天复习预报 */
+    var td = dayNum(todayKey());
+    var buckets = [
+      { k: '今日到期', n: 0 }, { k: '明天', n: 0 }, { k: '2-7 天', n: 0 },
+      { k: '8-30 天', n: 0 }, { k: '30 天以上', n: 0 }
+    ];
+    var forecast = [0, 0, 0, 0, 0, 0, 0];
+    var learning = 0;
+    var wrecs = bs().words;
+    for (var k in wrecs) {
+      var r0 = wrecs[k];
+      if (r0.known || r0.st === 2 || !(r0.S > 0)) continue;
+      learning++;
+      var dd = (r0.due || 0) - td;
+      if (dd <= 0) buckets[0].n++;
+      else if (dd === 1) buckets[1].n++;
+      else if (dd <= 7) buckets[2].n++;
+      else if (dd <= 30) buckets[3].n++;
+      else buckets[4].n++;
+      if (dd >= 0 && dd <= 6) forecast[dd]++;
     }
-    var boxLabels = ['新学', '1 档', '2 档', '3 档', '4 档', '熟练'];
+
+    /* 预计完成日期：最近 14 天实际日均新词（不足 3 天数据回退设置值） */
+    var etaText = '';
+    if (pct < 100) {
+      var npd = bs().newPerDay || {};
+      var sum14 = 0, cnt14 = 0;
+      for (var di = 1; di <= 14; di++) {
+        var dd2 = new Date(Date.now() - di * 86400000);
+        var kk = dd2.getFullYear() + '-' + (dd2.getMonth() + 1) + '-' + dd2.getDate();
+        if (npd[kk] != null) { sum14 += npd[kk]; cnt14++; }
+      }
+      var daily = cnt14 >= 3 ? Math.max(1, Math.round(sum14 / cnt14))
+        : Math.max(1, typeof state.dailyNew === 'number' ? state.dailyNew : 15);
+      var etaDays = Math.ceil((total - known) / daily);
+      var eta = new Date(Date.now() + etaDays * 86400000);
+      etaText = '按最近日均 <b>' + daily + '</b> 词，预计 <b>' + (eta.getMonth() + 1) + ' 月 ' +
+        eta.getDate() + ' 日</b> 前后拿下整本（未计复习增长）。';
+    }
 
     var b = bw();
     /* 九格：背完单词数（今日/本周/累计）居首——这是与排行榜同口径的核心指标 */
@@ -973,8 +1129,7 @@
       '<div class="vc-ring-side">' +
         '<p class="vc-ring-goal">' + (pct >= 100
           ? '🎉 整本词书已被你拿下'
-          : '还剩 <b>' + (total - known) + '</b> 个词。每天 ' + (typeof state.dailyNew === 'number' ? state.dailyNew : 15) +
-            ' 个，约 <b>' + Math.max(1, Math.ceil((total - known) / Math.max(1, typeof state.dailyNew === 'number' ? state.dailyNew : 15))) + '</b> 天拿下整本。') + '</p>' +
+          : '还剩 <b>' + (total - known) + '</b> 个词。' + etaText) + '</p>' +
       '</div>' +
     '</div>';
 
@@ -987,11 +1142,17 @@
         return '<div class="vc-statcell"><b>' + esc(it.v) + '</b><span>' + it.k + '</span></div>';
       }).join('') + '</div>' +
 
-      '<div class="vc-h3">记忆档位</div>' +
-      '<div class="vc-boxes">' + boxes.map(function (n, i) {
-        return '<div class="vc-boxrow"><span>' + boxLabels[i] + '</span>' +
-          '<div class="vc-bar thin"><i style="width:' + (known ? Math.round(n / known * 100) : 0) + '%"></i></div>' +
-          '<b>' + n + '</b></div>';
+      '<div class="vc-h3">记忆状态（按下次复习日）</div>' +
+      '<div class="vc-boxes">' + buckets.map(function (it) {
+        return '<div class="vc-boxrow"><span>' + it.k + '</span>' +
+          '<div class="vc-bar thin"><i style="width:' + (learning ? Math.round(it.n / learning * 100) : 0) + '%"></i></div>' +
+          '<b>' + it.n + '</b></div>';
+      }).join('') + '</div>' +
+
+      '<div class="vc-h3">未来 7 天复习预报</div>' +
+      '<div class="vc-fc">' + forecast.map(function (n, i) {
+        return '<div class="vc-fc-d' + (i === 0 ? ' today' : '') + '"><b>' + n + '</b><span>' +
+          (i === 0 ? '今天' : i === 1 ? '明天' : '+' + i + ' 天') + '</span></div>';
       }).join('') + '</div>' +
 
       '<div class="vc-h3">最近 ' + HEAT_DAYS + ' 天' +
@@ -1000,7 +1161,7 @@
       heatmap(HEAT_DAYS) +
 
       '<div class="vc-h3">本月打卡' +
-        (bs().streak > 0 ? '<span class="vc-cal-streak">🔥 连续 ' + bs().streak + ' 天</span>' : '') +
+        (streakFromDays() > 0 ? '<span class="vc-cal-streak">🔥 连续 ' + streakFromDays() + ' 天</span>' : '') +
       '</div>' +
       monthCalendar() +
       '</div>';
@@ -1086,6 +1247,16 @@
       '</div>' +
 
       '<div class="vc-field">' +
+        '<div class="vc-field-h">记忆保留率</div>' +
+        '<div class="vc-field-d">调度算法（FSRS）的目标保留率：调高记得更牢但复习量明显增加，调低更省时间。90% 适合大多数人。</div>' +
+        '<div class="vc-chips">' +
+          [[0.85, '85% 省时间'], [0.9, '90% 均衡'], [0.92, '92% 牢固'], [0.95, '95% 极牢']].map(function (p) {
+            return '<button type="button" class="vc-chip' + (Math.abs((state.requestRetention || 0.9) - p[0]) < 0.001 ? ' active' : '') +
+              '" data-ret="' + p[0] + '">' + p[1] + '</button>';
+          }).join('') + '</div>' +
+      '</div>' +
+
+      '<div class="vc-field">' +
         '<div class="vc-field-h">自动朗读</div>' +
         '<div class="vc-field-d">开启后，英选中出题时自动读一遍单词（按 s 随时手动读）。</div>' +
         '<div class="vc-chips">' +
@@ -1138,6 +1309,17 @@
         renderHome();
       };
     });
+    el.querySelectorAll('[data-ret]').forEach(function (b) {
+      b.onclick = function () {
+        var v = parseFloat(b.getAttribute('data-ret'));
+        if (Math.abs((state.requestRetention || 0.9) - v) < 0.001) return;
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        state.requestRetention = v;
+        saveState();
+        queue = buildQueue();
+        renderHome();
+      };
+    });
     el.querySelectorAll('[data-speak]').forEach(function (b) {
       b.onclick = function () {
         state.autoSpeak = b.getAttribute('data-speak') === 'on';
@@ -1185,7 +1367,60 @@
               return;
             }
             if (!window.confirm('导入会覆盖当前全部学习记录（词库进度 / 打卡 / 排行计数），确定？')) return;
-            localStorage.setItem(SAVE_KEY, JSON.stringify(d));
+            /* 白名单合并：只接受已知字段与合法取值，防恶意 JSON 注入任意顶层键 */
+            var clean = emptyState();
+            if (d.book === 'cet4' || d.book === 'cet6') clean.book = d.book;
+            if (DAILY_CHOICES.indexOf(d.dailyNew) >= 0) clean.dailyNew = d.dailyNew;
+            if (d.order === 'random' || d.order === 'seq') clean.order = d.order;
+            if (d.autoSpeak != null) clean.autoSpeak = !!d.autoSpeak;
+            if (typeof d.requestRetention === 'number') clean.requestRetention = clampNum(d.requestRetention, 0.8, 0.98);
+            if (typeof d.maxInterval === 'number') clean.maxInterval = clampNum(d.maxInterval, 30, 3650);
+            ['cet4', 'cet6'].forEach(function (lv) {
+              var src = d.books[lv];
+              var dst = clean.books[lv];
+              if (!src || typeof src !== 'object') return;
+              ['day', 'streak', 'lastDone', 'seq', 'totalMs', 'totalAnswered', 'totalRight'].forEach(function (k) {
+                if (src[k] != null) dst[k] = src[k];
+              });
+              if (typeof src.newDoneToday === 'number') dst.newDoneToday = src.newDoneToday;
+              if (typeof src.doneToday === 'number') dst.doneToday = src.doneToday;
+              if (src.days && typeof src.days === 'object') dst.days = src.days;
+              if (src.newPerDay && typeof src.newPerDay === 'object') dst.newPerDay = src.newPerDay;
+              if (src.words && typeof src.words === 'object') {
+                Object.keys(src.words).forEach(function (w) {
+                  var wr = src.words[w];
+                  if (!wr || typeof wr !== 'object' || typeof wr.box !== 'number') return;
+                  var rw = {
+                    box: Math.max(0, Math.min(5, wr.box | 0)),
+                    due: typeof wr.due === 'number' ? wr.due : 0,
+                    seen: typeof wr.seen === 'number' ? wr.seen : 0,
+                    wrong: typeof wr.wrong === 'number' ? wr.wrong : 0,
+                    known: !!wr.known
+                  };
+                  if (typeof wr.S === 'number') {
+                    rw.S = wr.S;
+                    rw.D = typeof wr.D === 'number' ? wr.D : 5;
+                    rw.last = typeof wr.last === 'number' ? wr.last : 0;
+                    rw.reps = typeof wr.reps === 'number' ? wr.reps : 0;
+                    rw.lapses = typeof wr.lapses === 'number' ? wr.lapses : 0;
+                    rw.st = typeof wr.st === 'number' ? wr.st : 1;
+                  }
+                  if (wr.wrongAt) rw.wrongAt = wr.wrongAt;
+                  if (wr.known && wr.knownAt) rw.knownAt = wr.knownAt;
+                  dst.words[w] = rw;
+                });
+              }
+            });
+            if (d.bw && typeof d.bw === 'object' && clean.bw) {
+              ['day', 'week', 'all'].forEach(function (p) {
+                var s0 = d.bw[p], t0 = clean.bw[p];
+                if (!s0 || typeof s0 !== 'object' || !t0) return;
+                ['k', 'n', 'ms', 'a', 'r', 'posted'].forEach(function (k) {
+                  if (s0[k] != null) t0[k] = s0[k];
+                });
+              });
+            }
+            localStorage.setItem(SAVE_KEY, JSON.stringify(clean));
             location.reload();
           } catch (e) {
             alert('导入失败：' + e.message);
@@ -1250,6 +1485,17 @@
     if (k === 'cn2en') return '中选英';
     if (k === 'selfrate') return '自评';
     return '英选中';
+  }
+
+  /* 预览：若现在评 G，下次间隔是多少天（在副本上模拟，不改状态） */
+  function rateHint(G) {
+    if (!book || !current) return '';
+    try {
+      var key = book.words[current.idx][0];
+      var clone = JSON.parse(JSON.stringify(bs().words[key] || {}));
+      var ivl = commitReview(clone, G, dayNum(todayKey()));
+      return ivl <= 1 ? '明天' : ivl + ' 天';
+    } catch (e) { return ''; }
   }
 
 
@@ -1354,11 +1600,14 @@
         '</div>' +
         '<div class="vc-rate" id="vcRate">' +
           '<button type="button" class="vc-rate-btn know" data-rate="know">' +
-            '<svg class="vc-rate-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>认识</button>' +
+            '<svg class="vc-rate-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>认识' +
+            '<em class="vc-rate-ivl">' + rateHint(3) + '</em></button>' +
           '<button type="button" class="vc-rate-btn vague" data-rate="vague">' +
-            '<svg class="vc-rate-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>模糊</button>' +
+            '<svg class="vc-rate-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>模糊' +
+            '<em class="vc-rate-ivl">' + rateHint(2) + '</em></button>' +
           '<button type="button" class="vc-rate-btn unknown" data-rate="unknown">' +
-            '<svg class="vc-rate-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>不认识</button>' +
+            '<svg class="vc-rate-ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>不认识' +
+            '<em class="vc-rate-ivl">' + rateHint(1) + '</em></button>' +
         '</div>' +
         '<div class="vc-reveal" id="vcReveal"></div>';
     }
@@ -1468,10 +1717,12 @@
   function markKnown() {
     if (window.SFX && window.SFX.select) window.SFX.select();
     var key = book.words[current.idx][0];
-    var rec = bs().words[key] || { box: 0, due: 0, seen: 0, wrong: 0 };
+    var rec = bs().words[key] || {};
     rec.known = true;
     rec.knownAt = Date.now();
-    rec.box = MAX_BOX;
+    rec.st = 2;
+    rec.S = Math.max(rec.S || 0.5, 365);
+    rec.D = Math.min(rec.D || 5, 5);
     rec.due = dayNum(todayKey()) + 3650;
     bs().words[key] = rec;
     saveState();
@@ -1602,23 +1853,23 @@
     var idx = current.idx;
 
     if (ok) sessionStats.right++; else sessionStats.wrong++;
+    /* 口径统一：自评「认识」也计为答对（此前只有选择题计入 totalRight，
+       统计页的正确率因此系统性偏低） */
+    if (ok) bs().totalRight = (bs().totalRight || 0) + 1;
     countAnswer();
 
-    if (rate === 'unknown' || current.amended) {
-      applySchedule(idx, false);
-      /* 改判 / 不认识 → 记入 redoSet，本阶段结束前按当前题型补一轮 */
+    /* FSRS 落档：不认识/改判=1 模糊=2 认识=3。选择题答错只做标记
+       （objectiveMiss），不额外惩罚诚实自评 */
+    if (current.objectiveMiss && rate === 'know') {
+      /* 客观题答错过但自评认识：按「模糊」处理，防止盲目自信刷档 */
+      commitWord(idx, 2);
+    } else {
+      commitWord(idx, rate === 'unknown' || current.amended ? 1 : rate === 'vague' ? 2 : 3);
+    }
+    if (rate === 'unknown' || current.amended || current.objectiveMiss) {
+      /* 不认识 / 改判 / 选择题答错过 → 本阶段结束前按当前题型补一轮 */
       queueRedo(idx);
-      advanceStep();
-      return;
     }
-    if (rate === 'vague') {
-      /* 模糊：有印象但没记牢，降一档（不归零），明天再见。
-         归零会让用户不敢诚实选「模糊」，反而害了他自己。 */
-      applyVague(idx);
-      advanceStep();
-      return;
-    }
-    applySchedule(idx, ok);
     advanceStep();
   }
 
@@ -1649,7 +1900,9 @@
     }
     countAnswer();
 
-    applySchedule(current.idx, ok);
+    /* FSRS 下客观题阶段不落档（自评才是唯一落档点）；
+       答错只做标记，自评阶段会参考它 */
+    if (!ok) current.objectiveMiss = true;
 
     /* 选择题答错：和自评「不认识」一样，把三种题型排到队尾重来一遍。
        选错是客观证据，比自评更该立刻再见一次。 */
@@ -1677,39 +1930,27 @@
   }
 
   /* 落调度：答对升档、答错归零；已标熟的词不再改动 */
-  function applySchedule(idx, ok) {
+  /* 自评落档：每个词每局只落一次（客观题阶段不再落档，避免同词一局升 3 档）。
+     G: 1=不认识(含改判) 2=模糊 3=认识。返回下次间隔（天）。 */
+  function commitWord(idx, G) {
     var words = book.words;
     var key = words[idx][0];
-    var rec = bs().words[key] || { box: 0, due: 0, seen: 0, wrong: 0 };
-    if (rec.known) return;
-    rec.seen++;
+    var rec = bs().words[key] || {};
+    var isNewWord = !(rec.S > 0);
     var today = dayNum(todayKey());
-
-    if (ok) {
-      rec.box = Math.min(MAX_BOX, rec.box + 1);
-      rec.due = today + INTERVALS[rec.box];
-    } else {
-      rec.box = 0;
-      rec.wrong++;
-      rec.wrongAt = Date.now();   // 最近一次答错时间（生词本「近 7 天」筛选用）
-      rec.due = today;
+    rec.seen = (rec.seen || 0) + 1;
+    if (G === 1) {
+      rec.wrong = (rec.wrong || 0) + 1;
+      rec.wrongAt = Date.now();
     }
-    bs().words[key] = rec;
+    var ivl = commitReview(rec, G, today);
+    if (isNewWord) {
+      var b0 = bs();
+      var tk = todayKey();
+      b0.newPerDay[tk] = (b0.newPerDay[tk] || 0) + 1;
+    }
     saveState();
-  }
-
-  /* 模糊：box 降一档（不归零），按新档位的间隔安排复习 */
-  function applyVague(idx) {
-    var words = book.words;
-    var key = words[idx][0];
-    var rec = bs().words[key] || { box: 0, due: 0, seen: 0, wrong: 0 };
-    if (rec.known) return;
-    rec.seen++;
-    var today = dayNum(todayKey());
-    rec.box = Math.max(0, (rec.box || 0) - 1);
-    rec.due = today + INTERVALS[rec.box];
-    bs().words[key] = rec;
-    saveState();
+    return ivl;
   }
 
   /* 卡片背面：拆词 / 词族 / 真题，有数据才渲染 */
@@ -1980,7 +2221,7 @@
         title: '背单词 · 本局 ' + (right + wrong) + ' 题 · ' + usedNew + ' 个新词' +
           (hisAcc != null ? ' · 正确率 ' + hisAcc + '%' : ''),
         subtitle: 'CET-' + (state.book === 'cet6' ? '6' : '4') +
-          ' · 连续打卡 ' + (bs().streak || 0) + ' 天 · 累计 ' + (bs().totalAnswered || 0) + ' 题',
+          ' · 连续打卡 ' + streakFromDays() + ' 天 · 累计 ' + (bs().totalAnswered || 0) + ' 题',
         color: '#6366F1',
         badge: '背单词',
         avatar: '📚',
@@ -1994,7 +2235,7 @@
       '<h2>本局完成</h2>' +
       '<p>本局答对 <b>' + right + '</b> · 答错 <b>' + wrong +
         '</b> · 正确率 <b>' + acc + '%</b></p>' +
-      '<p class="vc-dim">连续打卡 ' + bs().streak + ' 天 · 累计 ' + fmtDuration(bs().totalMs) + '</p>' +
+      '<p class="vc-dim">连续打卡 ' + streakFromDays() + ' 天 · 累计 ' + fmtDuration(bs().totalMs) + '</p>' +
       '<div class="vc-actions">' +
         '<button class="vc-btn primary" id="vcAgain" type="button">再来一组</button>' +
         '<button class="vc-btn ghost" id="vcHome" type="button">回到今日</button>' +
@@ -2077,6 +2318,12 @@
       loadState();
       rollDay();
       if (!el) el = document.getElementById('mod-vocab');
+      /* router 对已初始化模块重进时只走 restoreView 不走 init——
+         destroy 已摘掉键盘监听，这里必须重挂，否则 1-4/空格/s/k 全部失灵 */
+      if (!keyBound) {
+        window.addEventListener('keydown', onKeyDown);
+        keyBound = true;
+      }
       if (el) boot();
     },
     destroy: function () {

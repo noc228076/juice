@@ -1,5 +1,5 @@
 const { chromium } = require('playwright');
-const CHROME=process.env.CHROME_PATH||'C:/Users/NOC/AppData/Local/ms-playwright/chromium-1234/chrome-win64/chrome.exe';
+const CHROME=process.env.CHROME_PATH||'C:/Program Files/Google/Chrome/Application/chrome.exe';
 const R=[]; function check(n,ok,d){R.push({n,ok:!!ok,d});console.log((ok?'PASS':'FAIL')+'  '+n+(d!==undefined?'  → '+JSON.stringify(d):''));}
 (async()=>{
   const b=await chromium.launch({executablePath:CHROME});

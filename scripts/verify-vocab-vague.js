@@ -1,6 +1,6 @@
 /* 「模糊」验证：用真实答题路径把 box 升到 >0，再自评选模糊 */
 const { chromium } = require('playwright');
-const CHROME=process.env.CHROME_PATH||'C:/Users/NOC/AppData/Local/ms-playwright/chromium-1234/chrome-win64/chrome.exe';
+const CHROME=process.env.CHROME_PATH||'C:/Program Files/Google/Chrome/Application/chrome.exe';
 const R=[]; function check(n,ok,d){R.push({n,ok:!!ok,d});console.log((ok?'PASS':'FAIL')+'  '+n+(d!==undefined?'  → '+JSON.stringify(d):''));}
 (async()=>{
   const b=await chromium.launch({executablePath:CHROME});
@@ -63,29 +63,43 @@ const R=[]; function check(n,ok,d){R.push({n,ok:!!ok,d});console.log((ok?'PASS':
   const atRate = await page.evaluate(()=>document.querySelectorAll('[data-rate]').length);
   check('推进到自评阶段', atRate===3, {rates:atRate});
 
-  const beforeBox = await page.evaluate(()=>(JSON.parse(localStorage.getItem('juice_vocab_v1')).books||{cet4:JSON.parse(localStorage.getItem('juice_vocab_v1'))}).cet4.words.abruptly.box);
+  const before = await page.evaluate(() => {
+    const r = JSON.parse(localStorage.getItem('juice_vocab_v1')).books.cet4.words.abruptly;
+    return { S: r.S, due: r.due, box: r.box };
+  });
+  check('v2 迁移补齐了 FSRS 字段（S>0）', typeof before.S === 'number' && before.S > 0, before);
+
   await page.keyboard.press('2');   // 模糊
   await page.waitForTimeout(350);
-  const back = await page.evaluate(()=>!!document.querySelector('.vc-back-panel .vc-bp-h'));
+  const back = await page.evaluate(() => !!document.querySelector('.vc-back-panel .vc-bp-h'));
   check('自评揭示后有卡片背面', back);
   await page.keyboard.press(' ');
   await page.waitForTimeout(500);
 
-  const after = await page.evaluate(()=>{
-    const r=(JSON.parse(localStorage.getItem('juice_vocab_v1')).books||{cet4:JSON.parse(localStorage.getItem('juice_vocab_v1'))}).cet4.words.abruptly;
-    const today=Math.floor(Date.now()/86400000);
-    return {box:r.box, due:r.due, today, seen:r.seen, wrong:r.wrong};
+  const after = await page.evaluate(() => {
+    const r = JSON.parse(localStorage.getItem('juice_vocab_v1')).books.cet4.words.abruptly;
+    const today = Math.floor(Date.now() / 86400000);
+    /* 同一状态重演一次 Good（G=3），得到对照间隔 */
+    const DECAY = -0.5, FACTOR = 19 / 81;
+    const elapsed = Math.max(1, today - (r.last || today));
+    const R0 = Math.pow(1 + FACTOR * elapsed / r.S, DECAY);
+    const D2 = 5.1618 * 0.8975 + (1 - 0.8975) * r.D;
+    const inc = Math.exp(1.6474) * (11 - D2) * Math.pow(r.S, -0.1367) * (Math.exp(1.0461 * (1 - R0)) - 1);
+    const S2 = Math.max(0.1, r.S * (inc + 1));
+    const goodIvl = Math.max(1, Math.round(S2 / FACTOR * (Math.pow(0.9, -2) - 1)));
+    return { S: r.S, due: r.due, today, seen: r.seen, wrong: r.wrong, last: r.last, goodIvl };
   });
 
-  // 模糊的语义：box 减 1（不归零），due = today + INTERVALS[新box]
-  const INTERVALS=[0,1,2,4,7,15,30];
-  const expectBox = Math.max(0, beforeBox-1);
-  check('「模糊」把 box 降一档', after.box === expectBox, {before:beforeBox, after:after.box, expect:expectBox});
-  check('「模糊」后 due 按新档位安排（不是当天重来）',
-    after.due === after.today + INTERVALS[expectBox],
-    {due:after.due, today:after.today, interval:INTERVALS[expectBox]});
-  check('「模糊」不计入 wrong', after.wrong === 0, {wrong:after.wrong});
-  check('无 JS 报错', errs.length===0, errs.slice(0,2));
+  /* FSRS 语义：模糊 = Hard（G=2），间隔必须明显短于认识（Good） */
+  check('「模糊」后 S 仍是正数且不缩为 0', typeof after.S === 'number' && after.S > 0, after);
+  check('「模糊」后 due 排到未来（不是当天重来）', after.due > after.today,
+    { due: after.due, today: after.today });
+  const vagueGap = after.due - after.today;
+  check('「模糊」不计入 wrong', after.wrong === 0, { wrong: after.wrong });
+  check('「模糊」仍记一次 seen', after.seen >= 5, { seen: after.seen });
+  check('模糊的间隔 < 认识的间隔（Hard 短于 Good）', vagueGap < after.goodIvl,
+    { vagueGap: vagueGap, goodIvl: after.goodIvl });
+  check('无 JS 报错', errs.length === 0, errs.slice(0, 2));
 
   await b.close();
   const f=R.filter(x=>!x.ok);

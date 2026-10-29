@@ -1509,3 +1509,47 @@ html[data-theme="light"] .vc-tab:hover { background: rgba(0, 0, 0, 0.05); }
   }
   .vc-hero { flex-wrap: wrap; }
 }
+
+/* ---------- FSRS 调度 UI ---------- */
+/* 自评按钮上的间隔预告（认识 → 14 天） */
+.vc-rate-ivl {
+  display: block;
+  margin-top: 3px;
+  font-size: 11px;
+  font-weight: 500;
+  font-style: normal;
+  opacity: 0.62;
+  letter-spacing: 0;
+}
+.vc-rate-btn.picked .vc-rate-ivl,
+.vc-rate-btn:hover .vc-rate-ivl { opacity: 0.9; }
+
+/* 未来 7 天复习预报 */
+.vc-fc {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+.vc-fc-d {
+  background: var(--card, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 8px 4px;
+  text-align: center;
+}
+.vc-fc-d.today { border-color: var(--mod-ac); }
+.vc-fc-d b {
+  display: block;
+  font-size: 17px;
+  color: var(--tx, inherit);
+}
+.vc-fc-d span {
+  font-size: 10.5px;
+  color: var(--tx-faint);
+}
+@media (max-width: 480px) {
+  .vc-fc { gap: 4px; }
+  .vc-fc-d { padding: 6px 2px; border-radius: 8px; }
+  .vc-fc-d b { font-size: 14px; }
+  .vc-fc-d span { font-size: 9.5px; }
+}

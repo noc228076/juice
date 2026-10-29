@@ -6,7 +6,7 @@ const path = require('path');
 const BASE = 'http://localhost:3456/index.html';
 const OUT = path.join(__dirname, '..', 'scratch', 'shots');
 require('fs').mkdirSync(OUT, { recursive: true });
-const CHROME = 'C:/Users/NOC/AppData/Local/ms-playwright/chromium-1234/chrome-win64/chrome.exe';
+const CHROME = process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 
 const results = [];
 function check(name, ok, detail) {
@@ -182,8 +182,8 @@ function check(name, ok, detail) {
   // 第一轮固定英选中：正面英文、选项中文、有音标
   await page.evaluate(() => {
     const s = JSON.parse(localStorage.getItem('juice_vocab_v1') || '{}');
-    s.words = {}; s.seq = 0; s.newDoneToday = 0; s.doneToday = 0;
-    s.kinds = { recall: true, spell: false, cloze: false };
+    const b4 = (s.books = s.books || {}).cet4 = s.books.cet4 || {};
+    b4.words = {}; b4.seq = 0; b4.newDoneToday = 0; b4.doneToday = 0;
     localStorage.setItem('juice_vocab_v1', JSON.stringify(s));
   });
   await fresh('/vocab');

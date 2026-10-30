@@ -577,6 +577,20 @@
     playCurrent();
   }
 
+  /* timeupdate 每秒约 4 次，之前每次都全 document 查 4 组节点。
+     缓存引用，渲染层重建（renderHome/播放条/沉浸页）时置空重取 */
+  var progressNodes = null;
+  function invalidateProgressNodes() { progressNodes = null; }
+  function progressNodesGet() {
+    if (progressNodes) return progressNodes;
+    progressNodes = {
+      bars: document.querySelectorAll('.mu-bar-progress i'),
+      cur: document.querySelectorAll('.mu-time-cur'),
+      dur: document.querySelectorAll('.mu-time-dur'),
+      seek: document.querySelectorAll('.mu-seek')
+    };
+    return progressNodes;
+  }
   function onProgress() {
     var p = 0, t = 0, d = 0;
     if (audio) { t = audio.currentTime || 0; d = audio.duration || 0; p = d ? t / d : 0; }
@@ -591,13 +605,14 @@
         p = Math.min(1, t / d);
       }
     }
-    var bars = document.querySelectorAll('.mu-bar-progress i');
+    var pn = progressNodesGet();
+    var bars = pn.bars;
     for (var i = 0; i < bars.length; i++) bars[i].style.width = (p * 100).toFixed(2) + '%';
-    var times = document.querySelectorAll('.mu-time-cur');
+    var times = pn.cur;
     for (var j = 0; j < times.length; j++) times[j].textContent = fmtTime(t);
-    var durs = document.querySelectorAll('.mu-time-dur');
+    var durs = pn.dur;
     for (var k = 0; k < durs.length; k++) durs[k].textContent = fmtTime(d);
-    var sliders = document.querySelectorAll('.mu-seek');
+    var sliders = pn.seek;
     for (var m = 0; m < sliders.length; m++) {
       // range 默认 max=100，超过 100 秒的歌会把滑块钉死在 100s
       if (d) sliders[m].max = String(d);
@@ -1873,6 +1888,7 @@
 
   function renderHome() {
     if (!el) return;
+    invalidateProgressNodes();
 
     // 整块重建 DOM 会让输入框丢值（新元素没有旧值）。
     // 重建前记下所有 input/textarea 的值与焦点，重建后恢复。
@@ -1933,6 +1949,7 @@
    * 导致 bottom:0 对不齐真实视口底部；挂 body 才真正贴底。
    */
   function mountPlayerBar() {
+    invalidateProgressNodes();
     var old = document.getElementById('muPlayerBar');
     if (old) old.remove();
     var html = playerBarHtml();
@@ -3173,6 +3190,7 @@
   }
 
   function openImmersive() {
+    invalidateProgressNodes();
     closeImmersive();
     // 每次打开都从存储重读开关，避免变量与 localStorage 长期不一致
     try {
@@ -3381,6 +3399,7 @@
 
   function closeImmersive() {
     if (!immEl) return;
+    invalidateProgressNodes();
     // 先摘沉浸页再退全屏：fullscreenchange 回调看到 immEl 已空就不会
     // 再触发一次 closeImmersive（否则两个退出路径互相触发死循环）
     immEl.remove();
@@ -3405,6 +3424,7 @@
     document.body.appendChild(miniEl);
   }
   function renderMini() {
+    invalidateProgressNodes();
     ensureMini();
     if (!cur) { miniEl.style.display = 'none'; return; }
     var inMusic = el && document.getElementById('mod-music').classList.contains('active');

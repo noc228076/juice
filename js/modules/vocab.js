@@ -1774,15 +1774,21 @@
     } else if (w.kind === 'spell') {
       /* 拼写：看释义 + 听音，键盘输入单词（不区分大小写，忽略首尾空白） */
       var spCls = w.meaning.length > 16 ? ' vc-word cn small' : ' vc-word cn';
+      /* 单词几个字母就几个横线；输入后横线替换成字母，满了输不进去，
+         方向键/点击定位，回车确认 */
+      var wlen = String(w.word).length;
+      var slotHtml = '';
+      for (var si2 = 0; si2 < wlen; si2++) slotHtml += '<span class="vc-slot empty" data-slot="' + si2 + '"></span>';
       inner =
         '<div class="' + spCls + '">' + esc(w.meaning) + '</div>' +
         '<div class="vc-phon">' + esc(w.phonetic || '') +
           (canSpeak ? '<button class="vc-speak" type="button" id="vcSpeak" aria-label="朗读">🔊</button>' : '') +
         '</div>' +
         '<div class="vc-spell">' +
-          '<div class="vc-spell-hint">听音拼出这个单词 · 首字母 <b>' + esc(w.word.charAt(0).toLowerCase()) + '</b> · 共 ' + w.word.length + ' 个字母</div>' +
-          '<input class="vc-input" id="vcSpellInput" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="输入单词…" aria-label="拼写单词">' +
-          '<div class="vc-spell-actions"><button class="vc-btn primary" id="vcSpellSubmit" type="button">提交</button></div>' +
+          '<div class="vc-spell-hint">听音拼出这个单词 · 首字母 <b>' + esc(w.word.charAt(0).toLowerCase()) + '</b> · 共 ' + wlen + ' 个字母</div>' +
+          '<div class="vc-spell-slots' + (wlen > 12 ? ' compact' : '') + '" id="vcSpellSlots" aria-label="拼写输入区">' + slotHtml + '</div>' +
+          '<input class="vc-spell-hidden" id="vcSpellInput" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="拼写单词">' +
+          '<div class="vc-spell-actions"><button class="vc-btn primary" id="vcSpellSubmit" type="button">确认</button></div>' +
         '</div>';
     } else {
       inner =
@@ -1851,21 +1857,74 @@
       };
     });
 
-    /* 拼写题：提交按钮 + 回车；出题即朗读（听音拼写），无语音时靠首字母/长度提示 */
+    /* 拼写题：字母格输入。几个字母几个横线，输入替换横线、满了输不进，
+       方向键/点击定位光标，回车确认；答完再回车进下一题 */
+    var slotsBox = el.querySelector('#vcSpellSlots');
     var si = el.querySelector('#vcSpellInput');
     var ss = el.querySelector('#vcSpellSubmit');
-    if (si && ss) {
+    if (slotsBox && si && ss) {
+      var wlen = String(current.word).length;
+      var chars = new Array(wlen);
+      var cur = 0;
+      var nodes = slotsBox.querySelectorAll('.vc-slot');
+      var drawSlots = function () {
+        for (var i = 0; i < nodes.length; i++) {
+          var ch = chars[i];
+          nodes[i].textContent = ch || '';
+          nodes[i].classList.toggle('empty', !ch);
+          nodes[i].classList.toggle('cur', i === cur && !answered);
+        }
+      };
+      var moveCur = function (i) {
+        cur = Math.max(0, Math.min(wlen, i));
+        drawSlots();
+      };
+      var typeChars = function (text) {
+        var s = String(text || '').replace(/[^a-zA-Z]/g, '');
+        for (var i = 0; i < s.length && cur < wlen; i++) {
+          chars[cur] = s.charAt(i);
+          cur++;
+        }
+        drawSlots();
+      };
       var submitSpell = function () {
-        if (answered) return;
-        var val = (si.value || '').trim().toLowerCase();
-        if (!val) { si.focus(); return; }
+        if (answered) { advanceStep(); return; }
+        var val = chars.join('');
+        if (val.length < wlen) { si.focus(); return; }   // 没填满不确认
         answered = true;
-        finishAnswer(val === String(current.word).toLowerCase(), val);
+        drawSlots();
+        finishAnswer(val.toLowerCase() === String(current.word).toLowerCase(), val);
+        /* 桌面保留焦点，答对后直接回车进下一题；触屏收起键盘避免挡住反馈 */
+        if (matchMedia('(pointer: coarse)').matches) si.blur();
+        else si.focus();
       };
       ss.onclick = submitSpell;
-      si.onkeydown = function (e) {
-        if (e.key === 'Enter') { e.preventDefault(); submitSpell(); }
+      slotsBox.onclick = function (e) {
+        var t = e.target && e.target.closest ? e.target.closest('.vc-slot') : null;
+        if (t) moveCur(+t.getAttribute('data-slot'));
+        si.focus();
       };
+      si.addEventListener('input', function () {
+        var v = si.value;
+        si.value = '';
+        if (!v || answered) return;   // 已提交后不再改动格子
+        typeChars(v);
+      });
+      si.addEventListener('keydown', function (e) {
+        if (e.key === 'Backspace') {
+          e.preventDefault();
+          if (answered) return;
+          if (cur > 0) { cur--; chars[cur] = null; drawSlots(); }
+        } else if (e.key === 'ArrowLeft') {
+          e.preventDefault(); moveCur(cur - 1);
+        } else if (e.key === 'ArrowRight') {
+          e.preventDefault(); moveCur(cur + 1);
+        } else if (e.key === 'Enter') {
+          e.preventDefault();
+          submitSpell();
+        }
+      });
+      drawSlots();
       if (window.AppVocabData.canSpeak()) window.AppVocabData.speak(current.word);
       si.focus();
     }
@@ -2040,8 +2099,13 @@
         '<div class="vc-back-panel" id="vcBackPanel"></div>' +
         '<div class="vc-reveal-row">' +
           '<span class="vc-reveal-tag">你选了「' + label + '」</span>' +
+        '</div>' +
+        '<div class="vc-reveal-actions">' +
+          /* 改判入口做成整行按钮：此前塞在右下角小胶囊里，几乎没人看得到 */
           (w.rated !== 'unknown'
-            ? '<button class="vc-btn small ghost" id="vcMarkWrong" type="button">其实不认识，改判</button>'
+            ? '<button class="vc-amend-btn" id="vcMarkWrong" type="button">' +
+                '其实不认识？改判为「不认识」' +
+              '</button>'
             : '') +
           '<button class="vc-btn primary vc-next-btn" id="vcNext" type="button">' + nextBtnLabel() + '</button>' +
         '</div>' +
@@ -2051,6 +2115,11 @@
     if (mk) mk.onclick = markWrong;
     var nx = box.querySelector('#vcNext');
     if (nx) nx.onclick = function () { commitRate(w.rated); };
+
+    /* 详情展开后卡片改固定高度布局：桌面端操作区钉在卡片底部，
+       不再因例句/真题长短把「下一题」顶出屏幕 */
+    var cardEl = el.querySelector('.vc-card');
+    if (cardEl) cardEl.classList.add('revealed');
 
     /* 自评也要能看到拆词 / 词族 / 真题 */
     renderBackPanel();
@@ -2164,11 +2233,17 @@
       '<div class="vc-fb-head"><b>' + (ok ? '答对了' : '答错了') + '</b>' +
       '<span class="vc-fb-ans">' + esc(current.word) + ' · ' + esc(current.meaning) + '</span></div>' +
       '<div class="vc-back-panel" id="vcBackPanel"></div>' +
-      '<button class="vc-btn primary vc-next-btn" id="vcNext" type="button">' +
-        nextBtnLabel() + '</button>';
+      '<div class="vc-fb-actions">' +
+        '<button class="vc-btn primary vc-next-btn" id="vcNext" type="button">' +
+          nextBtnLabel() + '</button>' +
+      '</div>';
 
     var nb = fb.querySelector('#vcNext');
     if (nb) nb.onclick = advanceStep;
+
+    /* 同自评：详情展开后进入固定高度布局，操作区固定在卡片底部 */
+    var cardEl = el.querySelector('.vc-card');
+    if (cardEl) cardEl.classList.add('revealed');
 
     if (window.SFX) {
       if (ok && window.SFX.select) window.SFX.select();

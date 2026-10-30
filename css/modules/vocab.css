@@ -777,6 +777,65 @@ html[data-theme="light"] .vc-tab:hover { background: rgba(0, 0, 0, 0.05); }
   margin-top: 14px;
 }
 
+/* ---------- 拼写字母格 ----------
+   单词几个字母就几个横线，输入后横线替换为字母；
+   当前格下划线高亮，方向键/点击可移动光标 */
+.vc-spell-slots {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  margin: 4px 0 6px;
+  cursor: text;
+}
+.vc-slot {
+  min-width: 26px;
+  height: 46px;
+  padding: 0 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--tx);
+  border-bottom: 2.5px solid var(--line-strong);
+  border-radius: 5px 5px 0 0;
+  transition: border-color 0.14s ease, background 0.14s ease;
+  user-select: none;
+}
+.vc-slot.empty::after {
+  content: '–';
+  color: var(--tx-faint);
+  font-weight: 500;
+}
+.vc-slot.cur {
+  border-bottom-color: var(--mod-ac);
+  background: var(--mod-ac-soft);
+  animation: vcCaret 1.1s steps(1) infinite;
+}
+@keyframes vcCaret {
+  0%, 52% { border-bottom-color: var(--mod-ac); }
+  53%, 100% { border-bottom-color: var(--line-strong); }
+}
+/* 长单词（>12 字母）缩小格子，避免换行浪费空间 */
+.vc-spell-slots.compact .vc-slot {
+  min-width: 19px;
+  height: 38px;
+  font-size: 19px;
+}
+/* 真正接键盘的输入框：视觉隐藏但可聚焦（移动端点格子弹出键盘） */
+.vc-spell-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  border: 0;
+  padding: 0;
+  font-size: 16px;
+  pointer-events: none;
+}
+
 /* ---------- 填空题型 ---------- */
 .vc-cloze {
   font-size: 18px;
@@ -1177,6 +1236,32 @@ html[data-theme="light"] .vc-tab:hover { background: rgba(0, 0, 0, 0.05); }
 .vc-opt.right .vc-opt-more { color: var(--ok); opacity: 0.9; }
 .vc-opt.wrong .vc-opt-more { color: var(--warn-c); opacity: 0.9; }
 .vc-opt:disabled .vc-opt-more { opacity: 0.75; }
+
+/* 改判入口：整行警示按钮（原来塞在右下角小胶囊里没人看得到） */
+.vc-amend-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  margin-top: 10px;
+  padding: 11px 16px;
+  min-height: 44px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--warn-c);
+  background: rgba(255, 122, 107, 0.07);
+  border: 1.5px dashed rgba(255, 122, 107, 0.45);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: background 0.16s ease, border-color 0.16s ease;
+}
+.vc-amend-btn:hover {
+  background: rgba(255, 122, 107, 0.14);
+  border-color: var(--warn-c);
+}
+.vc-amend-btn:active { transform: scale(0.995); }
 
 /* 「下一题」做成醒目的主按钮，避免看不出下一步 */
 .vc-next-btn {
@@ -1701,3 +1786,69 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-vocab .vc-rate-btn,
 html[data-theme="light"] body.has-daily-ambient-bg #mod-vocab .vc-input {
   background: rgba(20, 24, 18, 0.05);
 }
+
+/* ============ 详情展开后的固定高度布局 ============
+   例句/拆词/词族/真题长短不一，此前把卡片越撑越长，
+   「下一题」被顶到屏幕外，鼠标要滚着找。改成：
+   桌面端卡片定高，详情区内部滚动，操作区钉在卡片底部。
+   PC 优先；移动端限制详情区高度，保证按钮可达。 */
+@media (min-width: 900px) {
+  .vc-play .vc-card.revealed {
+    display: flex;
+    flex-direction: column;
+    height: min(calc(100dvh - 150px), 760px);
+  }
+  .vc-play .vc-card.revealed #vcFb.show,
+  .vc-play .vc-card.revealed #vcReveal:not(:empty) {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;   /* 覆盖 .vc-feedback.show 的 align-items:center，否则详情块被居中挤到卡片外 */
+    flex-wrap: nowrap;      /* 基类带 flex-wrap:wrap，列方向下会把详情块折到右侧第二列 */
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  .vc-play .vc-card.revealed .vc-reveal-inner {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+  .vc-play .vc-card.revealed .vc-back-panel {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-right: 4px;
+    scrollbar-width: thin;
+  }
+  .vc-play .vc-card.revealed .vc-fb-actions,
+  .vc-play .vc-card.revealed .vc-reveal-actions {
+    margin-top: auto;
+    padding-top: 10px;
+    background: var(--card-solid, transparent);
+  }
+}
+
+/* 移动端：详情区限高内部滚动，按钮不会被推到很远 */
+@media (max-width: 899px) {
+  .vc-play .vc-card .vc-back-panel {
+    max-height: 34vh;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-right: 2px;
+    scrollbar-width: thin;
+  }
+  .vc-reveal-actions,
+  .vc-fb-actions {
+    display: flex;
+    flex-direction: column;
+    margin-top: 8px;
+  }
+  .vc-reveal-actions .vc-amend-btn { margin-top: 0; }
+  .vc-reveal-actions .vc-next-btn { margin-top: 8px !important; }
+}
+
+/* 详情块内容不撑破卡片：长单词/长引用允许任意位置换行 */
+.vc-feedback .vc-back-panel,
+.vc-reveal-inner .vc-back-panel { min-width: 0; }
+.vc-bp-block { min-width: 0; overflow-wrap: anywhere; }

@@ -1,16 +1,17 @@
 /* =========================================================
    模块 13：背单词 (Vocabulary · CET-4 / CET-6)
    ---------------------------------------------------------
-   四屏：今日 / 生词本 / 统计 / 设置，外加答题屏。
+   五屏：今日 / 生词本 / 统计 / 排行 / 设置，外加答题屏。
    词库来自 KyleBing/english-vocabulary（BSD-3-Clause），
    由 scripts/build-vocab*.js 清洗成 assets/vocab/*.json。
 
-   三种题型按记忆档位轮转：
-     box 0-1 → 认词（词 → 四选一释义）
-     box 2-3 → 拼写（释义 + 音标 + 首字母 → 键盘输入）
-     box 4-5 → 填空（例句挖空 → 四选一词形，真题优先）
-   调度：box 0..5，间隔 [0,1,2,4,7,15,30] 天。
-     答对 → box+1；答错 → 归 0，当局限一次重排。
+   题型按阶段固定轮转（同一阶段内同题型）：
+     阶段 1 英选中（词 → 四选一释义）
+     阶段 2 中选英（释义 → 四选一单词）
+     阶段 3 自评（认识 / 模糊 / 不认识，可改判）
+   调度：FSRS-4.5 简化版（每词 S 稳定性 / D 难度，按目标保留率反解间隔），
+     每个词每局只在自评阶段落档一次；答错/改判在阶段末补一轮。
+   会话可续局：state.session 快照，今日页出「继续上局」。
    ========================================================= */
 
 (function () {
@@ -439,6 +440,7 @@
   /* ---------- 数据 ---------- */
   var book = null;
   var extra = { ex: null, roots: null, exam: null };
+  var extraTried = false;
   var loading = null;
   var loadErr = '';
 
@@ -489,9 +491,11 @@
   }
 
   /* 详情数据按需加载：卡片背面（拆词/词族/真题/例句）用 */
+  var extraLoading = null;
   function ensureExtra() {
     if (extra.roots && extra.exam && extra.ex) return Promise.resolve(extra);
-    return Promise.all([
+    if (extraLoading) return extraLoading;
+    extraLoading = Promise.all([
       window.AppVocabData.loadRoots(state.book),
       window.AppVocabData.loadExam(state.book),
       window.AppVocabData.loadExamples(state.book)
@@ -500,7 +504,11 @@
       extra.exam = r[1];
       extra.ex = r[2];
       return extra;
-    }).catch(function () { return extra; });
+    }).catch(function () { return extra; }).then(function (r) {
+      extraLoading = null;
+      return r;
+    });
+    return extraLoading;
   }
 
   /* ---------- 队列 ---------- */
@@ -537,9 +545,9 @@
       var pool = [];
       for (var i = 0; i < words.length; i++) {
         var r0 = bs().words[words[i][0]];
-        /* 与顺序分支同口径：有记录（已学/在学/已标熟）的词都不是「新词」。
-           原先只排除 known，随机模式下在学词会被当新词重复出题 */
-        if (r0) continue;
+        /* 与顺序分支同口径：学过/标熟的不是「新词」。
+           只有 wrong 计数的记录仍可作新词 */
+        if (isLearnedRec(r0)) continue;
         pool.push(i);
       }
       window.AppVocabData.shuffle(pool);
@@ -550,7 +558,7 @@
     }
 
     for (var j = bs().seq; j < words.length && out.length < count; j++) {
-      if (bs().words[words[j][0]]) continue;   // 学过的（含已标熟）不再当新词
+      if (isLearnedRec(bs().words[words[j][0]])) continue;   // 学过/标熟的不再当新词
       out.push({ idx: j, rec: null, isNew: true });
     }
     return out;
@@ -563,6 +571,7 @@
   var queue = [];
   var qi = 0;
   var answered = false;
+  var committed = false;   // 本題已落档（客观题点选即落，自评点下一题才落）
   var current = null;
   var sessionStats = { right: 0, wrong: 0 };
   /* 混合队列：每个词都出三种题型（英选中 / 中选英 / 自评），
@@ -621,8 +630,10 @@
   function masteredCount() {
     var n = 0;
     for (var k in bs().words) {
-      if (bs().words[k].known) continue;   // 已标熟单独统计
-      if (bs().words[k].box >= 4) n++;
+      var r = bs().words[k];
+      if (r.known || r.st === 2) continue;   // 已标熟单独统计
+      /* FSRS 不再写 box：按稳定性 >= 30 天视为「熟词(自动)」 */
+      if ((r.S || 0) >= 30) n++;
     }
     return n;
   }
@@ -664,12 +675,29 @@
     return out;
   }
 
+  /* 已进入调度的词（学过/标熟）不再当新词；只有 wrong 计数的记录仍算新词，
+     否则客观题答错一次就会把新词从词表里永久排除 */
+  function isLearnedRec(r) {
+    return !!(r && (r.S > 0 || r.known || r.st === 2));
+  }
+  function isWordKnown(idx) {
+    if (!book || !book.words[idx]) return true;
+    var r = bs().words[book.words[idx][0]];
+    return !!(r && (r.known || r.st === 2));
+  }
+
+  /* 词 → 词库下标：生词本每行都会调用，线性扫描在 4500 词下是 O(n²)。
+     按 book.words 数组引用缓存一次 Map，切词库/重新加载自然失效。 */
+  var wordIdxFor = null, wordIdxMap = null;
   function idxOfWord(w) {
     if (!book) return -1;
-    for (var i = 0; i < book.words.length; i++) {
-      if (book.words[i][0] === w) return i;
+    if (wordIdxFor !== book.words) {
+      wordIdxFor = book.words;
+      wordIdxMap = Object.create(null);
+      for (var i = 0; i < book.words.length; i++) wordIdxMap[book.words[i][0]] = i;
     }
-    return -1;
+    var v = wordIdxMap[w];
+    return v === undefined ? -1 : v;
   }
 
   /* ---------- 首页分发 ---------- */
@@ -711,8 +739,9 @@
         if (wr && !wr.known && wr.due <= td) dueAll++;
       }
     }
+    /* 进度环按「词」算：doneToday 是题数，一阶段答完就会误显 100% */
     var donePct = total
-      ? Math.min(100, Math.round(bs().doneToday / total * 100))
+      ? Math.min(100, Math.round((bw().day.n || 0) / total * 100))
       : (bs().doneToday > 0 ? 100 : 0);
     /* 中间「今日重点」面板：把红框空白区变成有内容的行动区。
        有到期词 → 重点=复习（主按钮变「开始复习」）；无 → 重点=新词任务。
@@ -774,7 +803,7 @@
             '<span>累计 <b>' + (bw().all.n || 0) + '</b></span>' +
           '</div>' +
           '<span class="vc-hero-done">' + (total
-            ? '本轮 ' + total + ' 题 · 已答 ' + bs().doneToday
+            ? '本轮 ' + total + ' 词 · 已答 ' + bs().doneToday + ' 题'
             : '今日 ' + bs().doneToday + ' 题已全部答完') + '</span>' +
         '</div>' +
       '</div>' +
@@ -1028,10 +1057,11 @@
       };
     }
 
-    var list = filteredTough();
     var db = el.querySelector('#vcDrill');
     if (db) db.onclick = function () {
-      var items = list.map(function (it) {
+      /* 搜索框内容随时变：点击时重新按当前筛选取词，
+         不能用在渲染时捕获的 list（否则「专攻 N 个」与实际开局不一致） */
+      var items = filteredTough().map(function (it) {
         var idx = idxOfWord(it.word);
         return idx >= 0 ? { idx: idx, rec: bs().words[it.word], isNew: false } : null;
       }).filter(Boolean);
@@ -1399,6 +1429,12 @@
             if (!window.confirm('导入会覆盖当前全部学习记录（词库进度 / 打卡 / 排行计数），确定？')) return;
             /* 白名单合并：只接受已知字段与合法取值，防恶意 JSON 注入任意顶层键 */
             var clean = emptyState();
+            clean.bw = {
+              day: { k: dayKey8(), n: 0, ms: 0, a: 0, r: 0 },
+              week: { k: weekKey6(), n: 0, ms: 0, a: 0, r: 0 },
+              all: { n: 0, ms: 0, a: 0, r: 0 },
+              posted: {}, mig: 1, mig2: 1
+            };
             if (d.book === 'cet4' || d.book === 'cet6') clean.book = d.book;
             if (DAILY_CHOICES.indexOf(d.dailyNew) >= 0) clean.dailyNew = d.dailyNew;
             if (d.order === 'random' || d.order === 'seq') clean.order = d.order;
@@ -1419,15 +1455,19 @@
               if (src.words && typeof src.words === 'object') {
                 Object.keys(src.words).forEach(function (w) {
                   var wr = src.words[w];
-                  if (!wr || typeof wr !== 'object' || typeof wr.box !== 'number') return;
+                  /* FSRS 记录只有 S/D 没有 box；v2 老档才有 box。
+                     两者都要接受，否则导出→导入会把整本进度丢光 */
+                  if (!wr || typeof wr !== 'object') return;
+                  var hasS = typeof wr.S === 'number' && isFinite(wr.S);
+                  if (!hasS && typeof wr.box !== 'number') return;
                   var rw = {
-                    box: Math.max(0, Math.min(5, wr.box | 0)),
                     due: typeof wr.due === 'number' ? wr.due : 0,
                     seen: typeof wr.seen === 'number' ? wr.seen : 0,
                     wrong: typeof wr.wrong === 'number' ? wr.wrong : 0,
                     known: !!wr.known
                   };
-                  if (typeof wr.S === 'number') {
+                  if (typeof wr.box === 'number') rw.box = Math.max(0, Math.min(5, wr.box | 0));
+                  if (hasS) {
                     rw.S = wr.S;
                     rw.D = typeof wr.D === 'number' ? wr.D : 5;
                     rw.last = typeof wr.last === 'number' ? wr.last : 0;
@@ -1450,6 +1490,9 @@
                 });
               });
             }
+            /* v2 老档（只有 box）走一次迁移；FSRS 记录已有 S，migrateV3 幂等跳过 */
+            clean.ver = 2;
+            migrateV3(clean);
             localStorage.setItem(SAVE_KEY, JSON.stringify(clean));
             location.reload();
           } catch (e) {
@@ -1484,7 +1527,7 @@
     qi = 0;
     answered = false;
     current = null;
-    book = null; extra = { ex: null, roots: null, exam: null }; loading = null; loadErr = '';
+    book = null; extra = { ex: null, roots: null, exam: null }; extraTried = false; extraLoading = null; loading = null; loadErr = '';
     tab = 'today';
     boot();
   }
@@ -1501,7 +1544,9 @@
   /* 某一阶段的题：本局全部词，统一一种题型 */
   function buildStage(n) {
     var kind = STEPS[Math.min(n, STEPS.length - 1)];
-    return sessionWords.map(function (it) {
+    return sessionWords.filter(function (it) {
+      return !isWordKnown(it.idx);
+    }).map(function (it) {
       return {
         idx: it.idx,
         rec: bs().words[book.words[it.idx][0]] || it.rec || null,
@@ -1549,6 +1594,7 @@
       redoRound: redoRound,
       stats: { right: sessionStats.right, wrong: sessionStats.wrong },
       counted: Object.keys(countedWords).map(Number),
+      committed: committed,
       day: todayKey(),
       savedAt: Date.now()
     };
@@ -1567,13 +1613,13 @@
     var sn = state.session;
     if (!sn || !book || sn.day !== todayKey()) { clearSession(); return; }
     sessionWords = (sn.words || []).filter(function (it) {
-      return book.words[it.idx] && book.words[it.idx][0] === it.w;
+      return book.words[it.idx] && book.words[it.idx][0] === it.w && !isWordKnown(it.idx);
     }).map(function (it) {
       return { idx: it.idx, rec: bs().words[book.words[it.idx][0]] || null, isNew: it.isNew };
     });
     stage = Math.min(sn.stage || 0, STEPS.length - 1);
     stageQueue = (sn.stageQueue || []).filter(function (it) {
-      return book.words[it.idx] && book.words[it.idx][0] === it.w;
+      return book.words[it.idx] && book.words[it.idx][0] === it.w && !isWordKnown(it.idx);
     }).map(function (it) {
       return { idx: it.idx, rec: bs().words[book.words[it.idx][0]] || null, kind: it.kind, isRedo: !!it.isRedo };
     });
@@ -1583,14 +1629,15 @@
     sessionStats = { right: (sn.stats && sn.stats.right) || 0, wrong: (sn.stats && sn.stats.wrong) || 0 };
     countedWords = {};
     (sn.counted || []).forEach(function (idx) { countedWords[idx] = 1; });
+    committed = !!sn.committed;
     if (!stageQueue.length || qi >= stageQueue.length) { clearSession(); queue = buildQueue(); renderHome(); return; }
     var my = ++sessionSeq;
     tickStart();
-    ensureExtra().then(function () {
-      if (my !== sessionSeq || !stageQueue.length || !book) return;
-      current = makeQuestion(stageQueue[qi]);
-      renderQuestion();
-    });
+    if (!stageQueue.length || !book) return;
+    if (sn.committed) { advanceStep(); return; }   // 已答未点下一题：续局直接推进
+    current = makeQuestion(stageQueue[qi]);
+    renderQuestion();
+    ensureExtra();
   }
 
   function startSession() {
@@ -1602,18 +1649,18 @@
     stageQueue = buildStage(0);
     qi = 0;
     answered = false;
+    committed = false;
     sessionStats = { right: 0, wrong: 0 };
     countedWords = {};
     persistSession();
     tickStart();
     var my = ++sessionSeq;
-    ensureExtra().then(function () {
-      /* 会话守卫：出题是异步的，等待期间按 Esc（stageQueue 清空）或切词库
-         （book 置 null）会让这里拿到 undefined——幽灵答题屏 + TypeError */
-      if (my !== sessionSeq || !stageQueue.length || !book) return;
-      current = makeQuestion(stageQueue[0]);
-      renderQuestion();
-    });
+    tickStart();
+    /* 首题不等详情数据：拆词/例句 1.4MB 后台加载，背面打开时可能已就绪 */
+    if (!stageQueue.length || !book) return;
+    current = makeQuestion(stageQueue[0]);
+    renderQuestion();
+    ensureExtra();
   }
 
   function makeQuestion(item) {
@@ -1629,7 +1676,8 @@
       meaning: w[2],
       options: null,
       rated: null,
-      revealed: false
+      revealed: false,
+      isRedo: !!item.isRedo
     };
 
     if (kind === 'en2cn') {
@@ -1821,7 +1869,19 @@
     rec.due = dayNum(todayKey()) + 3650;
     bs().words[key] = rec;
     saveState();
-    advanceStep();
+    /* 标熟后从本局所有队列移除：否则后两个阶段还会再出这个词，
+       而且自评会把 due=+3650 覆盖成 +365 */
+    sessionWords = sessionWords.filter(function (it) { return book.words[it.idx][0] !== key; });
+    stageQueue = stageQueue.filter(function (it) { return book.words[it.idx][0] !== key; });
+    redoSet = redoSet.filter(function (idx) { return book.words[idx][0] !== key; });
+    answered = false;
+    if (qi < stageQueue.length) {
+      current = makeQuestion(stageQueue[qi]);
+      persistSession();
+      renderQuestion();
+    } else {
+      advanceStep();
+    }
   }
 
   /* 四选一：点选之后判对错，同时把每个选项的意思都揭开（就地显示） */
@@ -1954,26 +2014,32 @@
     /* answered 在 revealSelfRate 里已经置 true，这里不能再拦 */
 
     var ok = rate === 'know';
-    var idx = current.idx;
 
     if (ok) sessionStats.right++; else sessionStats.wrong++;
     /* 口径统一：自评「认识」也计为答对（此前只有选择题计入 totalRight，
        统计页的正确率因此系统性偏低） */
     if (ok) bs().totalRight = (bs().totalRight || 0) + 1;
+    {
+      var bAcc = bw();
+      bAcc.day.a++; bAcc.week.a++; bAcc.all.a++;
+      if (ok) { bAcc.day.r++; bAcc.week.r++; bAcc.all.r++; }
+    }
     countAnswer();
 
-    /* FSRS 落档：不认识/改判=1 模糊=2 认识=3。选择题答错只做标记
-       （objectiveMiss），不额外惩罚诚实自评 */
-    if (current.objectiveMiss && rate === 'know') {
-      /* 客观题答错过但自评认识：按「模糊」处理，防止盲目自信刷档 */
-      commitWord(idx, 2);
-    } else {
-      commitWord(idx, rate === 'unknown' || current.amended ? 1 : rate === 'vague' ? 2 : 3);
+    /* 重走轮只重练、不二次落档：FSRS 同日二次更新会把 S 压坏。
+       正常轮：选择题答错但自评认识按「模糊」处理，防止盲目自信刷档 */
+    if (!current.isRedo) {
+      if (current.objectiveMiss && rate === 'know') {
+        commitWord(current.idx, 2);
+      } else {
+        commitWord(current.idx, rate === 'unknown' || current.amended ? 1 : rate === 'vague' ? 2 : 3);
+      }
     }
     if (rate === 'unknown' || current.amended || current.objectiveMiss) {
       /* 不认识 / 改判 / 选择题答错过 → 本阶段结束前按当前题型补一轮 */
-      queueRedo(idx);
+      queueRedo(current.idx);
     }
+    committed = true;
     advanceStep();
   }
 
@@ -2006,7 +2072,18 @@
 
     /* FSRS 下客观题阶段不落档（自评才是唯一落档点）；
        答错只做标记，自评阶段会参考它 */
-    if (!ok) current.objectiveMiss = true;
+    if (!ok) {
+      current.objectiveMiss = true;
+      /* 客观题答错也计进生词本：这是最硬的「不会」证据。
+         只有 wrong 计数的记录仍算新词（isLearnedRec 不把它当已学） */
+      var wrongKey = book.words[current.idx][0];
+      var wrongRec = bs().words[wrongKey] || { seen: 0, wrong: 0 };
+      wrongRec.wrong = (wrongRec.wrong || 0) + 1;
+      wrongRec.wrongAt = Date.now();
+      bs().words[wrongKey] = wrongRec;
+      saveState();
+    }
+    committed = true;   // 客观题点选即落；续局时直接推进，不重问
 
     /* 选择题答错：和自评「不认识」一样，把三种题型排到队尾重来一遍。
        选错是客观证据，比自评更该立刻再见一次。 */
@@ -2040,6 +2117,7 @@
     var words = book.words;
     var key = words[idx][0];
     var rec = bs().words[key] || {};
+    if (rec.known || rec.st === 2) return 0;   // 标熟词不再参与调度
     var isNewWord = !(rec.S > 0);
     var today = dayNum(todayKey());
     rec.seen = (rec.seen || 0) + 1;
@@ -2048,10 +2126,14 @@
       rec.wrongAt = Date.now();
     }
     var ivl = commitReview(rec, G, today);
+    /* P0：新词的 rec 是游离对象，不写回 bs().words 会整条丢掉——
+       新用户背完一轮后单词表仍为空，次日也没有复习 */
+    bs().words[key] = rec;
     if (isNewWord) {
       var b0 = bs();
       var tk = todayKey();
       b0.newPerDay[tk] = (b0.newPerDay[tk] || 0) + 1;
+      b0.newDoneToday = (b0.newDoneToday || 0) + 1;   // 学完即扣额度，不等结算
     }
     saveState();
     return ivl;
@@ -2061,6 +2143,17 @@
   function renderBackPanel() {
     var box = el.querySelector('#vcBackPanel');
     if (!box) return;
+    /* 详情数据按需加载：首次打开背面才拉 1.4MB 例句/词根/真题，
+       不再阻塞首题。加载完若还停在同一张卡，自动补渲染一次 */
+    if (!extra.roots || !extra.exam || !extra.ex) {
+      if (!extraTried) {
+        extraTried = true;
+        var wantIdx = current.idx;
+        ensureExtra().then(function () {
+          if (current && current.idx === wantIdx && el.querySelector('#vcBackPanel')) renderBackPanel();
+        });
+      }
+    }
     var idx = current.idx;
     var roots = extra.roots && extra.roots[idx];
     var exam = extra.exam && extra.exam[idx];
@@ -2114,12 +2207,15 @@
   function nextBtnLabel() {
     var lastOfStage = qi + 1 >= stageQueue.length;
     var lastStage = stage + 1 >= STEPS.length;
+    /* 本阶段还有重走词：按钮不说「看结果」，否则点下去又出一题很突兀 */
+    if (lastOfStage && redoSet.length) return '再练一次';
     return lastOfStage && lastStage ? '看结果' : '下一题';
   }
 
   /* 下一题：当前阶段走完就进下一阶段，三个阶段都走完才结算 */
   function advanceStep() {
     answered = false;
+    committed = false;
     qi++;
     if (qi < stageQueue.length) {
       current = makeQuestion(stageQueue[qi]);
@@ -2160,6 +2256,7 @@
      不能直接塞进 stageQueue——advanceStep 换阶段时会整表重建，
      塞进去的题会被丢掉。 */
   function queueRedo(idx) {
+    if (isWordKnown(idx)) return;
     if (redoRound > 0) return;              // 本阶段已补过一轮，不再追加
     if (redoSet.indexOf(idx) < 0) redoSet.push(idx);
   }
@@ -2321,7 +2418,8 @@
       usedNew++;
       if (q.idx > maxNewIdx) maxNewIdx = q.idx;
     });
-    bs().newDoneToday = (bs().newDoneToday || 0) + usedNew;
+    /* 新词额度在 commitWord 首次落档时已逐个扣减，这里只统计展示用的 usedNew，
+       不能再次累加（否则额度双扣、额外练习也失真） */
     if (state.order !== 'random' && maxNewIdx >= 0) {
       bs().seq = Math.max(bs().seq, maxNewIdx + 1);
     }
@@ -2412,8 +2510,8 @@
       current = null;
       renderHome();
       paintLucide(el);
-      /* 背面数据后台预热，答题时不用等 */
-      ensureExtra();
+      /* 详情数据（例句/词根/真题 1.4MB）不再在进模块时预载：
+         首次打开卡片背面时按需加载，见 renderBackPanel */
     }).catch(function () { renderLoadError(); });
   }
 

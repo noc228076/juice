@@ -756,6 +756,9 @@
         if (ti1) ti1.textContent = dark ? '☾' : '☀';
         const ti2 = document.querySelector('#btnTheme2 span');
         if (ti2) ti2.textContent = dark ? '☾' : '☀';
+        /* PWA 状态栏颜色跟随主题：否则浅色页面顶一条黑边 */
+        const tc = document.querySelector('meta[name="theme-color"]');
+        if (tc) tc.setAttribute('content', dark ? '#0B0C10' : '#F5F6F1');
       };
       syncThemeUi(document.documentElement.dataset.theme || 'dark');
       btnTheme.addEventListener('click', () => {

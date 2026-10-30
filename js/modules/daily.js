@@ -1106,7 +1106,9 @@
 
     img.onerror = () => {
       alert('抱歉，壁纸跨域限制暂无法合成海报，已为您直接打开 4K 原图下载！');
-      window.open(activeWp.cover_4k || activeWp.cover, '_blank');
+      const u = activeWp.cover_4k || activeWp.cover || '';
+      /* window.open 同样要拦协议：javascript: 会在继承 origin 的空白页里执行 */
+      if (/^https?:\/\//i.test(u)) window.open(u, '_blank', 'noopener');
     };
   }
 

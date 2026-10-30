@@ -1715,7 +1715,7 @@
     var side = ranks.map(function (r) {
       var on = open && String(open.id) === String(r.id);
       return '<button class="mu-rank-side-item' + (on ? ' active' : '') +
-        '" data-rank="' + r.id + '" data-rank-name="' + esc(r.name) + '">' +
+        '" data-rank="' + esc(r.id) + '" data-rank-name="' + esc(r.name) + '">' +
         '<span class="mu-rank-side-art">' +
           (r.cover ? '<img src="' + esc(r.cover) + '" alt="" loading="lazy">' : icon('Trophy')) +
         '</span>' +
@@ -2588,13 +2588,17 @@
 
     function importLxScript(text) {
       if (!window.LxMusic) { toast('音源内核未加载'); return; }
-      toast('导入中…');
-      window.LxMusic.importScript(text).then(function (r) {
-        toast('已导入：' + r.name + '（' + r.sources.join('/') + '）');
-        renderHome();
-      }).catch(function (e) {
-        toast('导入失败：' + (e && e.message ? e.message : 'unknown'));
-      });
+      askConfirm('导入音源脚本',
+        '脚本由第三方编写，可在沙箱内向任意服务器发起网络请求。\n请只导入可信来源的脚本，确定导入？',
+        function () {
+          toast('导入中…');
+          window.LxMusic.importScript(text).then(function (r) {
+            toast('已导入：' + r.name + '（' + r.sources.join('/') + '）');
+            renderHome();
+          }).catch(function (e) {
+            toast('导入失败：' + (e && e.message ? e.message : 'unknown'));
+          });
+        });
     }
 
     if (lxAdd && lxCode) {

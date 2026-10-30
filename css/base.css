@@ -554,3 +554,20 @@ html[data-theme="light"] .sbti-dim-badge.lvl-L {
 
 /* 内容不足一屏时垂直居中，避免顶部对齐 + 底部大片空白。
    仅在 PC 端生效，移动端仍保持顶部对齐以便自然滚动。 */
+
+/* =========================================================
+   键盘可达性与文本选中
+   -------------------------------------------------------------
+   全站大量按钮写了 outline:none，但只有 input 有 :focus 兜底，
+   键盘 Tab 时焦点完全不可见（WCAG 2.4.7 不达标）。
+   统一给可聚焦元素一条 :focus-visible 环，鼠标点击不会触发。
+   ========================================================= */
+:focus-visible {
+  outline: 2px solid var(--ac);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+::selection {
+  background: var(--ac);
+  color: var(--ac-ink);
+}

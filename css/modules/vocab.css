@@ -631,6 +631,10 @@ html[data-theme="light"] .vc-tab:hover { background: rgba(0, 0, 0, 0.05); }
   text-align: center;
   padding: 46px 20px 40px;
 }
+/* 结算页的正确率环：块级元素不会被 text-align 居中，必须自己 margin auto */
+.vc-done .vc-ring {
+  margin: 0 auto 14px;
+}
 .vc-done .vc-owl {
   width: 148px;
   height: 148px;
@@ -1646,4 +1650,30 @@ html[data-theme="light"] .vc-tab:hover { background: rgba(0, 0, 0, 0.05); }
   }
   .vc-wrap.vc-play .vc-card { margin-top: auto; }
   .vc-wrap.vc-play .vc-playfoot { margin-top: 14px; }
+}
+
+/* ============ 全站壁纸模式：面板必须实底 ============
+   壁纸下全站背景被压成一层亮雾，.vc-panel 的 --card 半透明底
+   会和雾叠在一起，面板边界、正文对比度全部消失。
+   深色壁纸用深实底，浅色壁纸用白实底。 */
+body.has-daily-ambient-bg #mod-vocab .vc-panel,
+body.has-daily-ambient-bg #mod-vocab .vc-card,
+body.has-daily-ambient-bg #mod-vocab .vc-subnav {
+  background: var(--card-solid, #14161E);
+}
+html[data-theme="light"] body.has-daily-ambient-bg #mod-vocab .vc-panel,
+html[data-theme="light"] body.has-daily-ambient-bg #mod-vocab .vc-card,
+html[data-theme="light"] body.has-daily-ambient-bg #mod-vocab .vc-subnav {
+  background: #FFFFFF;
+}
+/* 壁纸下答题卡的选项/输入框也提一档实底，避免和面板同色糊掉 */
+body.has-daily-ambient-bg #mod-vocab .vc-opt,
+body.has-daily-ambient-bg #mod-vocab .vc-rate-btn,
+body.has-daily-ambient-bg #mod-vocab .vc-input {
+  background: rgba(255, 255, 255, 0.06);
+}
+html[data-theme="light"] body.has-daily-ambient-bg #mod-vocab .vc-opt,
+html[data-theme="light"] body.has-daily-ambient-bg #mod-vocab .vc-rate-btn,
+html[data-theme="light"] body.has-daily-ambient-bg #mod-vocab .vc-input {
+  background: rgba(20, 24, 18, 0.05);
 }

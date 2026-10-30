@@ -2476,8 +2476,11 @@
       bs().streak = (bs().streak || 0) + 1;
     }
     /* 新词额度按「本局出现过的新词」去重统计（混合队列里同一词有多条） */
+    /* usedNew 必须按本局实际学过的词（sessionWords）算，不能按 queue：
+       续局路径不重建 queue，用 queue 会把「今日待办」当成「本局新词」，
+       出现答了 3 个新词却显示 0 的错位 */
     var usedNew = 0, maxNewIdx = -1, seenNew = {};
-    queue.forEach(function (q) {
+    sessionWords.forEach(function (q) {
       if (!q.isNew || seenNew[q.idx]) return;
       seenNew[q.idx] = 1;
       usedNew++;

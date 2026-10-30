@@ -83,12 +83,12 @@
     // 残留的 pendingSeek 会把存档那首的旧进度写进当前这首的记录
     var livePos = (pendingSeek && cur && pendingSeek.id === cur.id)
       ? pendingSeek.pos : knownPos;
-    // 位置每 2 秒单独写（几十字节）；快照只在队列/曲目变化时才值得重写，
-    // 否则 118 首的队列会以 ~77KB/2秒 的频率全量 stringify + 落盘
+    // 位置与当前索引每 2 秒单独写（几十字节）；完整队列快照只在队列结构变化时才重写，
+    // 否则同队列内切歌会以 ~80KB 的频率全量 stringify + 落盘
     try {
-      localStorage.setItem(POS_KEY, JSON.stringify({ id: cur ? cur.id : '', pos: livePos }));
+      localStorage.setItem(POS_KEY, JSON.stringify({ id: cur ? cur.id : '', qi: qi, pos: livePos }));
     } catch (e) {}
-    var sig = queue.map(function (x) { return x.id; }).join(',') + '|' + qName + '|' + qi;
+    var sig = queue.map(function (x) { return x.id; }).join(',') + '|' + qName;
     if (sig === liveSig) return;
     try {
       localStorage.setItem(LIVE_KEY, JSON.stringify({
@@ -127,9 +127,10 @@
       if (!raw) return null;
       var d = JSON.parse(raw);
       if (!d || !Array.isArray(d.queue) || !d.queue.length) return null;
-      // 播放位置以 POS_KEY 为准：快照里的 pos 是队列/曲目变化那一刻的旧值
+      // 当前曲目与播放位置以 POS_KEY 为准：快照里的 qi/pos 是队列变化那一刻的旧值
       try {
         var pk = JSON.parse(localStorage.getItem(POS_KEY) || 'null');
+        if (pk && typeof pk.qi === 'number' && pk.qi >= 0 && pk.qi < d.queue.length) d.qi = pk.qi;
         var ct = d.queue[d.qi];
         if (pk && ct && pk.id === ct.id && typeof pk.pos === 'number') d.pos = pk.pos;
       } catch (e) {}

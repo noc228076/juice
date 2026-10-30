@@ -1118,6 +1118,7 @@
     var known = knownCount();
     var total = book ? book.words.length : 0;
     var pct = total ? Math.round(known / total * 100) : 0;
+    var pctLabel = (known > 0 && pct === 0) ? '<1%' : (pct + '%');
 
     /* FSRS 记忆状态：按下次复习日分桶 + 未来 7 天复习预报 */
     var td = dayNum(todayKey());
@@ -1133,29 +1134,34 @@
       if (r0.known || r0.st === 2 || !(r0.S > 0)) continue;
       learning++;
       var dd = (r0.due || 0) - td;
-      if (dd <= 0) buckets[0].n++;
-      else if (dd === 1) buckets[1].n++;
-      else if (dd <= 7) buckets[2].n++;
-      else if (dd <= 30) buckets[3].n++;
-      else buckets[4].n++;
-      if (dd >= 0 && dd <= 6) forecast[dd]++;
+      if (dd <= 0) {
+        buckets[0].n++;
+        forecast[0]++;   // 逾期词并入今天（今天要做完），与今日到期口径一致
+      } else {
+        if (dd === 1) buckets[1].n++;
+        else if (dd <= 7) buckets[2].n++;
+        else if (dd <= 30) buckets[3].n++;
+        else buckets[4].n++;
+        if (dd <= 6) forecast[dd]++;
+      }
     }
 
-    /* 预计完成日期：最近 14 天实际日均新词（不足 3 天数据回退设置值） */
+    /* 预计完成日期：最近 14 个自然日的日均新词速度（不足 3 天有记录则回退设置值） */
     var etaText = '';
     if (pct < 100) {
       var npd = bs().newPerDay || {};
-      var sum14 = 0, cnt14 = 0;
+      var sum14 = 0, activeDays = 0;
       for (var di = 1; di <= 14; di++) {
         var dd2 = new Date(Date.now() - di * 86400000);
         var kk = dd2.getFullYear() + '-' + (dd2.getMonth() + 1) + '-' + dd2.getDate();
-        if (npd[kk] != null) { sum14 += npd[kk]; cnt14++; }
+        if (npd[kk] != null && npd[kk] > 0) { sum14 += npd[kk]; activeDays++; }
       }
-      var daily = cnt14 >= 3 ? Math.max(1, Math.round(sum14 / cnt14))
+      var daily = activeDays >= 3 ? Math.max(1, Math.round(sum14 / 14))
         : Math.max(1, typeof state.dailyNew === 'number' ? state.dailyNew : 15);
       var etaDays = Math.ceil((total - known) / daily);
       var eta = new Date(Date.now() + etaDays * 86400000);
-      etaText = '按最近日均 <b>' + daily + '</b> 词，预计 <b>' + (eta.getMonth() + 1) + ' 月 ' +
+      var yearPart = eta.getFullYear() === new Date().getFullYear() ? '' : (eta.getFullYear() + ' 年 ');
+      etaText = '按最近日均 <b>' + daily + '</b> 词，预计 <b>' + yearPart + (eta.getMonth() + 1) + ' 月 ' +
         eta.getDate() + ' 日</b> 前后拿下整本（未计复习增长）。';
     }
 
@@ -1184,7 +1190,7 @@
             'stroke-linecap="round" stroke-dasharray="' + CIRC + '" ' +
             'stroke-dashoffset="' + Math.round(CIRC * (1 - pct / 100)) + '" transform="rotate(-90 64 64)"/>' +
         '</svg>' +
-        '<div class="vc-ring-num"><b>' + pct + '%</b><span>' + known + ' / ' + total + ' 词</span></div>' +
+        '<div class="vc-ring-num"><b>' + pctLabel + '</b><span>' + known + ' / ' + total + ' 词</span></div>' +
       '</div>' +
       '<div class="vc-ring-side">' +
         '<p class="vc-ring-goal">' + (pct >= 100

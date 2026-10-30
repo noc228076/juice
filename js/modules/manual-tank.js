@@ -190,6 +190,11 @@
     var rafId = 0, lastTs = 0;
     var canvasEl = null, ctx = null;
     var overTimer = 0, pendingResult = null;
+    /* 离屏静态地形缓存（冲 60fps：每帧从 169 次瓦片重绘减为 1 次 drawImage） */
+    var staticCv = document.createElement('canvas');
+    staticCv.width = W; staticCv.height = W;
+    var sctx = staticCv.getContext('2d');
+    var mapDirty = true;
 
     /* ---------- 工具 ---------- */
     function rand(a, b) { return a + Math.random() * (b - a); }
@@ -323,6 +328,7 @@
       freezeT = 0; shovelT = 0;
       baseAlive = true;
       powerup = null;
+      mapDirty = true;
     }
 
     /* ---------- 地形 ---------- */
@@ -382,6 +388,7 @@
         brickMask[r][c] = type === BRICK ? 0xFFFF : 0;
         steelMask[r][c] = type === STEEL ? 0xF : 0;
       }
+      mapDirty = true;
     }
     function damageBricks(x, y, w, h) {
       var hit = false;
@@ -407,6 +414,7 @@
           if (m === 0) tiles[r][c] = EMPTY;
         }
       }
+      if (hit) mapDirty = true;
       return hit;
     }
     function damageSteel(x, y, w, h) {
@@ -433,6 +441,7 @@
           if (m === 0) tiles[r][c] = EMPTY;
         }
       }
+      if (hit) mapDirty = true;
       return hit;
     }
     function steelBlocks(x, y, w, h) {
@@ -613,6 +622,7 @@
       tiles[r][c] = EMPTY;
       brickMask[r][c] = 0;
       steelMask[r][c] = 0;
+      mapDirty = true;
     }
     function onIce(t) {
       var c = Math.floor(tankCx(t) / TILE);
@@ -1078,49 +1088,73 @@
     }
 
     /* ---------- 绘制 ---------- */
-    function drawBrickTile(m, x, y) {
-      if (!m) return;
-      ctx.save();
-      ctx.beginPath();
-      for (var sr = 0; sr < 4; sr++) {
-        for (var sc = 0; sc < 4; sc++) {
-          if (m & (1 << (sr * 4 + sc))) ctx.rect(x + sc * SUB, y + sr * SUB, SUB, SUB);
+    /* 静态地形（背景/网格/砖/钢/冰）渲染到离屏画布，地形变化时置 mapDirty 重画；
+       每帧只做一次 drawImage，把 169 次瓦片重绘（含 clip/渐变）降为 1 次位图拷贝 */
+    function drawStatic() {
+      sctx.clearRect(0, 0, W, W);
+      sctx.fillStyle = '#0B0E14';
+      sctx.fillRect(0, 0, W, W);
+      sctx.strokeStyle = 'rgba(255,255,255,.032)';
+      sctx.lineWidth = 1;
+      for (var i = 1; i < GRID; i++) {
+        var p = i * TILE + 0.5;
+        sctx.beginPath(); sctx.moveTo(p, 0); sctx.lineTo(p, W); sctx.stroke();
+        sctx.beginPath(); sctx.moveTo(0, p); sctx.lineTo(W, p); sctx.stroke();
+      }
+      for (var r = 0; r < GRID; r++) {
+        for (var c = 0; c < GRID; c++) {
+          var t = tiles[r][c];
+          var x = c * TILE, y = r * TILE;
+          if (t === BRICK) drawBrickTile(sctx, brickMask[r][c], x, y);
+          else if (t === STEEL) drawSteelTile(sctx, steelMask[r][c], x, y);
+          else if (t === ICE) drawIceTile(sctx, x, y);
         }
       }
-      ctx.clip();
-      ctx.fillStyle = '#4A2010';
-      ctx.fillRect(x, y, TILE, TILE);
+      mapDirty = false;
+    }
+    function drawBrickTile(g, m, x, y) {
+      if (!m) return;
+      g.save();
+      g.beginPath();
+      for (var sr = 0; sr < 4; sr++) {
+        for (var sc = 0; sc < 4; sc++) {
+          if (m & (1 << (sr * 4 + sc))) g.rect(x + sc * SUB, y + sr * SUB, SUB, SUB);
+        }
+      }
+      g.clip();
+      g.fillStyle = '#4A2010';
+      g.fillRect(x, y, TILE, TILE);
       for (var r = 0; r < 4; r++) {
         for (var c = 0; c < 4; c++) {
           var px = x + c * SUB, py = y + r * SUB;
-          ctx.fillStyle = '#B5532C';
-          ctx.fillRect(px + 1, py + 1, SUB - 2, SUB - 2);
-          ctx.fillStyle = 'rgba(255,220,180,.18)';
-          ctx.fillRect(px + 1, py + 1, SUB - 2, 2);
-          ctx.fillStyle = 'rgba(0,0,0,.22)';
-          ctx.fillRect(px + 1, py + SUB - 3, SUB - 2, 2);
+          g.fillStyle = '#B5532C';
+          g.fillRect(px + 1, py + 1, SUB - 2, SUB - 2);
+          g.fillStyle = 'rgba(255,220,180,.18)';
+          g.fillRect(px + 1, py + 1, SUB - 2, 2);
+          g.fillStyle = 'rgba(0,0,0,.22)';
+          g.fillRect(px + 1, py + SUB - 3, SUB - 2, 2);
         }
       }
-      ctx.restore();
+      g.restore();
     }
-    function drawSteelTile(m, x, y) {
+    function drawSteelTile(g, m, x, y) {
       if (!m) return;
       for (var sr = 0; sr < 2; sr++) {
         for (var sc = 0; sc < 2; sc++) {
           if (!(m & (1 << (sr * 2 + sc)))) continue;
           var px = x + sc * STEEL_SUB, py = y + sr * STEEL_SUB;
-          ctx.fillStyle = '#4D5566';
-          ctx.fillRect(px, py, STEEL_SUB, STEEL_SUB);
-          ctx.fillStyle = '#9AA5B8';
-          ctx.fillRect(px + 1, py + 1, STEEL_SUB - 2, STEEL_SUB - 2);
-          ctx.fillStyle = 'rgba(255,255,255,.55)';
-          ctx.fillRect(px + 1, py + 1, STEEL_SUB - 2, 2);
-          ctx.fillRect(px + 1, py + 1, 2, STEEL_SUB - 2);
-          ctx.fillStyle = 'rgba(0,0,0,.30)';
-          ctx.fillRect(px + 1, py + STEEL_SUB - 3, STEEL_SUB - 2, 2);
-          ctx.fillRect(px + STEEL_SUB - 3, py + 1, 2, STEEL_SUB - 2);
-          ctx.fillStyle = '#DFE6F0';
-          ctx.fillRect(px + STEEL_SUB / 2 - 3, py + STEEL_SUB / 2 - 3, 6, 6);
+          g.fillStyle = '#4D5566';
+          g.fillRect(px, py, STEEL_SUB, STEEL_SUB);
+          g.fillStyle = '#9AA5B8';
+          g.fillRect(px + 1, py + 1, STEEL_SUB - 2, STEEL_SUB - 2);
+          g.fillStyle = 'rgba(255,255,255,.55)';
+          g.fillRect(px + 1, py + 1, STEEL_SUB - 2, 2);
+          g.fillRect(px + 1, py + 1, 2, STEEL_SUB - 2);
+          g.fillStyle = 'rgba(0,0,0,.30)';
+          g.fillRect(px + 1, py + STEEL_SUB - 3, STEEL_SUB - 2, 2);
+          g.fillRect(px + STEEL_SUB - 3, py + 1, 2, STEEL_SUB - 2);
+          g.fillStyle = '#DFE6F0';
+          g.fillRect(px + STEEL_SUB / 2 - 3, py + STEEL_SUB / 2 - 3, 6, 6);
         }
       }
     }
@@ -1142,17 +1176,17 @@
         ctx.stroke();
       }
     }
-    function drawIceTile(x, y) {
-      ctx.fillStyle = '#C9E4F2';
-      ctx.fillRect(x, y, TILE, TILE);
-      ctx.strokeStyle = 'rgba(255,255,255,.75)';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(x + 6, y + 8); ctx.lineTo(x + 22, y + 30);
-      ctx.moveTo(x + 30, y + 5); ctx.lineTo(x + 14, y + 34);
-      ctx.stroke();
-      ctx.strokeStyle = 'rgba(80,140,180,.35)';
-      ctx.strokeRect(x + 0.5, y + 0.5, TILE - 1, TILE - 1);
+    function drawIceTile(g, x, y) {
+      g.fillStyle = '#C9E4F2';
+      g.fillRect(x, y, TILE, TILE);
+      g.strokeStyle = 'rgba(255,255,255,.75)';
+      g.lineWidth = 2;
+      g.beginPath();
+      g.moveTo(x + 6, y + 8); g.lineTo(x + 22, y + 30);
+      g.moveTo(x + 30, y + 5); g.lineTo(x + 14, y + 34);
+      g.stroke();
+      g.strokeStyle = 'rgba(80,140,180,.35)';
+      g.strokeRect(x + 0.5, y + 0.5, TILE - 1, TILE - 1);
     }
     function drawForestTile(x, y, time) {
       ctx.save();
@@ -1417,24 +1451,12 @@
     }
     function draw(time) {
       if (!ctx) return;
+      if (mapDirty) drawStatic();
       ctx.clearRect(0, 0, W, W);
-      ctx.fillStyle = '#0B0E14';
-      ctx.fillRect(0, 0, W, W);
-      ctx.strokeStyle = 'rgba(255,255,255,.032)';
-      ctx.lineWidth = 1;
-      for (var i = 1; i < GRID; i++) {
-        var p = i * TILE + 0.5;
-        ctx.beginPath(); ctx.moveTo(p, 0); ctx.lineTo(p, W); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(0, p); ctx.lineTo(W, p); ctx.stroke();
-      }
+      ctx.drawImage(staticCv, 0, 0);
       for (var r = 0; r < GRID; r++) {
         for (var c = 0; c < GRID; c++) {
-          var t = tiles[r][c];
-          var x = c * TILE, y = r * TILE;
-          if (t === BRICK) drawBrickTile(brickMask[r][c], x, y);
-          else if (t === STEEL) drawSteelTile(steelMask[r][c], x, y);
-          else if (t === WATER) drawWaterTile(x, y, time);
-          else if (t === ICE) drawIceTile(x, y);
+          if (tiles[r][c] === WATER) drawWaterTile(c * TILE, r * TILE, time);
         }
       }
       drawBase(time);

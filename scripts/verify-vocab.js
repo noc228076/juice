@@ -20,7 +20,12 @@ function check(name, ok, detail) {
   const page = await ctx.newPage();
   const errors = [];
   page.on('pageerror', e => errors.push(String(e)));
-  page.on('console', m => { if (m.type() === 'error') errors.push('console: ' + m.text()); });
+  page.on('console', m => {
+    if (m.type() !== 'error') return;
+    // 榜单 429 是服务端限流的正常响应（e2e 会在 60s 内连开 7+ 局），不是页面错误
+    if (/429/.test(m.text())) return;
+    errors.push('console: ' + m.text());
+  });
 
   const fresh = async (hash) => {
     await page.goto(BASE + '?t=' + Date.now() + '#' + hash, { waitUntil: 'domcontentloaded' });

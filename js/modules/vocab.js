@@ -105,6 +105,8 @@
       /* FSRS 目标保留率与最大间隔（仅有的两个算法参数） */
       requestRetention: 0.9,
       maxInterval: 365,
+      /* 拼写阶段：开启后每局在中选英与自评之间加一轮听音拼写 */
+      spell: false,
       /* 全服榜计数（跨词库累计） */
       bw: null,
       /* 每个词库一份独立进度，切换词库不再清空 */
@@ -574,10 +576,12 @@
   var committed = false;   // 本題已落档（客观题点选即落，自评点下一题才落）
   var current = null;
   var sessionStats = { right: 0, wrong: 0 };
-  /* 混合队列：每个词都出三种题型（英选中 / 中选英 / 自评），
-     全部展开后打散，同一个词不会连着出现。进度按「题」算。
-     自评改判「不认识」→ 该词在阶段末按当前题型补走一轮。 */
-  var STEPS = ['en2cn', 'cn2en', 'selfrate'];
+  /* 阶段序列：默认三阶段；设置里开「拼写」后在中选英与自评之间插一阶段。
+     会话快照按 item.kind 存题型，中途切换设置不影响进行中的局。 */
+  function steps() {
+    return state.spell ? ['en2cn', 'cn2en', 'spell', 'selfrate'] : ['en2cn', 'cn2en', 'selfrate'];
+  }
+  var STEPS = steps();   // 兼容旧引用点：会话开始时刷新
   /* 三阶段，严格按顺序：
        阶段 1 英选中：本局全部词
        阶段 2 中选英：本局全部词
@@ -1299,7 +1303,8 @@
           '每一轮都是全部单词过一遍：' +
           '第一轮 英选中：看单词挑中文释义。' +
           '第二轮 中选英：看中文挑英文单词。' +
-          '第三轮 自评：给单词，自己判断「认识 / 模糊 / 不认识」，点完揭示释义。' +
+          (state.spell ? '第三轮 拼写：看释义听发音，键盘拼出单词。' : '') +
+          '最后 自评：给单词，自己判断「认识 / 模糊 / 不认识」，点完揭示释义。' +
           '选择题答错的词，会在当轮结束前多走一轮；' +
           '自评点「认识」后若发现其实不会，可以改判成「不认识」，这个词会在本轮结束前再出现一次。' +
         '</div>' +
@@ -1307,8 +1312,9 @@
           '<span class="vc-flow-step">① 英选中</span>' +
           '<i>→</i>' +
           '<span class="vc-flow-step">② 中选英</span>' +
+          (state.spell ? '<i>→</i><span class="vc-flow-step">③ 拼写</span>' : '') +
           '<i>→</i>' +
-          '<span class="vc-flow-step">③ 自评</span>' +
+          '<span class="vc-flow-step">' + (state.spell ? '④' : '③') + ' 自评</span>' +
         '</div>' +
       '</div>' +
 
@@ -1320,6 +1326,15 @@
             return '<button type="button" class="vc-chip' + (Math.abs((state.requestRetention || 0.9) - p[0]) < 0.001 ? ' active' : '') +
               '" data-ret="' + p[0] + '">' + p[1] + '</button>';
           }).join('') + '</div>' +
+      '</div>' +
+
+      '<div class="vc-field">' +
+        '<div class="vc-field-h">拼写阶段</div>' +
+        '<div class="vc-field-d">开启后每局在中选英与自评之间加一轮「听音拼写」：看释义、听发音，键盘拼出单词。更费时间，但对写作和听力帮助大。</div>' +
+        '<div class="vc-chips">' +
+          '<button type="button" class="vc-chip' + (!state.spell ? ' active' : '') + '" data-spell="off">关闭</button>' +
+          '<button type="button" class="vc-chip' + (state.spell ? ' active' : '') + '" data-spell="on">开启</button>' +
+        '</div>' +
       '</div>' +
 
       '<div class="vc-field">' +
@@ -1381,6 +1396,17 @@
         if (Math.abs((state.requestRetention || 0.9) - v) < 0.001) return;
         if (window.SFX && window.SFX.tap) window.SFX.tap();
         state.requestRetention = v;
+        saveState();
+        queue = buildQueue();
+        renderHome();
+      };
+    });
+    el.querySelectorAll('[data-spell]').forEach(function (b) {
+      b.onclick = function () {
+        var on = b.getAttribute('data-spell') === 'on';
+        if (!!state.spell === on) return;
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        state.spell = on;
         saveState();
         queue = buildQueue();
         renderHome();
@@ -1544,12 +1570,12 @@
      关掉的题型不出现，退到该词最合适的那个还开着的题型。
      —— 三个都关掉时兜底成认词，否则玩家会卡在空屏。 */
   function kindOf(item) {
-    return (item && item.kind) || STEPS[Math.min(stage, STEPS.length - 1)];
+    return (item && item.kind) || steps()[Math.min(stage, steps().length - 1)];
   }
 
   /* 某一阶段的题：本局全部词，统一一种题型 */
   function buildStage(n) {
-    var kind = STEPS[Math.min(n, STEPS.length - 1)];
+    var kind = steps()[Math.min(n, steps().length - 1)];
     return sessionWords.filter(function (it) {
       return !isWordKnown(it.idx);
     }).map(function (it) {
@@ -1565,6 +1591,7 @@
   function kindLabel(k) {
     if (k === 'en2cn') return '英选中';
     if (k === 'cn2en') return '中选英';
+    if (k === 'spell') return '拼写';
     if (k === 'selfrate') return '自评';
     return '英选中';
   }
@@ -1623,7 +1650,7 @@
     }).map(function (it) {
       return { idx: it.idx, rec: bs().words[book.words[it.idx][0]] || null, isNew: it.isNew };
     });
-    stage = Math.min(sn.stage || 0, STEPS.length - 1);
+    stage = Math.min(sn.stage || 0, steps().length - 1);
     stageQueue = (sn.stageQueue || []).filter(function (it) {
       return book.words[it.idx] && book.words[it.idx][0] === it.w && !isWordKnown(it.idx);
     }).map(function (it) {
@@ -1648,6 +1675,7 @@
 
   function startSession() {
     if (!queue.length) { buildAndStart(); return; }
+    STEPS = steps();
     sessionWords = queue.map(function (q) { return { idx: q.idx, rec: q.rec || null, isNew: q.isNew }; });
     stage = 0;
     redoSet = [];
@@ -1741,6 +1769,18 @@
             '</button>';
           }).join('') +
         '</div>';
+    } else if (w.kind === 'spell') {
+      /* 拼写：看释义 + 听音，键盘输入单词（不区分大小写，忽略首尾空白） */
+      inner =
+        '<div class="vc-word cn">' + esc(w.meaning) + '</div>' +
+        '<div class="vc-phon">' + esc(w.phonetic || '') +
+          (canSpeak ? '<button class="vc-speak" type="button" id="vcSpeak" aria-label="朗读">🔊</button>' : '') +
+        '</div>' +
+        '<div class="vc-spell">' +
+          '<div class="vc-spell-hint">听音拼出这个单词 · 首字母 <b>' + esc(w.word.charAt(0).toLowerCase()) + '</b> · 共 ' + w.word.length + ' 个字母</div>' +
+          '<input class="vc-input" id="vcSpellInput" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" placeholder="输入单词…" aria-label="拼写单词">' +
+          '<div class="vc-spell-actions"><button class="vc-btn primary" id="vcSpellSubmit" type="button">提交</button></div>' +
+        '</div>';
     } else {
       inner =
         '<div class="vc-word">' + esc(w.word) + '</div>' +
@@ -1807,6 +1847,25 @@
         onRate(b.getAttribute('data-rate'));
       };
     });
+
+    /* 拼写题：提交按钮 + 回车；出题即朗读（听音拼写），无语音时靠首字母/长度提示 */
+    var si = el.querySelector('#vcSpellInput');
+    var ss = el.querySelector('#vcSpellSubmit');
+    if (si && ss) {
+      var submitSpell = function () {
+        if (answered) return;
+        var val = (si.value || '').trim().toLowerCase();
+        if (!val) { si.focus(); return; }
+        answered = true;
+        finishAnswer(val === String(current.word).toLowerCase(), val);
+      };
+      ss.onclick = submitSpell;
+      si.onkeydown = function (e) {
+        if (e.key === 'Enter') { e.preventDefault(); submitSpell(); }
+      };
+      if (window.AppVocabData.canSpeak()) window.AppVocabData.speak(current.word);
+      si.focus();
+    }
   }
 
   /* ---------- 键盘快捷键 ----------
@@ -2212,7 +2271,7 @@
 
   function nextBtnLabel() {
     var lastOfStage = qi + 1 >= stageQueue.length;
-    var lastStage = stage + 1 >= STEPS.length;
+    var lastStage = stage + 1 >= steps().length;
     /* 本阶段还有重走词：按钮不说「看结果」，否则点下去又出一题很突兀 */
     if (lastOfStage && redoSet.length) return '再练一次';
     return lastOfStage && lastStage ? '看结果' : '下一题';
@@ -2232,7 +2291,7 @@
 
     /* 本阶段走完：先把阶段内答错的词按同一题型补一轮 */
     if (redoSet.length) {
-      var kind = STEPS[Math.min(stage, STEPS.length - 1)];
+      var kind = steps()[Math.min(stage, steps().length - 1)];
       stageQueue = redoSet.map(function (idx) {
         return { idx: idx, rec: bs().words[book.words[idx][0]] || null, kind: kind, isRedo: true };
       });
@@ -2245,7 +2304,7 @@
       return;
     }
 
-    if (stage + 1 < STEPS.length) {
+    if (stage + 1 < steps().length) {
       stage++;
       redoRound = 0;
       stageQueue = buildStage(stage);

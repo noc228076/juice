@@ -711,6 +711,11 @@ curl -s "https://juice.noooc.dpdns.org/js/app.bundle.js?v=100" | grep -c "你的
 本节记录一轮 8 个 subagent 交叉审查后的结构性变更，供后续会话快速对齐：
 
 ### 背单词（vocab.js / vocab-data.js，v502+）
+- 拼写阶段（2026-10-30，v524+）：设置「拼写阶段」开关，开启后 steps() = 英选中→中选英→拼写→自评；
+  会话快照按 item.kind 存题型，中途切设置不影响进行中的局。拼写屏 #vcSpellInput/#vcSpellSubmit，
+  出题即 TTS 朗读，大小写/首尾空白不敏感。
+- e2e 现共 9 套 101 项：verify-vocab{,-keys,-stages,-redo,-ui,-vague,-resume,-persist,-spell}。
+  控制台断言需过滤 429（榜单限流是正常响应）。
 - 调度已从 Leitner 盒子升级为 **FSRS-4.5 简化版**：每词 {S 稳定性, D 难度, due, last, reps, lapses, st}；
   官方 17 权重硬编码在 vocab.js 顶部；落档唯一入口是自评阶段 commitWord → commitReview
   （客观题阶段不落档——同词一局升 3 档的旧口径已废弃）。

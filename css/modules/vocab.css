@@ -571,6 +571,11 @@ html[data-theme="light"] .vc-tab:hover { background: rgba(0, 0, 0, 0.05); }
     font-style: normal;
   }
   .vc-opt { padding-left: 42px; }
+  /* 多行选项时编号贴第一行，不再在整行高度里垂直居中 */
+  .vc-opt.word-opt .vc-opt-key {
+    top: 12px;
+    transform: none;
+  }
   .vc-opt.right .vc-opt-key, .vc-opt.wrong .vc-opt-key { color: inherit; opacity: 0.75; }
 }
 
@@ -994,6 +999,11 @@ html[data-theme="light"] .vc-tab:hover { background: rgba(0, 0, 0, 0.05); }
   letter-spacing: 0;
   /* 中文释义可能较长，行高放宽、不再用单词那种紧排 */
 }
+/* 长释义（>16 字）再降一档：27px 下多义项要折三四行，卡片过高 */
+.vc-word.cn.small {
+  font-size: 21px;
+  line-height: 1.55;
+}
 .vc-opts.word-opts { margin-top: 24px; }
 .vc-opt.word-opt {
   font-size: 17px;
@@ -1148,6 +1158,20 @@ html[data-theme="light"] .vc-tab:hover { background: rgba(0, 0, 0, 0.05); }
   font-size: 12.5px;
   color: var(--tx-faint);
   text-align: right;
+}
+/* 中选英：单词保持自身宽度，释义占剩余宽度并「左对齐」换行。
+   长释义（多词性/多义项，如 rot）此前右对齐折成三行锯齿，
+   行内单词被挤到一边，整行看起来是歪的 */
+.vc-opt.word-opt {
+  align-items: flex-start;
+}
+.vc-opt.word-opt .vc-opt-txt { flex: 0 0 auto; }
+.vc-opt.word-opt .vc-opt-more {
+  flex: 1 1 0;
+  min-width: 0;
+  text-align: left;
+  line-height: 1.4;
+  padding-top: 1px;
 }
 .vc-opt-more.show { display: block; }
 .vc-opt.right .vc-opt-more { color: var(--ok); opacity: 0.9; }

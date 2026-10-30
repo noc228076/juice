@@ -1758,8 +1758,10 @@
           }).join('') +
         '</div>';
     } else if (w.kind === 'cn2en') {
+      /* 长释义降一档字号：34px 下 30 字要折三行，把卡片撑得很高 */
+      var cnCls = w.meaning.length > 16 ? ' vc-word cn small' : ' vc-word cn';
       inner =
-        '<div class="vc-word cn">' + esc(w.meaning) + '</div>' +
+        '<div class="' + cnCls + '">' + esc(w.meaning) + '</div>' +
         '<div class="vc-opts word-opts" id="vcOpts">' +
           w.options.map(function (o, i) {
             return '<button class="vc-opt word-opt" type="button" data-i="' + i + '">' +
@@ -1771,8 +1773,9 @@
         '</div>';
     } else if (w.kind === 'spell') {
       /* 拼写：看释义 + 听音，键盘输入单词（不区分大小写，忽略首尾空白） */
+      var spCls = w.meaning.length > 16 ? ' vc-word cn small' : ' vc-word cn';
       inner =
-        '<div class="vc-word cn">' + esc(w.meaning) + '</div>' +
+        '<div class="' + spCls + '">' + esc(w.meaning) + '</div>' +
         '<div class="vc-phon">' + esc(w.phonetic || '') +
           (canSpeak ? '<button class="vc-speak" type="button" id="vcSpeak" aria-label="朗读">🔊</button>' : '') +
         '</div>' +

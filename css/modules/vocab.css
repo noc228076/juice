@@ -1635,3 +1635,15 @@ html[data-theme="light"] .vc-tab:hover { background: rgba(0, 0, 0, 0.05); }
   .vc-fc-d b { font-size: 14px; }
   .vc-fc-d span { font-size: 9.5px; }
 }
+
+/* 移动端答题屏：顶栏与进度条留在顶部，卡片压到下半屏（单手拇指可达）。
+   桌面保持顶部对齐不变 */
+@media (max-width: 640px) {
+  .vc-wrap.vc-play {
+    display: flex;
+    flex-direction: column;
+    min-height: calc(100dvh - 96px);
+  }
+  .vc-wrap.vc-play .vc-card { margin-top: auto; }
+  .vc-wrap.vc-play .vc-playfoot { margin-top: 14px; }
+}

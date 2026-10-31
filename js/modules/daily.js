@@ -806,14 +806,22 @@
     if (window.SFX && window.SFX.tap) window.SFX.tap();
   }
 
-  // ================= 3. 必应 4K 每日壁纸 =================
-  // bing.biturl.top 返回 { start_date, end_date, url, copyright, copyright_link }，
-  // 字段与 60s 的 bing 接口不同，这里统一归一化，避免渲染层到处判空。
+  /* ================== 壁纸来源 ==================
+     bing   必应每日（biturl API，近 8 日画廊）
+     random 随机灵感（picsum.photos，免 key，seed 可复现）
+     custom 我的壁纸（用户粘贴 https 图片直链，仅存本机，最多 8 张） */
+  const WP_SOURCE_KEY = 'juice_daily_wp_source';
+  const WP_CUSTOM_KEY = 'juice_daily_wp_custom';
+  let wpSource = 'bing';
+  let customWps = [];
+  let randomItems = [];
+
   function normalizeBingWallpaper(raw) {
     if (!raw || !raw.url) return null;
     const copyright = String(raw.copyright || '').trim();
     const title = copyright.split('(')[0].trim() || '今日必应壁纸';
     return {
+      source: 'bing',
       title: title,
       copyright: copyright,
       description: copyright,
@@ -821,6 +829,28 @@
       cover_4k: raw.url.replace('_1920x1080.jpg', '_UHD.jpg'),
       date: raw.end_date || raw.start_date || dateKey(new Date())
     };
+  }
+
+  /* https 图片直链白名单校验：设为全站背景的 URL 会拼进 CSS url("...")，
+     必须是 https 直链且不含引号/括号/空白（CSS 字符串逃逸字符）。
+     必应直链天然满足；随机源与用户自定义链接靠它放行。 */
+  function isSafeImgUrl(u) {
+    u = String(u || '');
+    return /^https:\/\/\S+$/i.test(u) && !/["')\s]/.test(u);
+  }
+
+  /* 图片可加载性预检（8s 超时）：坏链接不进画廊、不上全站背景 */
+  function preloadImage(url) {
+    return new Promise((resolve) => {
+      const im = new Image();
+      let done = false;
+      const finish = (ok) => { if (!done) { done = true; clearTimeout(timer); resolve(ok); } };
+      const timer = setTimeout(() => finish(false), 8000);
+      im.onload = () => finish(im.naturalWidth > 0);
+      im.onerror = () => finish(false);
+      im.referrerPolicy = 'no-referrer';
+      im.src = url;
+    });
   }
 
   /* 必应图床双域名兜底：www.bing.com 偶发被 DNS/代理拦时切 cn.bing.com */
@@ -838,6 +868,201 @@
         img.setAttribute('src', alt);
       }
     });
+  }
+
+  /* 画廊渲染统一管线：三个来源共用，active 态按 cover URL 对齐 */
+  function renderGallery(items, opts) {
+    const grid = document.getElementById('dlWpGalleryGrid');
+    if (!grid) return;
+    opts = opts || {};
+    if (!items.length) {
+      grid.innerHTML = '<p class="daily-wp-custom-tip" style="grid-column:1/-1;padding:20px 0;">' +
+        '还没有保存的壁纸——粘贴一张 https 图片直链到上方输入框添加。</p>';
+      return;
+    }
+    grid.innerHTML = items.map((item, i) => `
+      <div class="daily-wp-thumb-card ${activeWp && activeWp.cover === item.cover ? 'active' : ''}" data-idx="${i}">
+        <img class="daily-wp-thumb-img" src="${esc(item.cover)}" alt="${esc(item.copyright || item.title)}" loading="lazy" ${item.source === 'custom' ? 'referrerpolicy="no-referrer"' : ''} />
+        <div class="daily-wp-thumb-meta">
+          <span class="daily-wp-thumb-date">${esc(item.date || item.sourceLabel || '')}</span>
+          <div class="daily-wp-thumb-title" title="${esc(item.copyright)}">${esc(item.title)}</div>
+        </div>
+        ${item.source === 'custom' ? '<button class="daily-wp-thumb-del" data-del-idx="' + i + '" type="button" title="删除这张" aria-label="删除这张">✕</button>' : ''}
+      </div>
+    `).join('');
+    grid.querySelectorAll('.daily-wp-thumb-img').forEach(attachBingFallback);
+    grid.querySelectorAll('.daily-wp-thumb-card').forEach((card) => {
+      card.onclick = (ev) => {
+        if (ev.target.closest('[data-del-idx]')) return;   // 删除按钮自己处理
+        const item = items[+card.dataset.idx];
+        if (!item) return;
+        grid.querySelectorAll('.daily-wp-thumb-card').forEach((c) => c.classList.remove('active'));
+        card.classList.add('active');
+        selectWallpaper(item);
+      };
+    });
+    grid.querySelectorAll('[data-del-idx]').forEach((btn) => {
+      btn.onclick = (ev) => {
+        ev.stopPropagation();
+        const i = +btn.getAttribute('data-del-idx');
+        const removed = customWps.splice(i, 1)[0];
+        saveCustomWps();
+        if (activeWp && removed && activeWp.cover === removed.url) {
+          activeWp = customWps[0] || FALLBACK_SEEDS.bing;
+          renderMainWallpaper(activeWp);
+        }
+        renderGallery(customWps.map(customItemOf), { source: 'custom' });
+        showDailyToast('🗑️ 已删除');
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+      };
+    });
+  }
+
+  /* 选中一张（任意来源）：换大图；全站背景开着就同步换背景 */
+  function selectWallpaper(item) {
+    activeWp = item;
+    renderMainWallpaper(item);
+    if (isSiteBgActive) {
+      const url = item.cover_4k || item.cover;
+      preloadImage(url).then((ok) => {
+        if (!ok) { showDailyToast('⚠️ 这张图加载失败，全站背景未切换'); return; }
+        applySiteBackground(url, item.title);
+        showDailyToast(`✨ 全站背景已切换：${item.title}`);
+      });
+    }
+    if (window.SFX && window.SFX.tap) window.SFX.tap();
+  }
+
+  /* ---------------- 随机灵感（picsum.photos，免 key） ---------------- */
+  function makeRandomSeeds(n) {
+    const out = [];
+    while (out.length < n) {
+      out.push('juice-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8));
+    }
+    return out;
+  }
+
+  function buildRandomItems() {
+    return makeRandomSeeds(9).map((seed, i) => ({
+      source: 'random',
+      title: `灵感 ${String(i + 1).padStart(2, '0')}`,
+      copyright: 'Picsum Photos（Unsplash 摄影师作品聚合）',
+      description: '随机灵感图库 · 点「换一批」再来九张',
+      cover: `https://picsum.photos/seed/${seed}/1920/1080`,
+      cover_4k: `https://picsum.photos/seed/${seed}/3840/2160`,
+      date: '',
+      sourceLabel: '灵感图库'
+    }));
+  }
+
+  function loadRandomWallpapers() {
+    randomItems = buildRandomItems();
+    activeWp = randomItems[0];
+    renderMainWallpaper(activeWp);
+    renderGallery(randomItems, { source: 'random' });
+  }
+
+  /* ---------------- 我的壁纸（自定义直链，仅存本机） ---------------- */
+  function loadCustomWps() {
+    try {
+      const raw = JSON.parse(localStorage.getItem(WP_CUSTOM_KEY) || '[]');
+      customWps = Array.isArray(raw) ? raw.filter((x) => x && isSafeImgUrl(x.url)).slice(0, 8) : [];
+    } catch (_) {
+      customWps = [];
+    }
+  }
+
+  function saveCustomWps() {
+    try { localStorage.setItem(WP_CUSTOM_KEY, JSON.stringify(customWps.slice(0, 8))); } catch (_) {}
+  }
+
+  function customItemOf(c) {
+    return {
+      source: 'custom',
+      title: c.title || '我的壁纸',
+      copyright: '自定义壁纸 · ' + (c.url || '').replace(/^https:\/\//, '').slice(0, 40),
+      description: '我的壁纸',
+      cover: c.url,
+      cover_4k: c.url,
+      date: '',
+      sourceLabel: '我的壁纸'
+    };
+  }
+
+  function renderCustomGallery() {
+    const items = customWps.map(customItemOf);
+    if (items.length) activeWp = items[0];
+    renderMainWallpaper(activeWp);
+    renderGallery(items, { source: 'custom' });
+  }
+
+  function addCustomWallpaper() {
+    const input = document.getElementById('dlWpCustomUrl');
+    const addBtn = document.getElementById('dlWpCustomAdd');
+    if (!input || !addBtn) return;
+    const url = String(input.value || '').trim();
+    if (!isSafeImgUrl(url)) {
+      showDailyToast('⚠️ 请粘贴 https:// 开头的图片直链（不含空格和引号）');
+      return;
+    }
+    if (customWps.some((c) => c.url === url)) {
+      showDailyToast('这张已经加过了');
+      return;
+    }
+    if (customWps.length >= 8) {
+      showDailyToast('最多存 8 张，先删一张再加');
+      return;
+    }
+    addBtn.disabled = true;
+    showDailyToast('⏳ 正在校验图片…');
+    preloadImage(url).then((ok) => {
+      addBtn.disabled = false;
+      if (!ok) { showDailyToast('❌ 这张图加载失败，检查链接或换个图源'); return; }
+      customWps.unshift({ url: url, title: '我的壁纸 · ' + new Date().toLocaleDateString('zh-CN') });
+      saveCustomWps();
+      input.value = '';
+      renderCustomGallery();
+      renderWpSourceBar();
+      showDailyToast('✅ 已添加到「我的壁纸」');
+      if (window.SFX && window.SFX.ok) window.SFX.ok();
+    });
+  }
+
+  /* ---------------- 来源切换条 ---------------- */
+  const WP_SOURCE_META = {
+    bing: { icon: '🗓️', title: '近期必应壁纸时间画廊 (点击可预览并下载)', badge: '🌟 今日必应 4K 甄选摄影' },
+    random: { icon: '🎲', title: '随机灵感图库（点击预览，「换一批」再来九张）', badge: '🎲 灵感图库 · 每次都不一样' },
+    custom: { icon: '🖼️', title: '我的壁纸（点击预览，可设为全站背景）', badge: '🖼️ 我的壁纸' }
+  };
+
+  function renderWpSourceBar() {
+    const bar = document.getElementById('dlWpSourceBar');
+    if (!bar) return;
+    bar.querySelectorAll('[data-wp-source]').forEach((chip) => {
+      chip.classList.toggle('active', chip.dataset.wpSource === wpSource);
+    });
+    const meta = WP_SOURCE_META[wpSource] || WP_SOURCE_META.bing;
+    const icon = document.getElementById('dlWpGalleryIcon');
+    const title = document.getElementById('dlWpGalleryTitle');
+    const badge = document.getElementById('dlWpMainBadge');
+    const refresh = document.getElementById('dlWpRefreshRandom');
+    const customBox = document.getElementById('dlWpCustomBox');
+    if (icon) icon.textContent = meta.icon;
+    if (title) title.textContent = meta.title;
+    if (badge) badge.textContent = meta.badge;
+    if (refresh) refresh.hidden = wpSource !== 'random';
+    if (customBox) customBox.hidden = wpSource !== 'custom';
+  }
+
+  function switchWpSource(v) {
+    if (v === wpSource) return;
+    wpSource = v;
+    try { localStorage.setItem(WP_SOURCE_KEY, wpSource); } catch (_) {}
+    renderWpSourceBar();
+    if (wpSource === 'bing') loadBingWallpaper();
+    else if (wpSource === 'random') loadRandomWallpapers();
+    else renderCustomGallery();
+    if (window.SFX && window.SFX.tap) window.SFX.tap();
   }
 
   async function loadBingWallpaper() {
@@ -897,13 +1122,8 @@
     const galleryGrid = document.getElementById('dlWpGalleryGrid');
     if (!galleryGrid) return;
 
-    galleryGrid.innerHTML = Array(6)
-      .fill(0)
-      .map(() => '<div class="daily-skeleton" style="aspect-ratio:16/9;border-radius:14px;"></div>')
-      .join('');
-
-    // 并发依次拉取近 6 日壁纸（使用开源项目 bing.biturl.top index=0~5）
-    const promises = [0, 1, 2, 3, 4, 5].map(idx =>
+    // 并发拉取近 8 日壁纸（开源项目 bing.biturl.top index=0~7）
+    const promises = [0, 1, 2, 3, 4, 5, 6, 7].map((idx) =>
       fetchWithCache(
         `https://bing.biturl.top/?resolution=1920&format=json&index=${idx}&mkt=zh-CN`,
         `bing_hist_${idx}`,
@@ -912,69 +1132,45 @@
     );
 
     const results = await Promise.all(promises);
-    const valid = results.map(normalizeBingWallpaper).filter(Boolean);
-
-    fillWithContent(
-      galleryGrid,
-      !valid.length
-        ? `
-        <div class="daily-wp-thumb-card active">
-          <img class="daily-wp-thumb-img" src="${esc(activeWp.cover)}" />
-          <div class="daily-wp-thumb-meta">
-            <span class="daily-wp-thumb-date">今日</span>
-            <div class="daily-wp-thumb-title">${esc(activeWp.title)}</div>
-          </div>
-        </div>
-      `
-        : valid
-            .map(
-              (item, i) => `
-        <div class="daily-wp-thumb-card ${i === 0 ? 'active' : ''}" style="--i:${i}" data-idx="${i}">
-          <img class="daily-wp-thumb-img" src="${esc(item.cover)}" alt="${esc(item.copyright)}" loading="lazy" />
-          <div class="daily-wp-thumb-meta">
-            <span class="daily-wp-thumb-date">${esc(item.date || `近第 ${i + 1} 日`)}</span>
-            <div class="daily-wp-thumb-title" title="${esc(item.copyright)}">${esc(item.title)}</div>
-          </div>
-        </div>
-      `
-            )
-            .join('')
-    );
-
-    galleryGrid.querySelectorAll('.daily-wp-thumb-img').forEach(attachBingFallback);
-    galleryGrid.querySelectorAll('.daily-wp-thumb-card').forEach((card, idx) => {
-      card.onclick = () => {
-        const item = valid[idx];
-        if (!item) return;
-        galleryGrid.querySelectorAll('.daily-wp-thumb-card').forEach(c => c.classList.remove('active'));
-        card.classList.add('active');
-
-        activeWp = item;
-        renderMainWallpaper(activeWp);
-        if (isSiteBgActive) {
-          applySiteBackground(activeWp.cover_4k || activeWp.cover, activeWp.title);
-          showDailyToast(`✨ 全站背景已切换：${activeWp.title}`);
-        }
-        if (window.SFX && window.SFX.tap) window.SFX.tap();
-      };
-    });
+    const items = results.map(normalizeBingWallpaper).filter(Boolean);
+    renderGallery(items, { source: 'bing' });
   }
 
   // 设为全站沉浸背景
   function toggleSiteBackground() {
-    isSiteBgActive = !isSiteBgActive;
-    const wpUrl = (activeWp && (activeWp.cover_4k || activeWp.cover)) || FALLBACK_SEEDS.bing.cover;
     if (isSiteBgActive) {
-      applySiteBackground(wpUrl, activeWp ? activeWp.title : '今日必应壁纸');
-      updateSetBgBtnState();
-      showDailyToast('✨ 已设为全站沉浸背景，已贯通所有模块');
-    } else {
+      isSiteBgActive = false;
       clearSiteBackground();
       updateSetBgBtnState();
       showDailyToast('🖥️ 已恢复默认背景');
+      syncWallpaperDismissBtn();
+      if (window.SFX && window.SFX.tap) window.SFX.tap();
+      return;
     }
-    syncWallpaperDismissBtn();
-    if (window.SFX && window.SFX.tap) window.SFX.tap();
+    const wpUrl = String((activeWp && (activeWp.cover_4k || activeWp.cover)) || FALLBACK_SEEDS.bing.cover);
+    const title = activeWp ? activeWp.title : '今日必应壁纸';
+    if (!isSafeImgUrl(wpUrl)) {
+      showDailyToast('⚠️ 仅支持 https 图片直链');
+      return;
+    }
+    showDailyToast('⏳ 正在校验图片…');
+    preloadImage(wpUrl).then((ok) => {
+      if (!ok) {
+        showDailyToast('❌ 图片加载失败，未能设为全站背景');
+        return;
+      }
+      isSiteBgActive = true;
+      if (!applySiteBackground(wpUrl, title)) {
+        isSiteBgActive = false;
+        updateSetBgBtnState();
+        showDailyToast('⚠️ 这个链接不能用作背景');
+        return;
+      }
+      updateSetBgBtnState();
+      showDailyToast('✨ 已设为全站沉浸背景，已贯通所有模块');
+      syncWallpaperDismissBtn();
+      if (window.SFX && window.SFX.ok) window.SFX.ok();
+    });
   }
 
   function updateSetBgBtnState() {
@@ -990,20 +1186,13 @@
   }
 
   function applySiteBackground(url, title) {
-    if (!url) return;
-    /* 防线一：v301/v302 代理残留地址（本地/其他浏览器同步或旧代码写入）一律还原直链 */
-    if (url.indexOf('/api/bing-img?u=') === 0) {
-      try {
-        const inner = decodeURIComponent(url.split('u=')[1] || '');
-        if (/^https:\/\/(www|cn)\.bing\.com\/th\?id=OHR\./.test(inner)) url = inner;
-      } catch (e) {}
-    }
-    /* 防线二：url 会拼进 CSS url("...")，只接受 bing 直链。
-       此前这段校验被缩进进了上面的 if 块里，只对代理残留格式生效，
-       外部 API 返回的直链完全绕过校验——任意字符串可注入 CSS 并持久化。 */
-    if (!/^https:\/\/(www|cn)\.bing\.com\/th\?id=OHR\./.test(String(url))) return;
-    /* URL 会拼进 CSS url("...")：再拦一道引号/括号/空白，防 CSS 字符串逃逸 */
-    if (/["')\s]/.test(String(url))) return;
+    /* 校验放宽为「https 图片直链」白名单：必应直链、随机灵感、用户自定义
+       都能上全站背景；防线仍然保留——
+       1) 只接受 https（禁 javascript:/data:）；
+       2) 拒绝引号/括号/空白（CSS url("...") 字符串逃逸字符）；
+       3) 调用方先用 preloadImage 预检，坏链不落 localStorage。 */
+    url = String(url || '');
+    if (!isSafeImgUrl(url)) return false;
     document.documentElement.style.setProperty('--daily-bg-url', `url("${url}")`);
     document.body.style.setProperty('--daily-bg-url', `url("${url}")`);
     document.documentElement.classList.add('has-daily-ambient-bg');
@@ -1015,6 +1204,7 @@
       localStorage.setItem('daily_site_bg_url', url);
       if (title) localStorage.setItem('daily_site_bg_title', title);
     } catch (_) {}
+    return true;
   }
 
   function clearSiteBackground() {
@@ -1202,6 +1392,25 @@
       updateSetBgBtnState();
     }
 
+    // 壁纸来源切换条
+    document.querySelectorAll('#dlWpSourceBar [data-wp-source]').forEach((chip) => {
+      chip.onclick = () => switchWpSource(chip.dataset.wpSource);
+    });
+
+    // 随机灵感：换一批
+    const wpRefresh = document.getElementById('dlWpRefreshRandom');
+    if (wpRefresh) wpRefresh.onclick = () => { loadRandomWallpapers(); };
+
+    // 我的壁纸：添加（按钮 + 回车）
+    const customAdd = document.getElementById('dlWpCustomAdd');
+    const customInput = document.getElementById('dlWpCustomUrl');
+    if (customAdd) customAdd.onclick = addCustomWallpaper;
+    if (customInput) {
+      customInput.onkeydown = (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); addCustomWallpaper(); }
+      };
+    }
+
     // 生成锁屏日签卡
     const posterBtn = document.getElementById('dlWpBtnPoster');
     if (posterBtn) posterBtn.onclick = generateLockscreenPoster;
@@ -1261,7 +1470,14 @@
     load60sNews();
     loadHotList('weibo');
     loadMovieList('weekly_movie');
-    loadBingWallpaper();
+    /* 壁纸按用户上次的来源加载（默认必应每日） */
+    try { wpSource = localStorage.getItem(WP_SOURCE_KEY) || 'bing'; } catch (_) {}
+    if (!WP_SOURCE_META[wpSource]) wpSource = 'bing';
+    loadCustomWps();
+    renderWpSourceBar();
+    if (wpSource === 'bing') loadBingWallpaper();
+    else if (wpSource === 'random') loadRandomWallpapers();
+    else renderCustomGallery();
     pickMoodMovie('laugh');
   }
 

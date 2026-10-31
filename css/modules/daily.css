@@ -1200,6 +1200,12 @@ html[data-theme="light"] .daily-hot-notice {
     gap: 20px;
     align-items: start;
   }
+  /* 源切换条与自定义输入区横跨两列，不参与 stage/画廊的左右分配
+     （否则它们占左列，把 stage 挤进 360px 侧栏） */
+  #dlSec-wallpaper .daily-wp-source-bar,
+  #dlSec-wallpaper .daily-wp-custom-box {
+    grid-column: 1 / -1;
+  }
   #dlSec-wallpaper .daily-wp-stage,
   #dlSec-wallpaper .daily-card {
     margin-bottom: 0;
@@ -1227,4 +1233,106 @@ html[data-theme="light"] .daily-hot-notice {
   #dlSec-wallpaper .daily-wp-thumb-meta { padding: 5px 7px; }
   #dlSec-wallpaper .daily-wp-thumb-title { font-size: 11px; }
   #dlSec-wallpaper .daily-wp-thumb-date { font-size: 10px; }
+}
+
+/* ============ 壁纸来源切换条 ============ */
+.daily-wp-source-bar {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+.daily-wp-source-chip {
+  appearance: none;
+  font: inherit;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--tx-dim);
+  background: var(--btn-ghost-bg, rgba(255, 255, 255, 0.06));
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  padding: 9px 18px;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  transition: border-color 0.16s ease, color 0.16s ease, background 0.16s ease;
+}
+.daily-wp-source-chip:hover {
+  border-color: var(--dl-ac);
+  color: var(--tx);
+}
+.daily-wp-source-chip.active {
+  border-color: var(--dl-ac);
+  color: var(--dl-ac);
+  background: color-mix(in srgb, var(--dl-ac) 12%, transparent);
+}
+
+/* 我的壁纸：直链输入区 */
+.daily-wp-custom-box {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+  padding: 12px 14px;
+  border: 1.5px dashed var(--line);
+  border-radius: 14px;
+  background: var(--card);
+}
+.daily-wp-custom-box[hidden] { display: none; }
+.daily-wp-custom-input {
+  flex: 1 1 260px;
+  min-width: 0;
+  font: inherit;
+  font-size: 13.5px;
+  color: var(--tx);
+  background: var(--btn-ghost-bg, rgba(255, 255, 255, 0.06));
+  border: 1.5px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 14px;
+  min-height: 42px;
+  outline: none;
+  transition: border-color 0.16s ease;
+}
+.daily-wp-custom-input:focus { border-color: var(--dl-ac); }
+.daily-wp-custom-tip {
+  font-size: 12px;
+  color: var(--tx-faint, #8a93a6);
+}
+
+/* 画廊标题行：换一批按钮靠右 */
+.daily-wp-gallery-title { flex-wrap: wrap; }
+.daily-wp-refresh {
+  margin-left: auto;
+  padding: 7px 14px !important;
+  font-size: 12.5px !important;
+  min-height: 34px;
+}
+/* hidden 属性会被 .daily-wp-btn 的显式 display 覆盖，必须显式压回 */
+.daily-wp-refresh[hidden] { display: none; }
+
+/* 我的壁纸缩略图：删除角标 */
+.daily-wp-thumb-del {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 26px;
+  height: 26px;
+  border: none;
+  border-radius: 999px;
+  background: rgba(10, 12, 18, 0.72);
+  color: #fff;
+  font-size: 13px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+.daily-wp-thumb-card:hover .daily-wp-thumb-del,
+.daily-wp-thumb-del:focus-visible { opacity: 1; }
+.daily-wp-thumb-del:hover { background: rgba(220, 70, 60, 0.9); }
+/* 触屏无 hover：删除钮常显半透明 */
+@media (hover: none) {
+  .daily-wp-thumb-del { opacity: 0.85; }
 }

@@ -19,10 +19,10 @@
 <meta property="og:image" content="https://juice.noooc.dpdns.org/assets/icons/icon-512.png">
 <meta property="og:url" content="https://juice.noooc.dpdns.org/">
 <meta name="twitter:card" content="summary_large_image">
-  <link rel="stylesheet" href="css/core.bundle.css?v=537">
-  <script defer src="js/vendor/morphicons.js?v=537"></script>
-  <script defer src="js/vendor/lucide-icons.js?v=537"></script>
-  <script defer src="js/app.bundle.js?v=537" fetchpriority="high"></script>
+  <link rel="stylesheet" href="css/core.bundle.css?v=540">
+  <script defer src="js/vendor/morphicons.js?v=540"></script>
+  <script defer src="js/vendor/lucide-icons.js?v=540"></script>
+  <script defer src="js/app.bundle.js?v=540" fetchpriority="high"></script>
   <script>
     (function(){
       // 主题必须在首次绘制前定下来。以前只有 <html data-theme="dark"> 的硬编码默认值，
@@ -2082,12 +2082,18 @@
 
         <!-- 板块 3：每日 4K 壁纸馆 -->
         <div class="daily-section" id="dlSec-wallpaper">
+          <!-- 壁纸来源切换：必应每日 / 随机灵感 / 我的壁纸 -->
+          <div class="daily-wp-source-bar" id="dlWpSourceBar" role="tablist" aria-label="壁纸来源">
+            <button type="button" class="daily-wp-source-chip active" data-wp-source="bing">🅱️ 必应每日</button>
+            <button type="button" class="daily-wp-source-chip" data-wp-source="random">🎲 随机灵感</button>
+            <button type="button" class="daily-wp-source-chip" data-wp-source="custom">🖼️ 我的壁纸</button>
+          </div>
           <!-- 今日主打壁纸展台 -->
           <div class="daily-wp-stage">
             <div class="daily-wp-preview-wrap">
               <img class="daily-wp-img" id="dlWpMainImg" src="" alt="今日必应壁纸" />
               <div class="daily-wp-overlay">
-                <span class="daily-wp-badge">🌟 今日必应 4K 甄选摄影</span>
+                <span class="daily-wp-badge" id="dlWpMainBadge">🌟 今日必应 4K 甄选摄影</span>
                 <h3 class="daily-wp-title" id="dlWpMainTitle">加载中...</h3>
                 <p class="daily-wp-desc" id="dlWpMainDesc"></p>
                 <div class="daily-wp-meta" id="dlWpMainMeta"></div>
@@ -2109,14 +2115,23 @@
             </div>
           </div>
 
-          <!-- 近 7 日历史壁纸画廊 -->
+          <!-- 我的壁纸：粘贴图片直链（仅存本机） -->
+          <div class="daily-wp-custom-box" id="dlWpCustomBox" hidden>
+            <input class="daily-wp-custom-input" id="dlWpCustomUrl" type="url" inputmode="url"
+                   placeholder="粘贴图片直链（https://… .jpg/.png/.webp），回车或点添加" maxlength="500" />
+            <button class="daily-wp-btn primary" id="dlWpCustomAdd" type="button">添加</button>
+            <span class="daily-wp-custom-tip">支持任意 https 图片直链 · 最多存 8 张 · 仅保存在本机</span>
+          </div>
+
+          <!-- 画廊（必应近 8 日 / 随机灵感 / 我的壁纸共用） -->
           <div class="daily-card">
             <div class="daily-wp-gallery-title">
-              <span>🗓️</span>
-              <span>近期必应壁纸时间画廊 (点击可预览并下载)</span>
+              <span id="dlWpGalleryIcon">🗓️</span>
+              <span id="dlWpGalleryTitle">近期必应壁纸时间画廊 (点击可预览并下载)</span>
+              <button class="daily-wp-btn daily-wp-refresh" id="dlWpRefreshRandom" type="button" hidden>🔄 换一批</button>
             </div>
             <div class="daily-wp-gallery-grid" id="dlWpGalleryGrid">
-              <!-- 动态渲染历史壁纸网格 -->
+              <!-- 动态渲染壁纸网格 -->
             </div>
           </div>
         </div>

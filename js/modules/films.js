@@ -55,6 +55,8 @@
     if (!box || !filmsData) return;
     const cats = filmsData.categories || {};
     const items = [{ key: '', label: '精选优先' }];
+    /* 收藏视图：没有入口的收藏等于没有收藏 */
+    items.push({ key: '__fav', label: '★ 我的收藏 ' + filmsFav.length });
     Object.keys(cats).forEach(function (k) {
       const n = filmsData.resources.filter(function (r) { return r.category === k; }).length;
       if (n) items.push({ key: k, label: cats[k] + ' ' + n });
@@ -99,12 +101,14 @@
     if (!grid || !filmsData) return;
 
     let list = filmsData.resources;
-    if (filmsCat) list = list.filter(function (r) { return r.category === filmsCat; });
+    if (filmsCat === '__fav') list = list.filter(function (r) { return filmsFav.indexOf(r.id) >= 0; });
+    else if (filmsCat) list = list.filter(function (r) { return r.category === filmsCat; });
     if (filmsStatus) list = list.filter(function (r) { return r.status === filmsStatus; });
 
     if (sub) {
       sub.textContent = filmsData.total + ' 个站点 · 源数据更新于 ' + (filmsData.updatedAt || '未知') +
         ' · 当前显示 ' + list.length + ' 个' +
+        (filmsCat === '__fav' ? '（我的收藏）' : '') +
         (filmsStatus === 'recommended' ? '（已验证可用）' : filmsStatus === 'caution' ? '（需自行判断）' : '');
     }
 
@@ -142,7 +146,11 @@
     }).join('');
 
     if (!list.length) {
-      grid.innerHTML = '<div class="films-empty">这个分类下暂时没有资源</div>';
+      grid.innerHTML = '<div class="films-empty">' +
+        (filmsCat === '__fav'
+          ? '还没有收藏——点卡片右上角的 ☆，收藏的站点会出现在这里'
+          : '这个分类下暂时没有资源') +
+        '</div>';
     }
 
     grid.querySelectorAll('[data-fav]').forEach(function (b) {
@@ -150,10 +158,17 @@
         e.stopPropagation();
         const id = b.getAttribute('data-fav');
         const i = filmsFav.indexOf(id);
-        if (i >= 0) filmsFav.splice(i, 1); else filmsFav.unshift(id);
+        const added = i < 0;
+        if (added) filmsFav.unshift(id); else filmsFav.splice(i, 1);
         saveFilmsFav();
+        /* 原地更新按钮：整格重渲染会把长列表滚回顶部 */
+        b.classList.toggle('on', added);
+        b.textContent = added ? '★' : '☆';
+        b.setAttribute('aria-label', added ? '取消收藏' : '收藏');
         if (window.SFX && window.SFX.tap) window.SFX.tap();
-        renderFilmsGrid();
+        showFilmsToast(added ? '★ 已收藏，在「★ 我的收藏」里查看' : '已取消收藏');
+        renderFilmsCats();                       // 同步「我的收藏」计数
+        if (filmsCat === '__fav') renderFilmsGrid();   // 收藏视图里取消才需要移除卡片
       };
     });
     grid.querySelectorAll('[data-url]').forEach(function (b) {
@@ -237,20 +252,52 @@
       });
   }
 
+  /* 轻量 toast：复用 daily 模块的样式类（同一 modules.bundle.css，全局可用） */
+  function showFilmsToast(msg) {
+    let t = document.getElementById('filmsToast');
+    if (!t) {
+      t = document.createElement('div');
+      t.id = 'filmsToast';
+      t.className = 'daily-toast-msg';
+      document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(t._timer);
+    t._timer = setTimeout(function () { t.classList.remove('show'); }, 2000);
+  }
+
+  /* 老板键：一键切到功德木鱼。
+     真正的老板键是键盘快捷键（`）——老板来了没时间拿鼠标去找按钮 */
+  let bossBound = false;
+  function goBoss() {
+    if (window.SFX && window.SFX.tap) window.SFX.tap();
+    if (window.AppRouter && typeof window.AppRouter.navigate === 'function') {
+      window.AppRouter.navigate('merit', 'home');
+    } else {
+      location.hash = '#/merit';
+    }
+  }
+
+  function bindBossKey() {
+    if (bossBound) return;
+    bossBound = true;
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== '`' && e.code !== 'Backquote') return;
+      const mod = document.getElementById('mod-films');
+      if (!mod || !mod.classList.contains('active')) return;
+      const tag = (e.target && e.target.tagName) || '';
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target && e.target.isContentEditable)) return;
+      e.preventDefault();
+      goBoss();
+    });
+  }
+
   function initFilms() {
     loadFilmsFav();
     const boss = document.getElementById('filmsBoss');
-    if (boss) {
-      boss.onclick = function () {
-        // 老板键：立刻切到功德木鱼，看起来像一直在敲
-        if (window.SFX && window.SFX.tap) window.SFX.tap();
-        if (window.AppRouter && typeof window.AppRouter.navigate === 'function') {
-          window.AppRouter.navigate('merit', 'home');
-        } else {
-          location.hash = '#/merit';
-        }
-      };
-    }
+    if (boss) boss.onclick = goBoss;
+    bindBossKey();
     loadFilms(false);
   }
 

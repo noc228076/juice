@@ -736,6 +736,13 @@ curl -s "https://juice.noooc.dpdns.org/js/app.bundle.js?v=100" | grep -c "你的
 - music saveLive 拆双键：LIVE_KEY 只在队列/曲目变化时写，位置进 POS_KEY 每 2s 写。
 - lx 内置音源并行加载（串行时单个失效 12s 连坐）。
 
+### 导航与弹幕墙（2026-10-31，v536+）
+- 弹幕墙不再有顶栏独立入口（9 tab -> 8 tab），并入摸鱼解压子导航（时钟/木鱼/片单/刮刮乐/弹幕墙）。
+- #/wall 直达仍有效；router 的 MOD_PARENT_MAP.wall='clock'（顶栏归组高亮），
+  lastRelaxMod 记忆含 wall（点「摸鱼解压」回到上次子项）。
+- 五处子导航按钮在 index.html 静态骨架里（clock/merit/films/scratch/wall 各一份），
+  改子导航清单要五处同步；router 的 [data-sub-jump] 高亮按 modKey 自动匹配，无需注册表。
+
 
 ---
 

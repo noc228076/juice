@@ -19,10 +19,10 @@
 <meta property="og:image" content="https://juice.noooc.dpdns.org/assets/icons/icon-512.png">
 <meta property="og:url" content="https://juice.noooc.dpdns.org/">
 <meta name="twitter:card" content="summary_large_image">
-  <link rel="stylesheet" href="css/core.bundle.css?v=546">
-  <script defer src="js/vendor/morphicons.js?v=546"></script>
-  <script defer src="js/vendor/lucide-icons.js?v=546"></script>
-  <script defer src="js/app.bundle.js?v=546" fetchpriority="high"></script>
+  <link rel="stylesheet" href="css/core.bundle.css?v=547">
+  <script defer src="js/vendor/morphicons.js?v=547"></script>
+  <script defer src="js/vendor/lucide-icons.js?v=547"></script>
+  <script defer src="js/app.bundle.js?v=547" fetchpriority="high"></script>
   <script>
     (function(){
       // 主题必须在首次绘制前定下来。以前只有 <html data-theme="dark"> 的硬编码默认值，
@@ -299,8 +299,11 @@
   <section id="scr-quiz" class="screen">
     <div class="quiz-container">
       <div class="quiz-head">
-        <button class="icon-btn small" id="btnBack" aria-label="上一题" title="返回上一题 (Backspace / Esc)">
+        <button class="icon-btn small" id="btnBack" aria-label="退出答题" title="退出答题 (Esc)">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <button class="icon-btn small" id="btnPrevQ" aria-label="上一题" title="上一题 (Backspace)" disabled>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14L4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-3"/></svg>
         </button>
         <div class="quiz-mode-pill" id="quizModePill">🍹 极速特调</div>
         <div class="quiz-cup">
@@ -450,7 +453,8 @@
 
       <div class="mt-screen" id="sc-mt-quiz">
         <div class="mt-topbar">
-          <button class="mt-iconbtn" id="mtBtnBackQuiz">←</button>
+          <button class="mt-iconbtn" id="mtBtnBackQuiz" title="退出答题">←</button>
+          <button class="mt-iconbtn" id="mtBtnPrevQ" title="上一题">↶</button>
           <div class="mt-pick-head" style="flex:1;margin-bottom:0"><b>奶茶人格测试</b><p id="mtQuizSub">第 1 / 12 题</p></div>
         </div>
         <div class="mt-qbar"><i id="mtQbarFill" style="width:8%"></i></div>

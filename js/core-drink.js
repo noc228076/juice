@@ -3976,6 +3976,8 @@ const SFX = (function () {
     const isMbti = (curTest !== 'drink');
     const isLikert = (cfg.type === 'likert');
 
+    const prevBtn = $('btnPrevQ');
+    if (prevBtn) prevBtn.disabled = answers.length === 0;
     $('quizCount').textContent = `Q${qIdx + 1}/${total}`;
     $('quizEyebrow').textContent = (curTest === 'drink')
       ? `第 ${qIdx + 1} 杯 · 正在注入`
@@ -5081,23 +5083,21 @@ const SFX = (function () {
     if (cur === 'result') return true;
     return false;
   };
+  /* 「上一题」：撤销上一答回到上一题；第一题时无操作 */
+  window.__dpQuizPrev = function () {
+    if (cur !== 'quiz' || answers.length === 0) return;
+    undoAnswer();
+    qIdx = answers.length;
+    renderQuestion();
+    SFX.back();
+  };
+
+  /* 「返回」：退出答题/结果页，回封面 */
   window.__dpGoBack = function () {
-    if (cur === 'quiz') {
-      if (answers.length > 0) {
-        undoAnswer();
-        qIdx = answers.length;
-        renderQuestion();
-        SFX.back();
-      } else {
-        if (window.AppRouter && typeof window.AppRouter.back === 'function') window.AppRouter.back(() => show('cover'));
-        else show('cover');
-        SFX.back();
-      }
-    } else if (cur === 'result') {
-      if (window.AppRouter && typeof window.AppRouter.back === 'function') window.AppRouter.back(() => show('cover'));
-      else show('cover');
-      SFX.back();
-    }
+    if (cur !== 'quiz' && cur !== 'result') return;
+    if (window.AppRouter && typeof window.AppRouter.back === 'function') window.AppRouter.back(() => show('cover'));
+    else show('cover');
+    SFX.back();
   };
 
   /* ---------- 开关 ---------- */
@@ -5169,6 +5169,10 @@ const SFX = (function () {
     if (btnBack) {
       btnBack.addEventListener('click', () => { window.__dpGoBack(); });
     }
+    const btnPrevQ = $('btnPrevQ');
+    if (btnPrevQ) {
+      btnPrevQ.addEventListener('click', () => { window.__dpQuizPrev(); });
+    }
 
     // 浏览器键盘快捷键支持 (桌面端体验增强，仅在特调灵魂馆模块激活且非输入框聚焦时生效)
     document.addEventListener('keydown', (e) => {
@@ -5193,8 +5197,10 @@ const SFX = (function () {
             const dots = $('quizOpts').querySelectorAll('.likert-dot');
             const idx = keyMap[e.key];
             if (dots[idx]) dots[idx].click();
-          } else if (e.key === 'Backspace' || e.key === 'Escape' || e.key === 'ArrowLeft') {
+          } else if (e.key === 'Escape') {
             window.__dpGoBack();
+          } else if (e.key === 'Backspace' || e.key === 'ArrowLeft') {
+            window.__dpQuizPrev();
           }
         } else {
           const keyMap = { '1': 0, 'a': 0, 'A': 0, '2': 1, 'b': 1, 'B': 1, '3': 2, 'c': 2, 'C': 2, '4': 3, 'd': 3, 'D': 3 };
@@ -5202,8 +5208,10 @@ const SFX = (function () {
             const opts = $('quizOpts').querySelectorAll('.opt');
             const idx = keyMap[e.key];
             if (opts[idx]) opts[idx].click();
-          } else if (e.key === 'Backspace' || e.key === 'Escape' || e.key === 'ArrowLeft') {
+          } else if (e.key === 'Escape') {
             window.__dpGoBack();
+          } else if (e.key === 'Backspace' || e.key === 'ArrowLeft') {
+            window.__dpQuizPrev();
           }
         }
       } else if (cur === 'cover') {

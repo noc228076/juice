@@ -539,13 +539,17 @@
     if (btnBack) {
       btnBack.onclick = () => {
         if (window.SFX && window.SFX.tap) window.SFX.tap();
-        if (curQi > 0) {
-          curQi--;
-          renderQuestion();
-        } else {
-          if (window.AppRouter && typeof window.AppRouter.back === 'function') window.AppRouter.back(() => showScreen('sc-mt-home'));
-          else showScreen('sc-mt-home');
-        }
+        if (window.AppRouter && typeof window.AppRouter.back === 'function') window.AppRouter.back(() => showScreen('sc-mt-home'));
+        else showScreen('sc-mt-home');
+      };
+    }
+    const btnPrevQ = document.getElementById('mtBtnPrevQ');
+    if (btnPrevQ) {
+      btnPrevQ.onclick = () => {
+        if (window.SFX && window.SFX.tap) window.SFX.tap();
+        if (curQi <= 0) return;
+        curQi--;
+        renderQuestion();
       };
     }
     const btnNext = document.getElementById('mtBtnNext');

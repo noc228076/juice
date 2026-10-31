@@ -267,38 +267,10 @@
     t._timer = setTimeout(function () { t.classList.remove('show'); }, 2000);
   }
 
-  /* 老板键：一键切到功德木鱼。
-     真正的老板键是键盘快捷键（`）——老板来了没时间拿鼠标去找按钮 */
-  let bossBound = false;
-  function goBoss() {
-    if (window.SFX && window.SFX.tap) window.SFX.tap();
-    if (window.AppRouter && typeof window.AppRouter.navigate === 'function') {
-      window.AppRouter.navigate('merit', 'home');
-    } else {
-      location.hash = '#/merit';
-    }
-  }
-
-  function bindBossKey() {
-    if (bossBound) return;
-    bossBound = true;
-    document.addEventListener('keydown', function (e) {
-      if (e.key !== '`' && e.code !== 'Backquote') return;
-      const mod = document.getElementById('mod-films');
-      if (!mod || !mod.classList.contains('active')) return;
-      const tag = (e.target && e.target.tagName) || '';
-      if (tag === 'INPUT' || tag === 'TEXTAREA' || (e.target && e.target.isContentEditable)) return;
-      e.preventDefault();
-      goBoss();
-    });
-  }
 
   function initFilms() {
     loadFilmsFav();
-    const boss = document.getElementById('filmsBoss');
-    if (boss) boss.onclick = goBoss;
-    bindBossKey();
-    loadFilms(false);
+      loadFilms(false);
   }
 
 

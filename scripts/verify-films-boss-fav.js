@@ -53,22 +53,13 @@ function check(n, ok, d) { R.push({ n, ok: !!ok, d }); console.log((ok ? 'PASS' 
   }));
   check('收藏视图取消后移除并显示引导', s3.fav === 0 && s3.cards === 0 && s3.empty, s3);
 
-  // 5. 重新收藏 → 按 ` 键切到木鱼
-  await p.evaluate(() => { [...document.querySelectorAll('#filmsCats [data-cat]')].find(x => x.getAttribute('data-cat') === '').click(); });
-  await p.waitForTimeout(400);
-  await p.click('#filmsGrid [data-fav]');
-  await p.waitForTimeout(400);
-  await p.keyboard.press('`');
-  await p.waitForTimeout(1800);
-  const s4 = await p.evaluate(() => ({ hash: location.hash, active: document.querySelector('.app-module.active')?.id }));
-  check('按 ` 键触发老板键切到木鱼', s4.hash === '#/merit' && s4.active === 'mod-merit', s4);
-
-  // 6. 木鱼模块里按 ` 不应误触发（切到别处）
-  await p.keyboard.press('`');
-  await p.waitForTimeout(1200);
-  const s5 = await p.evaluate(() => ({ hash: location.hash, active: document.querySelector('.app-module.active')?.id }));
-  check('其他模块按 ` 不误触发', s5.hash === '#/merit' && s5.active === 'mod-merit', s5);
-
+  // 5. 老板键已删除：按钮不存在，按 ` 键也不会跳转
+  const bossGone = await p.evaluate(() => !document.getElementById('filmsBoss'));
+  check('老板键按钮已移除', bossGone, bossGone);
+  await p.keyboard.press("`");
+  await p.waitForTimeout(800);
+  const s5 = await p.evaluate(() => ({ hash: location.hash }));
+  check('片单页按 ` 无跳转', s5.hash === '#/films', s5);
   check('无 JS 报错', errs.length === 0, errs.slice(0, 2));
   await b.close();
   const f = R.filter(x => !x.ok);

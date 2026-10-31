@@ -46,23 +46,6 @@
   opacity: 0.6;
   line-height: 1.5;
 }
-.films-boss {
-  flex: none;
-  padding: 7px 14px;
-  border-radius: 999px;
-  border: 1px solid var(--line-strong);
-  background: var(--card);
-  color: inherit;
-  font-size: 12.5px;
-  cursor: pointer;
-  transition: border-color 0.15s ease, transform 0.15s ease;
-}
-.films-boss:hover {
-  border-color: #2f80ed;
-}
-.films-boss:active {
-  transform: scale(0.96);
-}
 
 .films-cats {
   display: flex;

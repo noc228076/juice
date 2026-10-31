@@ -736,6 +736,12 @@ curl -s "https://juice.noooc.dpdns.org/js/app.bundle.js?v=100" | grep -c "你的
 - music saveLive 拆双键：LIVE_KEY 只在队列/曲目变化时写，位置进 POS_KEY 每 2s 写。
 - lx 内置音源并行加载（串行时单个失效 12s 连坐）。
 
+### CSS 生效链陷阱（2026-10-31）
+- css/style.css 是死文件（页面不引用、build-bundles.js 的 coreCssFiles 不含它），
+  首屏实际样式是 css/base.css（minified 全量）。改 style.css 完全无效。
+  文件头已加废弃横幅。改 quiz/cover/result 等首屏样式要对 base.css 做
+  精确字符串替换，改完跑 npm run build 看 core.bundle.css 里是否包含新值。
+
 ### 导航与弹幕墙（2026-10-31，v536+）
 - 弹幕墙不再有顶栏独立入口（9 tab -> 8 tab），并入摸鱼解压子导航（时钟/木鱼/片单/刮刮乐/弹幕墙）。
 - #/wall 直达仍有效；router 的 MOD_PARENT_MAP.wall='clock'（顶栏归组高亮），

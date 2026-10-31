@@ -1,4 +1,11 @@
 /* ============================================================
+   ⚠️ 此文件已废弃（DEAD FILE）——页面不引用、构建不打包。
+   生效的桌面/答题/结果样式是 css/base.css（minified 全量样式）。
+   改这里不会有效果！要改 quiz/cover/result 样式请改 base.css
+   （minified，用精确字符串替换），或先把对应段落迁出再重构。
+   ============================================================ */
+
+/* ============================================================
    饮料人格研究所 — 黑(深夜冰室) / 亮(晨光便利店) 双主题
    PC / 移动端全响应式设计
    ============================================================ */
@@ -755,7 +762,9 @@ html[data-theme="light"] .mc-badge.badge-scale {
   max-width: 480px;
   width: 100%;
   margin: auto;
-  min-height: calc(100vh - 40px);
+  /* 铺满 .screen（absolute inset:0 全高）：顶栏钉顶、提示钉底、题目垂直居中。
+     不用 100vh——模块嵌进导航壳后视口高度 ≠ 容器高度 */
+  min-height: 100%;
   justify-content: space-between;
 }
 
@@ -834,7 +843,8 @@ html[data-theme="light"] .mc-badge.badge-scale {
 .quiz-eyebrow {
   font-size: 11px;
   letter-spacing: 4px;
-  color: var(--ac);
+  /* 用 --ac-deep：浅色主题/壁纸背景下 --ac 黄绿对比度不足 */
+  color: var(--ac-deep);
   font-weight: 800;
   margin-bottom: 8px;
 }
@@ -1821,11 +1831,12 @@ html[data-theme="light"] .mc-badge.badge-scale {
     font-size: 20px;
   }
 
-  /* 答题页桌面居中卡片 */
+  /* 答题页桌面居中卡片：宽度放宽，但高度必须仍铺满视口——
+     此前这里把 min-height 覆盖成 auto，答题区缩成一小坨浮在屏幕中间 */
   .quiz-container {
     max-width: 880px;
-    min-height: auto;
-    padding: 36px 0;
+    min-height: 100%;
+    padding: 24px 0;
   }
 
   .quiz-q {

@@ -351,7 +351,12 @@
       migrateV3(state);
       bs();
     } catch (e) {
+      /* 存档损坏：把原串备份到独立键（可人工找回），
+         本次会话用空档，但关掉再清掉原档之前的自动保存会覆盖——
+         所以同时把 SAVE_KEY 改指向 .corrupt，原串原样保留 */
+      try { localStorage.setItem(SAVE_KEY + '.corrupt', raw); } catch (e2) {}
       state = emptyState();
+      state.corruptGuard = true;
     }
     /* 不能在这里把 day 改成今天：跨天判定要读存档里的旧日期 */
   }
@@ -497,11 +502,14 @@
   function ensureExtra() {
     if (extra.roots && extra.exam && extra.ex) return Promise.resolve(extra);
     if (extraLoading) return extraLoading;
+    var wantBook = state.book;
     extraLoading = Promise.all([
       window.AppVocabData.loadRoots(state.book),
       window.AppVocabData.loadExam(state.book),
       window.AppVocabData.loadExamples(state.book)
     ]).then(function (r) {
+      /* 竞态防线：请求期间切了词库，旧词库的例句以新词库 idx 展示会静默错数据 */
+      if (state.book !== wantBook) return extra;
       extra.roots = r[0];
       extra.exam = r[1];
       extra.ex = r[2];
@@ -575,6 +583,7 @@
   var answered = false;
   var committed = false;   // 本題已落档（客观题点选即落，自评点下一题才落）
   var current = null;
+  var missSet = {};   // idx → 客观题答错过（跨阶段保留，自评「认识」据此降档模糊）
   var sessionStats = { right: 0, wrong: 0 };
   /* 阶段序列：默认三阶段；设置里开「拼写」后在中选英与自评之间插一阶段。
      会话快照按 item.kind 存题型，中途切换设置不影响进行中的局。 */
@@ -773,7 +782,7 @@
       focusDesc = '有 <b>' + dueAll + '</b> 个词等着巩固——今天做掉最划算';
       actionsHtml =
         '<button class="vc-btn primary" id="vcStartReview" type="button">开始复习 →</button>' +
-        '<button class="vc-btn ghost" id="vcStart" type="button">开始背新词</button>';
+        '<button class="vc-btn ghost" id="vcStart" type="button">开始今日任务</button>';
     } else {
       focusTitle = '今日重点 · 背新词';
       focusDesc = '准备好 <b>' + newN + '</b> 个新词，开背大约 ' + Math.max(1, Math.round(total * 0.7 / 60)) + ' 分钟';
@@ -1686,6 +1695,7 @@
     committed = false;
     sessionStats = { right: 0, wrong: 0 };
     countedWords = {};
+    missSet = {};
     persistSession();
     tickStart();
     var my = ++sessionSeq;
@@ -1702,6 +1712,9 @@
     var w = book.words[idx];
     var kind = kindOf(item);
 
+    /* 词库实存连字符/空格/重音符词（ice cream / résumé）：拼写格只收 a-z，
+       这类词无法完成拼写 → 降级为英选中，避免死局 */
+    if (kind === 'spell' && /[^a-zA-Z]/.test(String(w && w.word))) kind = 'en2cn';
     var q = {
       idx: idx,
       kind: kind,
@@ -1822,6 +1835,7 @@
           inner +
           '<div class="vc-feedback" id="vcFb"></div>' +
         '</div>' +
+        '<p class="vc-keyhint">键盘 <b>1-4</b> 选择 · <b>Bksp</b> 上一题 · <b>Esc</b> 退出答题</p>' +
         '<div class="vc-playfoot">' +
           '<div class="vc-playfoot-stats">' +
             '<span>本轮 <b>' + sessionStats.right + '</b> 对 / <b>' + sessionStats.wrong + '</b> 错</span>' +
@@ -2166,13 +2180,13 @@
     /* 重走轮只重练、不二次落档：FSRS 同日二次更新会把 S 压坏。
        正常轮：选择题答错但自评认识按「模糊」处理，防止盲目自信刷档 */
     if (!current.isRedo) {
-      if (current.objectiveMiss && rate === 'know') {
+      if ((current.objectiveMiss || missSet[current.idx]) && rate === 'know') {
         commitWord(current.idx, 2);
       } else {
         commitWord(current.idx, rate === 'unknown' || current.amended ? 1 : rate === 'vague' ? 2 : 3);
       }
     }
-    if (rate === 'unknown' || current.amended || current.objectiveMiss) {
+    if (rate === 'unknown' || current.amended || current.objectiveMiss || missSet[current.idx]) {
       /* 不认识 / 改判 / 选择题答错过 → 本阶段结束前按当前题型补一轮 */
       queueRedo(current.idx);
     }
@@ -2211,6 +2225,7 @@
        答错只做标记，自评阶段会参考它 */
     if (!ok) {
       current.objectiveMiss = true;
+      missSet[current.idx] = true;
       /* 客观题答错也计进生词本：这是最硬的「不会」证据。
          只有 wrong 计数的记录仍算新词（isLearnedRec 不把它当已学） */
       var wrongKey = book.words[current.idx][0];
@@ -2293,6 +2308,9 @@
         extraTried = true;
         var wantIdx = current.idx;
         ensureExtra().then(function () {
+          /* 失败（roots 仍空）时重置标记：用户翻下一张卡还能再试，
+             否则本页生命周期内例句/拆词/真题全废 */
+          if (!extra.roots || !extra.exam || !extra.ex) extraTried = false;
           if (current && current.idx === wantIdx && el.querySelector('#vcBackPanel')) renderBackPanel();
         });
       }
@@ -2382,15 +2400,18 @@
       return;
     }
 
-    if (stage + 1 < steps().length) {
+    while (stage + 1 < steps().length) {
       stage++;
       redoRound = 0;
       stageQueue = buildStage(stage);
-      qi = 0;
-      current = makeQuestion(stageQueue[0]);
-      persistSession();
-      renderQuestion();
-      return;
+      if (stageQueue.length) {
+        qi = 0;
+        current = makeQuestion(stageQueue[0]);
+        persistSession();
+        renderQuestion();
+        return;
+      }
+      /* 下一阶段全部词已被标熟/移除：继续尝试更后面的阶段 */
     }
     finishSession();
   }
@@ -2545,6 +2566,8 @@
   function finishSession() {
     tickFlush();
     state.session = null;
+    current = null;   // 热键守卫依赖 current：结算屏按 k 不得再操作旧词
+    stageQueue = [];
     var right = sessionStats.right, wrong = sessionStats.wrong;
     var acc = right + wrong ? Math.round(right / (right + wrong) * 100) : 0;
     var pose = acc >= 80 ? 'cheer' : acc >= 60 ? 'happy' : 'sad';
@@ -2692,6 +2715,7 @@
     },
     destroy: function () {
       tickFlush();
+      persistSession();   // 已答未点下一题的题先落快照，否则重进重答双计
       saveState();
       submitBoards();
       window.removeEventListener('keydown', onKeyDown);

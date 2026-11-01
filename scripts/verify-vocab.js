@@ -357,7 +357,7 @@ function check(name, ok, detail) {
   await page.evaluate(() => document.documentElement.setAttribute('data-theme', 'light'));
 
   // 模块切换
-  await page.evaluate(() => document.querySelector('.nav-tab[data-mod="wall"]').click());
+  await page.evaluate(() => document.querySelector('.nav-tab[data-mod="clock"]').click());
   await page.waitForTimeout(1200);
   await page.evaluate(() => document.querySelector('.nav-tab[data-mod="vocab"]').click());
   await page.waitForTimeout(2400);

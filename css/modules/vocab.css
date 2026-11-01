@@ -1856,3 +1856,25 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-vocab .vc-input {
 .vc-feedback .vc-back-panel,
 .vc-reveal-inner .vc-back-panel { min-width: 0; }
 .vc-bp-block { min-width: 0; overflow-wrap: anywhere; }
+
+/* 审计 round2-vocab-pc P1：背面卡真题被下一题截断、无滚动提示。
+   内部滚动本就可读全，补显式滚动暗示：着色细滚条 + 虚线底缘 */
+#vcBackPanel {
+  scrollbar-width: thin;
+  scrollbar-color: var(--mod-ac) transparent;
+  border-bottom: 1px dashed var(--line-strong);
+}
+
+/* 审计 round2-vocab-pc P1：答题页无键盘提示（1-4 选择/Bksp 上一题/Esc 退出） */
+.vc-keyhint {
+  display: none;
+  text-align: center;
+  font-size: 11.5px;
+  letter-spacing: 1px;
+  color: var(--tx-faint);
+  padding: 6px 0 0;
+}
+@media (min-width: 900px) {
+  .vc-keyhint { display: block; }
+  .vc-keyhint b { color: var(--tx-dim); }
+}

@@ -189,7 +189,12 @@
 
   window.AppVocabData = {
     loadBook: function (level) {
-      return loadJson(level).then(function (words) {
+      return loadJson(level).then(function (raw) {
+        /* 数据源释义有尾随逗号/空格脏数据（'v. 提醒，'）——加载时统一清洗 */
+        var words = raw.map(function (w) {
+          if (w && typeof w[2] === 'string') w[2] = w[2].replace(/[，,]+s*$/, '').trim();
+          return w;
+        });
         return { words: words, byPos: indexByPos(words) };
       });
     },

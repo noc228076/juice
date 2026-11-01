@@ -146,7 +146,7 @@
 
   function esc(v) { return window.escHtml(v); }
   /* 来源标识统一全称（审计 P2：KW/KG 缩写与音源 chips 全称不一致） */
-  var SRC_NAMES = { kw: '酷我', kg: '酷狗', tx: 'QQ', wy: '网易', mg: '咪咕' };
+  var SRC_NAMES = { kw: '酷我', kg: '酷狗', tx: 'QQ音乐', wy: '网易云', mg: '咪咕' };
   function srcShortName(src) {
     var k = String(src || '').toLowerCase().split('_')[0];
     return SRC_NAMES[k] || String(src).toUpperCase();

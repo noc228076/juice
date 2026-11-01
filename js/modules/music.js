@@ -54,8 +54,14 @@
       }
     } catch (e) { state = defaultState(); }
   }
+  var saveStateTimer = 0;
   function saveState() {
-    try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch (e) {}
+    clearTimeout(saveStateTimer);
+    saveStateTimer = setTimeout(function () {
+      try {
+        localStorage.setItem(STATE_KEY, JSON.stringify(state));
+      } catch (e) {}
+    }, 300);
   }
 
   /* ---------------- 播放现场（刷新后接着放） ----------------
@@ -1657,7 +1663,7 @@
               '" orient="vertical" aria-label="音量">' +
           '</span>' +
         '</span>' +
-        '<button class="mu-op' + (cur && inList(LOVE_ID, { track: cur.track || cur }) ? ' on' : '') +
+        '<button class="mu-op' + (cur && inList(LOVE_ID, cur) ? ' on' : '') +
           '" id="muBarLove" title="收藏">' + icon('Heart') + '</button>' +
         '<button class="mu-op lyric-btn' + (showLyric ? ' on' : '') + '" id="muBarLyricBtn" title="' +
           (showLyric ? '隐藏歌词' : '显示歌词') + '"><span class="mu-lyric-glyph' +
@@ -3257,7 +3263,7 @@
                 (showLyric ? '隐藏歌词' : '显示歌词') + '"><span class="mu-lyric-glyph' +
                 (showLyric ? '' : ' off') + '">词</span></button>' +
               '<button class="mu-op" data-imm="queue" title="播放列表">' + icon('ListMusic') + '</button>' +
-              '<button class="mu-op' + (cur && inList(LOVE_ID, { track: cur.track || cur }) ? ' on' : '') +
+              '<button class="mu-op' + (cur && inList(LOVE_ID, cur) ? ' on' : '') +
                 '" data-imm="love" title="收藏">' + icon('Heart') + '</button>' +
             '</div>' +
             '<div class="mu-imm-ops-center">' +
@@ -4076,6 +4082,9 @@
         addTargetIndex = -1; pickTarget = null;
         var mask = document.getElementById('muAddListMask');
         if (mask) mask.remove();
+        // 命名歌单弹层与播放队列面板同样挂在 body：开着切模块会浮在别的模块上
+        closeAsk();
+        closeQueuePanel();
         setTimeout(syncBarVisibility, 60);
         setTimeout(syncBarVisibility, 400);
       });

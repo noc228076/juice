@@ -1899,3 +1899,15 @@ body.has-daily-ambient-bg .vc-note {
   border-radius: 999px;
   padding: 6px 14px;
 }
+
+/* 审计 round3 P3：壁纸组键盘提示行加胶囊衬底（复用页脚处理） */
+body.has-daily-ambient-bg .vc-keyhint {
+  display: inline-block;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 5px 12px;
+}
+@media (min-width: 900px) {
+  body.has-daily-ambient-bg .vc-keyhint { display: block; width: max-content; margin: 6px auto 0; }
+}

@@ -1768,7 +1768,7 @@ html[data-theme="light"] .mu-immersive {
   transform: scale(.97);
   opacity: .62;
 }
-.mu-imm-lyric-line.passed { opacity: .38; }
+.mu-imm-lyric-line.passed { opacity: .55; }
 /* 高亮必须瞬时：加 transition 时合成层外的行会冻在起始色 */
 .mu-imm-lyric-line.active {
   color: var(--mod-ac);

@@ -145,6 +145,12 @@
   }
 
   function esc(v) { return window.escHtml(v); }
+  /* 来源标识统一全称（审计 P2：KW/KG 缩写与音源 chips 全称不一致） */
+  var SRC_NAMES = { kw: '酷我', kg: '酷狗', tx: 'QQ', wy: '网易', mg: '咪咕' };
+  function srcShortName(src) {
+    var k = String(src || '').toLowerCase().split('_')[0];
+    return SRC_NAMES[k] || String(src).toUpperCase();
+  }
   function uid() { return 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
 
   /* ---------------- 图标 ----------------
@@ -1265,7 +1271,7 @@
     var loved = inList(LOVE_ID, t);
     // 时长：洛雪结果直接给 interval 字符串（如 04:35），本机文件给 durMs
     var dur = t.interval || (t.durMs ? fmtTime(t.durMs / 1000) : '');
-    var sub = [t.artist, t.source ? String(t.source).toUpperCase() : ''].filter(Boolean).join(' · ');
+    var sub = [t.artist, t.source ? srcShortName(t.source) : ''].filter(Boolean).join(' · ');
     var playing = active && audio && !audio.paused;
     // 收藏/加歌单常驻在时长左边，不做 hover 显隐：
     // 藏起来既难发现，浮起来又会盖住时长
@@ -1488,7 +1494,7 @@
         // 这里按 trackKey 判正在播放，才能跟搜索页一样有竖条 + 变色
         var active = !!cur && trackKey(cur) === trackKey(t);
         var inner = t.track || t;
-        var sub = [t.artist || inner.singer, String(inner.source || t.source || '').toUpperCase()].filter(Boolean).join(' · ');
+        var sub = [t.artist || inner.singer, (inner.source || t.source) ? srcShortName(inner.source || t.source) : ''].filter(Boolean).join(' · ');
         var dur = t.interval || inner.interval || '';
         return '<div class="mu-row' + (active ? ' active' : '') + '" data-list-play="' + i + '">' +
           '<span class="mu-row-ico">' +
@@ -1630,7 +1636,7 @@
         '<span class="mu-time mu-time-dur">0:00</span></div>' +
       // 左列：封面 + 标题（标题紧贴封面，不要居中漂走）
       '<div class="mu-disc' + (playing && cover ? ' spin' : '') + '" id="muDisc" title="全屏播放">' +
-        (cover ? '<img src="' + esc(cover) + '" alt="">' : icon('Play')) +
+        (cover ? '<img src="' + esc(cover) + '" alt="">' : icon('ListMusic')) +
         (cur && cur.loading ? '<span class="mu-disc-spinner">' + icon('Loader') + '</span>' : '') +
       '</div>' +
       '<div class="mu-player-title">' + (cur ? esc(cur.title) : '未在播放') +

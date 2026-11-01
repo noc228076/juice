@@ -3178,3 +3178,14 @@ html[data-theme="light"] #mod-music .mu-note.ok { color: #2F9E44; }
 /* 审计边角：0 进度时手柄悬在线最左端突兀——无进度时隐藏（onProgress 挂 p0 类） */
 .mu-bar.p0 .mu-bar-progress > i::after { opacity: 0 !important; }
 .mu-bar.p0:hover .mu-bar-progress > i::after { opacity: 0 !important; }
+
+/* 审计 P2：主播放条音量常显横滑杆（此前只有 hover 弹出竖条，可发现性差）。
+   绑定走 .mu-vol 类既有事件链；移动端隐藏（空间不足，弹出式保留） */
+.mu-vol-inline { width: 72px; accent-color: var(--mod-ac); cursor: pointer; }
+@media (max-width: 899px) { .mu-vol-inline { display: none; } }
+
+/* 审计 P2：榜单侧栏滚动末端渐隐提示（此前末行被硬切） */
+.mu-rank-side {
+  -webkit-mask-image: linear-gradient(180deg, #000 0, #000 calc(100% - 24px), transparent 100%);
+  mask-image: linear-gradient(180deg, #000 0, #000 calc(100% - 24px), transparent 100%);
+}

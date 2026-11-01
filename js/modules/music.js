@@ -1665,6 +1665,8 @@
         '<span class="mu-imm-vol">' +
           '<button class="mu-op" id="muMute" title="' + (muted ? '取消静音' : '静音') + '">' +
             icon(muted ? 'VolumeX' : 'Volume2') + '</button>' +
+          '<input type="range" class="mu-vol mu-vol-inline" min="0" max="1" step="0.01" value="' + state.volume +
+            '" aria-label="音量">' +
           '<span class="mu-imm-vol-pop">' +
             '<span class="mu-imm-vol-num" id="muBarVolNum">' + Math.round(state.volume * 100) + '</span>' +
             '<input type="range" class="mu-imm-vol-range mu-vol" min="0" max="1" step="0.01" value="' + state.volume +

@@ -1407,7 +1407,44 @@ html[data-theme="light"] #modalAbout .gp-tip {
 @media (max-width: 767px) {
   .nav-tabs-wrapper {
     padding-left: 12px;
-    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 20px, #000 calc(100% - 20px), transparent 100%);
-    mask-image: linear-gradient(90deg, transparent 0, #000 20px, #000 calc(100% - 20px), transparent 100%);
+    padding-right: 20px;
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 12px, #000 calc(100% - 34px), transparent 100%);
+    mask-image: linear-gradient(90deg, transparent 0, #000 12px, #000 calc(100% - 34px), transparent 100%);
   }
+}
+
+/* ============ 手机两行式顶栏（≤767px）============
+   8 个 tab + 右侧三个控件在 404px 里放不下一行：
+   行 1 = 当前模块名（左） + 头像/档案/更多（右）
+   行 2 = 8 个 tab 全宽横滚（两端渐隐）
+   行 1 的 .gnav-cur-mod 与 .global-nav-right 同排（header wrap），
+   .global-nav-left 换行占满第二行。 */
+.gnav-cur-mod { display: none; }
+@media (max-width: 767px) {
+  #global-header {
+    flex-wrap: wrap;
+    height: auto;
+    row-gap: 2px;
+    padding-bottom: 4px;
+  }
+  .gnav-cur-mod {
+    display: inline-flex;
+    align-items: center;
+    min-width: 0;
+    max-width: 46%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 13.5px;
+    font-weight: 800;
+    color: var(--tx);
+    padding: 4px 2px;
+  }
+  .global-nav-right { order: 1; margin-left: auto; }
+  .global-nav-left { order: 2; flex-basis: 100%; }
+  .nav-tab { padding: 7px 12px; font-size: 13px; }
+  .nav-tabs { gap: 4px; }
+  /* 内容区与子导航基准线跟随顶栏实际高度 */
+  #modules-viewport { top: var(--gnav-h, calc(96px + env(safe-area-inset-top, 0px))); }
+  :root { --subnav-top: calc(var(--gnav-h, 96px) + env(safe-area-inset-top, 0px) + 24px); }
 }

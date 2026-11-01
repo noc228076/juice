@@ -295,12 +295,26 @@
       updateGlider(matchedTab);
       scrollTabIntoView(matchedTab);
     }
+    /* 手机两行式顶栏：第一行左侧显示当前模块名 */
+    const curModEl = document.getElementById('gnavCurMod');
+    if (curModEl && matchedTab) {
+      const ico = matchedTab.querySelector('.tab-icon');
+      const lbl = matchedTab.querySelector('.tab-label-full');
+      curModEl.textContent = (ico ? ico.textContent + ' ' : '') + (lbl ? lbl.textContent : '');
+    }
     document.querySelectorAll('[data-sub-jump]').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.subJump === modKey);
     });
     document.querySelectorAll('[data-ew-jump]').forEach(btn => {
       btn.classList.toggle('active', btn.dataset.ewJump === modKey);
     });
+  }
+
+  /* 顶栏实际高度 → CSS 变量：modules-viewport 与 --subnav-top 跟随，
+     手机两行式布局下高度不再是固定 52px */
+  function syncGnavH() {
+    const h = document.getElementById('global-header');
+    if (h) document.documentElement.style.setProperty('--gnav-h', h.offsetHeight + 'px');
   }
 
   function normalizeMod(modKey) {
@@ -947,12 +961,16 @@
     bindGlobalControls();
     window.addEventListener('popstate', handlePopState);
     window.addEventListener('hashchange', handleHashChange);
+    /* 顶栏高度 → --gnav-h：初始 + 字体加载后 + 窗口 resize 都可能变化 */
+    syncGnavH();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(syncGnavH).catch(() => {});
+    setTimeout(syncGnavH, 200);
     /* 拖拽窗口时 resize 高频触发，updateGlider 读写 offsetWidth 会强制 reflow，
        rAF 合帧到每帧一次 */
     let gliderRaf = 0;
     window.addEventListener('resize', () => {
       if (gliderRaf) return;
-      gliderRaf = requestAnimationFrame(() => { gliderRaf = 0; updateGlider(); });
+      gliderRaf = requestAnimationFrame(() => { gliderRaf = 0; updateGlider(); syncGnavH(); });
     });
     initializeHistory();
     setTimeout(() => updateGlider(), 100);

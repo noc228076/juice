@@ -251,9 +251,12 @@
       ctx.textAlign = 'right';
       ctx.textBaseline = 'middle';
       ctx.fillStyle = '#FFFFFF';
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
-      ctx.shadowBlur = 4;
-      ctx.shadowOffsetY = 1;
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.85)';
+      ctx.shadowBlur = 8;
+      ctx.shadowOffsetY = 2;
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.55)';
+      ctx.strokeText(txt, radius - 26, 0);
 
       // 动态根据字数与扇区数量调整字号
       let fontSize = num > 10 ? 18 : 22;
@@ -261,6 +264,7 @@
 
       let txt = wheelItems[i];
       if (txt.length > 7) txt = txt.substring(0, 6) + '…';
+      ctx.strokeText(txt, radius - 26, 0);
       ctx.fillText(txt, radius - 26, 0);
       ctx.restore();
     }

@@ -538,7 +538,7 @@
       // 没有当前曲目时，从第一个可用列表开始
       if (directList().length) playQueue(directList(), '直链歌单', 0);
       else if (localTracks().length) playQueue(localTracks(), '本机文件', 0);
-      else toast('先导入一些音乐吧');
+      else toast('还没有可播放的歌——先在搜索里找一首，或在音源页导入脚本');
       return;
     }
     var a = ensureAudio();

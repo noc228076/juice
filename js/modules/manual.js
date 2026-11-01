@@ -107,7 +107,7 @@
         var on = chapterDone(id, s);
         return '<span class="dot' + (on ? ' done' : '') + '" style="' + (on ? 'background:' + c : '') + '"></span>';
       }).join('')
-      + '</div><div style="flex:1"></div><div>已测 <b>' + done + '</b>/' + ORDER.length + ' 章 · 存档 <b>' + total + '</b> 份</div></div>';
+      + '</div><div style="flex:1"></div><div style="white-space:nowrap">已测 <b>' + done + '</b>/' + ORDER.length + ' 章 · 存档 <b>' + total + '</b> 份</div></div>';
 
     html += '<div class="manual-grid">';
     ORDER.forEach(function (id, i) {

@@ -1766,9 +1766,9 @@ html[data-theme="light"] .mu-immersive {
 /* 非当前行轻微缩小，当前行回到原尺寸——比单纯改字号更柔和 */
 .mu-imm-lyric-line:not(.active) {
   transform: scale(.97);
-  opacity: .62;
+  
 }
-.mu-imm-lyric-line.passed { opacity: .55; }
+.mu-imm-lyric-line.passed { color: rgba(255,255,255,.62); opacity: 1; }
 /* 高亮必须瞬时：加 transition 时合成层外的行会冻在起始色 */
 .mu-imm-lyric-line.active {
   color: var(--mod-ac);

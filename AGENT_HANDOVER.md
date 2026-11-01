@@ -736,6 +736,20 @@ curl -s "https://juice.noooc.dpdns.org/js/app.bundle.js?v=100" | grep -c "你的
 - music saveLive 拆双键：LIVE_KEY 只在队列/曲目变化时写，位置进 POS_KEY 每 2s 写。
 - lx 内置音源并行加载（串行时单个失效 12s 连坐）。
 
+### 音乐+单词深度审计（2026-11-02 凌晨，6 报告 71 项 → 3 轮修复）
+- 报告：shots/audit/round2-{music-pc,music-mob-bg,music-code,vocab-pc,vocab-mob-bg,vocab-code}.md
+  + round3-regression.md（回归验收 10 生效/2 未生效→已补修/1 新 P3→已修）
+- 单词 P1×9 全修：拼写硬死局（非 a-z 词降级英选中）、空阶段冻屏（while 跳过）、
+  destroy 不落快照双计、objectiveMiss 跨阶段丢失（missSet）、损坏 JSON 备份 .corrupt 等
+- 音乐 P1×5 全修：弹层跨模块残留、收藏键 undefined、音量落盘降频、
+  播放条进度可发现性、浅色 --ok；LRC credits 过滤（new RegExp 构造规避转义地狱）、
+  歌词亮度单维度化（opacity 与 color alpha 双重叠加曾致实际 0.3）
+- saveState 300ms 合帧 + stateDirty 标记（pagehide 无改动不落盘——
+  否则会把测试/导入刚写的 localStorage 用内存旧态覆盖）
+- 手机两行式顶栏 + --gnav-h 变量（modules-viewport/--subnav-top 跟随）
+- 已知未修 P2：来源 chips 无右缘渐隐、音量滑杆不外露、沉浸退出无手势提示、
+  排行榜末行切半（滚动容器）、切歌 renderHome×3 增量重构
+
 ### 全站 UI 视觉审计（2026-11-01，4 子 agent × 120 张截图）
 - 矩阵：{暗,亮}×{PC 1920,手机 390}+浅色壁纸组合；脚本 scratch/ui-audit-shoot.js 可复跑
 - P0[object Object] 为审计 seed 误构（days[date] 应存数字），非产品 bug

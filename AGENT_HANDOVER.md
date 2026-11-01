@@ -736,6 +736,15 @@ curl -s "https://juice.noooc.dpdns.org/js/app.bundle.js?v=100" | grep -c "你的
 - music saveLive 拆双键：LIVE_KEY 只在队列/曲目变化时写，位置进 POS_KEY 每 2s 写。
 - lx 内置音源并行加载（串行时单个失效 12s 连坐）。
 
+### 循环收口（2026-11-02 04:16，第五轮）
+- 终验 round4-final.md：通过 9/不通过 3（均陈旧截图，已重摄归档）/新问题 0；
+  歌词亮度终值实测精确命中 0.52/0.62、credits 过滤全过、键盘提示胶囊 5.05:1
+- renderHome rAF 合帧、tx 来源名对齐 chips、数字歌名导入修复（d5c23af/090c9f1）
+- 测试腐化清理：verify-vocab-ui/redo/stages 计数断言跟随「本局」前缀（9500590），
+  全量 13 套 e2e 绿
+- 仍开放（P2/P4，下轮候选）：LRC 首句标题元数据行可选过滤、0 进度手柄隐藏、
+  榜单 chip 右缘渐隐、切歌 renderHome 行级增量化、队列面板深检（已补拍一次）
+
 ### 音乐+单词深度审计（2026-11-02 凌晨，6 报告 71 项 → 3 轮修复）
 - 报告：shots/audit/round2-{music-pc,music-mob-bg,music-code,vocab-pc,vocab-mob-bg,vocab-code}.md
   + round3-regression.md（回归验收 10 生效/2 未生效→已补修/1 新 P3→已修）

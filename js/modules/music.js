@@ -3877,7 +3877,7 @@
       var line = raw.trim();
       if (!line) return;
       // 去掉常见的分享前缀和装饰
-      line = line.replace(/^[\s·•\-—*>#\d.、]+/, '')
+      line = line.replace(/^[\s·•\-—*>#]+/, '').replace(/^\d+[.、]\s*/, '')
                  .replace(/[《》「」“”"]/g, '')
                  .replace(/\s*(分享|来自|复制链接|打开\S*APP|https?:\/\/\S+)\s*/g, ' ')
                  .trim();

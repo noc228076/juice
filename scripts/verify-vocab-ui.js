@@ -23,7 +23,7 @@ function check(n, ok, d){ R.push({n,ok:!!ok,d}); console.log((ok?'PASS':'FAIL')+
     kind: document.querySelector('.vc-kind')?.textContent,
     count: document.querySelector('.vc-count')?.textContent
   }));
-  check('进度显示为「N / 总题数」（词数×3）', /^1 \/ \d+$/.test((t1.count||'').trim()), t1.count);
+  check('进度显示为「N / 总题数」（词数×3）', /^本局 1 \/ \d+$/.test((t1.count||'').trim()), t1.count);
   check('顶部不再显示题型与步骤', !t1.kind, { kind: t1.kind });
 
   // 1/2: 答完选项内联揭示 + 下一题按钮醒目
@@ -61,7 +61,7 @@ function check(n, ok, d){ R.push({n,ok:!!ok,d}); console.log((ok?'PASS':'FAIL')+
     hasRate: document.querySelectorAll('[data-rate]').length > 0,
     opts: document.querySelectorAll('.vc-opt').length
   }));
-  check('下一题推进到第 2 题', /^2 \/ /.test(t3.count || ''), t3.count);
+  check('下一题推进到第 2 题', /^本局 2 \/ /.test(t3.count || ''), t3.count);
   check('第 2 题是三种题型之一', t3.opts === 4 || t3.hasRate, t3);
 
   // 一路推进直到遇到自评题
@@ -83,10 +83,10 @@ function check(n, ok, d){ R.push({n,ok:!!ok,d}); console.log((ok?'PASS':'FAIL')+
     await page.waitForTimeout(300);
     const nbLabel = await page.evaluate(() => document.getElementById('vcNext')?.textContent?.trim());
     check('自评后的按钮也是「下一题」', nbLabel === '下一题', nbLabel);
-    const beforeNo = await page.evaluate(() => parseInt(document.querySelector('.vc-count')?.textContent || '0', 10));
+    const beforeNo = await page.evaluate(() => parseInt((document.querySelector('.vc-count')?.textContent || '0').replace(/\D+/g, ''), 10) || 0);
     await page.click('#vcNext');
     await page.waitForTimeout(400);
-    const afterNo = await page.evaluate(() => parseInt(document.querySelector('.vc-count')?.textContent || '0', 10));
+    const afterNo = await page.evaluate(() => parseInt((document.querySelector('.vc-count')?.textContent || '0').replace(/\D+/g, ''), 10) || 0);
     check('自评完成后进度继续推进', afterNo > beforeNo, { beforeNo, afterNo });
   }
 
@@ -101,8 +101,8 @@ function check(n, ok, d){ R.push({n,ok:!!ok,d}); console.log((ok?'PASS':'FAIL')+
   }));
   const knownKey = Object.keys(after.words).find(k => after.words[k].known);
   check('标熟后该词标记 known', !!knownKey, { knownKey });
-  check('标熟后继续推进到下一题', /^\d+ \/ \d+$/.test((after.count||'').trim()) &&
-    parseInt(after.count, 10) > 1, after.count);
+  check('标熟后继续推进到下一题', /^本局 \d+ \/ \d+$/.test((after.count||'').trim()) &&
+    parseInt(after.count.replace(/\D+/g, ''), 10) > 1, after.count);
 
   // 标熟的词不再进队列
   const queueInfo = await page.evaluate(() => {

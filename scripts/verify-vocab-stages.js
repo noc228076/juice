@@ -48,7 +48,7 @@ const R=[]; function check(n,ok,d){R.push({n,ok:!!ok,d});console.log((ok?'PASS':
   check('阶段 2 全是中选英', types.slice(3,6).every(t=>t==='中选英'), types.slice(3,6));
   check('阶段 3 全是自评', types.slice(6,9).every(t=>t==='自评'), types.slice(6,9));
   check('顺序严格是 英选中 → 中选英 → 自评', types.join(',')==='英选中,英选中,英选中,中选英,中选英,中选英,自评,自评,自评', types);
-  check('每阶段题数 = 词数（3）', log[0].no==='1 / 3' && log[3].no==='1 / 3' && log[6].no==='1 / 3',
+  check('每阶段题数 = 词数（3）', log[0].no==='本局 1 / 3' && log[3].no==='本局 1 / 3' && log[6].no==='本局 1 / 3',
     {s1:log[0].no,s2:log[3].no,s3:log[6].no});
   check('无 JS 报错', errs.length===0, errs.slice(0,2));
   await b.close();

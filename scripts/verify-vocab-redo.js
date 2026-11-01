@@ -22,7 +22,7 @@ const R=[]; function check(n,ok,d){R.push({n,ok:!!ok,d});console.log((ok?'PASS':
   await page.waitForTimeout(700);
 
   const total0 = await page.evaluate(()=>document.querySelector('.vc-count')?.textContent?.trim());
-  check('阶段1 起始 2 题', /^1 \/ 2$/.test(total0||''), total0);
+  check('阶段1 起始 2 题', /^本局 1 \/ 2$/.test(total0||''), total0);
 
   // 第 1 题故意答错：选项顺序是打散的，先从词库查出正确释义，
   // 再点一个释义不同的选项（不能假定最后一个就是错的）

@@ -1878,3 +1878,24 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-vocab .vc-input {
   .vc-keyhint { display: block; }
   .vc-keyhint b { color: var(--tx-dim); }
 }
+
+/* 审计 round2-vocab-mob P1：音乐迷你条悬浮时压住答题统计/设置文案 →
+   内容底部让位（迷你条高 ~52px + 间距） */
+@media (max-width: 767px) {
+  body.has-mu-mini .vc-play { padding-bottom: calc(78px + env(safe-area-inset-bottom, 0px)); }
+  body.has-mu-mini .vc-panel { padding-bottom: 64px; }
+}
+
+/* 审计 round2-vocab-mob P1：排行行玩家名 390px 下被压成 2 字符 →
+   名列最小宽度，数值列不换行右对齐 */
+.vc-lb-row .vc-lb-name { flex: 1 1 auto; min-width: 96px; }
+.vc-lb-row .vc-lb-val { flex: none; white-space: nowrap; }
+
+/* 审计 round2-vocab-pc P1 复核：页脚在壁纸亮部 2:1 → 半透明胶囊衬底 */
+body.has-daily-ambient-bg .vc-note {
+  display: inline-block;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 6px 14px;
+}

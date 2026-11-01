@@ -3432,10 +3432,11 @@
   function renderMini() {
     invalidateProgressNodes();
     ensureMini();
-    if (!cur) { miniEl.style.display = 'none'; return; }
+    if (!cur) { miniEl.style.display = 'none'; document.body.classList.remove('has-mu-mini'); return; }
     var inMusic = el && document.getElementById('mod-music').classList.contains('active');
     var show = !(inMusic || immEl);
     miniEl.style.display = show ? 'flex' : 'none';
+    document.body.classList.toggle('has-mu-mini', show);
     if (!show) return;
     var playing = audio && !audio.paused;
     miniEl.innerHTML =

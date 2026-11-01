@@ -1827,7 +1827,7 @@
       '<div class="vc-wrap vc-play">' +
         '<div class="vc-top">' +
           '<button class="vc-back" id="vcBack" type="button" aria-label="返回今日">← 返回</button>' +
-          '<span class="vc-count">' + qNo + ' / ' + stageQueue.length + '</span>' +
+          '<span class="vc-count">本局 ' + qNo + ' / ' + stageQueue.length + '</span>' +
         '</div>' +
         '<div class="vc-bar thin"><i style="width:' + pct + '%"></i></div>' +
         '<div class="vc-card">' +

@@ -1439,6 +1439,10 @@ html[data-theme="light"] .vc-tab:hover { background: rgba(0, 0, 0, 0.05); }
 }
 .vc-lb-empty {
   padding: 26px 16px;
+  min-height: 140px;
+  display: grid;
+  place-items: center;
+  align-content: center;
   text-align: center;
   color: var(--tx-dim);
   font-size: 13px;

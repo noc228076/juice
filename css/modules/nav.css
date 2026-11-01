@@ -1401,3 +1401,13 @@ html[data-theme="light"] #modalAbout .gp-tip {
     margin-top: 16px !important;
   }
 }
+
+
+/* 手机端 8 tab 必然横向滚动：两端渐隐提示可滚动（审计 mob P1） */
+@media (max-width: 767px) {
+  .nav-tabs-wrapper {
+    padding-left: 12px;
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 20px, #000 calc(100% - 20px), transparent 100%);
+    mask-image: linear-gradient(90deg, transparent 0, #000 20px, #000 calc(100% - 20px), transparent 100%);
+  }
+}

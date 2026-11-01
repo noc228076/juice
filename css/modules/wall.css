@@ -31,8 +31,9 @@
 .wl-right .wl-list .wl-empty {
   padding: 26px 14px;
   text-align: center;
-  color: var(--tx-faint);
+  color: var(--tx-dim);
   font-size: 12.5px;
+  background: var(--card);
   border: 1px dashed var(--line);
   border-radius: 12px;
 }

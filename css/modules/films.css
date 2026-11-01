@@ -340,3 +340,13 @@ html[data-theme="dark"] .films-badge.dl {
 html[data-theme="light"] .films-open.alt {
   background: #b8860b;
 }
+
+
+/* 站点卡操作按钮触控 44px（审计 mob P2） */
+.films-actions .films-open,
+.films-actions .films-copy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+}

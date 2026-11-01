@@ -736,6 +736,16 @@ curl -s "https://juice.noooc.dpdns.org/js/app.bundle.js?v=100" | grep -c "你的
 - music saveLive 拆双键：LIVE_KEY 只在队列/曲目变化时写，位置进 POS_KEY 每 2s 写。
 - lx 内置音源并行加载（串行时单个失效 12s 连坐）。
 
+### 全站 UI 视觉审计（2026-11-01，4 子 agent × 120 张截图）
+- 矩阵：{暗,亮}×{PC 1920,手机 390}+浅色壁纸组合；脚本 scratch/ui-audit-shoot.js 可复跑
+- P0[object Object] 为审计 seed 误构（days[date] 应存数字），非产品 bug
+- 已修 P1：手机导航横滚两端渐隐、坦克 HUD 按钮 44px、奶茶 CTA 对比度、
+  壁纸模式裸排文字兜底（text-shadow）+ 弹幕墙空态衬底
+- 已修 P2：答题圆按钮/奶茶圆钮 44px、排行空态收敛、片单打开/复制 44px
+- 未修记录：壁纸模式页眉/页脚 meta 仅 text-shadow 兜底（P2）、decision 转盘
+  扇区文字对比度（P2，类名待定位）、 merit 祝福语 chips 触控（P2）、
+  「推荐祷词」来自远程影视数据非本地文案
+
 ### CSS 生效链陷阱（2026-10-31）
 - css/style.css 是死文件（页面不引用、build-bundles.js 的 coreCssFiles 不含它），
   首屏实际样式是 css/base.css（minified 全量）。改 style.css 完全无效。

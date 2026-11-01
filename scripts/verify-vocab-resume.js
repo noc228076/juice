@@ -73,7 +73,7 @@ function check(n, ok, d) { results.push({ n, ok: !!ok, d }); console.log((ok ? '
     count: document.querySelector('.vc-count')?.textContent,
     inPlay: !!document.querySelector('.vc-card')
   }));
-  check('继续后回到未答题（2/16）', resumed.count === '2 / 16', resumed);
+  check('继续后回到未答题（2/16）', resumed.count === '本局 2 / 16', resumed);
 
   // 再退出 → 放弃 → 恢复普通今日页
   await page.click('#vcBack');

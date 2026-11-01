@@ -619,6 +619,8 @@
     }
     var pn = progressNodesGet();
     var bars = pn.bars;
+    var barsParent0 = bars[0] && bars[0].closest('.mu-bar');
+    if (barsParent0) barsParent0.classList.toggle('p0', p <= 0);
     for (var i = 0; i < bars.length; i++) bars[i].style.width = (p * 100).toFixed(2) + '%';
     var times = pn.cur;
     for (var j = 0; j < times.length; j++) times[j].textContent = fmtTime(t);
@@ -3100,6 +3102,12 @@
       clearTimeout(slowTimer);
       // 期间可能已切歌，丢弃过期结果
       if (key !== lyricTrackKey) return;
+      // LRC 首行常是「歌名 - 歌手」标题元数据（非歌词）：与当前曲目匹配则滤掉
+      if (res && res.parsed && res.parsed.length > 1) {
+        var head = (res.parsed[0].text || '').replace(/s+/g, ' ').trim();
+        var expect = (track.title || '') + ' - ' + (track.artist || '');
+        if (head === expect || head === track.title) res.parsed = res.parsed.slice(1);
+      }
       currentLyric = res;
       refreshImmersiveLyric();
     }).catch(function () {

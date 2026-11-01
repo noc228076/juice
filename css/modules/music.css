@@ -3174,3 +3174,7 @@ html[data-theme="light"] #mod-music .mu-note.ok { color: #2F9E44; }
 .mu-imm-lyric-line { color: rgba(255, 255, 255, 0.52); }
 .mu-imm-lyric-line:not(.active) { opacity: 1; }
 .mu-imm-lyric-line.passed { color: rgba(255, 255, 255, 0.62); opacity: 1; }
+
+/* 审计边角：0 进度时手柄悬在线最左端突兀——无进度时隐藏（onProgress 挂 p0 类） */
+.mu-bar.p0 .mu-bar-progress > i::after { opacity: 0 !important; }
+.mu-bar.p0:hover .mu-bar-progress > i::after { opacity: 0 !important; }

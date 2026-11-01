@@ -33,6 +33,9 @@
       // 去掉逐字时间标签 <start,dur> 和所有 [tag]
       var text = line.replace(/<[^>]*>/g, '').replace(/\[[^\]]*\]/g, '').trim();
       if (!text) continue;
+      // 制作人员名单（词/曲/编曲/混音…）带时间标签混在 LRC 开头，
+      // 会被当歌词滚动展示——按「关键词 + 冒号」结构过滤
+      if (/^(作词|作曲|编曲|制作人|监制|混音|母带|和声|录音|混缩|缩混|填词|谱曲|吉他|贝斯|键盘|鼓|弦乐|笛子|二胡|演唱|原唱|翻唱|发行|版权|OP|SP)s*[:：]/.test(text)) continue;
       for (var j = 0; j < times.length; j++) {
         out.push({ time: times[j], text: text });
       }

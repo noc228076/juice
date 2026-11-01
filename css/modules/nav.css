@@ -1448,3 +1448,57 @@ html[data-theme="light"] #modalAbout .gp-tip {
   #modules-viewport { top: var(--gnav-h, calc(96px + env(safe-area-inset-top, 0px))); }
   :root { --subnav-top: calc(var(--gnav-h, 96px) + env(safe-area-inset-top, 0px) + 24px); }
 }
+
+/* 两行式顶栏下撤销 420px 的控件压缩：第一行有充足空间，
+   恢复 36px 控件与 8px 间距（≤767px 生效，顺序在 420 断点之后覆盖） */
+@media (max-width: 767px) {
+  #global-header {
+    padding-left: 12px;
+    padding-right: 12px;
+    gap: 8px;
+  }
+  .global-btn-pill,
+  .global-icon-btn {
+    width: auto;
+    min-width: 36px;
+    height: 36px;
+    font-size: 13px;
+  }
+  .global-nav-right { gap: 8px; }
+}
+
+/* 两行式下恢复完整胶囊与昵称：第一行空间充足，不再需要
+   768 断点的「档案收成圆钮 / 昵称 40px」省空间压缩 */
+@media (max-width: 767px) {
+  .global-btn-pill {
+    width: auto;
+    padding: 6px 12px;
+  }
+  .global-btn-pill .pill-txt { display: inline; }
+  .global-btn-profile { min-width: 0; padding: 3px 10px 4px; }
+  .global-btn-profile .gp-nick {
+    font-size: 11px;
+    max-width: 110px;
+  }
+}
+
+/* 头像胶囊完整布局：昵称回到胶囊内部（此前 768 断点把胶囊压成
+   30px 圆，昵称溢出到按钮外缘） */
+@media (max-width: 767px) {
+  .global-btn-profile {
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    width: auto;
+    min-width: 0;
+    height: 36px;
+    padding: 4px 12px;
+  }
+  .global-btn-profile .gp-avatar { font-size: 16px; }
+  .global-btn-profile .gp-nick {
+    font-size: 11.5px;
+    max-width: 110px;
+    line-height: 1.1;
+  }
+}

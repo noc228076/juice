@@ -1898,7 +1898,14 @@
     renderMini();
   }
 
+  /* 切歌链路会在同一帧内连调 2-3 次（取址开始/地址落地/封面回来），
+     每次全量重建 100 行列表 + 播放条销毁重建。rAF 合帧到每帧最多一次。 */
+  var renderHomeRaf = 0;
   function renderHome() {
+    if (renderHomeRaf) return;
+    renderHomeRaf = requestAnimationFrame(function () { renderHomeRaf = 0; renderHomeNow(); });
+  }
+  function renderHomeNow() {
     if (!el) return;
     invalidateProgressNodes();
 

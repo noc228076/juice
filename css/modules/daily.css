@@ -1228,3 +1228,8 @@ html[data-theme="light"] .daily-hot-notice {
   #dlSec-wallpaper .daily-wp-thumb-title { font-size: 11px; }
   #dlSec-wallpaper .daily-wp-thumb-date { font-size: 10px; }
 }
+
+/* 壁纸版权行叠在图片亮区上：深色投影保证可读（审计 mob-light P2） */
+.daily-wp-meta {
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.55);
+}

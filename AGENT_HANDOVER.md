@@ -745,6 +745,10 @@ curl -s "https://juice.noooc.dpdns.org/js/app.bundle.js?v=100" | grep -c "你的
 - 未修记录：壁纸模式页眉/页脚 meta 仅 text-shadow 兜底（P2）、decision 转盘
   扇区文字对比度（P2，类名待定位）、 merit 祝福语 chips 触控（P2）、
   「推荐祷词」来自远程影视数据非本地文案
+- 复核翻案：坦克 tk-mini min-height:44px 实测已生效（mob-light 报告的 38px 为旧图误测）；
+  「党日常第一直觉」源码本为「凭日常」，agent 低字号粗体下误读
+- 批次 B：弹幕墙画布引导文字固定浅色 #B9C4D6（画布恒深底，浅色主题下不再深底压暗字）、
+  壁纸版权行 .daily-wp-meta 加深色投影
 
 ### CSS 生效链陷阱（2026-10-31）
 - css/style.css 是死文件（页面不引用、build-bundles.js 的 coreCssFiles 不含它），

@@ -350,3 +350,9 @@
 .wl-err-ok {
   color: #37b24d !important;
 }
+
+/* 画布永远深底：内部引导文字固定浅色，不随主题翻转为深字（审计 mob-light P1） */
+.wl-hint,
+.wl-hint * {
+  color: #B9C4D6 !important;
+}

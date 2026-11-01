@@ -3144,3 +3144,27 @@ html[data-theme="light"] .mu-player .mu-imm-vol-num { color: var(--mod-ac); }
   .mu-imm-lyric-line { font-size: 16px; }
   .mu-imm-lyric-line.active { font-size: 21px; }
 }
+
+
+
+/* 审计复核（round2-music-pc P1）：贴顶细进度条为既有设计（hover 加粗+手柄），
+   问题只在「常态不可发现」。保留设计，温和增强：
+   常态 3px + 轨道对比 + 小手柄常显 + 热区 24px */
+.mu-player .mu-bar-progress { height: 3px; }
+html[data-theme="light"] .mu-player .mu-bar-progress { background: rgba(20, 24, 18, 0.26); }
+html[data-theme="dark"] .mu-player .mu-bar-progress { background: rgba(255, 255, 255, 0.22); }
+.mu-player .mu-bar-progress > i::after {
+  opacity: 0.55;
+  width: 9px;
+  height: 9px;
+  right: -5px;
+}
+.mu-player .mu-bar:hover .mu-bar-progress > i::after {
+  opacity: 1;
+  width: 12px;
+  height: 12px;
+}
+.mu-player .mu-seek { inset: -11px 0; }
+
+/* 审计 round2-music-pc P1：浅色主题下 --ok 亮绿在白底上 1.56:1 不可读 */
+html[data-theme="light"] #mod-music .mu-note.ok { color: #2F9E44; }

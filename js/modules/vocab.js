@@ -399,9 +399,27 @@
     if (typeof s.maxInterval !== 'number') s.maxInterval = 365;
   }
 
+  var saveStateTimer = 0;
+  var stateDirty = false;
   function saveState() {
-    try { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); } catch (e) {}
+    /* 全量序列化在 4500 词词库下单次 ~455KB，答题过程每题触发 3-4 次。
+       300ms 尾随合并；pagehide/visibilitychange 时有改动才 flush——
+       无条件写会把外部（测试/导入）刚写入的 localStorage 覆盖回内存旧态 */
+    stateDirty = true;
+    clearTimeout(saveStateTimer);
+    saveStateTimer = setTimeout(saveStateNow, 300);
   }
+  function saveStateNow() {
+    clearTimeout(saveStateTimer);
+    saveStateTimer = 0;
+    if (!stateDirty) return;
+    try { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); } catch (e) {}
+    stateDirty = false;
+  }
+  window.addEventListener('pagehide', function () { if (stateDirty) saveStateNow(); });
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'hidden' && stateDirty) saveStateNow();
+  });
 
   function rollDay() {
     var today = todayKey();
@@ -1563,7 +1581,7 @@
     clearSession(); // 跨词库的会话无法续答
     state.book = bk;
     bs();   // 确保该词库的进度对象存在
-    saveState();
+    saveStateNow();
     queue = [];
     qi = 0;
     answered = false;
@@ -1640,7 +1658,7 @@
       day: todayKey(),
       savedAt: Date.now()
     };
-    saveState();
+    saveStateNow();
   }
   function clearSession() {
     if (state.session) { state.session = null; saveState(); }
@@ -2293,7 +2311,7 @@
       b0.newPerDay[tk] = (b0.newPerDay[tk] || 0) + 1;
       b0.newDoneToday = (b0.newDoneToday || 0) + 1;   // 学完即扣额度，不等结算
     }
-    saveState();
+    saveStateNow();
     return ivl;
   }
 
@@ -2716,7 +2734,7 @@
     destroy: function () {
       tickFlush();
       persistSession();   // 已答未点下一题的题先落快照，否则重进重答双计
-      saveState();
+      saveStateNow();
       submitBoards();
       window.removeEventListener('keydown', onKeyDown);
       keyBound = false;

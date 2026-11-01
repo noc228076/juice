@@ -1853,7 +1853,7 @@
           inner +
           '<div class="vc-feedback" id="vcFb"></div>' +
         '</div>' +
-        '<p class="vc-keyhint">键盘 <b>1-4</b> 选择 · <b>Bksp</b> 上一题 · <b>Esc</b> 退出答题</p>' +
+        '<p class="vc-keyhint">键盘 <b>1-4</b> 选择 · <b>空格</b> 下一题 · <b>Esc</b> 退出答题</p>' +
         '<div class="vc-playfoot">' +
           '<div class="vc-playfoot-stats">' +
             '<span>本轮 <b>' + sessionStats.right + '</b> 对 / <b>' + sessionStats.wrong + '</b> 错</span>' +

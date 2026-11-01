@@ -3105,8 +3105,9 @@
       // LRC 首行常是「歌名 - 歌手」标题元数据（非歌词）：与当前曲目匹配则滤掉
       if (res && res.parsed && res.parsed.length > 1) {
         var head = (res.parsed[0].text || '').replace(/s+/g, ' ').trim();
-        var expect = (track.title || '') + ' - ' + (track.artist || '');
-        if (head === expect || head === track.title) res.parsed = res.parsed.slice(1);
+        var expect = (track.title || '') + ' - ';
+        // 完全相等或「歌名 - 开头」都算标题元数据（末尾常带外文名）
+        if (head === track.title || (track.title && head.indexOf(expect) === 0)) res.parsed = res.parsed.slice(1);
       }
       currentLyric = res;
       refreshImmersiveLyric();

@@ -3168,3 +3168,9 @@ html[data-theme="dark"] .mu-player .mu-bar-progress { background: rgba(255, 255,
 
 /* 审计 round2-music-pc P1：浅色主题下 --ok 亮绿在白底上 1.56:1 不可读 */
 html[data-theme="light"] #mod-music .mu-note.ok { color: #2F9E44; }
+
+/* 审计 round3：歌词亮度单维度终值——color alpha 控制（0.5 未唱/0.62 已唱），
+   覆盖上方 1752 块的 0.3（该块 + :not(.active) opacity 叠加实际只有 ~0.3） */
+.mu-imm-lyric-line { color: rgba(255, 255, 255, 0.52); }
+.mu-imm-lyric-line:not(.active) { opacity: 1; }
+.mu-imm-lyric-line.passed { color: rgba(255, 255, 255, 0.62); opacity: 1; }

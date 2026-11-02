@@ -367,12 +367,18 @@
     ctx.font = '900 58px serif';
     ctx.fillText(`${record.no} · ${record.title}`, 540, 260);
 
-    // 吉凶朱砂大印
+    // 吉凶朱砂大印：按文字实宽自适应字号，最长「下下转上吉（触底反弹）」不溢出（审计 #14）
     ctx.fillStyle = '#E11D48';
-    roundRect(ctx, 410, 295, 260, 64, 14);
+    var sealW = 320, sealX = 540 - sealW / 2;
+    roundRect(ctx, sealX, 295, sealW, 64, 14);
     ctx.fill();
     ctx.fillStyle = '#FFFFFF';
-    ctx.font = '900 34px system-ui, sans-serif';
+    var sealSize = 34;
+    ctx.font = '900 ' + sealSize + 'px system-ui, sans-serif';
+    while (sealSize > 20 && ctx.measureText(record.rank).width > sealW - 28) {
+      sealSize -= 2;
+      ctx.font = '900 ' + sealSize + 'px system-ui, sans-serif';
+    }
     ctx.fillText(record.rank, 540, 339);
 
     // 签诗框

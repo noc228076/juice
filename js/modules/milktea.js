@@ -294,7 +294,7 @@
       <div class="mt-quote">快去点一杯 ${b.name} 的「${b.drink}」犒劳自己吧 🧋<br>测试结果仅供娱乐，快乐喝茶最重要～</div>
     `;
 
-    lastResult = { b, second: second.b, pct, scores, traits: TRAITS };
+    lastResult = { b, second: second.b, pct, scores, traits: TRAITS, maxP };
 
     // 保存至全所综合档案库（剥离大体积 Base64 字段，避免占用 localStorage 配额）
     if (window.UniversalHistory) {
@@ -307,7 +307,7 @@
         color: b.color || '#e8c96a',
         badge: '🧋 奶茶',
         avatar: b.emoji,
-        data: { b: liteB, second: liteSec, pct, scores, traits: TRAITS }
+        data: { b: liteB, second: liteSec, pct, scores, traits: TRAITS, maxP }
       });
     }
 
@@ -440,7 +440,8 @@
         roundRect(ctx, 280, barY, 600, 24, 12);
         ctx.fill();
 
-        const fillW = Math.min(600, (v / 12) * 600);
+        const mp = (res.maxP && res.maxP[t.k]) || 12;   /* 旧档无 maxP 回落 12 */
+        const fillW = Math.min(600, (v / mp) * 600);
         ctx.fillStyle = '#e8c96a';
         roundRect(ctx, 280, barY, fillW, 24, 12);
         ctx.fill();
@@ -592,7 +593,8 @@
     let bars = "";
     TRAITS.forEach(t => {
       const v = scores[t.k] || 0;
-      bars += `<div class="mt-trow"><span class="lbl">${t.e} ${t.n}</span><div class="bar"><i style="width:${Math.min(100, v * 12)}%"></i></div><span class="val">${v}</span></div>`;
+      const mp = (res.maxP && res.maxP[t.k]) || 12;
+      bars += `<div class="mt-trow"><span class="lbl">${t.e} ${t.n}</span><div class="bar"><i style="width:${Math.min(100, Math.round(v / mp * 100))}%"></i></div><span class="val">${v}</span></div>`;
     });
 
     const wrap = document.getElementById('mtResWrap');

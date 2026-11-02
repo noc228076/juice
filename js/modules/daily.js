@@ -1167,7 +1167,8 @@
     };
 
     img.onerror = () => {
-      alert('抱歉，壁纸跨域限制暂无法合成海报，已为您直接打开 4K 原图下载！');
+      /* 阻塞 alert 换页内轻提示（审计 C-P3-18） */
+      juiceNotice('壁纸跨域限制，无法合成锁屏海报；已为你打开 4K 原图');
       const u = activeWp.cover_4k || activeWp.cover || '';
       /* window.open 同样要拦协议：javascript: 会在继承 origin 的空白页里执行 */
       if (/^https?:\/\//i.test(u)) window.open(u, '_blank', 'noopener');

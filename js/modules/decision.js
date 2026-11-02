@@ -256,7 +256,6 @@
       ctx.shadowOffsetY = 2;
       ctx.lineWidth = 3;
       ctx.strokeStyle = 'rgba(0, 0, 0, 0.55)';
-      ctx.strokeText(txt, radius - 26, 0);
 
       // 动态根据字数与扇区数量调整字号
       let fontSize = num > 10 ? 18 : 22;

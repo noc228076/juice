@@ -138,7 +138,7 @@
 
   function activateModule(modKey) {
     const parentModKey = MOD_PARENT_MAP[modKey] || modKey;
-    // 电视直播是常驻 iframe：离开时通知子应用暂停，避免后台继续耗流量。
+    // 电视直播：离开时暂停视频，避免后台继续耗流量。
     const tvEl = document.getElementById('mod-tv');
     if (modKey !== 'tv' && tvEl && tvEl.classList.contains('active') &&
         window.AppTv && typeof window.AppTv.pause === 'function') {

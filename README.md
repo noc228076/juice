@@ -143,14 +143,13 @@ css/base.css ──────┘
 npm run build
 ```
 
-**构建脚本会按源码指纹自动递增版本号**，并同步 `index.html` 与 `tv/index.html` 的 `?v=`；
+**构建脚本会按源码指纹自动递增版本号**，并同步 `index.html` 的 `?v=`；
 `sw.js` 的 `CACHE_NAME` 仍是唯一真值，直接运行 `npm run build` 即可，不需要手改：
 
 | 文件 | 字段 | 当前值 | 谁改 |
 |---|---|---|---|
-| `sw.js` | `CACHE_NAME` | `juice-persona-v596` | **自动**（源码指纹变化时 +1） |
-| `index.html` | `?v=` 查询参数（核心 CSS / 主 JS） | `596` | `npm run build` 自动同步 |
-| `tv/index.html` | `?v=`（app / style / config / hls） | `596` | `npm run build` 自动同步 |
+| `sw.js` | `CACHE_NAME` | `juice-persona-v600` | **自动**（源码指纹变化时 +1） |
+| `index.html` | `?v=` 查询参数（核心 CSS / 主 JS） | `600` | `npm run build` 自动同步 |
 | `router.js` | 按需 CSS / JS chunk URL | 从主包注入 | 读取 `window.__APP_VERSION__` |
 
 首屏只引用 `css/core.bundle.css`（`base + nav + history`）；
@@ -158,7 +157,8 @@ npm run build
 
 ### 📺 电视直播（`#/tv`）
 
-播放器在 `tv/` 独立子应用里，通过同源 iframe 挂进 juice；`tv-worker/` 是 Cloudflare Worker
+播放器是 juice **原生模块**（`js/modules/tv.js` + `css/modules/tv.css`），不是 iframe；
+hls.js 在首次点播时按需加载 `js/vendor/hls.min.js`。`tv-worker/` 是 Cloudflare Worker
 HLS 代理（解决 https 页面播 http 源的 mixed content / CORS）。真实频道地址只存在 Worker 里，
 客户端拿到的是不透明 `/media?cid=…&i=…` 地址。
 
@@ -171,14 +171,15 @@ npx wrangler login  # 首次
 npm run tv:deploy   # 生成数据并部署 Worker
 ```
 
-部署后把 Worker 地址填进 `tv/config.js` 的 `prod` 常量，再 `npm run build`。详见
-`tv/README.md`、`tv-worker/wrangler.toml` 与 `scripts/tv-src/README.md`。Worker 免费版
+线上 Worker 地址写在 `js/modules/tv.js` 的 `TV_API` 默认值里；也可以在控制台
+`localStorage.setItem('tvApiBase', 'https://…')` 临时覆盖。详见
+`tv-worker/wrangler.toml` 与 `scripts/tv-src/README.md`。Worker 免费版
 10 万请求/天，适合个人低频使用；没有中国大陆节点，`workers.dev` 在国内可能不稳，
-可换自定义域名或把 `tv-worker/dev-server.mjs` 跑在 VPS/NAS 上，只改 `tv/config.js`。
+可换自定义域名或把 `tv-worker/dev-server.mjs` 跑在 VPS/NAS 上，只改 `TV_API`。
 
 > **Cloudflare 出口限制（2026-11-02 实测）**：源站会按出口 IP 封锁 Cloudflare 数据中心段。
 > 83 个频道中首候选可播约 30 个，CCTV-1 的 13 条候选全部 403，CCTV-2~17 也大多不可用；
-> CCTV-13、浙江卫视、部分卫视/少儿/CGTN 正常。要全量央视，请把 `apiBase` 切到
+> CCTV-13、浙江卫视、部分卫视/少儿/CGTN 正常。要全量央视，请把 `TV_API` 切到
 > 家庭/VPS 上的 `tv-worker/dev-server.mjs`（配隧道/VPS 提供 HTTPS）。
 
 ---
@@ -195,9 +196,6 @@ juice/
 ├── build-bundles.js        # 打包脚本
 ├── api/
 │   └── leaderboard.js      # 全服排行榜 Serverless 函数（25 个 game key，见下文）
-├── tv/                     # 电视直播子应用（同源 iframe）
-│   ├── index.html / app.js / style.css / config.js
-│   └── hls.min.js           # hls.js v1.7.4（Apache-2.0）
 ├── tv-worker/              # Cloudflare Worker HLS 代理
 │   ├── src/core.js          # /playlist /media /proxy + m3u8 重写
 │   ├── src/index.js         # Worker 入口
@@ -212,7 +210,7 @@ juice/
 ├── js/
 │   ├── app.bundle.js       # 【构建产物】勿手改
 │   ├── esc.js              # 全站统一 HTML 转义（escHtml/escUrl）
-│   ├── vendor/             # 【构建产物】morphicons + lucide 图标子集
+│   ├── vendor/             # morphicons + lucide 图标子集；hls.min.js（电视直播按需）
 │   ├── chunks/             # 【构建产物】按需模块包
 │   ├── core-drink.js       # 饮品人格核心（计分、Canvas 分享长图）
 │   ├── sfx.js              # WebAudio 合成音效引擎（零音频文件）
@@ -235,6 +233,7 @@ juice/
 │       ├── leaderboard.js          # 全服排行榜客户端（按 game 分榜）
 │       ├── lb-panel.js             # 排行榜面板（各游戏分榜共用）
 │       ├── vocab.js / vocab-data.js  # 背单词（三阶段 + 全服榜）
+│       ├── tv.js                   # 电视直播（频道合并 / HLS 播放 / 多源托底）
 │       ├── music.js                # 我的音乐台主控（播放器 / 列表 / 排行榜 UI）
 │       │   └── lx-music/           # 洛雪音源内核（移植自 lx-music-desktop）
 │       │       ├── request.js      #   └ fetch + 代理底座

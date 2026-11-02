@@ -152,16 +152,12 @@ function sourceFingerprint() {
     ...moduleCssFiles,
     'js/vendor/morphicons.js',
     'js/vendor/lucide-icons.js',
+    // 电视直播按需加载 hls.js（不是 chunk，运行时动态插入）
+    'js/vendor/hls.min.js',
     'js/modules/lx-music/builtin/sources.json',
     // index.html 里的静态标记（子导航条、模块骨架）不经过 bundle，
     // 但同样受 ?v= 影响，必须计入指纹，否则改了 HTML 版本号不涨
-    'index.html',
-    // tv/ 是独立静态子应用，同样要参与指纹与 ?v= 同步
-    'tv/index.html',
-    'tv/app.js',
-    'tv/style.css',
-    'tv/config.js',
-    'tv/hls.min.js'
+    'index.html'
   );
   // 运行时按 URL 直接 fetch 的数据文件也必须计入指纹：sw.js 对 /assets/ 是
   // cache-first，词库这类不进 bundle 的文件改了而不涨版本号，用户永远拿旧数据。
@@ -173,7 +169,7 @@ function sourceFingerprint() {
     // 每次构建都把版本号改掉 → 下次哈希又不同 → 版本号永远在涨。
     // 哈希前把版本号归一化掉，只反映真实内容变化。
     let buf = fs.readFileSync(path.join(__dirname, f));
-    if (f === 'index.html' || f === 'tv/index.html') {
+    if (f === 'index.html') {
       buf = Buffer.from(String(buf).replace(/\?v=\d+/g, '?v='), 'utf8');
     }
     h.update(buf);
@@ -273,19 +269,7 @@ if (version) {
     .replace(/js\/vendor\/(morphicons|lucide-icons)\.js(?!\?)/g, `js/vendor/$1.js?v=${version}`);
   if (nextHtml !== htmlSrc) fs.writeFileSync(htmlPath, nextHtml, 'utf8');
 
-  // tv/ 独立子应用：资源 URL 也统一带版本号，避免 /tv/** 的 immutable 缓存拿旧文件
-  const tvHtmlPath = path.join(__dirname, 'tv/index.html');
-  if (fs.existsSync(tvHtmlPath)) {
-    const tvSrc = fs.readFileSync(tvHtmlPath, 'utf8');
-    const tvNext = tvSrc
-      .replace(/style\.css\?v=[\w.]+/g, `style.css?v=${version}`)
-      .replace(/config\.js\?v=[\w.]+/g, `config.js?v=${version}`)
-      .replace(/hls\.min\.js\?v=[\w.]+/g, `hls.min.js?v=${version}`)
-      .replace(/app\.js\?v=[\w.]+/g, `app.js?v=${version}`);
-    if (tvNext !== tvSrc) fs.writeFileSync(tvHtmlPath, tvNext, 'utf8');
-  }
-
-  console.log(`版本号已同步 -> v${version} (index.html / tv/index.html ?v=, sw.js CACHE_NAME)`);
+  console.log(`版本号已同步 -> v${version} (index.html ?v=, sw.js CACHE_NAME)`);
 }
 
 console.log(

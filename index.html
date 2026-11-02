@@ -19,10 +19,10 @@
 <meta property="og:image" content="https://juice.noooc.dpdns.org/assets/icons/icon-512.png">
 <meta property="og:url" content="https://juice.noooc.dpdns.org/">
 <meta name="twitter:card" content="summary_large_image">
-  <link rel="stylesheet" href="css/core.bundle.css?v=596">
-  <script defer src="js/vendor/morphicons.js?v=596"></script>
-  <script defer src="js/vendor/lucide-icons.js?v=596"></script>
-  <script defer src="js/app.bundle.js?v=596" fetchpriority="high"></script>
+  <link rel="stylesheet" href="css/core.bundle.css?v=600">
+  <script defer src="js/vendor/morphicons.js?v=600"></script>
+  <script defer src="js/vendor/lucide-icons.js?v=600"></script>
+  <script defer src="js/app.bundle.js?v=600" fetchpriority="high"></script>
   <script>
     (function(){
       // 主题必须在首次绘制前定下来。以前只有 <html data-theme="dark"> 的硬编码默认值，
@@ -2346,10 +2346,10 @@
         </div>
       </section>
 
-      <!-- 电视直播：同源 iframe 子应用，HLS 代理在 tv-worker（Cloudflare Worker） -->
+      <!-- 电视直播：原生模块（HLS 代理在 tv-worker / Cloudflare Worker） -->
       <section id="mod-tv" class="app-module">
-        <div class="tv-top">
-          <div class="subnav-pill-bar">
+        <div class="tv-wrap">
+          <div class="subnav-pill-bar" style="margin: 0 auto 16px; position: relative; z-index: 5;">
             <button type="button" class="subnav-pill-btn" data-sub-jump="clock">摸鱼时钟</button>
             <button type="button" class="subnav-pill-btn" data-sub-jump="merit">功德木鱼</button>
             <button type="button" class="subnav-pill-btn" data-sub-jump="films">摸鱼片单</button>
@@ -2357,16 +2357,91 @@
             <button type="button" class="subnav-pill-btn" data-sub-jump="scratch">幸运刮刮乐</button>
             <button type="button" class="subnav-pill-btn" data-sub-jump="wall">💬 弹幕墙</button>
           </div>
-        </div>
-        <div class="tv-frame-wrap">
-          <div class="tv-loading" id="tvLoading">
-            <span class="tv-spinner" aria-hidden="true"></span>
-            <span>电视直播加载中…</span>
+
+          <header class="tv-header">
+            <span class="tv-tag">LIVE TV · 央视 / 卫视 / 动画</span>
+            <h1 class="tv-title">📺 电视直播</h1>
+            <p class="tv-sub">公开源多路互备，播放失败自动切源</p>
+            <div class="tv-stat"><span id="tvFeedInfo">正在连接代理…</span> · 共 <b id="tvCount">0</b> 个频道</div>
+          </header>
+
+          <div class="tv-board">
+            <section class="tv-player-card" id="tvPlayerCard">
+              <div class="tv-stage" id="tvStage">
+                <video id="tvVideo" playsinline webkit-playsinline muted preload="none"></video>
+                <div class="tv-mask" id="tvMask">
+                  <div class="tv-mask-icon">📺</div>
+                  <div class="tv-mask-text" id="tvMaskText">选择频道开始播放</div>
+                  <div class="tv-spinner" id="tvSpinner" hidden></div>
+                  <button class="tv-mask-play" id="tvMaskPlay" type="button" hidden>▶ 播放</button>
+                </div>
+                <div class="tv-live-badge" id="tvLiveBadge" hidden><span></span>直播</div>
+              </div>
+
+              <div class="tv-ctrl">
+                <button class="tv-icon-btn" id="tvBtnPlay" type="button" title="播放/暂停（空格）">▶</button>
+                <div class="tv-now-mini">
+                  <div class="tv-now-name" id="tvNowName">未播放</div>
+                  <div class="tv-now-sub" id="tvNowStatus">选择频道开始</div>
+                </div>
+                <span class="tv-net" id="tvNet">--</span>
+                <div class="tv-quality-wrap">
+                  <button class="tv-ctrl-btn" id="tvBtnQuality" type="button" hidden>清晰度</button>
+                  <div class="tv-quality-menu" id="tvQualityMenu" hidden></div>
+                </div>
+                <button class="tv-icon-btn" id="tvBtnMute" type="button" title="静音（M）">🔇</button>
+                <input class="tv-vol" id="tvVol" type="range" min="0" max="100" value="0" title="音量">
+                <button class="tv-icon-btn" id="tvBtnPip" type="button" title="画中画（P）" hidden>⧉</button>
+                <button class="tv-icon-btn" id="tvBtnFs" type="button" title="全屏（F）">⛶</button>
+              </div>
+
+              <div class="tv-now-bar">
+                <div class="tv-now-main">
+                  <span class="tv-now-title" id="tvNowTitle">未播放</span>
+                  <span class="tv-now-meta" id="tvNowMeta">选择频道开始播放</span>
+                </div>
+                <div class="tv-now-actions">
+                  <button class="tv-pill-btn" id="tvFavBtn" type="button">☆ 收藏</button>
+                  <button class="tv-pill-btn" id="tvPrevBtn" type="button">← 上一个</button>
+                  <button class="tv-pill-btn" id="tvNextBtn" type="button">下一个 →</button>
+                </div>
+              </div>
+            </section>
+
+            <aside class="tv-side-card">
+              <div class="tv-side-head">
+                <label class="tv-search">
+                  <span class="tv-search-ico">🔍</span>
+                  <input id="tvSearch" type="search" placeholder="搜索频道名…" autocomplete="off">
+                </label>
+                <button class="tv-icon-btn" id="tvRefresh" type="button" title="重新拉取频道">↻</button>
+                <button class="tv-icon-btn" id="tvAddSource" type="button" title="添加自定义 M3U 源">＋</button>
+              </div>
+              <div class="tv-groups" id="tvGroups"></div>
+              <div class="tv-list-head">
+                <span id="tvListTitle">全部频道</span>
+                <span id="tvListCount"></span>
+              </div>
+              <div class="tv-channels" id="tvChannels"></div>
+            </aside>
           </div>
-          <iframe id="tvFrame" title="电视直播"
-                  allow="autoplay; fullscreen; picture-in-picture"
-                  allowfullscreen
-                  referrerpolicy="strict-origin-when-cross-origin"></iframe>
+        </div>
+
+        <div class="tv-layer" id="tvSourceLayer" hidden>
+          <div class="tv-dialog" role="dialog" aria-modal="true" aria-labelledby="tvSourceTitle">
+            <div class="tv-dialog-head">
+              <h3 id="tvSourceTitle">添加自定义 M3U 源</h3>
+              <button class="tv-icon-btn" id="tvSourceClose" type="button" aria-label="关闭">✕</button>
+            </div>
+            <form id="tvSourceForm">
+              <label>名称<input id="tvSrcName" type="text" placeholder="如：我的直播源" required></label>
+              <label>M3U 地址<input id="tvSrcUrl" type="url" placeholder="https://…/playlist.m3u" required></label>
+              <div class="tv-dialog-actions">
+                <button class="tv-pill-btn" type="button" id="tvSourceCancel">取消</button>
+                <button class="tv-pill-btn tv-pill-primary" type="submit">添加并合并</button>
+              </div>
+            </form>
+          </div>
         </div>
       </section>
 

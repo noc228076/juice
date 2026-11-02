@@ -84,7 +84,7 @@ v97 相对 v96 三件套 Brotli 190,739 B 再减少约 **27.6%**，主要是 CSS
 |---|---|---|
 | 顶层导航 Tab | **8** | `index.html` 的 `button.nav-tab[data-mod]`：`drinks manual tarot clock decision daily vocab music` |
 | 实际路由 | **18** | `js/modules/router.js` 的 `ALLOWED_MODS`：`drinks milktea manual fengshui tarot lingqian decision clock merit films tv lifeguide bazi daily scratch wall vocab music` |
-| `#mod-*` section | **17** | 无 `mod-lifeguide`（已并入 manual）、无 `mod-history`（抽屉）；v596 新增 `mod-tv` |
+| `#mod-*` section | **17** | 无 `mod-lifeguide`（已并入 manual）、无 `mod-history`（抽屉）；v600 新增 `mod-tv` |
 
 `MOD_PARENT_MAP` 只决定**顶栏哪个 Tab 高亮**，不决定激活哪个 section：
 `milktea→drinks`、`tarot/lingqian/bazi/fengshui→tarot`、`clock/merit/tv→clock`、
@@ -786,48 +786,55 @@ curl -s "https://juice.noooc.dpdns.org/js/app.bundle.js?v=100" | grep -c "你的
 - 五处子导航按钮在 index.html 静态骨架里（clock/merit/films/scratch/wall 各一份），
   改子导航清单要五处同步；router 的 [data-sub-jump] 高亮按 modKey 自动匹配，无需注册表。
 
-### 电视直播（#/tv，v596）
+### 电视直播（#/tv，v600）
 旧 TV 模块（v208）因源站 H.264 SPS 不合规、原生与 MSE 都绿屏，已在 `e8e7557` 整体回滚。
-v596 不复用旧播放器，改为移植已实测可播的 `iptv-web`：
+v600 不复用旧播放器：功能移植自 `iptv-web`，**UI 完全重写为 juice 原生风格**（不再用 iframe）。
 
 ```
 juice 静态 (Vercel)
-  #/tv → #mod-tv → <iframe src="tv/index.html?embed=1">  同源，隔离全局快捷键/样式
-        tv/app.js → Cloudflare Worker (tv-worker/)
+  #/tv → #mod-tv（原生 DOM：播放器卡 + 频道侧栏）
+        js/modules/tv.js → Cloudflare Worker (tv-worker/)
           /playlist  内置频道表（只给 /media?cid&i 不透明地址）
           /media     按 cid/i 取真实地址，m3u8 重写为 /proxy
           /proxy     HLS 分片流式透传（http 上游 / Range / 206）
 ```
 
-- 前端只在首次进入 `#/tv` 时给 iframe 设 `src`，首屏不拉 624KB hls.js。
-- 离开 `#/tv` 时 `router.activateModule()` 调 `AppTv.pause()`，iframe 内 `postMessage('tv:pause')`
-  暂停视频；返回不自动续播。
+- 原生模块：`js/modules/tv.js` + `css/modules/tv.css`；`#mod-tv` 静态骨架在 `index.html`。
+  不再有 `tv/` 目录、iframe、`tv/config.js`。
+- hls.js 按需加载 `js/vendor/hls.min.js`（首次点播时才插入 script），首屏不拉 624KB；
+  `build-bundles.js` 的指纹包含该文件。
+- 所有 DOM ID 以 `tv` 前缀（`tvVideo` / `tvChannels` / `tvNowName`…），
+  键盘快捷键只在 `#mod-tv.active` 时生效，且输入框聚焦时跳过，不污染其他模块。
+- 离开 `#/tv` 时 `router.activateModule()` 调 `AppTv.pause()` 暂停视频并关闭清晰度/自定义源浮层；
+  返回不自动续播。
 - 子导航现有 **6 处**（clock/merit/films/tv/scratch/wall 各一份），改清单要六处同步。
-- `#mod-tv.active` 必须写 `display:flex !important`：nav.css 的 `.app-module.active`
-  是 `display:block !important`，普通 ID 规则会被压掉（本轮踩过，手机端 iframe 只剩 150px）。
+- 频道合并、`baseName/keyOf/resInfo/mainGroupOf`、多源托底、8s/20s 看门狗、
+  清晰度切换、收藏/最近、搜索、自定义 M3U 源都从旧播放器移植；
+  收藏/最近沿用 `iptvweb.favs` / `iptvweb.recent`，老数据可直接读。
 - 数据：`scripts/tv-src/{extra,verified}.m3u` → `node scripts/build-tv-data.js` →
   `tv-worker/src/data.js`（gitignore）。83 个频道 / extra 185 条 / verified 原始 194 条
   （其中 2 条 TVU 测试卡被黑名单剔除，实际 192）。
 - 本地：`npm run tv:dev`（127.0.0.1:8787）+ `node server.js`（3456），打开 `#/tv`。
   `scripts/verify-tv.js` 覆盖 API、83 频道、CCTV-1 1080p 真播、非全绿、离开暂停、手机布局。
-- 线上：`npx wrangler login` → `npm run tv:deploy` → 把 Worker URL 填进
-  `tv/config.js` 的 `prod` → `npm run build` → 推 Vercel。
+- 线上：Worker 地址写在 `js/modules/tv.js` 的 `TV_API` 默认值（可用
+  `localStorage.tvApiBase` 覆盖）；`npx wrangler login` → `npm run tv:deploy` → `npm run build` → 推 Vercel。
 - Worker 关键约束：免费版 10 万请求/天、10ms CPU、无大陆节点；源大量用 82/85/8181
   端口，`wrangler.toml` 必须带 `compatibility_flags = ["allow_custom_ports"]`；
   Cloudflare 对 IP 字面量/非标端口的 fetch 行为要部署后实测。
 - 安全：Worker 只接受 `Origin/Referer` 白名单（`ALLOWED_ORIGINS`），阻断私网/回环/
   链路本地地址；`/media` 不下发真实频道地址。`scripts/tv-src/*.m3u` 含源站 key/auth，
-  仓库公开，提交前确认可接受，否则改 Cloudflare Secret。
+  已 gitignore；需要分发时手动 `git add -f` 并确认可公开。
 - `api/proxy.js` 是音乐模块的音频代理（8MB / 10s / 80-443），**不要**拿它当 HLS 代理。
 - PWA `manifest.json` 仍是 `orientation: "portrait"`；电视全屏横屏在安装版 PWA 里可能受限，
   需要真机确认，未改。
-- **Cloudflare 出口实测（2026-11-02，v596）**：Worker 已部署到
+- **Cloudflare 出口实测（2026-11-02，v600）**：Worker 已部署到
   `https://juice-tv-proxy.2280762725.workers.dev`。83 个频道各取首候选探活：
   **30 个 200 / 53 个非 200**；CCTV-1 的 13 条候选全部 `upstream 403`，
   CCTV-2~17 也基本全 403；CCTV-13、浙江卫视、部分卫视/少儿/CGTN 可播。
   原因是源站按出口 IP 封锁 Cloudflare 数据中心段（同一地址本地住宅 IP 可播）。
-  `tv/config.js` 的 `apiBase` 可切到家庭/VPS 上的 `tv-worker/dev-server.mjs`；
+  `js/modules/tv.js` 的 `TV_API` 可切到家庭/VPS 上的 `tv-worker/dev-server.mjs`；
   要全量 CCTV，需要隧道/VPS，不能只靠 Worker。
+
 
 
 ---

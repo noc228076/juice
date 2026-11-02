@@ -1,6 +1,7 @@
 # 饮料人格研究所 · 趣味实验矩阵 🍹
 
-纯静态网页趣味测试矩阵，包含 9 大顶栏模块 / 16 个功能区块，支持 PWA 安装。
+纯静态网页趣味测试矩阵，包含 8 大顶栏模块 / 17 个功能区块，支持 PWA 安装。
+电视直播（`#/tv`）的 HLS 代理独立部署在 Cloudflare Worker，静态站仍在 Vercel。
 
 | 项 | 内容 |
 |---|---|
@@ -57,7 +58,10 @@
 ### 4. ⏰ 摸鱼解压
 - **`clock`** 摸鱼时钟 & 工资 — Fliqlo 机械大翻页全屏钟屏保，含农历日期显示
 - **`merit`** 功德木鱼 & 碎纸解压 — 静心功德局，电子木鱼 + 怨气粉碎机
+- **`films`** 摸鱼片单 — 追剧站点索引
+- **`tv`** 电视直播 — 央视 / 卫视 / 动画，多源合并 + 自动托底（HLS 代理走 Cloudflare Worker）
 - **`scratch`** 幸运刮刮乐 — 刮刮卡抽奖，支持即时结算与中奖记录（并入摸鱼解压子标签）
+- **`wall`** 弹幕墙 — 一人一句留言上墙
 
 ### 5. 🪙 纠结拯救
 `decision` — 转盘决策 + 终局裁定单（可写批注，生成裁定小票）
@@ -139,17 +143,43 @@ css/base.css ──────┘
 npm run build
 ```
 
-**先手改 `sw.js` 的 `CACHE_NAME` 版本号**，再运行 `npm run build`。构建脚本会读出
-`sw.js` 的版本号并自动同步到 `index.html` 的 `?v=`，不需要手动改两遍：
+**构建脚本会按源码指纹自动递增版本号**，并同步 `index.html` 与 `tv/index.html` 的 `?v=`；
+`sw.js` 的 `CACHE_NAME` 仍是唯一真值，直接运行 `npm run build` 即可，不需要手改：
 
 | 文件 | 字段 | 当前值 | 谁改 |
 |---|---|---|---|
-| `sw.js` | `CACHE_NAME` | `juice-persona-v100` | **手动**（唯一真值来源） |
-| `index.html` | `?v=` 查询参数（核心 CSS / 主 JS） | `98` | `npm run build` 自动同步 |
-| `router.js` | 按需 CSS / JS chunk URL | `98` | 从主包注入的版本号读取 |
+| `sw.js` | `CACHE_NAME` | `juice-persona-v596` | **自动**（源码指纹变化时 +1） |
+| `index.html` | `?v=` 查询参数（核心 CSS / 主 JS） | `596` | `npm run build` 自动同步 |
+| `tv/index.html` | `?v=`（app / style / config / hls） | `596` | `npm run build` 自动同步 |
+| `router.js` | 按需 CSS / JS chunk URL | 从主包注入 | 读取 `window.__APP_VERSION__` |
 
 首屏只引用 `css/core.bundle.css`（`base + nav + history`）；
-其余 14 个模块样式打包为 `css/modules.bundle.css`，首次进入非饮品模块时加载。
+其余 16 个模块样式打包为 `css/modules.bundle.css`，首次进入非饮品模块时加载。
+
+### 📺 电视直播（`#/tv`）
+
+播放器在 `tv/` 独立子应用里，通过同源 iframe 挂进 juice；`tv-worker/` 是 Cloudflare Worker
+HLS 代理（解决 https 页面播 http 源的 mixed content / CORS）。真实频道地址只存在 Worker 里，
+客户端拿到的是不透明 `/media?cid=…&i=…` 地址。
+
+```bash
+npm run tv:data     # scripts/tv-src/*.m3u -> tv-worker/src/data.js（gitignore）
+npm run tv:dev      # 本地 Worker 适配器 127.0.0.1:8787
+node server.js      # 另开终端，打开 http://127.0.0.1:3456/#/tv
+
+npx wrangler login  # 首次
+npm run tv:deploy   # 生成数据并部署 Worker
+```
+
+部署后把 Worker 地址填进 `tv/config.js` 的 `prod` 常量，再 `npm run build`。详见
+`tv/README.md`、`tv-worker/wrangler.toml` 与 `scripts/tv-src/README.md`。Worker 免费版
+10 万请求/天，适合个人低频使用；没有中国大陆节点，`workers.dev` 在国内可能不稳，
+可换自定义域名或把 `tv-worker/dev-server.mjs` 跑在 VPS/NAS 上，只改 `tv/config.js`。
+
+> **Cloudflare 出口限制（2026-11-02 实测）**：源站会按出口 IP 封锁 Cloudflare 数据中心段。
+> 83 个频道中首候选可播约 30 个，CCTV-1 的 13 条候选全部 403，CCTV-2~17 也大多不可用；
+> CCTV-13、浙江卫视、部分卫视/少儿/CGTN 正常。要全量央视，请把 `apiBase` 切到
+> 家庭/VPS 上的 `tv-worker/dev-server.mjs`（配隧道/VPS 提供 HTTPS）。
 
 ---
 
@@ -157,7 +187,7 @@ npm run build
 
 ```text
 juice/
-├── index.html              # 页面骨架：顶栏 + 15 个 <section class="app-module">
+├── index.html              # 页面骨架：顶栏 + 17 个 <section class="app-module">
 ├── sw.js                   # Service Worker：图片懒缓存
 ├── manifest.json           # PWA 清单
 ├── vercel.json             # 构建声明 + 缓存策略
@@ -165,6 +195,18 @@ juice/
 ├── build-bundles.js        # 打包脚本
 ├── api/
 │   └── leaderboard.js      # 全服排行榜 Serverless 函数（25 个 game key，见下文）
+├── tv/                     # 电视直播子应用（同源 iframe）
+│   ├── index.html / app.js / style.css / config.js
+│   └── hls.min.js           # hls.js v1.7.4（Apache-2.0）
+├── tv-worker/              # Cloudflare Worker HLS 代理
+│   ├── src/core.js          # /playlist /media /proxy + m3u8 重写
+│   ├── src/index.js         # Worker 入口
+│   ├── dev-server.mjs       # Node 本地适配器（127.0.0.1:8787）
+│   └── wrangler.toml
+├── scripts/
+│   ├── build-tv-data.js     # m3u -> tv-worker/src/data.js
+│   ├── verify-tv.js         # TV API + UI 验收
+│   └── tv-src/*.m3u         # 频道源（含源站 key，公开仓库注意）
 ├── favicon.png             # 旧版 192px 图标（已不再被 index.html 引用）
 │
 ├── js/

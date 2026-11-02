@@ -67,6 +67,19 @@ html[data-active-module="merit"] {
   --mod-ac-glow: rgba(245, 158, 11, 0.35);
   --mod-ambient: rgba(245, 158, 11, 0.06);
 }
+/* 电视直播：青蓝。与 manual 的天蓝、music 的青绿拉开，冷色更贴近直播画面 */
+html[data-active-module="tv"] {
+  --mod-ac: #22D3EE;
+  --mod-ac-ink: #04212F;
+  --mod-ac-glow: rgba(34, 211, 238, 0.36);
+  --mod-ambient: rgba(34, 211, 238, 0.07);
+}
+html[data-theme="light"][data-active-module="tv"] {
+  --mod-ac: #0891B2;
+  --mod-ac-ink: #FFFFFF;
+  --mod-ac-glow: rgba(8, 145, 178, 0.32);
+  --mod-ambient: rgba(8, 145, 178, 0.06);
+}
 html[data-active-module="bazi"] {
   --mod-ac: #F59E0B;
   --mod-ac-ink: #1C1204;

@@ -1,0 +1,68 @@
+/* 电视直播：同源 iframe 子应用外壳。
+   播放器布局/皮肤全部在 tv/style.css，这里只负责模块高度与加载遮罩。 */
+
+#mod-tv {
+  padding: 0;
+  overflow: hidden !important;
+}
+#mod-tv.active {
+  display: flex !important;
+  flex-direction: column;
+}
+
+.tv-top {
+  flex: 0 0 auto;
+  padding: var(--screen-pad-block) 16px 10px;
+  box-sizing: border-box;
+}
+.tv-top .subnav-pill-bar {
+  margin: 0 auto;
+}
+
+.tv-frame-wrap {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+#tvFrame {
+  width: 100%;
+  height: 100%;
+  display: block;
+  border: 0;
+  background: #0f1115;
+}
+
+.tv-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: #0f1115;
+  color: #8b94a3;
+  font-size: 13px;
+  letter-spacing: .04em;
+  transition: opacity .25s ease;
+}
+.tv-loading.tv-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+.tv-spinner {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, .14);
+  border-top-color: #38bdf8;
+  animation: tv-spin .8s linear infinite;
+}
+@keyframes tv-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 767px) {
+  .tv-top { padding: 10px 12px 8px; }
+}

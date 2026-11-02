@@ -1,0 +1,14 @@
+name = "juice-tv-proxy"
+main = "src/index.js"
+compatibility_date = "2026-11-02"
+# 源大量使用 82/85/98/8181 等非标准端口，必须显式允许
+compatibility_flags = ["allow_custom_ports"]
+workers_dev = true
+
+[vars]
+# 只允许 juice 生产站与本地开发页调用；预览域名可临时加进这个列表
+ALLOWED_ORIGINS = "https://juice.noooc.dpdns.org,http://localhost:3456,http://127.0.0.1:3456,http://127.0.0.1:8787"
+# 生产环境要求请求带 Origin/Referer，避免被当成公开中转
+REQUIRE_ORIGIN = "1"
+# 1 = 只允许内置频道源里出现过的 host；自定义源需要放宽时设为 0
+ENFORCE_HOSTS = "0"

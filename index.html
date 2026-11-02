@@ -19,10 +19,10 @@
 <meta property="og:image" content="https://juice.noooc.dpdns.org/assets/icons/icon-512.png">
 <meta property="og:url" content="https://juice.noooc.dpdns.org/">
 <meta name="twitter:card" content="summary_large_image">
-  <link rel="stylesheet" href="css/core.bundle.css?v=591">
-  <script defer src="js/vendor/morphicons.js?v=591"></script>
-  <script defer src="js/vendor/lucide-icons.js?v=591"></script>
-  <script defer src="js/app.bundle.js?v=591" fetchpriority="high"></script>
+  <link rel="stylesheet" href="css/core.bundle.css?v=596">
+  <script defer src="js/vendor/morphicons.js?v=596"></script>
+  <script defer src="js/vendor/lucide-icons.js?v=596"></script>
+  <script defer src="js/app.bundle.js?v=596" fetchpriority="high"></script>
   <script>
     (function(){
       // 主题必须在首次绘制前定下来。以前只有 <html data-theme="dark"> 的硬编码默认值，
@@ -1330,6 +1330,7 @@
           <button type="button" class="subnav-pill-btn active" data-sub-jump="clock">摸鱼时钟</button>
           <button type="button" class="subnav-pill-btn" data-sub-jump="merit">功德木鱼</button>
           <button type="button" class="subnav-pill-btn" data-sub-jump="films">摸鱼片单</button>
+          <button type="button" class="subnav-pill-btn" data-sub-jump="tv">📺 电视直播</button>
           <button type="button" class="subnav-pill-btn" data-sub-jump="scratch">幸运刮刮乐</button>
           <button type="button" class="subnav-pill-btn" data-sub-jump="wall">💬 弹幕墙</button>
         </div>
@@ -1497,6 +1498,7 @@
           <button type="button" class="subnav-pill-btn" data-sub-jump="clock">摸鱼时钟</button>
           <button type="button" class="subnav-pill-btn active" data-sub-jump="merit">功德木鱼</button>
           <button type="button" class="subnav-pill-btn" data-sub-jump="films">摸鱼片单</button>
+          <button type="button" class="subnav-pill-btn" data-sub-jump="tv">📺 电视直播</button>
           <button type="button" class="subnav-pill-btn" data-sub-jump="scratch">幸运刮刮乐</button>
           <button type="button" class="subnav-pill-btn" data-sub-jump="wall">💬 弹幕墙</button>
         </div>
@@ -1644,6 +1646,7 @@
           <button type="button" class="subnav-pill-btn" data-sub-jump="clock">摸鱼时钟</button>
           <button type="button" class="subnav-pill-btn" data-sub-jump="merit">功德木鱼</button>
           <button type="button" class="subnav-pill-btn active" data-sub-jump="films">摸鱼片单</button>
+          <button type="button" class="subnav-pill-btn" data-sub-jump="tv">📺 电视直播</button>
           <button type="button" class="subnav-pill-btn" data-sub-jump="scratch">幸运刮刮乐</button>
           <button type="button" class="subnav-pill-btn" data-sub-jump="wall">💬 弹幕墙</button>
         </div>
@@ -2137,6 +2140,7 @@
           <button type="button" class="subnav-pill-btn" data-sub-jump="clock">摸鱼时钟</button>
           <button type="button" class="subnav-pill-btn" data-sub-jump="merit">功德木鱼</button>
           <button type="button" class="subnav-pill-btn" data-sub-jump="films">摸鱼片单</button>
+          <button type="button" class="subnav-pill-btn" data-sub-jump="tv">📺 电视直播</button>
           <button type="button" class="subnav-pill-btn active" data-sub-jump="scratch">幸运刮刮乐</button>
           <button type="button" class="subnav-pill-btn" data-sub-jump="wall">💬 弹幕墙</button>
         </div>
@@ -2326,6 +2330,7 @@
           <button type="button" class="subnav-pill-btn" data-sub-jump="clock">摸鱼时钟</button>
           <button type="button" class="subnav-pill-btn" data-sub-jump="merit">功德木鱼</button>
           <button type="button" class="subnav-pill-btn" data-sub-jump="films">摸鱼片单</button>
+          <button type="button" class="subnav-pill-btn" data-sub-jump="tv">📺 电视直播</button>
           <button type="button" class="subnav-pill-btn" data-sub-jump="scratch">幸运刮刮乐</button>
           <button type="button" class="subnav-pill-btn" data-sub-jump="wall">💬 弹幕墙</button>
         </div>
@@ -2338,6 +2343,30 @@
             </div>
           </header>
           <div id="wallBody"></div>
+        </div>
+      </section>
+
+      <!-- 电视直播：同源 iframe 子应用，HLS 代理在 tv-worker（Cloudflare Worker） -->
+      <section id="mod-tv" class="app-module">
+        <div class="tv-top">
+          <div class="subnav-pill-bar">
+            <button type="button" class="subnav-pill-btn" data-sub-jump="clock">摸鱼时钟</button>
+            <button type="button" class="subnav-pill-btn" data-sub-jump="merit">功德木鱼</button>
+            <button type="button" class="subnav-pill-btn" data-sub-jump="films">摸鱼片单</button>
+            <button type="button" class="subnav-pill-btn active" data-sub-jump="tv">📺 电视直播</button>
+            <button type="button" class="subnav-pill-btn" data-sub-jump="scratch">幸运刮刮乐</button>
+            <button type="button" class="subnav-pill-btn" data-sub-jump="wall">💬 弹幕墙</button>
+          </div>
+        </div>
+        <div class="tv-frame-wrap">
+          <div class="tv-loading" id="tvLoading">
+            <span class="tv-spinner" aria-hidden="true"></span>
+            <span>电视直播加载中…</span>
+          </div>
+          <iframe id="tvFrame" title="电视直播"
+                  allow="autoplay; fullscreen; picture-in-picture"
+                  allowfullscreen
+                  referrerpolicy="strict-origin-when-cross-origin"></iframe>
         </div>
       </section>
 

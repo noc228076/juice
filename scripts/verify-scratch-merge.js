@@ -1,5 +1,5 @@
 const { chromium } = require('playwright');
-const CHROME = process.env.CHROME_PATH || 'C:/Users/NOC/AppData/Local/ms-playwright/chromium-1234/chrome-win64/chrome.exe';
+const CHROME = process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe';
 const R = [];
 function check(n, ok, d) { R.push({ n, ok: !!ok, d }); console.log((ok ? 'PASS' : 'FAIL') + '  ' + n + (d !== undefined ? '  → ' + JSON.stringify(d) : '')); }
 (async () => {
@@ -15,9 +15,9 @@ function check(n, ok, d) { R.push({ n, ok: !!ok, d }); console.log((ok ? 'PASS' 
   check('顶栏没有 scratch tab', !navTabs.includes('scratch'), navTabs);
   check('顶栏仍有 clock tab（摸鱼解压）', navTabs.includes('clock'));
 
-  // 2) 时钟页子导航有 4 个子标签，刮刮乐在列且默认非 active
+  // 2) 时钟页子导航有 6 个子标签，刮刮乐在列且默认非 active
   const pills = await page.$$eval('#mod-clock .subnav-pill-btn', els => els.map(e => ({ j: e.dataset.subJump, a: e.classList.contains('active') })));
-  check('时钟页子导航 4 个子标签', pills.length === 4, pills);
+  check('时钟页子导航 6 个子标签', pills.length === 6, pills);
   check('子导航含 scratch', pills.some(p => p.j === 'scratch' && !p.a));
 
   // 3) 点刮刮乐 → scratch 模块显示，顶栏高亮 clock，子标签 active
@@ -34,7 +34,7 @@ function check(n, ok, d) { R.push({ n, ok: !!ok, d }); console.log((ok ? 'PASS' 
   }));
   check('点刮刮乐后 #/scratch 激活', st1.hash === '#/scratch' && st1.scratchVisible, st1);
   check('顶栏高亮落在 clock', st1.activeTab === 'clock', st1.activeTab);
-  check('刮刮乐页自身子导航 4 个且 scratch active', st1.scratchPillCount === 4 && st1.activePill === 'scratch', { c: st1.scratchPillCount, a: st1.activePill });
+  check('刮刮乐页自身子导航 6 个且 scratch active', st1.scratchPillCount === 6 && st1.activePill === 'scratch', { c: st1.scratchPillCount, a: st1.activePill });
 
   // 4) 再从刮刮乐切回功德木鱼（跨模块子跳转仍正常）
   await page.click('#mod-scratch [data-sub-jump="merit"]');

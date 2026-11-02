@@ -9,7 +9,10 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
-    "build": "node build-bundles.js"
+    "build": "node build-bundles.js",
+    "tv:data": "node scripts/build-tv-data.js",
+    "tv:dev": "node scripts/build-tv-data.js && node tv-worker/dev-server.mjs",
+    "tv:deploy": "node scripts/build-tv-data.js && npx wrangler deploy --config tv-worker/wrangler.toml"
   },
   "keywords": [
     "mbti",

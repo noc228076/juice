@@ -16,3 +16,7 @@ css/style.css
 
 # 临时修复脚本
 tmp_*
+
+# 电视直播：Worker 与频道源单独部署，不参与 Vercel 静态站
+tv-worker
+scripts/tv-src

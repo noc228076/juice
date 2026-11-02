@@ -2,7 +2,14 @@ base..apk
 node_modules/
 .vscode/
 .idea/
+.zcode/
 .DS_Store
 Thumbs.db
 scratch/
 shots/
+tv-worker/src/data.js
+# 频道源含源站 key/auth，默认不入库；需要分发时手动 git add -f 并确认可公开
+scripts/tv-src/*.m3u
+
+# Wrangler 本地预览临时产物
+tv-worker/.wrangler/

@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#161a22">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>电视直播 · juice</title>
+<link rel="stylesheet" href="./style.css?v=596">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📺</text></svg>">
+</head>
+<body>
+<header>
+  <div class="brand"><span class="brand-ic" data-icon="tv" data-icon-size="20"></span> <b>IPTV Web</b><span class="sub">本地网页直播</span></div>
+  <div class="source-bar">
+    <span id="feedInfo" class="muted small">源加载中…</span>
+    <button id="reloadFeedsBtn" title="重新拉取并合并所有源"><span data-icon="refresh" data-icon-size="15"></span><span class="lbl"> 重新合并</span></button>
+    <button id="addSourceBtn" title="添加自定义 M3U 源（并入合并）"><span data-icon="plus" data-icon-size="15"></span><span class="lbl"> 添加源</span></button>
+  </div>
+</header>
+
+<main>
+  <!-- 分组栏 -->
+  <aside id="groupPanel">
+    <div class="panel-title">分组</div>
+    <div id="groupList" class="scroll"></div>
+  </aside>
+
+  <!-- 频道栏 -->
+  <section id="channelPanel">
+    <div class="search-row">
+      <span class="search-ic" data-icon="search" data-icon-size="15"></span>
+      <input id="searchInput" type="search" placeholder="搜索频道名…" autocomplete="off">
+      <span id="channelCount" class="muted"></span>
+    </div>
+    <div id="channelList" class="scroll"></div>
+  </section>
+
+  <!-- 播放器 -->
+  <section id="playerPanel">
+    <div class="video-box" id="videoBox">
+      <video id="video" playsinline autoplay muted></video>
+
+      <!-- 频道切换 OSD / 数字选台 -->
+      <div id="osd" class="osd" hidden>
+        <span class="osd-num" id="osdNum" hidden></span>
+        <span class="osd-logo" id="osdLogo"></span>
+        <div class="osd-info">
+          <div id="osdName" class="osd-name"></div>
+          <div id="osdGroup" class="osd-sub"></div>
+        </div>
+        <span class="live-badge">● 直播</span>
+      </div>
+
+      <!-- 音量/清晰度提示 -->
+      <div id="toast" class="toast" hidden></div>
+
+      <!-- 缓冲转圈 -->
+      <div id="bufSpinner" class="buf-spinner" hidden><div class="spinner"></div></div>
+
+      <!-- 加载/错误遮罩 -->
+      <div id="videoMask" class="video-mask">
+        <div class="mask-inner">
+          <div class="mask-logo" data-icon="tv" data-icon-size="52"></div>
+          <div id="maskSpinner" class="spinner" hidden></div>
+          <div id="maskText">选择左侧频道开始播放</div>
+          <button id="maskPlayBtn" class="primary" hidden><span data-icon="play" data-icon-size="15"></span> 播放</button>
+        </div>
+      </div>
+
+    </div>
+
+      <!-- 控制条：单行（手机上浮在视频上方，不遮挡画面） -->
+      <div id="ctrlBar" class="ctrl-bar">
+        <button id="btnPlay" class="cbtn" title="播放/暂停 (空格)"><span data-icon="play" data-icon-size="18"></span></button>
+        <span id="liveBadge" class="live-dot">● 直播</span>
+        <div id="seekBar" class="seek na" title="直播流，暂不支持回看">
+          <div id="seekBuf" class="seek-buf"></div>
+          <div id="seekPlayed" class="seek-played"></div>
+        </div>
+        <button id="btnLive" class="cbtn small" hidden title="回到直播边缘">回到直播</button>
+        <span id="netStats" class="net-stats" title="实时码率 / 下载速度">--</span>
+        <span id="clockText" class="ctime">--:--</span>
+        <div class="menu-wrap">
+          <button id="btnQuality" class="cbtn small" hidden title="清晰度"><span data-icon="sliders" data-icon-size="14"></span><span class="lbl"> 清晰度</span></button>
+          <div id="qualityMenu" class="qmenu" hidden></div>
+        </div>
+        <div class="menu-wrap vol-wrap">
+          <button id="btnVol" class="cbtn" title="静音 (M)"><span data-icon="vol-x" data-icon-size="17"></span></button>
+          <input id="volSlider" class="vol" type="range" min="0" max="100" value="0" title="音量">
+        </div>
+        <button id="btnPip" class="cbtn" title="画中画 (P)" hidden><span data-icon="pip" data-icon-size="16"></span></button>
+        <button id="btnFs" class="cbtn" title="全屏 (F)"><span data-icon="maximize" data-icon-size="16"></span></button>
+      </div>
+
+
+    <div class="now-bar">
+      <div>
+        <div id="nowName" class="now-name">未播放</div>
+        <div id="nowStatus" class="muted small"></div>
+      </div>
+      <div class="now-btns">
+        <button id="favBtn" title="收藏当前频道"><span data-icon="star" data-icon-size="16"></span><span class="lbl"> 收藏</span></button>
+        <button id="prevBtn" title="上一个频道 (↑)"><span data-icon="prev" data-icon-size="16"></span><span class="lbl"> 上一个</span></button>
+        <button id="nextBtn" title="下一个频道 (↓)"><span data-icon="next" data-icon-size="16"></span><span class="lbl"> 下一个</span></button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- 自定义源对话框 -->
+<dialog id="sourceDialog">
+  <form id="sourceForm" method="dialog">
+    <h3>添加自定义 M3U 源</h3>
+    <input id="srcName" placeholder="名称（如：我的直播源）" required>
+    <input id="srcUrl" placeholder="M3U/M3U8 地址（http…）" required>
+    <menu>
+      <button value="cancel" type="button" class="ghost">取消</button>
+      <button value="ok" class="primary">添加</button>
+    </menu>
+  </form>
+</dialog>
+
+<script src="./config.js?v=596"></script>
+<script src="./hls.min.js?v=596"></script>
+<script src="./app.js?v=596"></script>
+</body>
+</html>

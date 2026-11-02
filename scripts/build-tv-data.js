@@ -1,0 +1,167 @@
+#!/usr/bin/env node
+/* 把 scripts/tv-src/*.m3u 生成 tv-worker/src/data.js
+ *
+ * - 只保留 http(s)、排除已知错误源（TVU 测试卡等）
+ * - 按频道基础名归并，生成稳定的 cid（sha1 前 10 位）
+ * - 同一 cid 内按来源顺序编号 i，Worker 用 /media?cid=…&i=… 取真实地址
+ * - 真实地址只进 Worker 包，不下发到浏览器
+ *
+ * 用法：node scripts/build-tv-data.js
+ */
+'use strict';
+
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
+
+const ROOT = path.join(__dirname, '..');
+const SRC = path.join(ROOT, 'scripts', 'tv-src');
+const OUT = path.join(ROOT, 'tv-worker', 'src', 'data.js');
+const SOURCES = [
+  { key: 'extra', file: 'extra.m3u', label: '人工精测源' },
+  { key: 'verified', file: 'verified.m3u', label: '已测可用' },
+];
+
+const URL_BLACKLIST = [
+  /event\.pull\.hebtv\.com\/jishi/i, // TVU 测试卡，曾被标成 CCTV-13/14
+  /\/tvu\//i,
+];
+const ANIM_RE = /卡通|动画|动漫|少儿|儿童|哈哈炫动|卡酷|金鹰卡通|优漫|嘉佳|炫动|优优宝贝|宝贝家|亲子|动漫秀场|新动漫/;
+
+function parseM3U(text) {
+  const out = [];
+  let cur = null;
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line) continue;
+    if (line.startsWith('#EXTINF')) {
+      const info = line.split(',').slice(1).join(',').trim();
+      const attrs = {};
+      line.replace(/([\w-]+)="([^"]*)"/g, (_, k, v) => { attrs[k] = v; });
+      cur = {
+        name: (attrs['tvg-name'] || info || '').trim(),
+        group: (attrs['group-title'] || '其他').trim(),
+        logo: (attrs['tvg-logo'] || '').trim(),
+        url: '',
+      };
+    } else if (line.startsWith('#')) {
+      continue;
+    } else if (cur) {
+      cur.url = line;
+      out.push(cur);
+      cur = null;
+    }
+  }
+  return out;
+}
+
+function baseName(n) {
+  return String(n)
+    .replace(/\s*\((?:\d{3,4}[pi]|HD|SD|FHD|UHD)\)\s*$/i, '')
+    .replace(/\s*\[[^\]]*\]\s*$/i, '')
+    .replace(/\s+(?:8K|UHD|FHD|HD|SD)$/i, '')
+    .trim() || String(n);
+}
+function keyOf(n) {
+  return baseName(n).toLowerCase().replace(/[\s\-_.·]/g, '');
+}
+function mainGroupOf(name) {
+  if (/cctv|cgtn|央视/i.test(name)) return '央视';
+  if (name.includes('卫视')) return '卫视';
+  if (ANIM_RE.test(name)) return '动画';
+  return '';
+}
+function hostOf(url) {
+  try { return new URL(url).host.toLowerCase(); } catch (e) { return ''; }
+}
+function isBlacklisted(url) {
+  return URL_BLACKLIST.some((re) => re.test(url));
+}
+
+const entries = [];
+const urlsByCid = Object.create(null);
+const urlIndexByCid = Object.create(null); // cid -> Map<url, i>，跨源重复地址复用同一个 i
+const cidOrder = [];
+const sourcesRead = [];
+const hostSet = new Set();
+let rawExtra = 0;
+let rawVerified = 0;
+
+for (const src of SOURCES) {
+  const file = path.join(SRC, src.file);
+  if (!fs.existsSync(file)) {
+    throw new Error('缺少频道源：' + file + '（先从 iptv-web 归档复制 m3u）');
+  }
+  const raw = parseM3U(fs.readFileSync(file, 'utf8'));
+  if (src.key === 'extra') rawExtra = raw.length;
+  if (src.key === 'verified') rawVerified = raw.length;
+  let kept = 0;
+  for (const ch of raw) {
+    if (!ch.url || !/^https?:\/\//i.test(ch.url)) continue;
+    if (isBlacklisted(ch.url)) continue;
+    if (!ch.name) continue;
+    const key = keyOf(ch.name);
+    if (!key) continue;
+    const group = mainGroupOf(ch.name);
+    if (!group) continue; // 只要央视/卫视/动画
+    const cid = crypto.createHash('sha1').update(key).digest('hex').slice(0, 10);
+    // 保留各源原始条数（extra 185 / verified 194），但同一频道内重复的上游地址
+    // 复用同一个 i：客户端拿到的 /media 地址相同，mergeFeeds 会自然去重。
+    if (!urlsByCid[cid]) {
+      urlsByCid[cid] = [];
+      urlIndexByCid[cid] = new Map();
+      cidOrder.push(cid);
+    }
+    let i = urlIndexByCid[cid].get(ch.url);
+    if (i === undefined) {
+      i = urlsByCid[cid].length;
+      urlsByCid[cid].push(ch.url);
+      urlIndexByCid[cid].set(ch.url, i);
+    }
+    entries.push({ s: src.key, n: ch.name, g: group, l: ch.logo, c: cid, i });
+    const host = hostOf(ch.url);
+    if (host) hostSet.add(host);
+    kept++;
+  }
+  sourcesRead.push({ key: src.key, label: src.label, raw: raw.length, kept });
+}
+
+if (!entries.length) throw new Error('没有解析到任何频道，检查 m3u 内容');
+
+const uniqueUrls = Object.values(urlsByCid).reduce((s, a) => s + a.length, 0);
+const meta = {
+  generated: new Date().toISOString(),
+  sources: sourcesRead,
+  entries: entries.length,
+  urls: uniqueUrls,
+  channels: cidOrder.length,
+  hosts: hostSet.size,
+  rawExtra,
+  rawVerified,
+};
+
+const banner = '/* 由 scripts/build-tv-data.js 生成，勿手改。' +
+  ' 来源：scripts/tv-src/*.m3u；生成时间：' + meta.generated + ' */\n';
+const body =
+  banner +
+  'export const ENTRY = ' + JSON.stringify(entries) + ';\n' +
+  'export const URLS = ' + JSON.stringify(urlsByCid) + ';\n' +
+  'export const HOSTS = ' + JSON.stringify([...hostSet]) + ';\n' +
+  'export const META = ' + JSON.stringify(meta) + ';\n';
+
+fs.mkdirSync(path.dirname(OUT), { recursive: true });
+fs.writeFileSync(OUT, body, 'utf8');
+
+const groupCount = { 央视: 0, 卫视: 0, 动画: 0 };
+const channelSeen = new Set();
+for (const e of entries) {
+  if (channelSeen.has(e.c)) continue;
+  channelSeen.add(e.c);
+  groupCount[e.g] = (groupCount[e.g] || 0) + 1;
+}
+
+console.log('频道数据已生成 -> ' + path.relative(ROOT, OUT));
+console.log('  原始：extra ' + rawExtra + ' 条 / verified ' + rawVerified + ' 条');
+console.log('  保留：' + uniqueUrls + ' 条唯一地址（' + entries.length + ' 条源条目） / ' +
+  cidOrder.length + ' 个频道 / ' + hostSet.size + ' 个 host');
+console.log('  分组：央视 ' + groupCount['央视'] + ' / 卫视 ' + groupCount['卫视'] + ' / 动画 ' + groupCount['动画']);

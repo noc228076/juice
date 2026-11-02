@@ -122,6 +122,19 @@ html[data-active-module="vocab"] {
   --mod-ac-glow: rgba(99, 102, 241, 0.38);
   --mod-ambient: rgba(99, 102, 241, 0.07);
 }
+/* 弹幕墙：天蓝。此前靠 wall.css 的 var(--mod-ac,#4dabf7) 回落，游离于体系外（审计 P2-8） */
+html[data-active-module="wall"] {
+  --mod-ac: #4DABF7;
+  --mod-ac-ink: #04213F;
+  --mod-ac-glow: rgba(77, 171, 247, 0.35);
+  --mod-ambient: rgba(77, 171, 247, 0.06);
+}
+html[data-theme="light"][data-active-module="wall"] {
+  --mod-ac: #1C7ED6;
+  --mod-ac-ink: #FFFFFF;
+  --mod-ac-glow: rgba(28, 126, 214, 0.32);
+  --mod-ambient: rgba(28, 126, 214, 0.06);
+}
 html[data-theme="light"][data-active-module="vocab"] {
   --mod-ac: #4F46E5;
   --mod-ac-ink: #FFFFFF;
@@ -187,6 +200,9 @@ html[data-theme="light"] #global-header {
   }
 }
 @media (max-width: 767px) {
+  /* 顶栏 tab 是全站最高频点击区：视觉收紧但热区外扩（审计 P1-1） */
+  .nav-tab { position: relative; }
+  .nav-tab::before { content: ''; position: absolute; inset: -5px -3px; }
   /* 极窄屏进一步收紧标签尺寸：让可见 tab 从 4 个提升到 5 个 */
   .nav-tab {
     padding: 5px 7px;

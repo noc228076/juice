@@ -280,6 +280,11 @@
   cursor: pointer;
   transition: opacity 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
+/* 审计 P2-6：删除钮 22px 太小，热区扩到 ≥40px */
+@media (hover: none) {
+  .wl-del { position: relative; }
+  .wl-del::before { content: ''; position: absolute; inset: -9px; }
+}
 .wl-del:hover {
   opacity: 1;
   border-color: #ff8787;

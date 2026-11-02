@@ -380,6 +380,10 @@ html[data-theme="light"] .wheel-canvas-box {
   min-height: 32px;
   border-radius: 4px;
 }
+@media (hover: none) {
+  .dec-btn-link { position: relative; }
+  .dec-btn-link::before { content: ''; position: absolute; inset: -6px; }
+}
 .dec-btn-link:hover {
   text-decoration: underline;
 }
@@ -1252,6 +1256,11 @@ html[data-theme="light"] .dice-live-banner {
   cursor: pointer;
   z-index: 10;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+/* 审计 P2-7：小票弹窗唯一关闭钮热区外扩 */
+@media (hover: none) {
+  .dec-receipt-close { position: relative; }
+  .dec-receipt-close::before { content: ''; position: absolute; inset: -6px; }
 }
 
 /* 拟真热敏小票纸张 */

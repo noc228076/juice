@@ -63,6 +63,11 @@
   cursor: pointer;
   transition: all 0.15s ease;
 }
+/* 审计 P2-5：筛选 chips 热区外扩 */
+@media (hover: none) {
+  .films-cat { position: relative; }
+  .films-cat::before { content: ''; position: absolute; inset: -7px -4px; }
+}
 .films-cat:hover {
   border-color: var(--line-strong);
 }
@@ -263,6 +268,11 @@ html[data-theme="light"] .films-status {
   color: inherit;
   font-size: 12.5px;
   cursor: pointer;
+}
+/* 审计 P2-5：错误态恢复按钮本身也要好点 */
+@media (hover: none) {
+  .films-retry { position: relative; }
+  .films-retry::before { content: ''; position: absolute; inset: -7px -8px; }
 }
 
 @media (max-width: 640px) {

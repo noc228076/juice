@@ -109,6 +109,11 @@ html[data-theme="light"] #mod-clock {
   white-space: nowrap;
   flex: none;
 }
+/* 审计 P2-4：时钟页高频工具钮热区扩到 44px */
+@media (hover: none) {
+  .ck-btn-mini { position: relative; }
+  .ck-btn-mini::before { content: ''; position: absolute; inset: -8px -6px; }
+}
 
 .ck-btn-mini:hover {
   border-color: var(--ck-gold);

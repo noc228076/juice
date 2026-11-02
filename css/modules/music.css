@@ -2912,6 +2912,13 @@ html[data-theme="light"] .mu-immersive {
   /* 触屏没有 hover：点图标也能把滑条调出来 */
   .mu-imm-vol:focus-within .mu-imm-vol-pop { opacity: 1; pointer-events: auto; }
 }
+/* 审计 #7：触屏端播放控件热区外扩（视觉尺寸不动，命中区 ≥44px） */
+@media (hover: none) {
+  .mu-op, .mu-mini-btn, .mu-love, .mu-addlist { position: relative; }
+  .mu-op::before { content: ''; position: absolute; inset: -6px; }
+  .mu-mini-btn::before { content: ''; position: absolute; inset: -9px; }
+  .mu-love::before, .mu-addlist::before { content: ''; position: absolute; inset: -7px; }
+}
 
 /* ==========================================================================
    搜索结果的平台筛选（对齐洛雪的分类 tab）

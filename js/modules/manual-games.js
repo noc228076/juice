@@ -1283,6 +1283,9 @@
     // 键盘监听
     function onKeyDown(e) {
       if (destroyed || isOver) return;
+      /* 其它章节的棋盘还挂着时，本 handler 不得操控隐藏棋盘（审计 M-P2-6） */
+      var scr = document.getElementById('scr-sm-2048');
+      if (!scr || !scr.classList.contains('active')) return;
       var key = e.key;
       if (key === 'ArrowUp' || key === 'w' || key === 'W') {
         e.preventDefault(); move('up');
@@ -3658,7 +3661,9 @@
         var s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
         var ok = s && Array.isArray(s.snake) && s.snake.length >= 3 &&
           s.snake.every(function (c) { return c && typeof c.x === 'number' && typeof c.y === 'number'; }) &&
-          s.food && typeof s.food.x === 'number' && LEVELS[s.lv];
+          s.food && typeof s.food.x === 'number' && LEVELS[s.lv] &&
+          /* 损坏档 dir 为空时 resume 后 step() 读 nextDir 直接抛 TypeError（审计 M-P3-11） */
+          s.dir && typeof s.dir.x === 'number' && typeof s.dir.y === 'number';
         if (s && ok) return s;
       } catch (e) {}
       return null;

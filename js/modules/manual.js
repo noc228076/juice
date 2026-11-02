@@ -283,6 +283,8 @@
         + '<p style="font-size:13px;color:var(--tx-dim);margin-top:8px;">盖上官方检验印章，马上出具说明书</p></div>';
     }
     setTimeout(function () {
+      /* 600ms 内切走模块时不得篡改新模块的历史条目（审计 M-P2-4） */
+      if (state.mode !== 'quiz' || !document.getElementById('mod-manual').classList.contains('active')) return;
       var res = t.compute.call(t, state.scores);
       showResult(t, res);
     }, 600);
@@ -584,6 +586,10 @@
   function resumeGame() {
     if (state.gameCtl && typeof state.gameCtl.repaint === 'function') {
       state.gameCtl.repaint();
+      /* 恢复成功不代表屏幕已切过去：从历史抽屉等入口进来时 active 屏
+         还是目录，游戏键盘监听却已挂上（审计 M-P2-6） */
+      var gs = state.test && GAME_SCREENS[state.test.id];
+      if (gs && gs.scr) showScreen(gs.scr);
       return true;
     }
     return false;

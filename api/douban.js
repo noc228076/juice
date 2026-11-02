@@ -33,7 +33,8 @@ module.exports = async function handler(req, res) {
 async function proxyImage(raw, res) {
   let target;
   try {
-    target = new URL(decodeURIComponent(raw));
+    /* express 的 query 已解码过一次；再 decode 会把含 % 的合法 URL 打爆（审计 C-P2-16） */
+    target = new URL(raw);
   } catch (e) {
     res.status(400).json({ ok: false, error: '图片地址不合法' });
     return;
@@ -45,7 +46,8 @@ async function proxyImage(raw, res) {
 
   try {
     const upstream = await fetch(target.href, {
-      headers: { Referer: 'https://movie.douban.com/', 'User-Agent': UA, Accept: 'image/*' }
+      headers: { Referer: 'https://movie.douban.com/', 'User-Agent': UA, Accept: 'image/*' },
+      signal: AbortSignal.timeout(8000)   /* 与 api/toutiao.js 对齐，防图床挂起占满函数时长 */
     });
     if (!upstream.ok) {
       res.status(upstream.status === 404 ? 404 : 502).json({ ok: false, error: '上游 ' + upstream.status });

@@ -126,21 +126,21 @@
   }
 
   function getNextHoliday(now) {
-    const y = now.getFullYear();
+    /* 表内日期是 2026 年国务院公布的安排（审计 C-P1-4）：
+       按存储年份计算，过期后诚实进入「更新中」，不再用 2026 日期冒充 2027 */
     const holidays = [
-      { name: '元旦假期', m: 1, d: 1 },
-      { name: '春节长假', m: 2, d: 17 },
-      { name: '清明假期', m: 4, d: 5 },
-      { name: '五一劳动节', m: 5, d: 1 },
-      { name: '端午假期', m: 6, d: 19 },
-      { name: '中秋假期', m: 9, d: 25 },
-      { name: '十一国庆节', m: 10, d: 1 },
-      { name: '元旦假期', m: 1, d: 1, nextY: true }
+      { name: '元旦假期', y: 2026, m: 1, d: 1 },
+      { name: '春节长假', y: 2026, m: 2, d: 17 },
+      { name: '清明假期', y: 2026, m: 4, d: 5 },
+      { name: '五一劳动节', y: 2026, m: 5, d: 1 },
+      { name: '端午假期', y: 2026, m: 6, d: 19 },
+      { name: '中秋假期', y: 2026, m: 9, d: 25 },
+      { name: '十一国庆节', y: 2026, m: 10, d: 1 },
+      { name: '元旦假期', y: 2027, m: 1, d: 1 }
     ];
 
     for (const h of holidays) {
-      const targetYear = h.nextY ? y + 1 : y;
-      const targetDate = new Date(targetYear, h.m - 1, h.d, 0, 0, 0);
+      const targetDate = new Date(h.y, h.m - 1, h.d, 0, 0, 0);
       if (targetDate > now) {
         const diffDays = Math.ceil((targetDate - now) / (1000 * 86400));
         return { name: h.name, days: diffDays };
@@ -332,7 +332,8 @@
           updateFlipUnit(cardSS, pad2(otSec % 60));
 
           if (progLabel) progLabel.textContent = '加班已多赚窝囊费';
-          if (progVal) progVal.textContent = `+¥${(otSec * rates.perSecond * rates.otMult).toFixed(2)}`;
+          /* 与主口径一致：正班时段内只算 (otMult-1) 的增量（审计 C-P1-3） */
+          if (progVal) progVal.textContent = `+¥${(otSec * rates.perSecond * (now <= endOfTodayWork && !todayIsRest ? rates.otMult - 1 : rates.otMult)).toFixed(2)}`;
           if (progFill) progFill.style.width = '100%';
           if (progSub) progSub.textContent = `延时加班费正在按 ${rates.otMult} 倍跳字累加，注意身体早点回家`;
         } else if (overtimeMode === 'unpaid') {
@@ -567,8 +568,16 @@
     }
 
     // 2. 计算今日工时进度与实时已赚窝囊费（严禁下班后或休息日无故乱加钱！）
-    const startOfTodayWork = new Date(now.getFullYear(), now.getMonth(), now.getDate(), rates.st.h, rates.st.m, 0, 0);
-    const endOfTodayWork = new Date(now.getFullYear(), now.getMonth(), now.getDate(), rates.et.h, rates.et.m, 0, 0);
+    let startOfTodayWork = new Date(now.getFullYear(), now.getMonth(), now.getDate(), rates.st.h, rates.st.m, 0, 0);
+    let endOfTodayWork = new Date(now.getFullYear(), now.getMonth(), now.getDate(), rates.et.h, rates.et.m, 0, 0);
+    /* 跨零点班次（审计 C-P2-8）：22:00-06:00 时，凌晨属于昨晚的班、白天属于今晚的班 */
+    if (endOfTodayWork <= startOfTodayWork) {
+      if (now.getHours() * 60 + now.getMinutes() < rates.et.h * 60 + rates.et.m) {
+        startOfTodayWork.setDate(startOfTodayWork.getDate() - 1);
+      } else {
+        endOfTodayWork.setDate(endOfTodayWork.getDate() + 1);
+      }
+    }
 
     let baseEarnedToday = 0;
     let progressPct = 0;
@@ -617,7 +626,11 @@
     const otBannerEl = document.getElementById('ckOvertimeBanner');
 
     if (overtimeMode === 'paid') {
-      const otEarned = otSec * rates.perSecond * rates.otMult;
+      /* 正班时段内 baseEarnedToday 已按 1x 在跳：加班费只补 (otMult-1) 的差，
+         否则 17:00 点付费加班到 18:00 下班，每秒拿 1x+1.5x=2.5x（审计 C-P1-3） */
+      const inRegular = !todayIsRest && now <= endOfTodayWork;
+      const otRate = inRegular ? (rates.otMult - 1) : rates.otMult;
+      const otEarned = otSec * rates.perSecond * otRate;
       earnedToday = baseEarnedToday + otEarned;
       statusText = `💸 付费加班搞钱中 (${rates.otMult}倍计薪)`;
       eyebrowText = todayIsRest
@@ -798,7 +811,7 @@
     // (c) 距离下次发薪日
     const cdPayEl = document.getElementById('ckCdPayday');
     const cdPaySub = document.getElementById('ckCdPaydaySub');
-    const pDay = Math.min(28, Math.max(1, parseInt(cfg.payday, 10) || 15));
+    const pDay = Math.max(1, parseInt(cfg.payday, 10) || 15);   /* 月末由下方 lastDay 钳位（审计 C-P3-12） */
     let nextPayDate = new Date(now.getFullYear(), now.getMonth(), pDay, 9, 0, 0);
     if (now.getDate() === pDay) {
       if (cdPayEl) cdPayEl.textContent = '🎉 就是今天！';

@@ -38,7 +38,7 @@
   // 优质离线/超时兜底数据种子（确保网络异常或接口受限时界面绝不空白）
   const FALLBACK_SEEDS = {
     news60s: {
-      date: new Date().toISOString().split('T')[0],
+      date: dateKey(new Date()),
       day_of_week: '星期' + ['日', '一', '二', '三', '四', '五', '六'][new Date().getDay()],
       lunar_date: '金秋吉日',
       tip: '保持热爱，奔赴山海，生活总会在不经意处给你意想不到的惊喜与温暖。',
@@ -62,7 +62,7 @@
       description: '普利特维采湖群国家公园是克罗地亚最著名的国家公园，拥有 16 个由钙华屏障连接的梯级湖泊与飞瀑，湖水在蓝、绿、青之间变幻莫测。',
       cover: 'https://www.bing.com/th?id=OHR.PlitviceAutumn_ZH-CN5646237897_1920x1080.jpg',
       cover_4k: 'https://www.bing.com/th?id=OHR.PlitviceAutumn_ZH-CN5646237897_UHD.jpg',
-      date: new Date().toISOString().split('T')[0]
+      date: dateKey(new Date())
     },
     movies: [
       {
@@ -1160,7 +1160,7 @@
 
       // 导出下载
       const a = document.createElement('a');
-      a.download = `每日锁屏壁纸_${now.toISOString().split('T')[0]}.jpg`;
+      a.download = `每日锁屏壁纸_${dateKey(now)}.jpg`;   /* 本地时区（审计 C-P2-9） */
       a.href = canvas.toDataURL('image/jpeg', 0.92);
       a.click();
     };

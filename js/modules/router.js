@@ -818,7 +818,10 @@
       });
       if (!btn) return;
       e.preventDefault();
-      e.stopPropagation();
+      /* stopImmediatePropagation：贪吃蛇/俄罗斯方块在同一事件上还挂了自己的
+         Space handler，startPlay() 同步置 running 后，蛇会立刻自暂停、
+         方块会幻影硬降（审计 M-P1-2） */
+      e.stopImmediatePropagation();
       if (window.SFX && window.SFX.tap) window.SFX.tap();
       btn.click();
     });

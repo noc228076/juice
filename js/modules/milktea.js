@@ -239,17 +239,24 @@
       return { b, d };
     }).sort((x, y) => y.d - x.d);
 
-    const top = dots[0];
-    const second = dots[1];
-    const maxD = dots[0].d;
-    const minD = dots[dots.length - 1].d;
-    const pct = maxD === minD ? 88 : Math.max(55, Math.min(99, Math.round(55 + 44 * (top.d - minD) / (maxD - minD))));
-
+    /* 满分答案向量走同一归一化，得到契合度上界：
+       旧公式 (top-minD)/(maxD-minD) 里 top===maxD 恒为 1 → 永远 99%（审计 C-P1-2） */
     const maxP = {};
     TRAITS.forEach(t => maxP[t.k] = 0);
     QS.forEach(q => q.opts.forEach(o => {
       for (const k in o.pts) maxP[k] += o.pts[k];
     }));
+    /* 每个品牌各自按「满分答案」算一遍同一归一化，取最大者为契合度上界 */
+    let perfectD = 0;
+    BRANDS.forEach(b => {
+      let pd = 0, pm = 0;
+      for (const t of TRAITS) { pd += b.t[t.k] * maxP[t.k]; pm += b.t[t.k] * b.t[t.k]; }
+      if (pm > 0) perfectD = Math.max(perfectD, pd / Math.sqrt(pm));
+    });
+    if (perfectD <= 0) perfectD = 1;
+
+    const top = dots[0];
+    const pct = Math.max(55, Math.min(99, Math.round(top.d / (perfectD || 1) * 100)));
 
     const b = top.b;
     let bars = "";

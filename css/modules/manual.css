@@ -1362,7 +1362,7 @@ html[data-theme="light"] body.has-daily-ambient-bg #mod-manual .rz-half.hit.ng {
 }
 #mod-manual .g2048-pad-btn {
   width: 50px;
-  height: 42px;
+  height: 44px;
   border-radius: 10px;
   background: #23202B;
   border: 1px solid rgba(255, 255, 255, 0.15);
@@ -2848,7 +2848,8 @@ html[data-theme="light"] #mod-manual .rz-lb-stage.active {
   width: 120px;
 }
 @media (max-width: 640px) {
-  #mod-manual .snake-canvas { width: 320px; height: 320px; }
+  /* 内容宽 <320px 时双写定宽会压扁画面（审计 M-P3-14） */
+  #mod-manual .snake-canvas { width: min(320px, 100%); height: auto; }
   #mod-manual .snake-side { width: 96px; }
 }
 

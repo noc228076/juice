@@ -1514,6 +1514,9 @@
     function onKeyDown(e) {
       var tag = ((e.target && e.target.tagName) || '').toLowerCase();
       if (tag === 'input' || tag === 'textarea') return;
+      /* 活动屏守卫：与 tetris/snake/sudoku 同款（审计 M-P2-6） */
+      var scr = document.getElementById('scr-sm-tank');
+      if (!scr || !scr.classList.contains('active')) return;
       if (e.key === 'p' || e.key === 'P') {
         e.preventDefault();
         togglePause();

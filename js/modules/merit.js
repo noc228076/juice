@@ -245,6 +245,12 @@
   }
 
   function addMerit(amount) {
+    /* 页面常开跨零点：今日功德清零重计（审计 C-P3-13，与 init 的 lastDate 检查同口径） */
+    const t = localDayStr(new Date());
+    if (state.lastDate !== t) {
+      state.todayMerit = 0;
+      state.lastDate = t;
+    }
     state.todayMerit += amount;
     state.totalMerit += amount;
     saveState();
@@ -345,6 +351,8 @@
     } else {
       knockMuyu();
       autoTimer = setInterval(() => {
+        /* 后台标签被节流到 ≥1s 仍会继续涨功德：挂机刷数字且污染今日统计（审计 C-P2-5） */
+        if (document.hidden) return;
         const mod = document.getElementById('mod-merit');
         if (!mod || !mod.classList.contains('active') || curSubmod !== 'muyu') {
           // 已离开模块/子页：自动敲击自停，避免常驻空转

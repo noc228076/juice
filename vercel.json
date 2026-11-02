@@ -17,8 +17,7 @@
     { "source": "/api/douban", "destination": "/api/douban.js" },
     { "source": "/api/toutiao", "destination": "/api/toutiao.js" },
     { "source": "/api/zhuiju", "destination": "/api/zhuiju.js" },
-    { "source": "/api/proxy", "destination": "/api/proxy.js" },
-    { "source": "/api/tv", "destination": "/api/tv.js" }
+    { "source": "/api/proxy", "destination": "/api/proxy.js" }
   ],
   "headers": [
     {

@@ -83,11 +83,11 @@ v97 相对 v96 三件套 Brotli 190,739 B 再减少约 **27.6%**，主要是 CSS
 | 概念 | 数量 | 真值来源 |
 |---|---|---|
 | 顶层导航 Tab | **8** | `index.html` 的 `button.nav-tab[data-mod]`：`drinks manual tarot clock decision daily vocab music` |
-| 实际路由 | **18** | `js/modules/router.js` 的 `ALLOWED_MODS`：`drinks milktea manual fengshui tarot lingqian decision clock merit films tv lifeguide bazi daily scratch wall vocab music` |
-| `#mod-*` section | **17** | 无 `mod-lifeguide`（已并入 manual）、无 `mod-history`（抽屉）；v600 新增 `mod-tv` |
+| 实际路由 | **17** | `js/modules/router.js` 的 `ALLOWED_MODS`：`drinks milktea manual fengshui tarot lingqian decision clock merit films lifeguide bazi daily scratch wall vocab music` |
+| `#mod-*` section | **16** | 无 `mod-lifeguide`（已并入 manual）、无 `mod-history`（抽屉）；`mod-tv` 在 v605 下线 |
 
 `MOD_PARENT_MAP` 只决定**顶栏哪个 Tab 高亮**，不决定激活哪个 section：
-`milktea→drinks`、`tarot/lingqian/bazi/fengshui→tarot`、`clock/merit/tv→clock`、
+`milktea→drinks`、`tarot/lingqian/bazi/fengshui→tarot`、`clock/merit→clock`、
 `lifeguide→manual`。激活 section 时先找自己的 `#mod-<key>`，找不到才回退父级。
 
 `lifeguide` 是唯一没有独立 section 的路由：老链接 `#/lifeguide` 会先进说明书，
@@ -786,7 +786,14 @@ curl -s "https://juice.noooc.dpdns.org/js/app.bundle.js?v=100" | grep -c "你的
 - 五处子导航按钮在 index.html 静态骨架里（clock/merit/films/scratch/wall 各一份），
   改子导航清单要五处同步；router 的 [data-sub-jump] 高亮按 modKey 自动匹配，无需注册表。
 
-### 电视直播（#/tv，v604）
+### 电视直播（#/tv，暂时下线，v605）
+**v605 下线状态**：入口已从 `index.html`（5 处子导航 + `#mod-tv` section）、
+`router.js`（ALLOWED_MODS / MODULE_CHUNKS / MODULE_API / MOD_PARENT_MAP / 离开暂停钩子）、
+`build-bundles.js`（tv chunk / tv.css / hls 指纹）、`vercel.json`（/api/tv rewrite）摘除。
+`api/tv.js` 移到 `tv-worker/vercel-proxy.js`（不在 api/ 下，Vercel 不部署）。
+`js/modules/tv.js`、`css/modules/tv.css`、`js/vendor/hls.min.js`、`tv-worker/` 保留；
+重新上线按 README 的 checklist 恢复接线，再跑 `scripts/verify-tv.js`。
+
 旧 TV 模块（v208）因源站 H.264 SPS 不合规、原生与 MSE 都绿屏，已在 `e8e7557` 整体回滚。
 v600 起不复用旧播放器：功能移植自 `iptv-web`，**UI 完全重写为 juice 原生风格**（不再用 iframe）。
 

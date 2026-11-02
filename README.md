@@ -1,7 +1,7 @@
 # 饮料人格研究所 · 趣味实验矩阵 🍹
 
-纯静态网页趣味测试矩阵，包含 8 大顶栏模块 / 17 个功能区块，支持 PWA 安装。
-电视直播（`#/tv`）的 HLS 代理独立部署在 Cloudflare Worker，静态站仍在 Vercel。
+纯静态网页趣味测试矩阵，包含 8 大顶栏模块 / 16 个功能区块，支持 PWA 安装。
+电视直播（`#/tv`）暂时下线打磨，入口已从导航/路由/构建中摘除；Worker 与源码保留。
 
 | 项 | 内容 |
 |---|---|
@@ -59,7 +59,6 @@
 - **`clock`** 摸鱼时钟 & 工资 — Fliqlo 机械大翻页全屏钟屏保，含农历日期显示
 - **`merit`** 功德木鱼 & 碎纸解压 — 静心功德局，电子木鱼 + 怨气粉碎机
 - **`films`** 摸鱼片单 — 追剧站点索引
-- **`tv`** 电视直播 — 央视 / 卫视 / 动画，多源合并 + 自动托底（HLS 代理走 Cloudflare Worker）
 - **`scratch`** 幸运刮刮乐 — 刮刮卡抽奖，支持即时结算与中奖记录（并入摸鱼解压子标签）
 - **`wall`** 弹幕墙 — 一人一句留言上墙
 
@@ -148,82 +147,65 @@ npm run build
 
 | 文件 | 字段 | 当前值 | 谁改 |
 |---|---|---|---|
-| `sw.js` | `CACHE_NAME` | `juice-persona-v604` | **自动**（源码指纹变化时 +1） |
-| `index.html` | `?v=` 查询参数（核心 CSS / 主 JS） | `604` | `npm run build` 自动同步 |
+| `sw.js` | `CACHE_NAME` | `juice-persona-v605` | **自动**（源码指纹变化时 +1） |
+| `index.html` | `?v=` 查询参数（核心 CSS / 主 JS） | `605` | `npm run build` 自动同步 |
 | `router.js` | 按需 CSS / JS chunk URL | 从主包注入 | 读取 `window.__APP_VERSION__` |
 
 首屏只引用 `css/core.bundle.css`（`base + nav + history`）；
 其余 16 个模块样式打包为 `css/modules.bundle.css`，首次进入非饮品模块时加载。
 
-### 📺 电视直播（`#/tv`）
+### 📺 电视直播（暂时下线）
 
-播放器是 juice **原生模块**（`js/modules/tv.js` + `css/modules/tv.css`），不是 iframe；
-hls.js 在首次点播时按需加载 `js/vendor/hls.min.js`。
+2026-11-02 v605 起从站点摘除入口：源质量（静态回放、Cloudflare 出口 403、部分频道无实时源）
+还没打磨到可交付，先下线，代码与 Worker 保留在仓库。
 
-链路：浏览器 → `/api/tv`（Vercel 同源函数）→ Cloudflare Worker → 上游源。
-`api/tv.js` 负责流式转发，避免国内浏览器直连 `workers.dev` 被墙/DNS 污染；Worker 通过
-`X-TV-Public-Base` 返回 `/api/tv?path=…` 形式的分片地址。真实频道地址只存在 Worker 里，
-客户端拿到的是不透明 `/media?cid=…&i=…` 地址。
+保留的源码：
 
-```bash
-npm run tv:data     # scripts/tv-src/*.m3u -> tv-worker/src/data.js（gitignore）
-npm run tv:dev      # 本地 Worker 适配器 127.0.0.1:8787
-node server.js      # 另开终端，打开 http://127.0.0.1:3456/#/tv
+- `js/modules/tv.js` + `css/modules/tv.css`：原生播放器（未接入 `build-bundles.js`）
+- `tv-worker/`：Cloudflare Worker、`dev-server.mjs`、`vercel-proxy.js`（Vercel 转发暂存）
+- `scripts/build-tv-data.js`、`scripts/tv-src/*.m3u`（含源站 key，gitignore）
+- `js/vendor/hls.min.js`：hls.js v1.7.4（Apache-2.0）
 
-npx wrangler login  # 首次
-npm run tv:deploy   # 生成数据并部署 Worker
-```
+重新上线 checklist：
 
-线上 `TV_API` 默认是同源 `/api/tv`；Worker 地址写在 `api/tv.js` 的 `WORKER` 常量。
-需要直连 Worker 时可在控制台 `localStorage.setItem('tvApiBase', 'https://…workers.dev')`
-临时覆盖。详见
-`tv-worker/wrangler.toml` 与 `scripts/tv-src/README.md`。Worker 免费版
-10 万请求/天，适合个人低频使用；没有中国大陆节点，`workers.dev` 在国内可能不稳，
-可换自定义域名或把 `tv-worker/dev-server.mjs` 跑在 VPS/NAS 上，只改 `TV_API`。
+1. `npm run tv:data` 生成 `tv-worker/src/data.js`
+2. `index.html` 恢复 `#mod-tv` 骨架与 5 处父级子导航的第 6 个 `data-sub-jump="tv"` 按钮
+3. `js/modules/router.js` 恢复 `ALLOWED_MODS` / `MODULE_CHUNKS` / `MODULE_API` / `MOD_PARENT_MAP`，以及离开 `#/tv` 的 `AppTv.pause()` 钩子
+4. `build-bundles.js` 恢复 `css/modules/tv.css`、`tv` chunk、`js/vendor/hls.min.js` 指纹
+5. 把 `tv-worker/vercel-proxy.js` 移回 `api/tv.js`，`vercel.json` 加 `/api/tv` rewrite
+6. `npm run tv:deploy` → `npm run build` → `node scripts/verify-tv.js`
 
-> **Vercel 转发成本**：`/api/tv` 是流式 Node 函数，电视流量会经过 Vercel（Hobby 100GB/月）。
-> 个人低频没问题；长期大流量建议把 `TV_API` 直接指向自定义域名/VPS 代理，绕过这一跳。
-
-> **静态回放源**：浙江广电 `ali-m-l` / `ali-vl` 的部分频道（浙江卫视、浙江少儿、CCTV-13）
-> 是冻结的 m3u8，MEDIA-SEQUENCE 不前进，画面永远同一段。构建时已给这些源打 `static`
-> 标记，客户端不播放；未知静态源会在播放后 12 秒内检测并自动切换。
-> 浙江卫视现在优先使用 `ali-xwl` 的实时源；没有实时源的频道会显示「仅静态回放/无实时源」。
-
-> **Cloudflare 出口限制（2026-11-02 实测）**：源站会按出口 IP 封锁 Cloudflare 数据中心段。
-> 83 个频道中首候选可播约 30 个，CCTV-1 的 13 条候选全部 403，CCTV-2~17 也大多不可用；
-> CCTV-13、浙江卫视、部分卫视/少儿/CGTN 正常。要全量央视，请把 `TV_API` 切到
-> 家庭/VPS 上的 `tv-worker/dev-server.mjs`（配隧道/VPS 提供 HTTPS）。
-
----
+已知待打磨：浙江广电 `ali-m-l`/`ali-vl` 有冻结 m3u8（已识别 static）；CCTV-1~17 在 Cloudflare
+出口多被源站 403；要全量央视需要家庭/VPS 代理。详见 `AGENT_HANDOVER.md` 的电视直播章节。
 
 ## 📁 目录结构
 
 ```text
 juice/
-├── index.html              # 页面骨架：顶栏 + 17 个 <section class="app-module">
+├── index.html              # 页面骨架：顶栏 + 16 个 <section class="app-module">
 ├── sw.js                   # Service Worker：图片懒缓存
 ├── manifest.json           # PWA 清单
 ├── vercel.json             # 构建声明 + 缓存策略
 ├── server.js               # 零依赖本地服务器（含 api/ 模拟）
 ├── build-bundles.js        # 打包脚本
 ├── api/
-│   ├── leaderboard.js      # 全服排行榜 Serverless 函数（25 个 game key，见下文）
-│   └── tv.js               # 电视直播同源转发 → Cloudflare Worker（流式）
+│   └── leaderboard.js      # 全服排行榜 Serverless 函数（25 个 game key，见下文）
 ├── tv-worker/              # Cloudflare Worker HLS 代理
 │   ├── src/core.js          # /playlist /media /proxy + m3u8 重写
 │   ├── src/index.js         # Worker 入口
 │   ├── dev-server.mjs       # Node 本地适配器（127.0.0.1:8787）
+│   ├── vercel-proxy.js      # 下线暂存；移回 api/tv.js 才部署
 │   └── wrangler.toml
 ├── scripts/
 │   ├── build-tv-data.js     # m3u -> tv-worker/src/data.js
-│   ├── verify-tv.js         # TV API + UI 验收
+│   ├── verify-tv.js         # TV API + UI 验收（下线中，重上线后再跑）
 │   └── tv-src/*.m3u         # 频道源（含源站 key，公开仓库注意）
 ├── favicon.png             # 旧版 192px 图标（已不再被 index.html 引用）
 │
 ├── js/
 │   ├── app.bundle.js       # 【构建产物】勿手改
 │   ├── esc.js              # 全站统一 HTML 转义（escHtml/escUrl）
-│   ├── vendor/             # morphicons + lucide 图标子集；hls.min.js（电视直播按需）
+│   ├── vendor/             # morphicons + lucide 图标子集；hls.min.js（电视直播下线中，暂未引用）
 │   ├── chunks/             # 【构建产物】按需模块包
 │   ├── core-drink.js       # 饮品人格核心（计分、Canvas 分享长图）
 │   ├── sfx.js              # WebAudio 合成音效引擎（零音频文件）
@@ -246,7 +228,7 @@ juice/
 │       ├── leaderboard.js          # 全服排行榜客户端（按 game 分榜）
 │       ├── lb-panel.js             # 排行榜面板（各游戏分榜共用）
 │       ├── vocab.js / vocab-data.js  # 背单词（三阶段 + 全服榜）
-│       ├── tv.js                   # 电视直播（频道合并 / HLS 播放 / 多源托底）
+│       ├── tv.js                   # 电视直播（下线中，未接入 build）
 │       ├── music.js                # 我的音乐台主控（播放器 / 列表 / 排行榜 UI）
 │       │   └── lx-music/           # 洛雪音源内核（移植自 lx-music-desktop）
 │       │       ├── request.js      #   └ fetch + 代理底座

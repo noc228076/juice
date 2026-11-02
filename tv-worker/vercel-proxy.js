@@ -3,6 +3,9 @@
  * 浏览器只访问 https://juice.noooc.dpdns.org/api/tv?path=/playlist…
  * 由这个函数转发到 workers.dev，避免国内浏览器直连 workers.dev 被墙/DNS 污染。
  * Worker 通过 X-TV-Public-Base 返回 /api/tv?path=… 形式的分片地址。
+ *
+ * 暂时下线（v605）：本文件不在 api/ 下，Vercel 不会部署。
+ * 重新上线时移回 api/tv.js，并在 vercel.json 加 /api/tv rewrite。
  */
 const { Readable } = require('stream');
 

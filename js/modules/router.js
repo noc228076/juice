@@ -8,7 +8,7 @@
 
   const STATE_VERSION = 1;
   const HOME_MOD = 'drinks';
-  const ALLOWED_MODS = ['drinks', 'milktea', 'manual', 'fengshui', 'tarot', 'lingqian', 'decision', 'clock', 'merit', 'films', 'lifeguide', 'bazi', 'daily', 'scratch', 'wall', 'vocab', 'music', 'tv'];
+  const ALLOWED_MODS = ['drinks', 'milktea', 'manual', 'fengshui', 'tarot', 'lingqian', 'decision', 'clock', 'merit', 'films', 'lifeguide', 'bazi', 'daily', 'scratch', 'wall', 'vocab', 'music'];
   const MODULE_CHUNKS = {
     milktea: 'milktea',
     manual: 'manual',
@@ -24,8 +24,7 @@
     scratch: 'scratch',
     wall: 'wall',
     vocab: 'vocab',
-    music: 'music',
-    tv: 'tv'
+    music: 'music'
   };
   const MODULE_API = {
     drinks: 'AppDrinks',
@@ -44,8 +43,7 @@
     scratch: 'AppScratch',
     wall: 'AppWall',
     vocab: 'AppVocab',
-    music: 'AppMusic',
-    tv: 'AppTv'
+    music: 'AppMusic'
   };
   const MOD_PARENT_MAP = {
     milktea: 'drinks',
@@ -59,7 +57,6 @@
     films: 'clock',
     scratch: 'clock',
     wall: 'clock',
-    tv: 'clock',
     lifeguide: 'manual'
   };
 
@@ -138,21 +135,12 @@
 
   function activateModule(modKey) {
     const parentModKey = MOD_PARENT_MAP[modKey] || modKey;
-    // 电视直播：离开时暂停视频，避免后台继续耗流量。
-    const tvEl = document.getElementById('mod-tv');
-    if (modKey !== 'tv' && tvEl && tvEl.classList.contains('active') &&
-        window.AppTv && typeof window.AppTv.pause === 'function') {
-      window.AppTv.pause();
-    }
     document.querySelectorAll('.app-module').forEach(mod => {
       mod.classList.remove('active');
     });
     const ownEl = document.getElementById('mod-' + modKey);
     const targetModuleEl = ownEl || document.getElementById('mod-' + parentModKey);
     if (targetModuleEl) targetModuleEl.classList.add('active');
-    if (modKey === 'tv' && window.AppTv && typeof window.AppTv.resume === 'function') {
-      window.AppTv.resume();
-    }
     document.documentElement.classList.add('cover-ready');
   }
 
@@ -371,7 +359,7 @@
   function rememberModule(modKey) {
     if (modKey === 'drinks' || modKey === 'milktea') lastDrinkMod = modKey;
     if (modKey === 'tarot' || modKey === 'lingqian' || modKey === 'bazi' || modKey === 'fengshui') lastMysticMod = modKey;
-    if (modKey === 'clock' || modKey === 'merit' || modKey === 'films' || modKey === 'scratch' || modKey === 'wall' || modKey === 'tv') lastRelaxMod = modKey;
+    if (modKey === 'clock' || modKey === 'merit' || modKey === 'films' || modKey === 'scratch' || modKey === 'wall') lastRelaxMod = modKey;
   }
 
   function layerApi(name) {
@@ -865,7 +853,6 @@
             '<div>☯️ <b>东西玄学</b> —— 22 张塔罗大阿卡那、东方灵签摇签、八字精准排盘、工位风水。</div>' +
             '<div>⏰ <b>摸鱼解压</b> —— 实时带薪秒薪时钟、全屏 Fliqlo 翻页屏保、电子木鱼、碎纸解压、<b>弹幕墙</b>（一人一句留言上墙）、' +
             '<b>摸鱼片单</b>（120+ 个追剧站点索引）、' +
-            '<b>电视直播</b>（央视 / 卫视 / 动画，多源自动托底）、' +
             '<b>幸运刮刮乐</b>（5 款拟真彩票，真实物理刮擦涂层与刮彩账本）。</div>' +
             '<div>🪙 <b>纠结拯救</b> —— 命运大轮盘、抛硬币、掷骰子、掷圣杯，治好选择困难症。</div>' +
             '<div>🗞️ <b>今日风向</b> —— 每天 60 秒早报速递、全网实时热搜榜、必应 4K 壁纸。</div>' +

@@ -872,7 +872,7 @@
             '<ul class="gp-about-list">' +
             '<li>影视榜单与海报：豆瓣（经本站代理，规避 Referer 与跨域限制）</li>' +
             '<li>摸鱼片单：<a href="https://github.com/laoma528/awesome-zhuiju-free" target="_blank" rel="noopener">awesome-zhuiju-free</a>（CC BY 4.0）</li>' +
-            '<li>热榜 / 早报：codelife.cc、60s 公开接口，失败自动回落本地缓存</li>' +
+            '<li>热榜 / 早报：codelife.cc、60s 公开接口（经本站代理），失败自动回落本地缓存</li>' +
             '<li>排行榜与弹幕墙：Upstash Redis（只存随机 ID、昵称、头像与成绩）</li>' +
             '<li>背单词词库：<a href="https://github.com/KyleBing/english-vocabulary" target="_blank" rel="noopener">english-vocabulary</a>（BSD-3-Clause）</li>' +
             '<li>音乐搜索 / 歌词 / 封面：酷我、酷狗、企鹅音乐、咪咕的公开接口（经本站代理）</li>' +

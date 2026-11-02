@@ -321,6 +321,8 @@
   function deleteComment(at, btn) {
     const errEl = document.getElementById('wlErr');
     if (!wallId()) return;
+    /* 公开内容删除与清空操作同标准：二次确认（审计 P2-10） */
+    if (!window.confirm('确定删除这条留言吗？')) return;
     if (btn) { btn.disabled = true; btn.textContent = '…'; }
     fetch(API, {
       method: 'DELETE',

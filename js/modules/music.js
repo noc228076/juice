@@ -2312,12 +2312,14 @@
     document.body.appendChild(queuePanelEl);
     paintIcons(queuePanelEl);
     bindQueueDrag(queuePanelEl);
+    queueScrollArmed = Date.now();   // 打开面板允许一次定位到当前行
 
     queuePanelEl.querySelectorAll('[data-q-jump]').forEach(function (row) {
       row.onclick = function () {
         var i = parseInt(row.getAttribute('data-q-jump'), 10);
         if (isNaN(i) || i === qi) { closeQueuePanel(); return; }
         qi = i;
+        queueScrollArmed = Date.now();   // 用户主动切歌：允许居中一次
         playCurrent();
         // 面板留着，让用户继续挑（跟网易云的队列抽屉一致）
         renderQueuePanel();
@@ -2352,6 +2354,8 @@
    * + 4×N 个拖拽/删除监听重挂）在每次切歌都跑一遍，肉眼可感卡顿。
    * 增删/排序仍走全量。
    */
+  var queueScrollArmed = 0;   // >0 表示近期有用户手势，scrollIntoView 才被允许
+  function userBrowsingQueue() { return Date.now() - queueScrollArmed < 4000; }
   function renderQueuePanel(light) {
     if (!queuePanelEl) return;
     if (light) {
@@ -2362,7 +2366,8 @@
         qrows[ri].classList.toggle('active', on);
         if (on) target = qrows[ri];
       }
-      if (target) target.scrollIntoView({ block: 'center' });
+      // 仅在队列面板刚打开/用户点行切歌时居中；自然续播不拽走浏览位置（审计 #16）
+      if (target && userBrowsingQueue()) target.scrollIntoView({ block: 'center' });
       return;
     }
     var body = queuePanelEl.querySelector('.mu-queue-body');
@@ -4010,7 +4015,9 @@
     var maskOpen = !!document.getElementById('muAddListMask');
     if (!active && !imm && !maskOpen) return;
     // 其他输入框里不抢键
-    if (/INPUT|TEXTAREA/.test((e.target && e.target.tagName) || '')) return;
+    if (/INPUT|TEXTAREA|SELECT/.test((e.target && e.target.tagName) || '')) return;
+    // 焦点在按钮上：Space 应该是「按下这个按钮」，不劫持（审计 #15）
+    if (e.code === 'Space' && e.target && e.target.closest && e.target.closest('button')) return;
     if (e.key === 'Escape' && maskOpen) {
       addTargetIndex = -1; pickTarget = null;
       document.getElementById('muAddListMask').remove();
@@ -4085,7 +4092,8 @@
     // 队列里存下来的地址一律作废，播放时重新取
     queue.forEach(function (x) { if (x.kind !== 'link') x.url = ''; });
 
-    var pos = Math.max(0, Number(d.pos) || 0);    knownPos = pos;         // 存档进度先记下，避免被 0 覆盖
+    var pos = Math.max(0, Number(d.pos) || 0);
+    knownPos = pos;         // 存档进度先记下，避免被 0 覆盖
     lastSavedSec = Math.floor(pos);
     if (pos > 0) pendingSeek = { id: cur.id, pos: pos };
 

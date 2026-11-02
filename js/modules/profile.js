@@ -96,7 +96,7 @@
       '<div class="gp-backdrop" data-gp-close></div>' +
       '<div class="gp-dialog" role="dialog" aria-modal="true" aria-label="设置玩家头像与昵称">' +
       '<div class="gp-head">' +
-      '<div><h3>玩家身份</h3><p>设好头像昵称，就能和全服玩家一起比 2048</p></div>' +
+      '<div><h3>玩家身份</h3><p>设好头像昵称，就能和全服玩家比拼各小游戏战绩</p></div>' +
       '<button class="gp-close" type="button" data-gp-close aria-label="关闭">✕</button>' +
       '</div>' +
       '<div class="gp-body">' +

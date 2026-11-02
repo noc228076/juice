@@ -36,6 +36,11 @@ async function apiTests() {
   const leaked = extra.channels.filter((c) => !String(c.url).startsWith(API + '/media?'));
   check('频道表只下发不透明 /media 地址', leaked.length === 0, leaked.slice(0, 2));
 
+  const zj = extra.channels.filter((c) => c.name === '浙江卫视');
+  check('浙江卫视保留非静态实时源', zj.some((c) => !c.static), zj.slice(0, 3));
+  const zjse = extra.channels.filter((c) => c.name === '浙江少儿');
+  check('浙江少儿全部标记为静态回放', zjse.length > 0 && zjse.every((c) => c.static), zjse.slice(0, 3));
+
   const cctv = extra.channels.find((c) => c.name === 'CCTV-1');
   const media = await fetch(cctv.url);
   const body = await media.text();

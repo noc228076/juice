@@ -121,6 +121,8 @@
   var hls = null;
   var hlsLoading = null;
   var failover = { tried: new Set(), total: 1, curLabel: '', round: 0, mediaRetry: 0 };
+  var staticSources = new Set();
+  var checkedSources = new Set();
   var wantPlay = false;
   var retryAt = 0;
   var playToken = 0;
@@ -144,7 +146,7 @@
           m = {
             raw: ch.name, name: baseName(ch.name) || ch.name,
             group: g, logo: ch.logo || '', variants: [],
-            priOrder: [], secOrder: []
+            priOrder: [], secOrder: [], hasStatic: false
           };
           map.set(k, m);
         }
@@ -153,6 +155,7 @@
           m.name = baseName(ch.name) || ch.name;
         }
         if (!m.logo && ch.logo) m.logo = ch.logo;
+        if (ch.static) { m.hasStatic = true; return; }
         var ri = resInfo(ch.name);
         var v = null;
         for (var i = 0; i < m.variants.length; i++) {
@@ -178,6 +181,7 @@
       m.variants.forEach(function (v) { v.urls = v.pri.concat(v.sec); });
       m.urls = m.priOrder.concat(m.secOrder);
       m.url = m.urls[0];
+      m.staticOnly = !!m.hasStatic && !m.priOrder.length;
       m.dead = strictLoaded && !m.priOrder.length;
       list.push(m);
     });
@@ -372,7 +376,10 @@
       var on = keyOf(ch.name) === curKey;
       var marked = !!fav[keyOf(ch.name)];
       var n = (ch.urls || []).length;
-      var sub = ch.group + (n > 1 ? ' · ' + n + ' 源' : '') + (ch.dead ? ' · 无源' : '');
+      var sub = ch.group;
+      if (ch.staticOnly) sub += ' · 仅静态回放';
+      else if (ch.dead) sub += ' · 无实时源';
+      else if (n > 1) sub += ' · ' + n + ' 源';
       return '<div class="tv-ch' + (on ? ' active' : '') + (ch.dead ? ' dead' : '') + '" data-i="' + i + '">' +
         '<button type="button" class="tv-ch-main" data-play="' + i + '">' +
           '<span class="tv-ch-logo">' + esc(shortLabel(ch.name)) + '</span>' +
@@ -481,11 +488,15 @@
   }
   function candidatePool(cur) {
     var pool = [];
-    (cur.urls || []).forEach(function (u) { if (pool.indexOf(u) < 0) pool.push(u); });
+    function add(u) {
+      if (!u || staticSources.has(u)) return;
+      if (pool.indexOf(u) < 0) pool.push(u);
+    }
+    (cur.urls || []).forEach(add);
     var k = keyOf(cur.name);
     state.channels.forEach(function (c) {
       if (keyOf(c.name) !== k) return;
-      (c.urls || [c.url]).forEach(function (u) { if (u && pool.indexOf(u) < 0) pool.push(u); });
+      (c.urls || [c.url]).forEach(add);
     });
     return pool;
   }
@@ -501,11 +512,12 @@
       if ((failover.round || 0) < 1) {
         failover.round = (failover.round || 0) + 1;
         failover.tried.clear();
-        idx = 0;
+        idx = pool.length ? 0 : -1;
       } else {
         return null;
       }
     }
+    if (idx < 0) return null;
     return { url: pool[idx], idx: idx + 1, total: pool.length, round: failover.round || 0 };
   }
   function switchNext(reason) {
@@ -556,6 +568,51 @@
     var hint = '当前代理出口无法播放该频道（源站可能封锁云端 IP）。';
     mask(text + '。' + hint, true, false, false);
   }
+
+  /* 静态回放检测：
+     - 播放列表带 PROGRAM-DATE-TIME 且早于 24h → 冻结源，立刻换
+     - 否则 12 秒后再拉一次，MEDIA-SEQUENCE/分片没变 → 静态循环，换 */
+  function playlistSig(text) {
+    var seq = (text.match(/#EXT-X-MEDIA-SEQUENCE:(\d+)/) || [])[1] || '';
+    var segs = text.split(/\r?\n/).filter(function (l) { return l && l.charAt(0) !== '#'; });
+    return seq + '|' + segs.slice(-2).join('|') + (/#EXT-X-ENDLIST/.test(text) ? '|END' : '');
+  }
+  function checkSource(url, token) {
+    if (!url || staticSources.has(url) || checkedSources.has(url)) return;
+    checkedSources.add(url);
+    var src = proxied(url);
+    // 等首片稳定后再探测，避免和 hls.js 同时抢同一个 manifest（部分源会因此 403/断流）
+    setTimeout(function () {
+      if (token !== playToken) return;
+      fetch(src, { cache: 'no-store' }).then(function (r) { return r.text(); }).then(function (t1) {
+        if (token !== playToken || !t1 || t1.indexOf('#EXTM3U') !== 0) return;
+        var dm = t1.match(/#EXT-X-PROGRAM-DATE-TIME:([^\r\n]+)/);
+        if (dm) {
+          var ts = Date.parse(dm[1].trim());
+          if (ts && Date.now() - ts > 24 * 3600 * 1000) {
+            staticSources.add(url);
+            if (token === playToken) {
+              setStatus('检测到静态回放，自动切换…', true);
+              if (!switchNext('静态回放')) failAll('该频道所有源均为静态回放或不可用');
+            }
+            return;
+          }
+        }
+        var sig1 = playlistSig(t1);
+        setTimeout(function () {
+          if (token !== playToken) return;
+          fetch(src, { cache: 'no-store' }).then(function (r) { return r.text(); }).then(function (t2) {
+            if (token !== playToken || !t2 || t2.indexOf('#EXTM3U') !== 0) return;
+            if (playlistSig(t2) === sig1) {
+              staticSources.add(url);
+              setStatus('检测到静态回放，自动切换…', true);
+              if (!switchNext('静态回放')) failAll('该频道所有源均为静态回放或不可用');
+            }
+          }).catch(function () { /* 忽略 */ });
+        }, 12000);
+      }).catch(function () { /* 忽略 */ });
+    }, 6000);
+  }
   function startPlayback(url) {
     var v = null;
     var variants = (state.current && state.current.variants) || [];
@@ -575,6 +632,7 @@
       if (token !== playToken) return;
       // hls.js 加载完成后再启动看门狗：否则慢网下 8 秒还没开始拉流就被误判
       armStallWatchdog();
+      var liveToken = playToken;
       if (Hls && Hls.isSupported()) {
         destroyHls();
         hls = new Hls({
@@ -623,8 +681,10 @@
         });
         hls.loadSource(src);
         hls.attachMedia(video);
+        checkSource(url, liveToken);
       } else {
         video.src = src;
+        checkSource(url, liveToken);
         tryPlay().then(function (ok) {
           if (ok) hideMask(); else retryPlay('direct');
         });
@@ -713,8 +773,19 @@
   }
   function play(ch) {
     if (!ch) return;
+    if (ch.dead || ch.staticOnly) {
+      setStatus(ch.staticOnly ? '该频道仅静态回放，未播放' : '该频道当前没有实时源', true);
+      mask(ch.staticOnly
+        ? '该频道当前只有静态回放源，已跳过。'
+        : '该频道当前没有可用的实时源。', true);
+      return;
+    }
     var urls = ch.urls && ch.urls.length ? ch.urls : [ch.url].filter(Boolean);
-    if (!urls.length) return;
+    if (!urls.length) {
+      setStatus('该频道当前没有实时源', true);
+      mask('该频道当前没有可用的实时源。', true);
+      return;
+    }
     state.current = Object.assign({}, ch, { urls: urls });
     failover = { tried: new Set(), total: urls.length, curLabel: '', round: 0, mediaRetry: 0 };
     saveRecent(state.current);
@@ -811,6 +882,8 @@
     state.group = 'all';
     state.query = '';
     state.current = null;
+    staticSources.clear();
+    checkedSources.clear();
     if (video) { try { video.pause(); } catch (e) { /* 忽略 */ } }
     destroyHls();
     if (els.search) els.search.value = '';

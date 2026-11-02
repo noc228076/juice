@@ -786,7 +786,7 @@ curl -s "https://juice.noooc.dpdns.org/js/app.bundle.js?v=100" | grep -c "你的
 - 五处子导航按钮在 index.html 静态骨架里（clock/merit/films/scratch/wall 各一份），
   改子导航清单要五处同步；router 的 [data-sub-jump] 高亮按 modKey 自动匹配，无需注册表。
 
-### 电视直播（#/tv，v601）
+### 电视直播（#/tv，v603）
 旧 TV 模块（v208）因源站 H.264 SPS 不合规、原生与 MSE 都绿屏，已在 `e8e7557` 整体回滚。
 v600 起不复用旧播放器：功能移植自 `iptv-web`，**UI 完全重写为 juice 原生风格**（不再用 iframe）。
 
@@ -813,6 +813,13 @@ juice 静态 (Vercel)
 - 频道合并、`baseName/keyOf/resInfo/mainGroupOf`、多源托底、8s/20s 看门狗、
   清晰度切换、收藏/最近、搜索、自定义 M3U 源都从旧播放器移植；
   收藏/最近沿用 `iptvweb.favs` / `iptvweb.recent`，老数据可直接读。
+- **静态回放源（v603）**：浙江广电 `ali-m-l`/`ali-vl` 的 channel21（CCTV-13）、
+  channel001/channel10/channel01（浙江卫视）、channel008（浙江少儿）是冻结的 m3u8，
+  MEDIA-SEQUENCE 不前进、PROGRAM-DATE-TIME 停在 2023/2025。构建脚本用
+  `STATIC_BLACKLIST` 打 `static` 标记，客户端不把它们放进候选池；
+  浙江卫视保留 `ali-xwl` 实时源；没有实时源的频道显示「仅静态回放/无实时源」。
+  运行时还会在播放后检查日期/12 秒内序列是否前进，未知静态源自动切走。
+  `scripts/verify-tv.js` 有「浙江卫视保留非静态源 / 浙江少儿全部静态」断言。
 - 数据：`scripts/tv-src/{extra,verified}.m3u` → `node scripts/build-tv-data.js` →
   `tv-worker/src/data.js`（gitignore）。83 个频道 / extra 185 条 / verified 原始 194 条
   （其中 2 条 TVU 测试卡被黑名单剔除，实际 192）。
@@ -836,7 +843,7 @@ juice 静态 (Vercel)
 - `api/proxy.js` 是音乐模块的音频代理（8MB / 10s / 80-443），**不要**拿它当 HLS 代理。
 - PWA `manifest.json` 仍是 `orientation: "portrait"`；电视全屏横屏在安装版 PWA 里可能受限，
   需要真机确认，未改。
-- **Cloudflare 出口实测（2026-11-02，v601）**：Worker 已部署到
+- **Cloudflare 出口实测（2026-11-02，v603）**：Worker 已部署到
   `https://juice-tv-proxy.2280762725.workers.dev`。83 个频道各取首候选探活：
   **30 个 200 / 53 个非 200**；CCTV-1 的 13 条候选全部 `upstream 403`，
   CCTV-2~17 也基本全 403；CCTV-13、浙江卫视、部分卫视/少儿/CGTN 可播。

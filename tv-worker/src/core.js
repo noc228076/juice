@@ -355,12 +355,16 @@ async function handlePlaylist(request, url, env) {
     if (!/^[a-z0-9_-]+$/i.test(local)) return json({ error: 'bad local' }, 400, request, env);
     const list = ENTRY.filter((e) => e.s === local);
     if (!list.length) return json({ error: 'local list not found: ' + local }, 404, request, env);
-    const channels = list.map((e) => ({
-      name: e.n,
-      group: e.g,
-      logo: e.l,
-      url: publicUrl(request, env, '/media?cid=' + encodeURIComponent(e.c) + '&i=' + e.i),
-    }));
+    const channels = list.map((e) => {
+      const ch = {
+        name: e.n,
+        group: e.g,
+        logo: e.l,
+        url: publicUrl(request, env, '/media?cid=' + encodeURIComponent(e.c) + '&i=' + e.i),
+      };
+      if (e.st) ch.static = true;
+      return ch;
+    });
     return json({ url: 'local:' + local, count: channels.length, channels }, 200, request, env);
   }
 

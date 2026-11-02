@@ -26,6 +26,19 @@ const URL_BLACKLIST = [
   /event\.pull\.hebtv\.com\/jishi/i, // TVU 测试卡，曾被标成 CCTV-13/14
   /\/tvu\//i,
 ];
+/* 已实测为「冻结/循环播放列表」的源：m3u8 能打开，但 MEDIA-SEQUENCE 不前进，
+   画面永远停在同一段（浙江广电 ali-m-l / ali-vl 的部分频道）。
+   这些条目不删除，只打 static 标记；客户端不会把它们当实时源播放。 */
+const STATIC_BLACKLIST = [
+  /ali-m-l\.cztv\.com\/channels\/lantian\/channel21\//i,
+  /ali-vl\.cztv\.com\/channels\/lantian\/channel21\//i,
+  /ali-m-l\.cztv\.com\/channels\/lantian\/channel001\//i,
+  /ali-vl\.cztv\.com\/channels\/lantian\/channel001\//i,
+  /ali-m-l\.cztv\.com\/channels\/lantian\/channel10\//i,
+  /ali-m-l\.cztv\.com\/channels\/lantian\/channel01\//i,
+  /ali-m-l\.cztv\.com\/channels\/lantian\/channel008\//i,
+  /ali-vl\.cztv\.com\/channels\/lantian\/channel008\//i,
+];
 const ANIM_RE = /卡通|动画|动漫|少儿|儿童|哈哈炫动|卡酷|金鹰卡通|优漫|嘉佳|炫动|优优宝贝|宝贝家|亲子|动漫秀场|新动漫/;
 
 function parseM3U(text) {
@@ -77,6 +90,9 @@ function hostOf(url) {
 function isBlacklisted(url) {
   return URL_BLACKLIST.some((re) => re.test(url));
 }
+function isStatic(url) {
+  return STATIC_BLACKLIST.some((re) => re.test(url));
+}
 
 const entries = [];
 const urlsByCid = Object.create(null);
@@ -86,6 +102,7 @@ const sourcesRead = [];
 const hostSet = new Set();
 let rawExtra = 0;
 let rawVerified = 0;
+let staticCount = 0;
 
 for (const src of SOURCES) {
   const file = path.join(SRC, src.file);
@@ -118,7 +135,11 @@ for (const src of SOURCES) {
       urlsByCid[cid].push(ch.url);
       urlIndexByCid[cid].set(ch.url, i);
     }
-    entries.push({ s: src.key, n: ch.name, g: group, l: ch.logo, c: cid, i });
+    const st = isStatic(ch.url) ? 1 : 0;
+    if (st) staticCount++;
+    const entry = { s: src.key, n: ch.name, g: group, l: ch.logo, c: cid, i };
+    if (st) entry.st = 1;
+    entries.push(entry);
     const host = hostOf(ch.url);
     if (host) hostSet.add(host);
     kept++;
@@ -134,6 +155,7 @@ const meta = {
   sources: sourcesRead,
   entries: entries.length,
   urls: uniqueUrls,
+  static: staticCount,
   channels: cidOrder.length,
   hosts: hostSet.size,
   rawExtra,
@@ -164,4 +186,5 @@ console.log('频道数据已生成 -> ' + path.relative(ROOT, OUT));
 console.log('  原始：extra ' + rawExtra + ' 条 / verified ' + rawVerified + ' 条');
 console.log('  保留：' + uniqueUrls + ' 条唯一地址（' + entries.length + ' 条源条目） / ' +
   cidOrder.length + ' 个频道 / ' + hostSet.size + ' 个 host');
+console.log('  静态回放源：' + staticCount + ' 条（已标记 static，客户端不播放）');
 console.log('  分组：央视 ' + groupCount['央视'] + ' / 卫视 ' + groupCount['卫视'] + ' / 动画 ' + groupCount['动画']);

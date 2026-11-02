@@ -148,8 +148,8 @@ npm run build
 
 | 文件 | 字段 | 当前值 | 谁改 |
 |---|---|---|---|
-| `sw.js` | `CACHE_NAME` | `juice-persona-v601` | **自动**（源码指纹变化时 +1） |
-| `index.html` | `?v=` 查询参数（核心 CSS / 主 JS） | `601` | `npm run build` 自动同步 |
+| `sw.js` | `CACHE_NAME` | `juice-persona-v603` | **自动**（源码指纹变化时 +1） |
+| `index.html` | `?v=` 查询参数（核心 CSS / 主 JS） | `603` | `npm run build` 自动同步 |
 | `router.js` | 按需 CSS / JS chunk URL | 从主包注入 | 读取 `window.__APP_VERSION__` |
 
 首屏只引用 `css/core.bundle.css`（`base + nav + history`）；
@@ -183,6 +183,11 @@ npm run tv:deploy   # 生成数据并部署 Worker
 
 > **Vercel 转发成本**：`/api/tv` 是流式 Node 函数，电视流量会经过 Vercel（Hobby 100GB/月）。
 > 个人低频没问题；长期大流量建议把 `TV_API` 直接指向自定义域名/VPS 代理，绕过这一跳。
+
+> **静态回放源**：浙江广电 `ali-m-l` / `ali-vl` 的部分频道（浙江卫视、浙江少儿、CCTV-13）
+> 是冻结的 m3u8，MEDIA-SEQUENCE 不前进，画面永远同一段。构建时已给这些源打 `static`
+> 标记，客户端不播放；未知静态源会在播放后 12 秒内检测并自动切换。
+> 浙江卫视现在优先使用 `ali-xwl` 的实时源；没有实时源的频道会显示「仅静态回放/无实时源」。
 
 > **Cloudflare 出口限制（2026-11-02 实测）**：源站会按出口 IP 封锁 Cloudflare 数据中心段。
 > 83 个频道中首候选可播约 30 个，CCTV-1 的 13 条候选全部 403，CCTV-2~17 也大多不可用；

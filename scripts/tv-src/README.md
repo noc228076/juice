@@ -19,7 +19,14 @@ npm run tv:deploy   # 需要已 wrangler login
 - 剔除已知错误源（`event.pull.hebtv.com/jishi` 的 TVU 测试卡、`/tvu/`）；
 - 只保留「央视 / 卫视 / 动画」三类；
 - 按频道基础名生成稳定 `cid`，同 cid 内按顺序编号 `i`；
+- 给已实测的「冻结播放列表」打 `static` 标记（`STATIC_BLACKLIST`，目前是浙江广电
+  `ali-m-l` / `ali-vl` 的 channel21 / channel001 / channel10 / channel01 / channel008）；
+  客户端不会把 static 源当实时源播放；
 - 输出 `tv-worker/src/data.js`（gitignore，不进浏览器）。
+
+> 静态回放检测：`js/modules/tv.js` 还会在播放后检查 m3u8 的
+> `#EXT-X-PROGRAM-DATE-TIME`（早于 24h 判静态）和 12 秒内 `MEDIA-SEQUENCE` 是否前进；
+> 未知静态源会被自动跳过并切下一条。
 
 ## 注意
 

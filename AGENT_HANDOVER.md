@@ -369,7 +369,7 @@ loadChunk('mystic').then(() => {
 - 生产（`NODE_ENV=production`）缺变量 → 明确返回 **503**，绝不假装成功。
 - 本地开发 → 自动降级为**进程内存储**（`useMemory`），`node server.js` 即可全流程调试。
 
-前端在 503 / 超时时自动退回本机战绩（`lb-panel.js` 的 `localRows`）。
+503 / 超时时全服 Tab 显示错误行与空态（`localRows` 回退已随刮刮乐重构移除；本机战绩在「我的战绩」Tab，失败提交由 `syncLocal` 的签名去重 + 10 分钟退避兜底）。
 
 ---
 

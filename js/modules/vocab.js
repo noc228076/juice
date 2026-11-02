@@ -275,6 +275,7 @@
     saveState();
     if (!jobs.length) { if (after) after(false); return; }
     Promise.all(jobs.map(function (j) {
+      /* 8s 超时：弱网悬死时 catch 触发回滚水位，关页不丢计数（审计 P2-2） */
       return fetch('/api/leaderboard', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -283,7 +284,8 @@
           name: prof.name, avatar: prof.avatar,
           count: j.count, ms: Math.round(j.ms || 0),
           acc: j.acc == null ? undefined : j.acc
-        })
+        }),
+        signal: AbortSignal.timeout(8000)
       }).then(function (r) {
         return r.json();
       }).then(function (d) {

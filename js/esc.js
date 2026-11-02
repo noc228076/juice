@@ -93,6 +93,10 @@ window.juiceExportCanvas = function (cvOrUrl, filename, title) {
   }
   /* dataURL 入口也要先试安卓壳（复查 P2-1：此前 shareFile 未定义 + 漏 AndroidBridge） */
   if (dataUrl) {
+    /* 非 base64 图片 dataURL（裸 URL/畸形串）atob 会产出 0 字节文件还报成功（审计 P2-1） */
+    if (!/^data:image\/(png|jpeg|webp);base64,/i.test(dataUrl)) {
+      return Promise.resolve(downloadFallback());
+    }
     try {
       if (window.AndroidBridge && typeof window.AndroidBridge.saveImage === 'function') {
         window.AndroidBridge.saveImage(dataUrl);
@@ -134,14 +138,22 @@ window.juiceExportCanvas = function (cvOrUrl, filename, title) {
 /* ---------- 全局轻提示（无各自 toast 的模块共用） ---------- */
 window.juiceNotice = function (msg) {
   try {
-    var el = document.createElement('div');
+    /* 单例复用：连续调用不再叠罗汉（审计 P3-10） */
+    var el = document.getElementById('juiceNoticeEl');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = 'juiceNoticeEl';
+      el.setAttribute('role', 'status');
+      el.setAttribute('aria-live', 'polite');
+      el.style.cssText = 'position:fixed;left:50%;bottom:calc(76px + env(safe-area-inset-bottom,0px));' +
+        'transform:translateX(-50%);z-index:12000;background:rgba(10,12,18,.88);color:#e7ecf5;' +
+        'padding:10px 18px;border-radius:999px;font-size:13px;max-width:82vw;text-align:center;' +
+        'box-shadow:0 10px 30px rgba(0,0,0,.4);transition:opacity .3s ease;pointer-events:none;';
+      document.body.appendChild(el);
+    }
     el.textContent = msg;
-    el.style.cssText = 'position:fixed;left:50%;bottom:calc(76px + env(safe-area-inset-bottom,0px));' +
-      'transform:translateX(-50%);z-index:12000;background:rgba(10,12,18,.88);color:#e7ecf5;' +
-      'padding:10px 18px;border-radius:999px;font-size:13px;max-width:82vw;text-align:center;' +
-      'box-shadow:0 10px 30px rgba(0,0,0,.4);transition:opacity .3s ease;pointer-events:none;';
-    document.body.appendChild(el);
-    setTimeout(function () { el.style.opacity = '0'; }, 2200);
-    setTimeout(function () { el.remove(); }, 2600);
+    el.style.opacity = '1';
+    clearTimeout(window.juiceNoticeTimer);
+    window.juiceNoticeTimer = setTimeout(function () { el.style.opacity = '0'; }, 2200);
   } catch (e) { /* 忽略 */ }
 };

@@ -51,7 +51,7 @@
     let list = getRecords();
     const target = list.find(r => r.id === id);
     /* 单条删除与「清空所有」同标准：二次确认（审计 P2-10） */
-    if (target && !window.confirm('删除这份测评档案？（' + (target.label || target.module || '记录') + '）')) return;
+    if (target && !window.confirm('删除这份测评档案？（' + (target.badge || target.title || target.module || '记录') + '）')) return;
     list = list.filter(r => r.id !== id);
     saveRecords(list);
     // 同步清理旧版特调存储，防止刷新页面死灰复燃

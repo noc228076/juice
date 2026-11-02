@@ -107,7 +107,9 @@
       loading = true;
       error = '';
       render();
+      var reqGame = game;   /* 弱网下换榜：旧榜在途响应不得覆盖新榜（审计 P1-1） */
       window.AppLeaderboard.getBoard(game, 50, force).then(function (res) {
+        if (reqGame !== game) return;   // 期间已切到别的榜，丢弃
         loading = false;
         global = {
           board: (res && res.board) || [],

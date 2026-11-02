@@ -24,7 +24,8 @@
       master.gain.value = 0.5;
       master.connect(ctx.destination);
     }
-    if (ctx.state === 'suspended') ctx.resume().catch(function () {});
+    /* iOS 来电/Siri 后是 interrupted 态（审计 P2-3） */
+    if (ctx.state !== 'running') ctx.resume().catch(function () {});
     return ctx;
   }
 

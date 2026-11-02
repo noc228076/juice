@@ -794,6 +794,24 @@ curl -s "https://juice.noooc.dpdns.org/js/app.bundle.js?v=100" | grep -c "你的
   拼写输入框补 Esc/空格；词书学完空态文案；TTS 缺失题面降级；vc-tab/speak/mini 触控 44px；
   壁纸+触屏不露键盘提示。9 套 e2e 101 项全绿。
 
+**R5-R11 追加（同夜后半段）**
+- 说明书：数独 clearState 写未定义 saveKey()（通关存档清不掉→重复上榜）；router Space 改
+  stopImmediatePropagation（蛇开局自暂停/方块幻影硬降）；质检 600ms 加模块守卫；2048 死局撤销
+  重新可记分；resumeGame 补 showScreen + 2048/坦克 keydown 活动屏守卫；报告卡 3 处全角逗号 rgba；
+  蛇 dir 存档校验 + 2 深度方向队列 + 画布移动端等比。
+- 时钟：正班时段付费加班只补 (otMult-1) 差（原 1x+1.5x=2.5x 双倍计薪）；假日表按存储年份计算；
+  跨零点班次窗口；发薪日 29-31 不再钳 28。木鱼：后台标签不刷功德、跨零点清今日。
+- 风向：UTC 日期改本地时区；锁屏 alert 改 juiceNotice。奶茶：契合度公式自证恒真 99% →
+  按满分答案向量归一；三处条宽口径统一 maxP。灵签：印章 measureText 自适应。
+- Canvas 导出统一：esc.js 新增 juiceExportCanvas（安卓壳→Web Share L2→a.download，接受
+  canvas/dataURL）+ juiceNotice（单例 toast）；12 处裸 a.download 全部迁移（WebView 跳页风险）。
+- 排行/档案/资料卡：lb-panel 换榜竞态（迟到响应丢弃）；leaderboard 超时改 AbortController；
+  vocab 三榜上报加 8s 超时；profile.set 补清洗；档案删除确认显示 badge；sfx 覆盖 interrupted 态。
+- R9 复查（对我自己修复的 meta-review）抓出 1 个 P0：扫雷 settle 被我误改名 finish 与证书版
+  遮蔽、丢 stopTimer → 每局 ReferenceError 不提交。已恢复 + 新增
+  scripts/verify-minesweeper-settle.cjs 真实对局回归。教训：**大改动后必须跑真实对局级回归，
+  node --check 只能抓语法**。
+
 **明确不修/待拍板**（避免后续重复排查）
 - 音乐 ~300 行死代码（本机文件/Audius 路径）与 music.css 前 716 行旧层：整块删除有回归风险，留专项。
 - 音乐 #16 队列 scrollIntoView 已改为「打开/点行时武装」启发式；若仍嫌打断可再收紧。

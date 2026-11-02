@@ -1202,3 +1202,11 @@ body.zen-screensaver-active::-webkit-scrollbar {
   }
 }
 
+
+/* 窄屏回血计时器：标题 + 三个类型标签挤一行时，标签被压到中文竖排。
+   允许标签换行到第二行，且标签自身不收缩 */
+.ck-slack-tags { flex-wrap: wrap; }
+.ck-stag { flex: none; white-space: nowrap; }
+
+/* 浅色主题下「尚未到岗」状态胶囊：绿字压浅绿底对比不足，加深文字色 */
+html[data-theme="light"] .ck-status-pill { color: #15803D; }

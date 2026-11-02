@@ -1502,3 +1502,31 @@ html[data-theme="light"] #modalAbout .gp-tip {
     line-height: 1.1;
   }
 }
+
+/* 窄屏子导航：5 个子项在 flex-wrap 下会排成 2+2+1（第 5 项孤立居中），
+   改为单行横向滚动 + 两端渐隐——与顶栏 tab 行为一致，项数增减都不会错位 */
+@media (max-width: 568px) {
+  .subnav-pill-bar {
+    flex-wrap: nowrap !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    height: var(--ui-bar-h);
+    justify-content: flex-start;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%);
+    mask-image: linear-gradient(90deg, transparent 0, #000 14px, #000 calc(100% - 14px), transparent 100%);
+  }
+  .subnav-pill-bar::-webkit-scrollbar { display: none; }
+  .subnav-pill-btn {
+    flex: 0 0 auto;
+    height: 34px;
+    padding: 0 14px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+  /* 后缀在窄屏不再隐藏——单行滚动有足够空间，保留完整语义 */
+  .sub-pill-x { display: inline; }
+}

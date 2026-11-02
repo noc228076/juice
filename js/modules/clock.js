@@ -9,10 +9,10 @@
   const STORAGE_KEY = 'juice_clock_config_v2';
 
   const REST_MODE_META = {
-    double:     { label: '📅 双休制',     workDays: 21.75, desc: '双休 · 周六日休' },
-    single_sun: { label: '🐂 单休(休日)', workDays: 26,    desc: '单休 · 仅周日休' },
-    bi_small:   { label: '📅 大小周(小)', workDays: 24,    desc: '小周 · 周六上班' },
-    bi_big:     { label: '🏖️ 大小周(大)', workDays: 24,    desc: '大周 · 周六日休' },
+    double:     { label: '📅 双休制',     workDays: 21.75, desc: '周六日休' },
+    single_sun: { label: '🐂 单休(休日)', workDays: 26,    desc: '仅周日休' },
+    bi_small:   { label: '📅 大小周(小)', workDays: 24,    desc: '周六上班' },
+    bi_big:     { label: '🏖️ 大小周(大)', workDays: 24,    desc: '周六日休' },
     single_sat: { label: '📆 单休(休六)', workDays: 26,    desc: '单休(仅周六休)' },
     none:       { label: '⚙️ 全勤排班',   workDays: 30,    desc: '今日正常排班' }
   };

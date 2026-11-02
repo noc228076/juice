@@ -30,15 +30,11 @@ const URL_BLACKLIST = [
    画面永远停在同一段（浙江广电 ali-m-l / ali-vl 的部分频道）。
    这些条目不删除，只打 static 标记；客户端不会把它们当实时源播放。 */
 const STATIC_BLACKLIST = [
-  /ali-m-l\.cztv\.com(?::\d+)?\/channels\/lantian\/channel21\//i,
-  /ali-vl\.cztv\.com(?::\d+)?\/channels\/lantian\/channel21\//i,
-  /ali-m-l\.cztv\.com(?::\d+)?\/channels\/lantian\/channel001\//i,
-  /ali-vl\.cztv\.com(?::\d+)?\/channels\/lantian\/channel001\//i,
-  /ali-m-l\.cztv\.com(?::\d+)?\/channels\/lantian\/channel10\//i,
-  /ali-m-l\.cztv\.com(?::\d+)?\/channels\/lantian\/channel01\//i,
-  /ali-m-l\.cztv\.com(?::\d+)?\/channels\/lantian\/channel008\//i,
-  /ali-vl\.cztv\.com(?::\d+)?\/channels\/lantian\/channel008\//i,
+  // 合并单条正则（审计 P2-11）：host 支持 :80 端口写法，尾斜杠保证
+  // channel01 不会误吃 channel011
+  /ali-(?:m-l|vl)\.cztv\.com(?::\d+)?\/channels\/lantian\/channel(?:21|001|01|10|008)\//i,
 ];
+const LANTIAN_RE = /ali-(?:m-l|vl|xwl)\.cztv\.com(?::\d+)?\/channels\/lantian\/channel\d+\//i;
 const ANIM_RE = /卡通|动画|动漫|少儿|儿童|哈哈炫动|卡酷|金鹰卡通|优漫|嘉佳|炫动|优优宝贝|宝贝家|亲子|动漫秀场|新动漫/;
 
 function parseM3U(text) {
@@ -93,6 +89,39 @@ function isBlacklisted(url) {
 function isStatic(url) {
   return STATIC_BLACKLIST.some((re) => re.test(url));
 }
+/* m3u 注释黏在 URL 后的脏行（如 `...1080p.m3u8$LR•IPV4『线路27』`）：
+   截到第一个非可打印 ASCII 前，再用 URL 解析兜底（审计 P2-10） */
+function cleanUpstreamUrl(line) {
+  var u = String(line || '').trim();
+  // 只截「黏在完整 URL 尾部的注释 junk」——路径里合法的中文（/地方台8563/海南.php）不能动：
+  // 锚点是 CJK 标点（『【】•）或「$ 后跟非 ASCII」，两者都是 m3u 注释特征而非 URL 字符
+  // 先截 $ 后黏连（$LR•IPV4...），再兜底 CJK 标点
+  var dollar = u.indexOf('$');
+  if (dollar > 0 && /[^!-~]/.test(u.slice(dollar))) {
+    console.warn('[tv-data] 截断脏 URL: ' + u.slice(0, 90) + ' -> ' + u.slice(0, dollar));
+    u = u.slice(0, dollar);
+  }
+  var junkM = u.match(/[「」【】•·]/);
+  if (junkM && /^https?:\/\//i.test(u)) {
+    var cut = u.slice(0, u.indexOf(junkM[0]));
+    if (/^https?:\/\/\S+$/.test(cut)) {
+      console.warn('[tv-data] 截断脏 URL: ' + u.slice(0, 90) + ' -> ' + cut);
+      u = cut;
+    }
+  }
+  try {
+    var parsed = new URL(u);
+    if (!parsed.hostname || isPrivateHostLike(parsed.hostname)) return '';
+  } catch (e) { return ''; }
+  return u;
+}
+function isPrivateHostLike(hostname) {
+  var h = String(hostname || '').toLowerCase().replace(/^\[+|\]+$/g, '').replace(/\.+$/, '');
+  if (!h) return true;
+  if (h === 'localhost' || /\.(local|internal)$/.test(h) || /^\d+$/.test(h) || h.includes('0x')) return true;
+  if (/^127\.|^10\.|^192\.168\.|^172\.(1[6-9]|2\d|3[01])\./.test(h)) return true;
+  return false;
+}
 
 const entries = [];
 const urlsByCid = Object.create(null);
@@ -114,7 +143,8 @@ for (const src of SOURCES) {
   if (src.key === 'verified') rawVerified = raw.length;
   let kept = 0;
   for (const ch of raw) {
-    if (!ch.url || !/^https?:\/\//i.test(ch.url)) continue;
+    ch.url = cleanUpstreamUrl(ch.url);
+    if (!ch.url) continue;
     if (isBlacklisted(ch.url)) continue;
     if (!ch.name) continue;
     const key = keyOf(ch.name);
@@ -137,6 +167,9 @@ for (const src of SOURCES) {
     }
     const st = isStatic(ch.url) ? 1 : 0;
     if (st) staticCount++;
+    if (!st && LANTIAN_RE.test(ch.url)) {
+      console.warn('[tv-data] 未标记 static 的 lantian 频道源（确认是否冻结）: ' + ch.url);
+    }
     const entry = { s: src.key, n: ch.name, g: group, l: ch.logo, c: cid, i };
     if (st) entry.st = 1;
     entries.push(entry);

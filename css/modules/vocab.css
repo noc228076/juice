@@ -37,6 +37,7 @@
   padding: 8px 22px;
   border-radius: 999px;
   cursor: pointer;
+  min-height: 44px;   /* 五屏子导航触控目标（审计 P3-9） */
   transition: background 0.18s ease, color 0.18s ease;
 }
 .vc-tab:hover { color: var(--tx); background: rgba(255, 255, 255, 0.08); }
@@ -731,6 +732,11 @@ html[data-theme="light"] .vc-tab:hover { background: rgba(0, 0, 0, 0.05); }
   transition: opacity 0.16s ease, transform 0.12s ease;
   vertical-align: middle;
 }
+/* 答题页高频操作：触屏热区扩到 44px（审计 P3-9） */
+@media (hover: none) {
+  .vc-speak { position: relative; }
+  .vc-speak::before { content: ''; position: absolute; inset: -10px; }
+}
 .vc-speak:hover { opacity: 1; transform: scale(1.12); }
 .vc-speak:active { transform: scale(0.94); }
 
@@ -1015,6 +1021,11 @@ html[data-theme="light"] .vc-tab:hover { background: rgba(0, 0, 0, 0.05); }
   border-radius: 999px;
   cursor: pointer;
   transition: border-color 0.16s ease, color 0.16s ease;
+}
+/* 生词本标熟/移除：视觉不变，热区扩到 44px（审计 P3-9） */
+@media (hover: none) {
+  .vc-mini { position: relative; }
+  .vc-mini::before { content: ''; position: absolute; inset: -11px -8px; }
 }
 .vc-mini:hover { border-color: var(--warn-c); color: var(--warn-c); }
 
@@ -1900,14 +1911,15 @@ body.has-daily-ambient-bg .vc-note {
   padding: 6px 14px;
 }
 
-/* 审计 round3 P3：壁纸组键盘提示行加胶囊衬底（复用页脚处理） */
-body.has-daily-ambient-bg .vc-keyhint {
-  display: inline-block;
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  padding: 5px 12px;
-}
+/* 审计 round3 P3：壁纸组键盘提示行加胶囊衬底（复用页脚处理）；
+   整块限定桌面：触屏 + 壁纸时不再露出「键盘 1-4 选择」提示（审计 P3-10） */
 @media (min-width: 900px) {
+  body.has-daily-ambient-bg .vc-keyhint {
+    display: inline-block;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 5px 12px;
+  }
   body.has-daily-ambient-bg .vc-keyhint { display: block; width: max-content; margin: 6px auto 0; }
 }

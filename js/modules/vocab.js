@@ -409,10 +409,10 @@
     clearTimeout(saveStateTimer);
     saveStateTimer = setTimeout(saveStateNow, 300);
   }
-  function saveStateNow() {
+  function saveStateNow(force) {
     clearTimeout(saveStateTimer);
     saveStateTimer = 0;
-    if (!stateDirty) return;
+    if (!stateDirty && !force) return;
     try { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); } catch (e) {}
     stateDirty = false;
   }
@@ -788,10 +788,15 @@
         '<button class="vc-btn ghost" id="vcDiscard" type="button">放弃重排</button>';
     } else if (total === 0) {
       var didSome = (bs().doneToday || 0) > 0;
-      focusTitle = didSome ? '今天的任务已完成' : '今天没有待办';
+      var bookDone = pickNew(1).length === 0 && newLeftToday() > 0;
+      focusTitle = didSome ? '今天的任务已完成'
+        : bookDone ? '这本词书已经全部学完'
+        : '今天没有待办';
       focusDesc = didSome
         ? '明天到期复习会自动排好，也可以现在加练一组'
-        : '新词额度设为 0 且没有到期复习，去设置里调一下每天的词量';
+        : bookDone
+          ? '整本词书都过了第一遍，接下来靠到期复习巩固；想再过一遍可以加练一组'
+          : '新词额度设为 0 且没有到期复习，去设置里调一下每天的词量';
       actionsHtml =
         '<button class="vc-btn primary" id="vcExtra" type="button">再加一组 →</button>' +
         '<button class="vc-btn ghost" id="vcGoStats" type="button">看统计</button>';
@@ -1500,6 +1505,7 @@
             if (d.autoSpeak != null) clean.autoSpeak = !!d.autoSpeak;
             if (typeof d.requestRetention === 'number') clean.requestRetention = clampNum(d.requestRetention, 0.8, 0.98);
             if (typeof d.maxInterval === 'number') clean.maxInterval = clampNum(d.maxInterval, 30, 3650);
+            if (d.spell != null) clean.spell = !!d.spell;   /* 拼写开关随备份走（审计 P3-4） */
             ['cet4', 'cet6'].forEach(function (lv) {
               var src = d.books[lv];
               var dst = clean.books[lv];
@@ -1518,7 +1524,11 @@
                      两者都要接受，否则导出→导入会把整本进度丢光 */
                   if (!wr || typeof wr !== 'object') return;
                   var hasS = typeof wr.S === 'number' && isFinite(wr.S);
-                  if (!hasS && typeof wr.box !== 'number') return;
+                  /* 无 S 无 box 但带 wrong/seen 的记录也是正常产物：
+                     客观题答错、自评落档前退出就会留下这种形态，
+                     丢了它生词本累错计数就被静默清零（审计 P2-1） */
+                  if (!hasS && typeof wr.box !== 'number' &&
+                      !(wr.wrong || wr.seen || wr.wrongAt || wr.knownAt)) return;
                   var rw = {
                     due: typeof wr.due === 'number' ? wr.due : 0,
                     seen: typeof wr.seen === 'number' ? wr.seen : 0,
@@ -1581,7 +1591,7 @@
     clearSession(); // 跨词库的会话无法续答
     state.book = bk;
     bs();   // 确保该词库的进度对象存在
-    saveStateNow();
+    saveStateNow(true);   // 刚改的 book 指针必须立即持久（审计 P3-1）
     queue = [];
     qi = 0;
     answered = false;
@@ -1652,13 +1662,14 @@
       }),
       redoSet: redoSet.slice(),
       redoRound: redoRound,
+      miss: Object.keys(missSet).map(Number),   /* 客观题答错标记：续局不丢（审计 P3-3） */
       stats: { right: sessionStats.right, wrong: sessionStats.wrong },
       counted: Object.keys(countedWords).map(Number),
       committed: committed,
       day: todayKey(),
       savedAt: Date.now()
     };
-    saveStateNow();
+    saveStateNow(true);
   }
   function clearSession() {
     if (state.session) { state.session = null; saveState(); }
@@ -1686,6 +1697,8 @@
     qi = Math.min(sn.qi || 0, stageQueue.length);
     redoSet = (sn.redoSet || []).filter(function (idx) { return book.words[idx]; });
     redoRound = sn.redoRound || 0;
+    missSet = {};
+    (sn.miss || []).forEach(function (idx) { if (book.words[idx]) missSet[idx] = 1; });
     sessionStats = { right: (sn.stats && sn.stats.right) || 0, wrong: (sn.stats && sn.stats.wrong) || 0 };
     countedWords = {};
     (sn.counted || []).forEach(function (idx) { countedWords[idx] = 1; });
@@ -1816,7 +1829,9 @@
           (canSpeak ? '<button class="vc-speak" type="button" id="vcSpeak" aria-label="朗读">🔊</button>' : '') +
         '</div>' +
         '<div class="vc-spell">' +
-          '<div class="vc-spell-hint">听音拼出这个单词 · 首字母 <b>' + esc(w.word.charAt(0).toLowerCase()) + '</b> · 共 ' + wlen + ' 个字母</div>' +
+          '<div class="vc-spell-hint">' + (canSpeak
+            ? '听音拼出这个单词'
+            : '看音标记拼写') + ' · 首字母 <b>' + esc(w.word.charAt(0).toLowerCase()) + '</b> · 共 ' + wlen + ' 个字母</div>' +
           '<div class="vc-spell-slots' + (wlen > 12 ? ' compact' : '') + '" id="vcSpellSlots" aria-label="拼写输入区">' + slotHtml + '</div>' +
           '<input class="vc-spell-hidden" id="vcSpellInput" type="text" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="拼写单词">' +
           '<div class="vc-spell-actions"><button class="vc-btn primary" id="vcSpellSubmit" type="button">确认</button></div>' +
@@ -1954,6 +1969,14 @@
         } else if (e.key === 'Enter') {
           e.preventDefault();
           submitSpell();
+        } else if (e.key === 'Escape') {
+          /* 拼写输入框常驻焦点，全局 Esc 热键收不到：键位提示承诺「Esc 返回」（审计 P3-5） */
+          e.preventDefault();
+          leaveSession();
+        } else if (e.key === ' ' && answered) {
+          /* 已提交后空格=下一题，与全局提示一致 */
+          e.preventDefault();
+          advanceStep();
         }
       });
       drawSlots();
@@ -2406,7 +2429,8 @@
     /* 本阶段走完：先把阶段内答错的词按同一题型补一轮 */
     if (redoSet.length) {
       var kind = steps()[Math.min(stage, steps().length - 1)];
-      stageQueue = redoSet.map(function (idx) {
+      /* 标熟摘除只发生在 markKnown 时点：中途标熟的词在阶段末重建时会复活（审计 P3-2） */
+      stageQueue = redoSet.filter(function (idx) { return !isWordKnown(idx); }).map(function (idx) {
         return { idx: idx, rec: bs().words[book.words[idx][0]] || null, kind: kind, isRedo: true };
       });
       redoSet = [];

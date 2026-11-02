@@ -13,6 +13,8 @@
 const path = require('path');
 const { chromium } = require('playwright');
 
+/* TV_SKIP_UI=1：只跑 API 断言（下线态/无显示器的 CI 可用）；
+   频道数据缺失时给出明确指引而不是抛堆栈 */
 const BASE = process.env.TV_BASE || 'http://127.0.0.1:3456';
 const API = process.env.TV_API || 'http://127.0.0.1:8787';
 const CHROME = process.env.CHROME_PATH || 'C:/Program Files/Google/Chrome/Application/chrome.exe';
@@ -209,7 +211,18 @@ async function mobileTests(browser) {
 
 (async () => {
   try {
+    const fs = require('fs');
+    if (!fs.existsSync(path.join(__dirname, '..', 'tv-worker', 'src', 'data.js'))) {
+      console.error('缺少 tv-worker/src/data.js：先运行 npm run tv:data');
+      console.error('若 scripts/tv-src/*.m3u 也缺失，需先从归档恢复频道源');
+      process.exit(1);
+    }
     await apiTests();
+    if (process.env.TV_SKIP_UI === '1') {
+      console.log('TV_SKIP_UI=1：跳过 UI 阶段（#mod-tv 未接线时必然失败）');
+      console.log(failed ? failed + ' 项失败' : 'API 全部通过');
+      process.exit(failed ? 1 : 0);
+    }
     const browser = await launch();
     try {
       await uiTests(browser);

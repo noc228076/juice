@@ -181,8 +181,11 @@
       m.variants.forEach(function (v) { v.urls = v.pri.concat(v.sec); });
       m.urls = m.priOrder.concat(m.secOrder);
       m.url = m.urls[0];
-      m.staticOnly = !!m.hasStatic && !m.priOrder.length;
-      m.dead = strictLoaded && !m.priOrder.length;
+      // dead/staticOnly 按「可用播放池」判定：内置源没有、但自定义源提供了
+      // 实时地址的频道不能再被标灰拒播（审计 P0-2）
+      var hasLive = m.priOrder.length + m.secOrder.length > 0;
+      m.staticOnly = !!m.hasStatic && !hasLive;
+      m.dead = strictLoaded && !hasLive;
       list.push(m);
     });
     return list;
@@ -536,7 +539,12 @@
       s.src = HLS_SRC + '?v=' + (window.__APP_VERSION__ || Date.now());
       s.async = true;
       s.onload = function () { resolve(window.Hls); };
-      s.onerror = function () { reject(new Error('hls.js 加载失败')); };
+      s.onerror = function () {
+        // 失败后复位：否则本次会话内永远短路到「hls.js 加载失败」（审计 P1-4）
+        s.remove();
+        hlsLoading = null;
+        reject(new Error('hls.js 加载失败'));
+      };
       document.head.appendChild(s);
     });
     return hlsLoading;
@@ -547,8 +555,7 @@
       hls = null;
     }
   }
-  function armStallWatchdog() {
-    var tk = ++playToken;
+  function armStallWatchdog(tk) {
     clearTimeout(stallTimer);
     stallTimer = setTimeout(function () {
       if (tk !== playToken || !video || video.videoWidth > 0) return;
@@ -570,8 +577,10 @@
   }
 
   /* 静态回放检测：
-     - 播放列表带 PROGRAM-DATE-TIME 且早于 24h → 冻结源，立刻换
-     - 否则 12 秒后再拉一次，MEDIA-SEQUENCE/分片没变 → 静态循环，换 */
+     - master 播放列表（含 #EXT-X-STREAM-INF）文本天生不变，跳过签名对比（审计 P1-6）
+     - PROGRAM-DATE-TIME 早于 24h 且未来偏移 <1h → 冻结源，立刻换（时钟偏移不误杀）
+     - 否则按分片时长自适应窗口（≥12s，1.5×分片时长）再拉一次，
+       MEDIA-SEQUENCE/分片没变 → 静态循环，换 */
   function playlistSig(text) {
     var seq = (text.match(/#EXT-X-MEDIA-SEQUENCE:(\d+)/) || [])[1] || '';
     var segs = text.split(/\r?\n/).filter(function (l) { return l && l.charAt(0) !== '#'; });
@@ -581,15 +590,25 @@
     if (!url || staticSources.has(url) || checkedSources.has(url)) return;
     checkedSources.add(url);
     var src = proxied(url);
+    var probe = function (ctl) {
+      return fetch(src, { cache: 'no-store', signal: ctl.signal })
+        .then(function (r) { return r.text(); });
+    };
     // 等首片稳定后再探测，避免和 hls.js 同时抢同一个 manifest（部分源会因此 403/断流）
     setTimeout(function () {
       if (token !== playToken) return;
-      fetch(src, { cache: 'no-store' }).then(function (r) { return r.text(); }).then(function (t1) {
+      var c1 = new AbortController();
+      var t1out = setTimeout(function () { c1.abort(); }, 15000);
+      probe(c1).then(function (t1) {
+        clearTimeout(t1out);
         if (token !== playToken || !t1 || t1.indexOf('#EXTM3U') !== 0) return;
+        // master 播放列表：正文不随直播推进，签名对比必然误判 → 跳过
+        if (t1.indexOf('#EXT-X-STREAM-INF') >= 0) return;
         var dm = t1.match(/#EXT-X-PROGRAM-DATE-TIME:([^\r\n]+)/);
         if (dm) {
           var ts = Date.parse(dm[1].trim());
-          if (ts && Date.now() - ts > 24 * 3600 * 1000) {
+          var drift = ts ? Date.now() - ts : 0;
+          if (ts && drift > 24 * 3600 * 1000 && drift < 365 * 24 * 3600 * 1000 * 10) {
             staticSources.add(url);
             if (token === playToken) {
               setStatus('检测到静态回放，自动切换…', true);
@@ -597,11 +616,17 @@
             }
             return;
           }
+          if (ts && drift < -3600 * 1000) return;   // 源时钟明显偏未来：不据此判静态
         }
+        var segM = t1.match(/#EXTINF:\s*(\d+(?:\.\d+)?)/i);
+        var win = Math.max(12000, segM ? Math.ceil(parseFloat(segM[1]) * 1000 * 1.5) : 12000);
         var sig1 = playlistSig(t1);
         setTimeout(function () {
           if (token !== playToken) return;
-          fetch(src, { cache: 'no-store' }).then(function (r) { return r.text(); }).then(function (t2) {
+          var c2 = new AbortController();
+          var t2out = setTimeout(function () { c2.abort(); }, 15000);
+          probe(c2).then(function (t2) {
+            clearTimeout(t2out);
             if (token !== playToken || !t2 || t2.indexOf('#EXTM3U') !== 0) return;
             if (playlistSig(t2) === sig1) {
               staticSources.add(url);
@@ -609,7 +634,7 @@
               if (!switchNext('静态回放')) failAll('该频道所有源均为静态回放或不可用');
             }
           }).catch(function () { /* 忽略 */ });
-        }, 12000);
+        }, win);
       }).catch(function () { /* 忽略 */ });
     }, 6000);
   }
@@ -631,8 +656,8 @@
     loadHls().then(function (Hls) {
       if (token !== playToken) return;
       // hls.js 加载完成后再启动看门狗：否则慢网下 8 秒还没开始拉流就被误判
-      armStallWatchdog();
-      var liveToken = playToken;
+      armStallWatchdog(token);
+      failover.mediaRetry = 0;   // 每条源都重新获得 recoverMediaError 配额（审计 P2-12）
       if (Hls && Hls.isSupported()) {
         destroyHls();
         hls = new Hls({
@@ -681,10 +706,10 @@
         });
         hls.loadSource(src);
         hls.attachMedia(video);
-        checkSource(url, liveToken);
+        checkSource(url, token);
       } else {
         video.src = src;
-        checkSource(url, liveToken);
+        checkSource(url, token);
         tryPlay().then(function (ok) {
           if (ok) hideMask(); else retryPlay('direct');
         });
@@ -834,7 +859,7 @@
   }
   function step(dir) {
     if (!state.playList.length) return;
-    var live = state.playList.filter(function (c) { return !c.dead; });
+    var live = state.playList.filter(function (c) { return !c.dead && !c.staticOnly; });
     var pool = live.length ? live : state.playList;
     var idx = -1;
     if (state.current) {
@@ -853,8 +878,11 @@
   }
   function togglePlay() {
     if (!video || !state.current) return;
-    if (video.paused) { wantPlay = true; tryPlay(); }
-    else video.pause();
+    if (video.paused) {
+      wantPlay = true;
+      if (hls) { try { hls.startLoad(); } catch (e) { /* 忽略 */ } }
+      tryPlay();
+    } else video.pause();
   }
   function toggleMute() {
     if (!video) return;
@@ -1107,7 +1135,8 @@
       }
     });
     document.addEventListener('visibilitychange', function () {
-      if (document.hidden && video) video.pause();
+      // PiP 悬浮时切 tab 不掐画面（审计 P3-19）
+      if (document.hidden && video && !document.pictureInPictureElement) video.pause();
     });
     if (video) {
       video.addEventListener('play', function () { updatePlayBtn(); hideMask(); });
@@ -1164,6 +1193,8 @@
 
   function pause() {
     if (video) { try { video.pause(); } catch (e) { /* 忽略 */ } }
+    // 离开页面就停止按直播节奏刷新 manifest/分片，省流量（审计 P3-19）
+    if (hls) { try { hls.stopLoad(); } catch (e) { /* 忽略 */ } }
     if (els.qualityMenu) els.qualityMenu.hidden = true;
     if (els.sourceLayer) els.sourceLayer.hidden = true;
   }

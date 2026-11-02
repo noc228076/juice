@@ -178,6 +178,10 @@
   cursor: pointer;
   transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
 }
+/* 组件级 display 会压过 UA 的 [hidden]：PiP 不支持时按钮必须真隐藏（审计 P2-9） */
+.tv-icon-btn[hidden] {
+  display: none;
+}
 .tv-icon-btn:hover {
   border-color: var(--mod-ac);
   color: var(--mod-ac);

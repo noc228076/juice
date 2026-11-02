@@ -29,12 +29,6 @@ const BLACKLIST = [
 ];
 
 /* ---------- 基础工具 ---------- */
-function timeoutSignal(ms) {
-  if (typeof AbortSignal !== 'undefined' && AbortSignal.timeout) return AbortSignal.timeout(ms);
-  const c = new AbortController();
-  setTimeout(() => c.abort(), ms);
-  return c.signal;
-}
 
 function allowedOrigins(env) {
   const raw = (env && env.ALLOWED_ORIGINS) || DEFAULT_ORIGINS.join(',');
@@ -110,19 +104,35 @@ function text(msg, status, request, env) {
 
 /* ---------- URL / SSRF 防护 ---------- */
 function isPrivateHost(hostname) {
-  const h = hostname.toLowerCase();
+  // 部分运行时（Node 24）的 URL.hostname 会保留 IPv6 方括号：先剥掉
+  let h = String(hostname || '').toLowerCase().replace(/^\[+|\]+$/g, '').replace(/\.+$/, '');
   if (!h) return true;
   if (h === 'localhost' || h.endsWith('.localhost') || h.endsWith('.local') ||
       h.endsWith('.internal') || h === 'metadata' || h === 'metadata.google.internal') {
     return true;
   }
+  // 整数形式 IP（http://2130706433 = 127.0.0.1）与十六进制变体一律拒绝：
+  // 这些写法 URL.hostname 原样保留，实际解析却是回环/私网
+  if (/^\d+$/.test(h) || h.includes('0x')) return true;
   // IPv6 字面量（URL.hostname 不带方括号）
   if (h.includes(':')) {
     if (h === '::1' || h === '::' || h.startsWith('fc') || h.startsWith('fd') ||
         h.startsWith('fe8') || h.startsWith('fe9') || h.startsWith('fea') || h.startsWith('feb')) {
       return true;
     }
-    if (h.startsWith('::ffff:')) return isPrivateHost(h.slice(7));
+    // IPv4-mapped 十六进制形式 ::ffff:7f00:1 = 127.0.0.1（core 旧版只处理点分形式）
+    if (h.startsWith('::ffff:')) {
+      const tail = h.slice(7);
+      if (tail.includes('.')) return isPrivateHost(tail);
+      const groups = tail.split(':').filter(Boolean);
+      if (groups.length === 2) {
+        const hi = parseInt(groups[0], 16), lo = parseInt(groups[1], 16);
+        if (Number.isFinite(hi) && Number.isFinite(lo)) {
+          return isPrivateHost(ipv4FromInt((((hi << 16) | lo) >>> 0)));
+        }
+      }
+      return true;   // 无法识别的映射形式：宁可误杀
+    }
     return false;
   }
   if (/^\d+\.\d+\.\d+\.\d+$/.test(h)) {
@@ -143,12 +153,47 @@ function isPrivateHost(hostname) {
   return false;
 }
 
+/* 点分整数形式辅助：isPrivateHost 内 IPv4-mapped 十六进制分支用 */
+function ipv4FromInt(n) {
+  return [(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255].join('.');
+}
+
 function parseTarget(raw) {
   let u;
   try { u = new URL(raw); } catch (e) { return null; }
   if (u.protocol !== 'http:' && u.protocol !== 'https:') return null;
   if (isPrivateHost(u.hostname)) return null;
   return u;
+}
+
+/* 手动跟随重定向：每一跳的目标都重新过 parseTarget。
+   redirect:'follow' 会把 30x 跳到 169.254.169.254 / 内网地址的响应体
+   直接流回客户端（审计 P0-1），这里从根上堵死。 */
+async function safeFetch(rawUrl, init, maxHops) {
+  let current = rawUrl;
+  const hops = maxHops || 5;
+  for (let hop = 0; hop <= hops; hop++) {
+    const u = parseTarget(current);
+    if (!u) throw new Error('disallowed upstream url: ' + current);
+    const resp = await fetch(u.href, Object.assign({}, init, { redirect: 'manual' }));
+    if (resp.status >= 300 && resp.status < 400) {
+      const loc = resp.headers.get('Location');
+      if (!loc) return resp;
+      let next;
+      try { next = new URL(loc, u.href).href; } catch (e) { return resp; }
+      try { if (resp.body) resp.body.cancel(); } catch (e) { /* 忽略 */ }
+      current = next;
+      continue;
+    }
+    // 兜底：个别运行时仍自动跟随（或 Location 缺失被放行）时，复核最终地址
+    const fin = parseTarget(resp.url || u.href);
+    if (!fin) {
+      try { if (resp.body) resp.body.cancel(); } catch (e) { /* 忽略 */ }
+      throw new Error('disallowed final url: ' + (resp.url || u.href));
+    }
+    return resp;
+  }
+  throw new Error('too many redirects');
 }
 
 function isBlacklisted(url) {
@@ -245,17 +290,22 @@ async function proxyUpstream(request, target, env) {
   if (ifRange) headers['If-Range'] = ifRange;
 
   const method = request.method === 'HEAD' ? 'HEAD' : 'GET';
+  // 只限制「到响应头」的等待；body 阶段不再被 20s 拦腰截断（审计 P1-7），
+  // 慢分片交给客户端 fragLoadingTimeOut 兜底
+  const ctlUp = new AbortController();
+  const upTimer = setTimeout(() => ctlUp.abort(), UPSTREAM_TIMEOUT);
   let resp;
   try {
-    resp = await fetch(u.href, {
+    resp = await safeFetch(u.href, {
       method,
       headers,
-      redirect: 'follow',
-      signal: timeoutSignal(UPSTREAM_TIMEOUT),
+      signal: ctlUp.signal,
     });
   } catch (e) {
+    clearTimeout(upTimer);
     return json({ error: 'upstream fetch failed: ' + (e && e.message ? e.message : e) }, 502, request, env);
   }
+  clearTimeout(upTimer);
 
   if (!resp.ok && resp.status >= 400) {
     // hls.js 需要正确状态码做切换决策；错误体只给一小段文本
@@ -269,6 +319,17 @@ async function proxyUpstream(request, target, env) {
   const looksText = ctype.startsWith('text/') || ctype.includes('json') || ctype.includes('xml');
 
   if (looksPlaylist || looksText) {
+    // HEAD 不读 body：此前会落到 502 文本分支（审计 P2-8）
+    if (method === 'HEAD') {
+      return new Response(null, {
+        status: resp.status,
+        headers: withCors({
+          'Content-Type': looksPlaylist ? 'application/vnd.apple.mpegurl'
+            : (resp.headers.get('Content-Type') || 'text/plain'),
+          'Cache-Control': 'no-store',
+        }, request),
+      });
+    }
     let body;
     try {
       body = await readTextLimited(resp, looksPlaylist ? MAX_PLAYLIST : MAX_TEXT);
@@ -373,15 +434,18 @@ async function handlePlaylist(request, url, env) {
   if (!u) return json({ error: 'need http(s) url' }, 400, request, env);
 
   let resp;
+  const ctlPick = new AbortController();
+  const pickTimer = setTimeout(() => ctlPick.abort(), UPSTREAM_TIMEOUT);
   try {
-    resp = await fetch(u.href, {
+    resp = await safeFetch(u.href, {
       headers: { 'User-Agent': UA, 'Accept': '*/*' },
-      redirect: 'follow',
-      signal: timeoutSignal(UPSTREAM_TIMEOUT),
+      signal: ctlPick.signal,
     });
   } catch (e) {
+    clearTimeout(pickTimer);
     return json({ error: 'fetch failed: ' + (e && e.message ? e.message : e) }, 502, request, env);
   }
+  clearTimeout(pickTimer);   // 响应头已到；body 阶段交给 readTextLimited 的体积上限
   if (!resp.ok) return json({ error: 'upstream ' + resp.status }, 502, request, env);
 
   let body;

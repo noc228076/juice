@@ -38,10 +38,14 @@
     if (!force && c && c.at && Date.now() - c.at < 60000) return c;
     if (pending[game]) return pending[game];
 
-    pending[game] = withTimeout(fetch(
+    /* AbortController：超时真正取消在途 fetch，pending 清理与取消对齐，
+       弱网下不再双倍发请求（审计 P3-2） */
+    const ctl = new AbortController();
+    const timer = setTimeout(function () { ctl.abort(); }, TIMEOUT);
+    pending[game] = fetch(
       ENDPOINT + '?game=' + encodeURIComponent(game) + '&limit=' + (limit || 50),
-      { headers: { Accept: 'application/json' } }
-    ), TIMEOUT)
+      { headers: { Accept: 'application/json' }, signal: ctl.signal }
+    )
       .then(function (res) {
         return res.json().then(function (data) {
           if (!res.ok || !data || !data.ok) {
@@ -59,7 +63,8 @@
       .catch(function (err) {
         return Object.assign({}, cache[game] || emptyCache(), { offline: true, error: err && err.message });
       })
-      .then(function (out) { pending[game] = null; return out; });
+      .then(function (out) { clearTimeout(timer); pending[game] = null; return out; },
+            function (e) { clearTimeout(timer); pending[game] = null; throw e; });
 
     return pending[game];
   }

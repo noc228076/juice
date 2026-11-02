@@ -302,9 +302,14 @@
     init: init,
     get: get,
     set: function (patch) {
+      /* 与 save() 同款清洗：去控制字符 + 截 16 + 头像白名单，不绕过校验（审计 P3-6） */
       const p = get();
-      if (patch && typeof patch.name === 'string') p.name = patch.name;
-      if (patch && patch.avatar) p.avatar = patch.avatar;
+      if (patch && typeof patch.name === 'string') {
+        p.name = Array.from(String(patch.name || '').replace(/[ -]/g, '').trim()).slice(0, 16).join('');
+      }
+      if (patch && patch.avatar) {
+        p.avatar = AVATARS.indexOf(patch.avatar) >= 0 ? patch.avatar : DEFAULTS.avatar;
+      }
       write(p);
       return p;
     },

@@ -260,7 +260,10 @@
     function mineHTML() {
       var runs = localRuns();
       if (!runs.length) return '<div class="lb-empty">还没有战绩，先来一局吧</div>';
-      return rowsHTML(runs, false);
+      /* 提交失败时用户停在「我的战绩」Tab 也要有反馈（审计 P3-3） */
+      var html = rowsHTML(runs, false);
+      if (error) html += '<div class="lb-err">' + esc(error) + '</div>';
+      return html;
     }
 
     function panelHTML() {

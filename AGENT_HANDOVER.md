@@ -773,6 +773,34 @@ curl -s "https://juice.noooc.dpdns.org/js/app.bundle.js?v=100" | grep -c "你的
 - 批次 B：弹幕墙画布引导文字固定浅色 #B9C4D6（画布恒深底，浅色主题下不再深底压暗字）、
   壁纸版权行 .daily-wp-meta 加深色投影
 
+### 全站审计轮（2026-11-02 深夜，v606-v611，R1-R4）
+4 个并行 agent 逐行审计（音乐 4229 行全读、vocab 全读、全站 UI/文案、TV 打磨）+ 双端视觉扫查。要点：
+
+**已修（均已上线验证）**
+- 音乐 P0：saveState 写未定义 STATE_KEY，歌单/收藏/音量自 08dc2ba 起静默失效 → e2e 验证恢复。
+- 音乐 P1/P2：取址等待期 resume 旧歌；歌词开关重建后失效；`/s+/g` 正则笔误；导入文案 4 平台实为 2；
+  沉浸页 0 进度手柄；触屏音量只能静音二值（静音键唤出滑条）；排行榜移动端纵向 mask 削 chips。
+- 全站：弹幕墙首屏失败与空墙不可区分（失败态+重试）；关于弹窗 15 关/11 款→16 章/12 款；
+  films-status 浅色底；nav 断点 768/767 统一；iOS 底部安全区；触屏热区外扩（顶栏 tab/
+  音乐控件/时钟/片单/弹幕墙/决策）；弹幕墙 mod-ac 主题块；Space 劫持按钮焦点；队列自动续播
+  不打断浏览；单条删除加确认；og/meta/关于弹窗/profile 文案。
+- TV（离线打磨，安全级）：Worker SSRF——safeFetch 逐跳复核重定向 + isPrivateHost 补整数 IP/
+  尾点/hex 变体/IPv6 方括号（7 变体全 403）；UPSTREAM_TIMEOUT 只管到响应头；HEAD 播放列表；
+  dead/staticOnly 按可用播放池判定（自定义源不再被拒播）；hlsLoading 失败复位；checkSource
+  跳过 master 播放列表 + 分片时长自适应窗口；token 单一所有权；URL 清洗（$LR•IPV4 junk 截断，
+  中文路径保留）；STATIC_BLACKLIST 合并单条正则 + lantian 漏标告警；verify-tv TV_SKIP_UI=1。
+- 背单词：导入放行 wrong-only 记录；saveStateNow(force)（switchBook/persistSession 不被
+  dirty 守卫吞掉）；标熟词不复活进补练轮；续局恢复 missSet；导入恢复 spell 开关；
+  拼写输入框补 Esc/空格；词书学完空态文案；TTS 缺失题面降级；vc-tab/speak/mini 触控 44px；
+  壁纸+触屏不露键盘提示。9 套 e2e 101 项全绿。
+
+**明确不修/待拍板**（避免后续重复排查）
+- 音乐 ~300 行死代码（本机文件/Audius 路径）与 music.css 前 716 行旧层：整块删除有回归风险，留专项。
+- 音乐 #16 队列 scrollIntoView 已改为「打开/点行时武装」启发式；若仍嫌打断可再收紧。
+- 弹幕墙/档案单条删除确认（已加）若嫌打断可改「撤销 toast」。
+- 全站断点 30+ 档收敛、模块编号重排、省略号/冒号风格统一：低价值高扰动，搁置。
+- 决策类：音乐死代码去留、TV 容量定稿（CF 出口 403 未解）、TV 重上线时机。
+
 ### CSS 生效链陷阱（2026-10-31）
 - css/style.css 是死文件（页面不引用、build-bundles.js 的 coreCssFiles 不含它），
   首屏实际样式是 css/base.css（minified 全量）。改 style.css 完全无效。

@@ -1407,14 +1407,11 @@
 
     const filename = `命运塔罗_${first.card.name}.png`;
 
-    // 1. 尝试触发自动下载（PC 端即时保存）
+    // 1. 尝试触发自动下载（统一通道：安卓壳/系统分享/PC 下载，审计 C-P0-1）
     try {
-      const a = document.createElement('a');
-      a.download = filename;
-      a.href = dataUrl;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      window.juiceExportCanvas(cv, filename, '命运塔罗画报').catch(function (dlErr) {
+        console.warn('Auto download triggered exception:', dlErr);
+      });
     } catch (dlErr) {
       console.warn('Auto download triggered exception:', dlErr);
     }

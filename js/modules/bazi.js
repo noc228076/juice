@@ -1289,15 +1289,13 @@
     ctx.font = '17px "MiSans", sans-serif';
     ctx.fillText('生辰八字命理馆 · 仅供文化娱乐参考 · 时来天地皆同力', 104, 1780);
 
-    // 导出并下载
-    const url = canvas.toDataURL('image/png');
-    const a = document.createElement('a');
-    a.href = url;
+    // 导出（统一通道：安卓壳/系统分享/下载，审计 C-P0-1）
     const wxChar = GAN_WUXING[res.dayGan] || '';
-    a.download = `生辰八字全景命书_${res.dayGan}${wxChar}_${res.solarStr.split(' ')[0]}.png`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    window.juiceExportCanvas(canvas,
+      `生辰八字全景命书_${res.dayGan}${wxChar}_${res.solarStr.split(' ')[0]}.png`,
+      '生辰八字全景命书').then(function (ok) {
+        if (!ok) alert('长按图片即可保存命书');
+      });
   }
 
   /* =========================================================

@@ -480,11 +480,9 @@
       ctx.textAlign = 'left';
       ctx.fillText(secText, secLogoImg ? (startSecX + 58) : startSecX, 1360);
 
-      // 下载图片
-      const a = document.createElement('a');
-      a.download = `奶茶人格_${res.b.name}.png`;
-      a.href = cv.toDataURL('image/png');
-      a.click();
+      // 导出（统一通道，审计 C-P0-1）
+      window.juiceExportCanvas(cv, `奶茶人格_${res.b.name}.png`, '奶茶人格报告')
+        .then(function (ok) { if (!ok) juiceNotice('长按图片即可保存报告'); });
     };
 
     const loadImgPromise = (src) => new Promise((resolve) => {

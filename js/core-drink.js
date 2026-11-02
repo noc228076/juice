@@ -5059,16 +5059,10 @@ const SFX = (function () {
     let cv;
     try {
       cv = drawShareCard();
-      const data = cv.toDataURL('image/png');
-      if (window.AndroidBridge && AndroidBridge.saveImage) {
-        AndroidBridge.saveImage(data);
-      } else {
-        const a = document.createElement('a');
-        a.href = data;
-        const pre = (curTest === 'sbti') ? `SBTI-${persona.code || code}-` : ((curTest !== 'drink') ? `MBTI-${code}-` : `Drink-${code}-`);
-        a.download = pre + persona.name + '.png';
-        a.click();
-      }
+      const pre = (curTest === 'sbti') ? `SBTI-${persona.code || code}-` : ((curTest !== 'drink') ? `MBTI-${code}-` : `Drink-${code}-`);
+      /* 统一导出通道：安卓壳 / Web Share / 下载（审计 C-P0-1） */
+      window.juiceExportCanvas(cv, pre + persona.name + '.png', '饮料人格报告')
+        .then(function (ok) { if (!ok) alert('长按图片即可保存报告'); });
     } catch (e) {
       /* 画布被跨域图污染时 toDataURL 抛 SecurityError；
          async 函数不接住就是 unhandled rejection，用户点了没任何反馈 */

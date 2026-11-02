@@ -435,10 +435,8 @@
     ctx.font = '20px sans-serif';
     ctx.fillText('职场玄学纯属娱乐 · 祝诸君带薪摸鱼、步步高升', 540, 1385);
 
-    const a = document.createElement('a');
-    a.download = `工位风水_${r.grade.label}.png`;
-    a.href = cv.toDataURL('image/png');
-    a.click();
+    window.juiceExportCanvas(cv, `工位风水_${r.grade.label}.png`, '工位风水报告')
+      .then(function (ok) { if (!ok) juiceNotice('长按图片即可保存报告'); });
   }
 
   function roundRect(ctx, x, y, w, h, r) {

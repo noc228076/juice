@@ -432,10 +432,9 @@
     ctx.font = '600 22px monospace';
     ctx.fillText(`祈愿方向：${record.catName}  |  心诚则灵 · 逢凶化吉`, 540, 1480);
 
-    const a = document.createElement('a');
-    a.download = `东方祈福灵签_${record.no}_${record.title}.png`;
-    a.href = cv.toDataURL('image/png');
-    a.click();
+    window.juiceExportCanvas(cv,
+      `东方祈福灵签_${record.no}_${record.title}.png`, '东方祈福灵签')
+      .then(function (ok) { if (!ok) juiceNotice('长按图片即可保存灵签'); });
   }
 
   function roundRect(ctx, x, y, w, h, r) {

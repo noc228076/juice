@@ -339,11 +339,8 @@
     if (rsave) rsave.onclick = function () {
       if (window.buildShareCard) {
         var card = window.buildShareCard(t, res, extra);
-        var href = (typeof card === 'string') ? card : card.toDataURL('image/png');
-        var a = document.createElement('a');
-        a.download = `自我说明书_${t.title}_${res.name}.png`;
-        a.href = href;
-        a.click();
+        window.juiceExportCanvas(card, `自我说明书_${t.title}_${res.name}.png`, '自我说明书报告')
+          .then(function (ok) { if (!ok) juiceNotice('长按图片即可保存报告'); });
       }
     };
   }
@@ -473,11 +470,8 @@
     if (rsave) rsave.onclick = function () {
       if (window.buildShareCard) {
         var card = window.buildShareCard(data.test, data.res, data.extra);
-        var href = (typeof card === 'string') ? card : card.toDataURL('image/png');
-        var a = document.createElement('a');
-        a.download = `自我说明书_${data.test.title}_${data.res.name}.png`;
-        a.href = href;
-        a.click();
+        window.juiceExportCanvas(card, `自我说明书_${data.test.title}_${data.res.name}.png`, '自我说明书报告')
+          .then(function (ok) { if (!ok) juiceNotice('长按图片即可保存报告'); });
       }
     };
   }

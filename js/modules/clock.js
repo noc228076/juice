@@ -1000,10 +1000,8 @@
     ctx.font = '22px monospace';
     ctx.fillText('饮料人格研究所 · 摸鱼发薪实时时钟', 540, 1460);
 
-    const a = document.createElement('a');
-    a.download = `摸鱼发薪战报_${Date.now()}.png`;
-    a.href = cv.toDataURL('image/png');
-    a.click();
+    window.juiceExportCanvas(cv, `摸鱼发薪战报_${Date.now()}.png`, '摸鱼发薪战报')
+      .then(function (ok) { if (!ok) juiceNotice('长按图片即可保存战报'); });
   }
 
   function roundRect(ctx, x, y, w, h, r) {

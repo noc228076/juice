@@ -1158,11 +1158,9 @@
       ctx.fillStyle = 'rgba(255,255,255,0.5)';
       ctx.fillText('饮料人格研究所 · 今日风向标灵感生成', 80, 1780);
 
-      // 导出下载
-      const a = document.createElement('a');
-      a.download = `每日锁屏壁纸_${dateKey(now)}.jpg`;   /* 本地时区（审计 C-P2-9） */
-      a.href = canvas.toDataURL('image/jpeg', 0.92);
-      a.click();
+      // 导出下载（统一通道，审计 C-P0-1）
+      window.juiceExportCanvas(canvas, `每日锁屏壁纸_${dateKey(now)}.png`, '今日锁屏壁纸')
+        .then(function (ok) { if (!ok) juiceNotice('长按图片即可保存壁纸'); });
     };
 
     img.onerror = () => {

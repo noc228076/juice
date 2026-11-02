@@ -910,11 +910,9 @@
     ctx.fillText('* DECISION-LAB-VERDICT *', barW / 2, barH + 25);
     ctx.restore();
 
-    // 导出并下载
-    const a = document.createElement('a');
-    a.download = `纠结终结所_终局裁定_${record.caseNo || Date.now()}.png`;
-    a.href = cv.toDataURL('image/png');
-    a.click();
+    // 导出（统一通道，审计 C-P0-1）
+    window.juiceExportCanvas(cv, `纠结终结所_终局裁定_${record.caseNo || Date.now()}.png`, '终局裁定单')
+      .then(function (ok) { if (!ok) juiceNotice('长按图片即可保存裁定单'); });
   }
 
   function drawDashLine(ctx, x1, y1, x2, y2, isDark) {

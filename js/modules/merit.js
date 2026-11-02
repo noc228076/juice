@@ -694,10 +694,8 @@
     ctx.font = '22px monospace';
     ctx.fillText('饮料人格研究所 · 静心功德局', 540, 1485);
 
-    const a = document.createElement('a');
-    a.download = `静心功德凭证_${Date.now()}.png`;
-    a.href = cv.toDataURL('image/png');
-    a.click();
+    window.juiceExportCanvas(cv, `静心功德凭证_${Date.now()}.png`, '静心功德凭证')
+      .then(function (ok) { if (!ok) juiceNotice('长按图片即可保存凭证'); });
   }
 
   function roundRect(ctx, x, y, w, h, r) {

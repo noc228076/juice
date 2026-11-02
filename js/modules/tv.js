@@ -14,11 +14,17 @@
     try { override = localStorage.getItem('tvApiBase') || ''; } catch (e) { /* 隐私模式 */ }
     var base = override || (local
       ? 'http://127.0.0.1:8787'
-      : 'https://juice-tv-proxy.2280762725.workers.dev');
+      : '/api/tv');
     return String(base).replace(/\/+$/, '');
   }
 
   var TV_API = resolveApi();
+  /* 线上走 Vercel 同源 /api/tv?path=…（避免浏览器直连 workers.dev）；
+     本地 dev 直接走 Worker 的 /playlist 等路径。 */
+  function tvApi(path) {
+    if (TV_API.indexOf('/api/tv') >= 0) return TV_API + '?path=' + encodeURIComponent(path);
+    return TV_API + path;
+  }
   var HLS_SRC = 'js/vendor/hls.min.js';
   var LS = {
     customFeeds: 'iptvweb.customFeeds',
@@ -180,8 +186,8 @@
 
   function fetchFeed(f) {
     var ep = f.local
-      ? TV_API + '/playlist?local=' + encodeURIComponent(f.local)
-      : TV_API + '/playlist?url=' + encodeURIComponent(f.url);
+      ? tvApi('/playlist?local=' + encodeURIComponent(f.local))
+      : tvApi('/playlist?url=' + encodeURIComponent(f.url));
     return fetch(ep, { cache: 'no-store' }).then(function (r) {
       return r.json().catch(function () { return {}; }).then(function (d) {
         if (!r.ok || d.error) throw new Error(d.error || ('HTTP ' + r.status));
@@ -192,7 +198,7 @@
 
   function checkProxy() {
     if (!TV_API) return Promise.resolve(false);
-    return fetch(TV_API + '/ping', { cache: 'no-store' }).then(function (r) {
+    return fetch(tvApi('/ping'), { cache: 'no-store' }).then(function (r) {
       if (!r.ok) return false;
       return r.json().then(function (d) { return !!d.ok; });
     }).catch(function () { return false; });
@@ -469,8 +475,9 @@
 
   /* ---------- 播放核心 ---------- */
   function proxied(url) {
+    if (url.indexOf('/api/tv?path=') === 0) return url;
     if (TV_API && url.indexOf(TV_API + '/') === 0) return url;
-    return TV_API + '/proxy?url=' + encodeURIComponent(url);
+    return tvApi('/proxy?url=' + encodeURIComponent(url));
   }
   function candidatePool(cur) {
     var pool = [];
@@ -546,9 +553,7 @@
   }
   function failAll(text) {
     setStatus(text, true);
-    var hint = /workers\.dev/.test(TV_API)
-      ? '当前为 Cloudflare 代理，央视源可能被源站 403。'
-      : '';
+    var hint = '当前代理出口无法播放该频道（源站可能封锁云端 IP）。';
     mask(text + '。' + hint, true, false, false);
   }
   function startPlayback(url) {

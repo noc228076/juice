@@ -148,8 +148,8 @@ npm run build
 
 | 文件 | 字段 | 当前值 | 谁改 |
 |---|---|---|---|
-| `sw.js` | `CACHE_NAME` | `juice-persona-v600` | **自动**（源码指纹变化时 +1） |
-| `index.html` | `?v=` 查询参数（核心 CSS / 主 JS） | `600` | `npm run build` 自动同步 |
+| `sw.js` | `CACHE_NAME` | `juice-persona-v601` | **自动**（源码指纹变化时 +1） |
+| `index.html` | `?v=` 查询参数（核心 CSS / 主 JS） | `601` | `npm run build` 自动同步 |
 | `router.js` | 按需 CSS / JS chunk URL | 从主包注入 | 读取 `window.__APP_VERSION__` |
 
 首屏只引用 `css/core.bundle.css`（`base + nav + history`）；
@@ -158,8 +158,11 @@ npm run build
 ### 📺 电视直播（`#/tv`）
 
 播放器是 juice **原生模块**（`js/modules/tv.js` + `css/modules/tv.css`），不是 iframe；
-hls.js 在首次点播时按需加载 `js/vendor/hls.min.js`。`tv-worker/` 是 Cloudflare Worker
-HLS 代理（解决 https 页面播 http 源的 mixed content / CORS）。真实频道地址只存在 Worker 里，
+hls.js 在首次点播时按需加载 `js/vendor/hls.min.js`。
+
+链路：浏览器 → `/api/tv`（Vercel 同源函数）→ Cloudflare Worker → 上游源。
+`api/tv.js` 负责流式转发，避免国内浏览器直连 `workers.dev` 被墙/DNS 污染；Worker 通过
+`X-TV-Public-Base` 返回 `/api/tv?path=…` 形式的分片地址。真实频道地址只存在 Worker 里，
 客户端拿到的是不透明 `/media?cid=…&i=…` 地址。
 
 ```bash
@@ -171,11 +174,15 @@ npx wrangler login  # 首次
 npm run tv:deploy   # 生成数据并部署 Worker
 ```
 
-线上 Worker 地址写在 `js/modules/tv.js` 的 `TV_API` 默认值里；也可以在控制台
-`localStorage.setItem('tvApiBase', 'https://…')` 临时覆盖。详见
+线上 `TV_API` 默认是同源 `/api/tv`；Worker 地址写在 `api/tv.js` 的 `WORKER` 常量。
+需要直连 Worker 时可在控制台 `localStorage.setItem('tvApiBase', 'https://…workers.dev')`
+临时覆盖。详见
 `tv-worker/wrangler.toml` 与 `scripts/tv-src/README.md`。Worker 免费版
 10 万请求/天，适合个人低频使用；没有中国大陆节点，`workers.dev` 在国内可能不稳，
 可换自定义域名或把 `tv-worker/dev-server.mjs` 跑在 VPS/NAS 上，只改 `TV_API`。
+
+> **Vercel 转发成本**：`/api/tv` 是流式 Node 函数，电视流量会经过 Vercel（Hobby 100GB/月）。
+> 个人低频没问题；长期大流量建议把 `TV_API` 直接指向自定义域名/VPS 代理，绕过这一跳。
 
 > **Cloudflare 出口限制（2026-11-02 实测）**：源站会按出口 IP 封锁 Cloudflare 数据中心段。
 > 83 个频道中首候选可播约 30 个，CCTV-1 的 13 条候选全部 403，CCTV-2~17 也大多不可用；
@@ -195,7 +202,8 @@ juice/
 ├── server.js               # 零依赖本地服务器（含 api/ 模拟）
 ├── build-bundles.js        # 打包脚本
 ├── api/
-│   └── leaderboard.js      # 全服排行榜 Serverless 函数（25 个 game key，见下文）
+│   ├── leaderboard.js      # 全服排行榜 Serverless 函数（25 个 game key，见下文）
+│   └── tv.js               # 电视直播同源转发 → Cloudflare Worker（流式）
 ├── tv-worker/              # Cloudflare Worker HLS 代理
 │   ├── src/core.js          # /playlist /media /proxy + m3u8 重写
 │   ├── src/index.js         # Worker 入口

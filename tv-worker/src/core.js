@@ -71,6 +71,21 @@ function withCors(headers, request) {
   return Object.assign({}, headers, corsHeaders(request));
 }
 
+/* 生成客户端可访问的 URL。
+   - 直连 Worker：用 Worker 自己的 origin
+   - 经 Vercel /api/tv 转发：函数会带 X-TV-Public-Base=/api/tv?path=
+     让 Worker 返回相对的同源代理地址，浏览器不再需要访问 workers.dev */
+function publicBase(request, env) {
+  return (env && env.PUBLIC_BASE) ||
+    request.headers.get('X-TV-Public-Base') ||
+    new URL(request.url).origin;
+}
+function publicUrl(request, env, path) {
+  const base = publicBase(request, env);
+  if (base.slice(-5) === 'path=') return base + encodeURIComponent(path);
+  return base.replace(/\/$/, '') + path;
+}
+
 function json(obj, status, request, env) {
   return new Response(JSON.stringify(obj), {
     status: status || 200,
@@ -198,12 +213,11 @@ async function readTextLimited(resp, max) {
 }
 
 /* ---------- 播放列表重写 ---------- */
-function rewritePlaylist(body, baseUrl, requestUrl) {
-  const origin = new URL(requestUrl).origin;
+function rewritePlaylist(body, baseUrl, request, env) {
   const toProxy = (u) => {
     let abs;
     try { abs = new URL(u, baseUrl).href; } catch (e) { abs = u; }
-    return origin + '/proxy?url=' + encodeURIComponent(abs);
+    return publicUrl(request, env, '/proxy?url=' + encodeURIComponent(abs));
   };
   return String(body).split(/\r?\n/).map((raw) => {
     const line = raw.trim();
@@ -262,7 +276,7 @@ async function proxyUpstream(request, target, env) {
       return json({ error: 'playlist read failed' }, 502, request, env);
     }
     if (body.trimStart().startsWith('#EXTM3U')) {
-      const out = rewritePlaylist(body, finalUrl, request.url);
+      const out = rewritePlaylist(body, finalUrl, request, env);
       return new Response(out, {
         status: 200,
         headers: withCors({
@@ -297,7 +311,7 @@ async function proxyUpstream(request, target, env) {
       } catch (e) {
         return json({ error: 'playlist read failed' }, 502, request, env);
       }
-      const out = rewritePlaylist(body, finalUrl, request.url);
+      const out = rewritePlaylist(body, finalUrl, request, env);
       return new Response(out, {
         status: 200,
         headers: withCors({
@@ -341,12 +355,11 @@ async function handlePlaylist(request, url, env) {
     if (!/^[a-z0-9_-]+$/i.test(local)) return json({ error: 'bad local' }, 400, request, env);
     const list = ENTRY.filter((e) => e.s === local);
     if (!list.length) return json({ error: 'local list not found: ' + local }, 404, request, env);
-    const origin = new URL(request.url).origin;
     const channels = list.map((e) => ({
       name: e.n,
       group: e.g,
       logo: e.l,
-      url: origin + '/media?cid=' + encodeURIComponent(e.c) + '&i=' + e.i,
+      url: publicUrl(request, env, '/media?cid=' + encodeURIComponent(e.c) + '&i=' + e.i),
     }));
     return json({ url: 'local:' + local, count: channels.length, channels }, 200, request, env);
   }
@@ -374,12 +387,11 @@ async function handlePlaylist(request, url, env) {
     return json({ error: 'playlist too large' }, 413, request, env);
   }
   const parsed = parseM3U(body, resp.url || u.href);
-  const origin = new URL(request.url).origin;
   const channels = parsed.map((ch) => ({
     name: ch.name,
     group: ch.group,
     logo: ch.logo,
-    url: origin + '/proxy?url=' + encodeURIComponent(ch.url),
+    url: publicUrl(request, env, '/proxy?url=' + encodeURIComponent(ch.url)),
   }));
   return json({ url: resp.url || u.href, count: channels.length, channels }, 200, request, env);
 }

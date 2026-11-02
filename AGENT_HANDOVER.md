@@ -786,17 +786,19 @@ curl -s "https://juice.noooc.dpdns.org/js/app.bundle.js?v=100" | grep -c "你的
 - 五处子导航按钮在 index.html 静态骨架里（clock/merit/films/scratch/wall 各一份），
   改子导航清单要五处同步；router 的 [data-sub-jump] 高亮按 modKey 自动匹配，无需注册表。
 
-### 电视直播（#/tv，v600）
+### 电视直播（#/tv，v601）
 旧 TV 模块（v208）因源站 H.264 SPS 不合规、原生与 MSE 都绿屏，已在 `e8e7557` 整体回滚。
-v600 不复用旧播放器：功能移植自 `iptv-web`，**UI 完全重写为 juice 原生风格**（不再用 iframe）。
+v600 起不复用旧播放器：功能移植自 `iptv-web`，**UI 完全重写为 juice 原生风格**（不再用 iframe）。
 
 ```
 juice 静态 (Vercel)
   #/tv → #mod-tv（原生 DOM：播放器卡 + 频道侧栏）
-        js/modules/tv.js → Cloudflare Worker (tv-worker/)
-          /playlist  内置频道表（只给 /media?cid&i 不透明地址）
-          /media     按 cid/i 取真实地址，m3u8 重写为 /proxy
-          /proxy     HLS 分片流式透传（http 上游 / Range / 206）
+        js/modules/tv.js
+          → /api/tv（Vercel 同源流式转发，解决 workers.dev 被墙）
+            → Cloudflare Worker (tv-worker/)
+               /playlist  内置频道表（只给 /media?cid&i 不透明地址）
+               /media     按 cid/i 取真实地址，m3u8 重写为 /proxy
+               /proxy     HLS 分片流式透传（http 上游 / Range / 206）
 ```
 
 - 原生模块：`js/modules/tv.js` + `css/modules/tv.css`；`#mod-tv` 静态骨架在 `index.html`。
@@ -816,8 +818,15 @@ juice 静态 (Vercel)
   （其中 2 条 TVU 测试卡被黑名单剔除，实际 192）。
 - 本地：`npm run tv:dev`（127.0.0.1:8787）+ `node server.js`（3456），打开 `#/tv`。
   `scripts/verify-tv.js` 覆盖 API、83 频道、CCTV-1 1080p 真播、非全绿、离开暂停、手机布局。
-- 线上：Worker 地址写在 `js/modules/tv.js` 的 `TV_API` 默认值（可用
-  `localStorage.tvApiBase` 覆盖）；`npx wrangler login` → `npm run tv:deploy` → `npm run build` → 推 Vercel。
+- 线上：`TV_API` 默认 `/api/tv`；`api/tv.js` 的 `WORKER` 常量指向
+  `https://juice-tv-proxy.2280762725.workers.dev`。`localStorage.tvApiBase` 可临时直连 Worker。
+  `npx wrangler login` → `npm run tv:deploy` → `npm run build` → 推 Vercel。
+- **/api/tv 同源转发（v601）**：浏览器只访问 juice 域名，Vercel Node 函数 `api/tv.js`
+  用 `Readable.fromWeb` 流式转发到 Worker，转发 `Range`/`If-Range`；只允许
+  `/ping|/playlist|/media|/proxy` 四个 path。函数设置 `Origin: https://juice.noooc.dpdns.org`
+  和 `X-TV-Public-Base: /api/tv?path=`，Worker 的 `publicUrl()` 据此把频道/分片地址生成为
+  同源 `/api/tv?path=…`，因此国内浏览器不需要直连 `workers.dev`。
+  代价：电视流量经过 Vercel（Hobby 100GB/月），长期大流量应把 `TV_API` 指向自定义域名/VPS。
 - Worker 关键约束：免费版 10 万请求/天、10ms CPU、无大陆节点；源大量用 82/85/8181
   端口，`wrangler.toml` 必须带 `compatibility_flags = ["allow_custom_ports"]`；
   Cloudflare 对 IP 字面量/非标端口的 fetch 行为要部署后实测。
@@ -827,12 +836,12 @@ juice 静态 (Vercel)
 - `api/proxy.js` 是音乐模块的音频代理（8MB / 10s / 80-443），**不要**拿它当 HLS 代理。
 - PWA `manifest.json` 仍是 `orientation: "portrait"`；电视全屏横屏在安装版 PWA 里可能受限，
   需要真机确认，未改。
-- **Cloudflare 出口实测（2026-11-02，v600）**：Worker 已部署到
+- **Cloudflare 出口实测（2026-11-02，v601）**：Worker 已部署到
   `https://juice-tv-proxy.2280762725.workers.dev`。83 个频道各取首候选探活：
   **30 个 200 / 53 个非 200**；CCTV-1 的 13 条候选全部 `upstream 403`，
   CCTV-2~17 也基本全 403；CCTV-13、浙江卫视、部分卫视/少儿/CGTN 可播。
   原因是源站按出口 IP 封锁 Cloudflare 数据中心段（同一地址本地住宅 IP 可播）。
-  `js/modules/tv.js` 的 `TV_API` 可切到家庭/VPS 上的 `tv-worker/dev-server.mjs`；
+  `TV_API` 可切到家庭/VPS 上的 `tv-worker/dev-server.mjs`；
   要全量 CCTV，需要隧道/VPS，不能只靠 Worker。
 
 

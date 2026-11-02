@@ -118,7 +118,7 @@ function cleanUpstreamUrl(line) {
 function isPrivateHostLike(hostname) {
   var h = String(hostname || '').toLowerCase().replace(/^\[+|\]+$/g, '').replace(/\.+$/, '');
   if (!h) return true;
-  if (h === 'localhost' || /\.(local|internal)$/.test(h) || /^\d+$/.test(h) || h.includes('0x')) return true;
+  if (h === 'localhost' || /\.(local|internal)$/.test(h) || /^\d+$/.test(h) || /^(0x[0-9a-f]+)(\.(0x[0-9a-f]+|\d+))+$/.test(h) || /^0x[0-9a-f]+$/.test(h)) return true;
   if (/^127\.|^10\.|^192\.168\.|^172\.(1[6-9]|2\d|3[01])\./.test(h)) return true;
   return false;
 }

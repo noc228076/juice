@@ -1524,13 +1524,14 @@
 
     var pendingFinish = false;
     var finishedShown = false;
-    function finish() {
-      finishedShown = true;
-    
+    /* 结算：停表 + 榜单提交 + 安排结果屏（审计 M-P2-9：延时被 pause 吃掉时 repaint 补发）。
+       R9 修复：R5 的编辑误把本函数改名成 finish，与证书版 finish 重名互相遮蔽、
+       丢 stopTimer，导致每局结束 ReferenceError、成绩不提交（复查 P0） */
+    function settle() {
+      stopTimer();
       if (won && window.SFX && window.SFX.win) window.SFX.win();
       else if (window.SFX && window.SFX.wrong) window.SFX.wrong();
 
-      finishedShown = true;
       if (won) {
         // 用时下限 1 秒：服务端也是这个下限，否则秒通关会被判成不合法成绩
         var sec = Math.max(1, elapsed);
@@ -1543,8 +1544,7 @@
       }
       paint();
 
-      // 给玩家看一眼完整的雷区再结算
-      /* 挂起的结算若被 pause() 的 clearTimers 吃掉，repaint 时补发（审计 M-P2-9） */
+      // 给玩家看一眼完整的雷区再出结果屏
       pendingFinish = true;
       later(function () {
         pendingFinish = false;
@@ -1555,6 +1555,7 @@
     /* ---------------- 结算 ---------------- */
 
     function finish() {
+      finishedShown = true;
       var certs = window.SM_DATA.minesweeper.certs;
       var cert = certs[certs.length - 1];
       if (won) {

@@ -615,7 +615,7 @@ html.cover-ready #bootSkeleton {
 }
 
 /* 移动端媒体查询 (宽度小于 768px) */
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   #global-header {
     padding-left: 8px;
     padding-right: 8px;
@@ -1150,7 +1150,7 @@ html[data-theme="light"] .subnav-pill-btn.active[data-sub-jump="scratch"] {
 }
 .gp-btn.primary:hover { filter: brightness(1.06); }
 
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   .global-btn-profile {
     width: 30px;
     height: 30px;

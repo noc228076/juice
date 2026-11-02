@@ -1257,9 +1257,9 @@ html[data-theme="light"] .dice-live-banner {
   z-index: 10;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
-/* 审计 P2-7：小票弹窗唯一关闭钮热区外扩 */
+/* 审计 P2-7：小票弹窗唯一关闭钮热区外扩。
+   复查 P2-4：absolute 本身就是 ::before 的包含块，覆写 relative 反而让它掉出角落 */
 @media (hover: none) {
-  .dec-receipt-close { position: relative; }
   .dec-receipt-close::before { content: ''; position: absolute; inset: -6px; }
 }
 

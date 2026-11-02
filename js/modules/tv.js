@@ -616,7 +616,8 @@
             }
             return;
           }
-          if (ts && drift < -3600 * 1000) return;   // 源时钟明显偏未来：不据此判静态
+          /* 源时钟明显偏未来：不据此判静态，但下方签名检测继续（复查 P3-2） */
+          if (ts && drift < -3600 * 1000) dm = null;
         }
         var segM = t1.match(/#EXTINF:\s*(\d+(?:\.\d+)?)/i);
         var win = Math.max(12000, segM ? Math.ceil(parseFloat(segM[1]) * 1000 * 1.5) : 12000);

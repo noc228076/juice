@@ -80,8 +80,25 @@ window.juiceExportCanvas = function (cvOrUrl, filename, title) {
       return true;
     } catch (e) { return false; }
   }
+  function shareFile(blob) {
+    try {
+      var file = new File([blob], filename, { type: blob.type || 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })) {
+        return navigator.share({ files: [file], title: title })
+          .then(function () { return true; })
+          .catch(function () { return downloadFallback(); });
+      }
+    } catch (e) { /* 不支持文件分享 */ }
+    return null;
+  }
+  /* dataURL 入口也要先试安卓壳（复查 P2-1：此前 shareFile 未定义 + 漏 AndroidBridge） */
   if (dataUrl) {
-    /* dataURL 入口：转 blob 后仍优先系统分享 */
+    try {
+      if (window.AndroidBridge && typeof window.AndroidBridge.saveImage === 'function') {
+        window.AndroidBridge.saveImage(dataUrl);
+        return Promise.resolve(true);
+      }
+    } catch (e) { /* 非 App 壳环境 */ }
     try {
       var bin = atob(dataUrl.split(',')[1] || '');
       var buf = new Uint8Array(bin.length);
@@ -98,17 +115,6 @@ window.juiceExportCanvas = function (cvOrUrl, filename, title) {
       return Promise.resolve(true);
     }
   } catch (e) { /* 非 App 壳环境 */ }
-  var shareFile = function (blob) {
-    try {
-      var file = new File([blob], filename, { type: blob.type || 'image/png' });
-      if (navigator.canShare && navigator.canShare({ files: [file] })) {
-        return navigator.share({ files: [file], title: title })
-          .then(function () { return true; })
-          .catch(function () { return downloadFallback(); });
-      }
-    } catch (e) { /* 不支持文件分享 */ }
-    return null;
-  };
   if (cv.toBlob && navigator.share) {
     return new Promise(function (resolve) {
       try {

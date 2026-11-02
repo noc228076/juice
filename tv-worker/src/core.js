@@ -113,7 +113,8 @@ function isPrivateHost(hostname) {
   }
   // 整数形式 IP（http://2130706433 = 127.0.0.1）与十六进制变体一律拒绝：
   // 这些写法 URL.hostname 原样保留，实际解析却是回环/私网
-  if (/^\d+$/.test(h) || h.includes('0x')) return true;
+  /* 只拦 hex-IP 写法（0x7f.0.0.1 / 0x7f000001）；含 0x 的正常域名不误杀（复查 P2-3） */
+  if (/^\d+$/.test(h) || /^(0x[0-9a-f]+)(\.(0x[0-9a-f]+|\d+))+$/.test(h) || /^0x[0-9a-f]+$/.test(h)) return true;
   // IPv6 字面量（URL.hostname 不带方括号）
   if (h.includes(':')) {
     if (h === '::1' || h === '::' || h.startsWith('fc') || h.startsWith('fd') ||
@@ -175,6 +176,10 @@ async function safeFetch(rawUrl, init, maxHops) {
   for (let hop = 0; hop <= hops; hop++) {
     const u = parseTarget(current);
     if (!u) throw new Error('disallowed upstream url: ' + current);
+    /* 每跳重置头超时预算，多跳链不缩水（复查 P3-7） */
+    if (init && init.signal) {
+      try { init.signal.throwIfAborted(); } catch (e) { throw e; }
+    }
     const resp = await fetch(u.href, Object.assign({}, init, { redirect: 'manual' }));
     if (resp.status >= 300 && resp.status < 400) {
       const loc = resp.headers.get('Location');

@@ -752,6 +752,7 @@
     } catch (e) { /* 走下面的种子兜底 */ }
 
     if (my !== movieLoadToken) return;   // 用户已切到别的分类，丢弃旧结果
+    if (list && list.length) addMoviesToPool(list);   // 盲盒候选池扩容（真实海报/评分）
     if (!list || !list.length) {
       const seeds = MOVIE_SEEDS[type] || MOVIE_SEEDS.weekly_movie;
       list = seeds.map(normalizeMovieSeed);
@@ -784,25 +785,85 @@
     );
   }
 
+  /* 盲盒候选池：每个心情先放一部固定经典，影视风向拉到豆瓣实时榜后
+     并入真实影片（真实海报/评分），这样「随机换一部」不再是 5 选 1 循环 */
+  let moodPool = [];
+  let moodCurrentTitle = '';
+
+  function seedMoodPool() {
+    try { moodCurrentTitle = localStorage.getItem('juice_mood_last') || ''; } catch (e) {}
+    moodPool = Object.keys(MOOD_DATA).map(function (k) {
+      const m = MOOD_DATA[k];
+      return {
+        title: m.title, score: m.score, desc: m.desc, drink: m.drink,
+        cover: m.cover, moodKey: k
+      };
+    });
+  }
+
+  function addMoviesToPool(list) {
+    if (!Array.isArray(list) || !list.length) return;
+    const seen = {};
+    moodPool.forEach(function (x) { seen[x.title] = 1; });
+    list.forEach(function (m) {
+      if (!m || !m.title || seen[m.title]) return;
+      seen[m.title] = 1;
+      moodPool.push({
+        title: m.title,
+        score: m.rating || null,
+        desc: m.description || m.card_subtitle || '豆瓣高口碑之作',
+        drink: '',
+        cover: m.cover_proxy || m.cover || '',
+        moodKey: ''
+      });
+    });
+  }
+
+  /* 从候选池随机取一部；exclude 用于保证「换一部」真的换 */
+  function pickRandomMovie(excludeTitle) {
+    if (!moodPool.length) seedMoodPool();
+    let pool = moodPool;
+    if (pool.length > 1 && excludeTitle) {
+      pool = pool.filter(function (x) { return x.title !== excludeTitle; });
+    }
+    return pool[Math.floor(Math.random() * pool.length)] || moodPool[0];
+  }
+
   function pickMoodMovie(moodKey) {
-    const data = MOOD_DATA[moodKey] || MOOD_DATA.laugh;
     const resEl = document.getElementById('dlMoodResult');
     if (!resEl) return;
+    if (!moodPool.length) seedMoodPool();
 
+    /* 指定心情：优先该心情的候选（经典 + 池内同心情项）；
+       无心情（总随机）：排除当前片，保证换片 */
+    let item;
+    if (moodKey) {
+      const sameMood = moodPool.filter(function (x) { return x.moodKey === moodKey; });
+      item = sameMood[Math.floor(Math.random() * sameMood.length)] || pickRandomMovie();
+    } else {
+      item = pickRandomMovie(moodCurrentTitle);
+    }
+    moodCurrentTitle = item.title;
+
+    const scoreHtml = item.score ? `★ ${item.score}` : '豆瓣高分';
+    const drinkHtml = item.drink
+      ? `<div class="daily-mood-res-drink">${esc(item.drink)}</div>`
+      : '';
     resEl.innerHTML = `
-      <img class="daily-mood-res-img" src="${esc(posterSrc(data.cover))}" alt="${esc(data.title)}" loading="lazy" onerror="this.src='${LOCAL_POSTER}'" />
+      <img class="daily-mood-res-img" src="${esc(posterSrc(item.cover))}" alt="${esc(item.title)}" loading="lazy" onerror="this.onerror=null;this.src='${LOCAL_POSTER}'" />
       <div class="daily-mood-res-info">
-        <div class="daily-mood-res-title">${esc(data.title)}</div>
-        <div class="daily-mood-res-score">★ ${data.score} 豆瓣高分经典</div>
-        <div class="daily-mood-res-drink">${esc(data.drink)}</div>
-        <div class="daily-mood-res-desc">${esc(data.desc)}</div>
+        <div class="daily-mood-res-title">${esc(item.title)}</div>
+        <div class="daily-mood-res-score">${scoreHtml} 豆瓣高分经典</div>
+        ${drinkHtml}
+        <div class="daily-mood-res-desc">${esc(item.desc)}</div>
       </div>
     `;
 
     document.querySelectorAll('.daily-mood-btn').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.mood === moodKey);
+      btn.classList.toggle('active', !!moodKey && btn.dataset.mood === moodKey);
     });
 
+    try { localStorage.setItem('juice_mood_last', item.title); } catch (e) {}
     if (window.SFX && window.SFX.tap) window.SFX.tap();
   }
 
@@ -1210,9 +1271,7 @@
     const diceBtn = document.getElementById('dlBtnRandomMood');
     if (diceBtn) {
       diceBtn.onclick = () => {
-        const keys = Object.keys(MOOD_DATA);
-        const randomKey = keys[Math.floor(Math.random() * keys.length)];
-        pickMoodMovie(randomKey);
+        pickMoodMovie();   // 跨全池随机，内部保证与当前片不同
       };
     }
   }
@@ -1252,6 +1311,7 @@
   }
 
   function init() {
+    seedMoodPool();
     const root = document.getElementById('mod-daily');
     if (!root) return;
 
@@ -1262,7 +1322,7 @@
     loadHotList('weibo');
     loadMovieList('weekly_movie');
     loadBingWallpaper();
-    pickMoodMovie('laugh');
+    pickMoodMovie();   // 总随机：每次进入不再是同一部
   }
 
   // 顶栏一键关闭全站壁纸背景。

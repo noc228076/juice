@@ -25,6 +25,21 @@ module.exports = async function handler(req, res) {
     return;
   }
 
+  // 同源转发只服务本站页面；浏览器跨站调用会带 Origin/Referer，直接拒绝。
+  // 无 Origin/Referer 的 GET 仍允许（命令行探活/部分媒体请求）。
+  const ref = req.headers.origin || req.headers.referer || '';
+  if (ref) {
+    let host = '';
+    try { host = new URL(ref).hostname; } catch (e) { host = ''; }
+    const okHost = host === 'juice.noooc.dpdns.org' ||
+      host === 'localhost' || host === '127.0.0.1' ||
+      /\.vercel\.app$/.test(host);
+    if (!okHost) {
+      res.status(403).json({ error: 'origin not allowed' });
+      return;
+    }
+  }
+
   let path = '';
   try {
     path = (req.query && req.query.path) ||

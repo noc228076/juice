@@ -297,6 +297,32 @@
   text-align: center;
 }
 
+/* 首屏拉取失败态（审计 P1-2）：与空墙区分，给重试入口 */
+.wl-fetch-err {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 24px 14px;
+  color: var(--tx-dim);
+  background: var(--card);
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+}
+.wl-fetch-err .wl-retry {
+  min-height: 40px;
+  padding: 0 22px;
+  border: 1px solid var(--mod-ac, #4dabf7);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--mod-ac, #4dabf7);
+  font-size: 13px;
+  cursor: pointer;
+}
+.wl-fetch-err .wl-retry:hover {
+  background: color-mix(in srgb, var(--mod-ac, #4dabf7) 14%, transparent);
+}
+
 @media (max-width: 480px) {
   .wl-stage {
     height: 260px;

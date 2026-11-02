@@ -59,7 +59,7 @@
     clearTimeout(saveStateTimer);
     saveStateTimer = setTimeout(function () {
       try {
-        localStorage.setItem(STATE_KEY, JSON.stringify(state));
+        localStorage.setItem(LS_KEY, JSON.stringify(state));
       } catch (e) {}
     }, 300);
   }
@@ -320,14 +320,9 @@
       // 两次都通过 cur===pending 的身份校验，后返回的那个会把刚播起来的
       // 歌重新 a.src 赋一遍（从头重播）。这里直接挡掉。
       if (cur.loading) {
-        if (wantPlay) {
-          var aa = ensureAudio();
-          if (aa.paused && aa.getAttribute('src')) {
-            try { aa.play().catch(function () {}); } catch (e) {}
-          } else {
-            toast('正在获取播放地址，稍候…');
-          }
-        }
+        // 取址期间不恢复旧歌音频：此时 audio.src 还是上一首，直接 play()
+        // 会「播放条写着 B、耳朵里是 A」。只提示，等新地址落地。
+        if (wantPlay) toast('正在获取播放地址，稍候…');
         return;
       }
       var pending = cur;
@@ -336,6 +331,8 @@
       // 播放条上写着 B，耳朵里是 A。
       var prevAudio = ensureAudio();
       if (!prevAudio.paused) { try { prevAudio.pause(); } catch (e) {} }
+      // src 一并清掉：否则取址等待期间点播放键，togglePlay 会把旧歌 resume 回来
+      try { prevAudio.removeAttribute('src'); prevAudio.load(); } catch (e) {}
       cur.loading = true;
       syncPlayUI(false);        // 旧歌已停，按钮要立刻回到「播放」态
       updateMediaSession();
@@ -619,8 +616,14 @@
     }
     var pn = progressNodesGet();
     var bars = pn.bars;
-    var barsParent0 = bars[0] && bars[0].closest('.mu-bar');
-    if (barsParent0) barsParent0.classList.toggle('p0', p <= 0);
+    var seen = [];
+    for (var b = 0; b < bars.length; b++) {
+      var bar = bars[b].closest('.mu-bar');
+      if (bar && seen.indexOf(bar) < 0) {
+        seen.push(bar);
+        bar.classList.toggle('p0', p <= 0);   // 0 进度隐藏手柄：主条与沉浸页都要生效
+      }
+    }
     for (var i = 0; i < bars.length; i++) bars[i].style.width = (p * 100).toFixed(2) + '%';
     var times = pn.cur;
     for (var j = 0; j < times.length; j++) times[j].textContent = fmtTime(t);
@@ -700,7 +703,7 @@
   var lastBarLyric = '';
   function updateBarLyric(t) {
     var line = document.getElementById('muBarLyric');
-    if (!line) return;
+    if (!line || !showLyric) return;   // 歌词已隐藏：不写文案，防止重建后复活
     var parsed = currentLyric && currentLyric.parsed;
     if (!parsed || !parsed.length) {
       if (lastBarLyric) { line.textContent = ''; lastBarLyric = ''; }
@@ -1651,7 +1654,7 @@
         '<button class="mu-op" id="muNext" title="下一首">' + icon('SkipForward') + '</button>' +
       '</div>' +
       // 中列右侧：歌词，占用播放键与右侧控件之间的大片空白
-      '<div class="mu-player-lyric" id="muBarLyric"></div>' +
+      '<div class="mu-player-lyric" id="muBarLyric"' + (showLyric ? '' : ' style="display:none"') + '></div>' +
       // 时间：当前 / 总时长，贴在右侧控件左边
       '<div class="mu-player-time">' +
         '<span class="mu-pt-cur" id="muPtCur">0:00</span>' +
@@ -3106,7 +3109,7 @@
       if (key !== lyricTrackKey) return;
       // LRC 首行常是「歌名 - 歌手」标题元数据（非歌词）：与当前曲目匹配则滤掉
       if (res && res.parsed && res.parsed.length > 1) {
-        var head = (res.parsed[0].text || '').replace(/s+/g, ' ').trim();
+        var head = (res.parsed[0].text || '').replace(/\s+/g, ' ').trim();
         var expect = (track.title || '') + ' - ';
         // 完全相等或「歌名 - 开头」都算标题元数据（末尾常带外文名）
         if (head === track.title || (track.title && head.indexOf(expect) === 0)) res.parsed = res.parsed.slice(1);
@@ -3332,7 +3335,22 @@
       if (state.volume > 0) { lastVolume = state.volume; setVolume(0); }
       else setVolume(lastVolume > 0 ? lastVolume : 0.7);
       syncImmMuteIcon();
+      // 触屏没有 hover：静音键同时唤出/收起音量滑条，否则手机上音量只有静音二值（审计 P2-8）
+      var volWrap = immEl.querySelector('.mu-imm-vol');
+      if (volWrap && window.matchMedia && window.matchMedia('(hover: none)').matches) {
+        volWrap.classList.toggle('vol-open');
+      }
     };
+    if (!bindImmersive.volCloseBound) {
+      bindImmersive.volCloseBound = true;
+      document.addEventListener('click', function (ev) {
+        if (!immEl) return;
+        var wrap = immEl.querySelector('.mu-imm-vol.vol-open');
+        if (!wrap) return;
+        if (ev.target.closest && ev.target.closest('.mu-imm-vol')) return;
+        wrap.classList.remove('vol-open');
+      }, true);
+    }
 
     // 收藏当前曲
     var loveBtn = immEl.querySelector('[data-imm="love"]');
@@ -3642,7 +3660,7 @@
       });
     }, {
       multiline: true,
-      hint: '支持网易云 / QQ音乐 / 酷狗 / 酷我 的歌单分享链接；也可以一行一首「歌名 - 歌手」'
+      hint: '支持网易云 / QQ音乐 的歌单分享链接；也可以一行一首「歌名 - 歌手」'
     });
   }
 

@@ -191,6 +191,10 @@ html[data-theme="dark"] .films-score {
   background: rgba(255, 255, 255, 0.06);
   opacity: 0.75;
 }
+
+html[data-theme="light"] .films-status {
+  background: rgba(20, 24, 18, 0.06);
+}
 .films-status.ok { color: #37b24d; }
 .films-status.warn { color: #f08c00; }
 .films-status.bad { color: #ff6b6b; }

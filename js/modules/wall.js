@@ -13,6 +13,7 @@
   let inited = false;
   let el = null;
   let wall = [];            // 最新在前 {name, avatar, text, at}
+  let everLoaded = false;   // 首屏是否成功拉到过数据：区分「空墙」与「拉取失败」
   let total = 0;
   let pollTimer = null;
 
@@ -187,6 +188,16 @@
     const list = document.getElementById('wlList');
     if (!list) return;
     list.innerHTML = '';
+    // 首屏拉取失败与「空墙」必须区分：前者要给重试入口，否则故障被误读成没人发言
+    if (!wall.length && !everLoaded) {
+      list.innerHTML = '<div class="wl-empty wl-fetch-err">弹幕墙暂时没连上服务器' +
+        '<button class="wl-retry" type="button" id="wlRetryBtn">重试</button></div>';
+      const retry = document.getElementById('wlRetryBtn');
+      if (retry) retry.addEventListener('click', manualRefresh);
+      const cnt = document.getElementById('wlCount');
+      if (cnt) cnt.textContent = '0';
+      return;
+    }
     wall.forEach(function (c) {
       const row = document.createElement('div');
       row.className = 'wl-item' + (c.mine ? ' mine' : '');
@@ -229,12 +240,16 @@
         if (!d || !d.ok) throw new Error((d && d.error) || 'bad');
         wall = d.wall || [];
         total = d.total || 0;
+        everLoaded = true;
         refillQueue();
         renderList();
         primeStage();
         return d;
       })
-      .catch(function () { /* 静默：下次轮询再试 */ });
+      .catch(function () {
+        // 首屏失败：把「拉取失败 + 重试」渲染出来；轮询期失败保持静默
+        if (!everLoaded) renderList();
+      });
   }
 
   /* 手动刷新：转圈 → 拉最新 → 轻提示 */

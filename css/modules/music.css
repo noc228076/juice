@@ -2874,10 +2874,13 @@ html[data-theme="light"] .mu-immersive {
   z-index: 6;
 }
 .mu-imm-vol:hover .mu-imm-vol-pop,
-.mu-imm-vol:focus-within .mu-imm-vol-pop {
+.mu-imm-vol:focus-within .mu-imm-vol-pop,
+.mu-imm-vol.vol-open .mu-imm-vol-pop {
   opacity: 1;
   pointer-events: auto;
 }
+/* 触屏没有 hover：点静音键唤出的滑条（审计 P2-8） */
+.mu-imm-vol.vol-open .mu-imm-vol-pop { z-index: 7; }
 .mu-imm-vol-num {
   font-size: 11px;
   font-weight: 600;
@@ -3184,8 +3187,12 @@ html[data-theme="light"] #mod-music .mu-note.ok { color: #2F9E44; }
 .mu-vol-inline { width: 72px; accent-color: var(--mod-ac); cursor: pointer; }
 @media (max-width: 899px) { .mu-vol-inline { display: none; } }
 
-/* 审计 P2：榜单侧栏滚动末端渐隐提示（此前末行被硬切） */
-.mu-rank-side {
-  -webkit-mask-image: linear-gradient(180deg, #000 0, #000 calc(100% - 24px), transparent 100%);
-  mask-image: linear-gradient(180deg, #000 0, #000 calc(100% - 24px), transparent 100%);
+/* 审计 P2：榜单侧栏滚动末端渐隐提示（此前末行被硬切）。
+   该 mask 只服务桌面纵向列表；≤720px 时侧栏是横向 chips，
+   纵向渐隐会把每个 chip 下半截削掉（审计 P1），故限定桌面。 */
+@media (min-width: 721px) {
+  .mu-rank-side {
+    -webkit-mask-image: linear-gradient(180deg, #000 0, #000 calc(100% - 24px), transparent 100%);
+    mask-image: linear-gradient(180deg, #000 0, #000 calc(100% - 24px), transparent 100%);
+  }
 }

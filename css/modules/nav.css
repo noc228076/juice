@@ -186,7 +186,7 @@ html[data-theme="light"] #global-header {
     -webkit-mask-image: linear-gradient(to right, black calc(100% - 18px), transparent 100%);
   }
 }
-@media (max-width: 768px) {
+@media (max-width: 767px) {
   /* 极窄屏进一步收紧标签尺寸：让可见 tab 从 4 个提升到 5 个 */
   .nav-tab {
     padding: 5px 7px;
@@ -526,6 +526,8 @@ html.cover-ready #bootSkeleton {
   display: none !important;
   overflow-y: auto !important;
   overflow-x: hidden !important;
+  /* iOS 全面屏底部安全区：各模块内容不再贴 home indicator（审计 P2-24） */
+  padding-bottom: env(safe-area-inset-bottom, 0px);
   scrollbar-gutter: stable;
   -webkit-overflow-scrolling: touch;
   touch-action: pan-y;

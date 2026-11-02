@@ -148,8 +148,8 @@ npm run build
 
 | 文件 | 字段 | 当前值 | 谁改 |
 |---|---|---|---|
-| `sw.js` | `CACHE_NAME` | `juice-persona-v603` | **自动**（源码指纹变化时 +1） |
-| `index.html` | `?v=` 查询参数（核心 CSS / 主 JS） | `603` | `npm run build` 自动同步 |
+| `sw.js` | `CACHE_NAME` | `juice-persona-v604` | **自动**（源码指纹变化时 +1） |
+| `index.html` | `?v=` 查询参数（核心 CSS / 主 JS） | `604` | `npm run build` 自动同步 |
 | `router.js` | 按需 CSS / JS chunk URL | 从主包注入 | 读取 `window.__APP_VERSION__` |
 
 首屏只引用 `css/core.bundle.css`（`base + nav + history`）；

@@ -771,9 +771,30 @@
     var root = document.getElementById('mod-tv');
     return !!root && root.classList.contains('active');
   }
+  function stopPlayback() {
+    playToken++;
+    clearTimeout(stallTimer);
+    destroyHls();
+    if (video) {
+      try { video.pause(); } catch (e) { /* 忽略 */ }
+      try { video.removeAttribute('src'); video.load(); } catch (e) { /* 忽略 */ }
+    }
+    wantPlay = false;
+    failover = { tried: new Set(), total: 0, curLabel: '', round: 0, mediaRetry: 0 };
+    net.kbps = net.speed = net.declared = 0;
+    renderNet();
+    updatePlayBtn();
+  }
+
   function play(ch) {
     if (!ch) return;
     if (ch.dead || ch.staticOnly) {
+      stopPlayback();
+      state.current = Object.assign({}, ch, { urls: [] });
+      updateNow(state.current);
+      updateFavBtn();
+      renderQualityMenu();
+      renderChannels();
       setStatus(ch.staticOnly ? '该频道仅静态回放，未播放' : '该频道当前没有实时源', true);
       mask(ch.staticOnly
         ? '该频道当前只有静态回放源，已跳过。'
@@ -782,6 +803,12 @@
     }
     var urls = ch.urls && ch.urls.length ? ch.urls : [ch.url].filter(Boolean);
     if (!urls.length) {
+      stopPlayback();
+      state.current = Object.assign({}, ch, { urls: [] });
+      updateNow(state.current);
+      updateFavBtn();
+      renderQualityMenu();
+      renderChannels();
       setStatus('该频道当前没有实时源', true);
       mask('该频道当前没有可用的实时源。', true);
       return;

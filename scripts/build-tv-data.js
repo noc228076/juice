@@ -30,14 +30,14 @@ const URL_BLACKLIST = [
    画面永远停在同一段（浙江广电 ali-m-l / ali-vl 的部分频道）。
    这些条目不删除，只打 static 标记；客户端不会把它们当实时源播放。 */
 const STATIC_BLACKLIST = [
-  /ali-m-l\.cztv\.com\/channels\/lantian\/channel21\//i,
-  /ali-vl\.cztv\.com\/channels\/lantian\/channel21\//i,
-  /ali-m-l\.cztv\.com\/channels\/lantian\/channel001\//i,
-  /ali-vl\.cztv\.com\/channels\/lantian\/channel001\//i,
-  /ali-m-l\.cztv\.com\/channels\/lantian\/channel10\//i,
-  /ali-m-l\.cztv\.com\/channels\/lantian\/channel01\//i,
-  /ali-m-l\.cztv\.com\/channels\/lantian\/channel008\//i,
-  /ali-vl\.cztv\.com\/channels\/lantian\/channel008\//i,
+  /ali-m-l\.cztv\.com(?::\d+)?\/channels\/lantian\/channel21\//i,
+  /ali-vl\.cztv\.com(?::\d+)?\/channels\/lantian\/channel21\//i,
+  /ali-m-l\.cztv\.com(?::\d+)?\/channels\/lantian\/channel001\//i,
+  /ali-vl\.cztv\.com(?::\d+)?\/channels\/lantian\/channel001\//i,
+  /ali-m-l\.cztv\.com(?::\d+)?\/channels\/lantian\/channel10\//i,
+  /ali-m-l\.cztv\.com(?::\d+)?\/channels\/lantian\/channel01\//i,
+  /ali-m-l\.cztv\.com(?::\d+)?\/channels\/lantian\/channel008\//i,
+  /ali-vl\.cztv\.com(?::\d+)?\/channels\/lantian\/channel008\//i,
 ];
 const ANIM_RE = /卡通|动画|动漫|少儿|儿童|哈哈炫动|卡酷|金鹰卡通|优漫|嘉佳|炫动|优优宝贝|宝贝家|亲子|动漫秀场|新动漫/;
 

@@ -4760,16 +4760,9 @@ const SFX = (function () {
           artImg = domImg;
         }
       }
-      if (!artImg || !artImg.complete) {
-        const fallbackSrc = SBTI_IMAGES[p.code] || p.imageFile;
-        if (fallbackSrc) {
-          const directImg = new Image();
-          directImg.src = fallbackSrc;
-          if (directImg.complete || directImg.naturalWidth || directImg.width) {
-            artImg = directImg;
-          }
-        }
-      }
+      /* （审计 C-P3-17）原这里有个同步 new Image() 的兜底分支：
+         刚创建的 Image complete 恒为假，从不生效，属死代码，已删。
+         头像未就绪的真实兜底在 saveShare 的 await loadResultImage 路径。 */
       if (artImg) {
         c.save();
         c.beginPath(); c.arc(artX, artY, artR - 4, 0, Math.PI * 2); c.clip();
@@ -5048,8 +5041,10 @@ const SFX = (function () {
           const imgSrc = (curTest === 'sbti') ? (SBTI_IMAGES[code] || persona.imageFile) : (MBTI_IMAGES[code] || persona.imageFile);
           if (imgSrc) {
             await new Promise(res => {
-              loadResultImage(imgSrc, res);
-              setTimeout(res, 250);
+              let settled = false;
+              const done = () => { if (!settled) { settled = true; res(); } };
+              loadResultImage(imgSrc, done);
+              setTimeout(done, 3000);   /* 兜底：弱网 3s 后照样出图（缺头像好过卡死） */
             });
           }
         }

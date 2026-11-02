@@ -1522,11 +1522,15 @@
       paint();
     }
 
-    function settle() {
-      stopTimer();
+    var pendingFinish = false;
+    var finishedShown = false;
+    function finish() {
+      finishedShown = true;
+    
       if (won && window.SFX && window.SFX.win) window.SFX.win();
       else if (window.SFX && window.SFX.wrong) window.SFX.wrong();
 
+      finishedShown = true;
       if (won) {
         // 用时下限 1 秒：服务端也是这个下限，否则秒通关会被判成不合法成绩
         var sec = Math.max(1, elapsed);
@@ -1540,7 +1544,10 @@
       paint();
 
       // 给玩家看一眼完整的雷区再结算
+      /* 挂起的结算若被 pause() 的 clearTimers 吃掉，repaint 时补发（审计 M-P2-9） */
+      pendingFinish = true;
       later(function () {
+        pendingFinish = false;
         if (!destroyed) finish();
       }, won ? 900 : 1400);
     }
@@ -1839,12 +1846,27 @@
         if (destroyed) return;
         clearTimers();
         if (!over) stopTimer();
+        /* 隐藏屏里缩放窗口不再反复重排高级棋盘（审计 M-P2-10） */
+        if (onResize) { window.removeEventListener('resize', onResize); onResize = null; }
       },
-      // 回到模块：恢复计时并重绘
       repaint: function () {
         if (destroyed) return;
         if (started && !over) startTimer();
+        /* pause 时摘掉的 resize 监听在回来时重挂（审计 M-P2-10） */
+        if (!onResize) {
+          onResize = function () {
+            if (destroyed) return;
+            if (!el.querySelector('.ms-board-wrap')) return;
+            paint();
+          };
+          window.addEventListener('resize', onResize);
+        }
         paint();
+        /* 被 pause 吃掉的结算延时在这里补发（审计 M-P2-9） */
+        if (pendingFinish && !finishedShown) {
+          pendingFinish = false;
+          later(function () { if (!destroyed) finish(); }, 300);
+        }
       },
       destroy: function () {
         destroyed = true;
@@ -3600,6 +3622,8 @@
     var snake = [];        // [{x,y}]，头在 [0]
     var dir = { x: 1, y: 0 };
     var nextDir = { x: 1, y: 0 };
+    /* 2 深度方向队列（审计 M-P3-16）：一个 tick 内连按「上→左」两下都要生效 */
+    var dirQueue = [];
     var food = { x: 0, y: 0 };
     var score = 0, eaten = 0;
     var tickMs = lv.tick;
@@ -3696,6 +3720,7 @@
       snake = [{ x: cx, y: cy }, { x: cx - 1, y: cy }, { x: cx - 2, y: cy }];
       dir = { x: 1, y: 0 };
       nextDir = { x: 1, y: 0 };
+      dirQueue.length = 0;   /* 重开清方向队列（审计 M-P3-16） */
       score = 0; eaten = 0; tickMs = lv.tick;
       gameOver = false; paused = false;
       placeFood();
@@ -3705,8 +3730,9 @@
     function step() {
       if (!running || paused || gameOver || destroyed) return;
 
-      // 应用方向（禁止 180 度掉头）
-      if (nextDir.x !== -dir.x || nextDir.y !== -dir.y) dir = nextDir;
+      // 应用方向（禁止 180 度掉头）：依次消化方向队列
+      var want = dirQueue.length ? dirQueue.shift() : nextDir;
+      if (want.x !== -dir.x || want.y !== -dir.y) dir = want;
 
       var head = snake[0];
       var nx = head.x + dir.x, ny = head.y + dir.y;
@@ -3929,10 +3955,19 @@
       var k = e.key;
       if (k === ' ' || k === 'p' || k === 'P') { e.preventDefault(); togglePause(); return; }
       if (paused || gameOver || finished) return;
-      if (k === 'ArrowUp' || k === 'w' || k === 'W') { e.preventDefault(); nextDir = { x: 0, y: -1 }; }
-      else if (k === 'ArrowDown' || k === 's' || k === 'S') { e.preventDefault(); nextDir = { x: 0, y: 1 }; }
-      else if (k === 'ArrowLeft' || k === 'a' || k === 'A') { e.preventDefault(); nextDir = { x: -1, y: 0 }; }
-      else if (k === 'ArrowRight' || k === 'd' || k === 'D') { e.preventDefault(); nextDir = { x: 1, y: 0 }; }
+      var nd = null;
+      if (k === 'ArrowUp' || k === 'w' || k === 'W') { nd = { x: 0, y: -1 }; }
+      else if (k === 'ArrowDown' || k === 's' || k === 'S') { nd = { x: 0, y: 1 }; }
+      else if (k === 'ArrowLeft' || k === 'a' || k === 'A') { nd = { x: -1, y: 0 }; }
+      else if (k === 'ArrowRight' || k === 'd' || k === 'D') { nd = { x: 1, y: 0 }; }
+      if (!nd) return;
+      e.preventDefault();
+      /* 队尾参照「上一次入队的方向」防掉头；队列满 2 丢弃最早（审计 M-P3-16） */
+      var last = dirQueue.length ? dirQueue[dirQueue.length - 1] : dir;
+      if (nd.x === -last.x && nd.y === -last.y) return;
+      dirQueue.push(nd);
+      if (dirQueue.length > 2) dirQueue.shift();
+      nextDir = nd;
     }
 
     /* ---------- 开始页 ---------- */

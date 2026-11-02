@@ -24,7 +24,7 @@
       master.gain.value = 0.5;
       master.connect(ctx.destination);
     }
-    if (ctx.state === 'suspended') ctx.resume();
+    if (ctx.state === 'suspended') ctx.resume().catch(function () {});
     return ctx;
   }
 

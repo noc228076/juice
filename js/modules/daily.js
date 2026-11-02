@@ -897,7 +897,10 @@
       var alt = bingFallbackSrc(img.getAttribute('src') || '');
       if (alt) {
         img.setAttribute('src', alt);
+        return;
       }
+      /* 两个域名都挂：落本地图标，不再留破图（审计 C-P2-6） */
+      if (img.getAttribute('src') !== LOCAL_POSTER) img.setAttribute('src', LOCAL_POSTER);
     });
   }
 

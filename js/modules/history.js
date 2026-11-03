@@ -214,24 +214,28 @@
       vocab: list.filter(r => r.module === 'vocab').length
     };
 
-    // 渲染分类筛选条
+    // 渲染分类筛选条：只显示有档案的分类（当前选中的即使为空也保留，
+    // 否则删掉最后一条后筛选条会突然少一项、看不出自己停在哪个分类）
     const filterBar = document.getElementById('uniHistoryFilters');
     if (filterBar) {
-      filterBar.innerHTML = `
-        <button class="uni-filter-chip ${filterMod === 'all' ? 'active' : ''}" data-mod="all">全部 <span class="chip-count">${counts.all}</span></button>
-        <button class="uni-filter-chip ${filterMod === 'drinks' ? 'active' : ''}" data-mod="drinks">🍹 特调 <span class="chip-count">${counts.drinks}</span></button>
-        <button class="uni-filter-chip ${filterMod === 'milktea' ? 'active' : ''}" data-mod="milktea">🧋 奶茶 <span class="chip-count">${counts.milktea}</span></button>
-        <button class="uni-filter-chip ${filterMod === 'manual' ? 'active' : ''}" data-mod="manual">📖 说明书 <span class="chip-count">${counts.manual}</span></button>
-        <button class="uni-filter-chip ${filterMod === 'fengshui' ? 'active' : ''}" data-mod="fengshui">🧭 风水 <span class="chip-count">${counts.fengshui}</span></button>
-        <button class="uni-filter-chip ${filterMod === 'tarot' ? 'active' : ''}" data-mod="tarot">🔮 塔罗 <span class="chip-count">${counts.tarot}</span></button>
-        <button class="uni-filter-chip ${filterMod === 'lingqian' ? 'active' : ''}" data-mod="lingqian">🎋 灵签 <span class="chip-count">${counts.lingqian}</span></button>
-        <button class="uni-filter-chip ${filterMod === 'decision' ? 'active' : ''}" data-mod="decision">🪙 决策 <span class="chip-count">${counts.decision}</span></button>
-        <button class="uni-filter-chip ${filterMod === 'clock' ? 'active' : ''}" data-mod="clock">⏰ 摸鱼 <span class="chip-count">${counts.clock}</span></button>
-        <button class="uni-filter-chip ${filterMod === 'merit' ? 'active' : ''}" data-mod="merit">📿 功德 <span class="chip-count">${counts.merit}</span></button>
-        <button class="uni-filter-chip ${filterMod === 'bazi' ? 'active' : ''}" data-mod="bazi">📜 八字 <span class="chip-count">${counts.bazi}</span></button>
-        <button class="uni-filter-chip ${filterMod === 'scratch' ? 'active' : ''}" data-mod="scratch">🎟️ 刮刮乐 <span class="chip-count">${counts.scratch}</span></button>
-        <button class="uni-filter-chip ${filterMod === 'vocab' ? 'active' : ''}" data-mod="vocab">📚 背单词 <span class="chip-count">${counts.vocab}</span></button>
-      `;
+      const filters = [
+        { mod: 'all', label: '全部', count: counts.all },
+        { mod: 'drinks', label: '🍹 特调', count: counts.drinks },
+        { mod: 'milktea', label: '🧋 奶茶', count: counts.milktea },
+        { mod: 'manual', label: '📖 说明书', count: counts.manual },
+        { mod: 'fengshui', label: '🧭 风水', count: counts.fengshui },
+        { mod: 'tarot', label: '🔮 塔罗', count: counts.tarot },
+        { mod: 'lingqian', label: '🎋 灵签', count: counts.lingqian },
+        { mod: 'decision', label: '🪙 决策', count: counts.decision },
+        { mod: 'clock', label: '⏰ 摸鱼', count: counts.clock },
+        { mod: 'merit', label: '📿 功德', count: counts.merit },
+        { mod: 'bazi', label: '📜 八字', count: counts.bazi },
+        { mod: 'scratch', label: '🎟️ 刮刮乐', count: counts.scratch },
+        { mod: 'vocab', label: '📚 背单词', count: counts.vocab }
+      ].filter(f => f.count > 0 || f.mod === filterMod);
+      filterBar.innerHTML = filters.map(f =>
+        `<button class="uni-filter-chip ${filterMod === f.mod ? 'active' : ''}" data-mod="${f.mod}">${f.label} <span class="chip-count">${f.count}</span></button>`
+      ).join('');
 
       filterBar.querySelectorAll('.uni-filter-chip').forEach(btn => {
         btn.onclick = () => {

@@ -129,7 +129,7 @@ html[data-theme="dark"] .uni-filter-chip.active .chip-count {
   background: var(--card-solid);
   border: 1.5px solid var(--line);
   border-radius: 18px;
-  margin-bottom: 12px;
+  margin-bottom: 0;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
   transition: all 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
   position: relative;
@@ -171,6 +171,7 @@ html[data-theme="dark"] .uni-filter-chip.active .chip-count {
   align-items: center;
   gap: 8px;
   margin-bottom: 4px;
+  min-width: 0;
 }
 .uni-hist-mod-tag {
   font-size: 10.5px;
@@ -180,11 +181,16 @@ html[data-theme="dark"] .uni-filter-chip.active .chip-count {
   background: var(--tag-bg, rgba(255, 255, 255, 0.08));
   color: var(--card-accent, var(--tx));
   border: 1px solid var(--card-accent-border, var(--line));
+  flex: none;
+  white-space: nowrap;
 }
 .uni-hist-time {
   font-size: 11px;
   color: var(--tx-faint);
   letter-spacing: 0.3px;
+  margin-left: auto;
+  flex: none;
+  white-space: nowrap;
 }
 .uni-hist-title {
   font-size: 15.5px;
@@ -308,23 +314,94 @@ html[data-theme="dark"] .uni-filter-chip.active .chip-count {
   transform: scale(0.92);
 }
 
-@media (max-width: 480px) {
+@media (max-width: 600px) {
+  .history-header {
+    padding: 16px 18px 12px !important;
+  }
+  .history-body {
+    padding: 14px 16px 18px !important;
+  }
+  .history-footer {
+    padding: 12px 18px calc(12px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+
+  /* 筛选条：只渲染有档案的分类后通常只剩 2–3 项；
+     窄屏放不下时换行，不做横向滚动，避免最后一个分类被切一半 */
+  .uni-history-filter-bar {
+    padding: 10px 16px !important;
+    gap: 6px !important;
+    min-height: 52px !important;
+    flex-wrap: wrap !important;
+    overflow-x: visible !important;
+    row-gap: 6px !important;
+  }
+  .uni-filter-chip {
+    padding: 5px 11px;
+    font-size: 11.5px;
+    gap: 5px;
+  }
+  .uni-filter-chip .chip-count {
+    font-size: 10px;
+    padding: 1px 5px;
+  }
+
+  /* 卡片重排：头像 + 正文占第一行，三个操作下移成独立一行。
+     此前操作和正文抢宽度，标题被挤成两行、分类标签被挤成竖排。 */
   .uni-hist-item {
-    padding: 12px 14px;
-    gap: 10px;
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr);
+    grid-template-areas:
+      "avatar body"
+      "ops ops";
+    align-items: start;
+    gap: 10px 12px;
+    padding: 14px;
+  }
+  .uni-hist-item:hover {
+    transform: none;
   }
   .uni-hist-avatar {
-    width: 42px;
-    height: 42px;
-    font-size: 20px;
-    border-radius: 12px;
+    grid-area: avatar;
+    width: 44px;
+    height: 44px;
+    font-size: 21px;
+    border-radius: 13px;
+  }
+  .uni-hist-body {
+    grid-area: body;
   }
   .uni-hist-title {
-    font-size: 14px;
+    font-size: 15px;
   }
+  .uni-hist-sub {
+    font-size: 12px;
+  }
+  .uni-hist-ops {
+    grid-area: ops;
+    justify-content: flex-start;
+    gap: 12px;
+  }
+  /* 主操作靠左、图标操作靠右，填满整行，避免三个按钮挤成一小团 */
   .uni-btn-view {
-    padding: 5px 10px;
-    font-size: 11.5px;
+    height: 34px;
+    padding: 0 15px;
+    font-size: 12px;
+    margin-right: auto;
+  }
+  .uni-btn-copy-icon,
+  .uni-btn-del {
+    width: 34px;
+    height: 34px;
+    font-size: 14px;
+    position: relative;
+  }
+  /* 34px 视觉 + 5px 外扩 = 44px 触控热区 */
+  .uni-btn-copy-icon::before,
+  .uni-btn-del::before {
+    content: "";
+    position: absolute;
+    inset: -5px;
+    border-radius: 50%;
   }
 }
 

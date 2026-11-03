@@ -19,10 +19,10 @@
 <meta property="og:image" content="https://juice.noooc.dpdns.org/assets/icons/icon-512.png">
 <meta property="og:url" content="https://juice.noooc.dpdns.org/">
 <meta name="twitter:card" content="summary_large_image">
-  <link rel="stylesheet" href="css/core.bundle.css?v=618">
-  <script defer src="js/vendor/morphicons.js?v=618"></script>
-  <script defer src="js/vendor/lucide-icons.js?v=618"></script>
-  <script defer src="js/app.bundle.js?v=618" fetchpriority="high"></script>
+  <link rel="stylesheet" href="css/core.bundle.css?v=619">
+  <script defer src="js/vendor/morphicons.js?v=619"></script>
+  <script defer src="js/vendor/lucide-icons.js?v=619"></script>
+  <script defer src="js/app.bundle.js?v=619" fetchpriority="high"></script>
   <script>
     (function(){
       // 主题必须在首次绘制前定下来。以前只有 <html data-theme="dark"> 的硬编码默认值，
@@ -127,7 +127,7 @@
       </button>
       <div class="gnav-more" id="gnavMore">
         <button class="global-icon-btn" id="globalBtnMore" aria-label="更多设置" aria-haspopup="menu"
-                aria-expanded="false" title="更多">⋯</button>
+                aria-expanded="false" title="更多"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="1.9"/><circle cx="12" cy="12" r="1.9"/><circle cx="19" cy="12" r="1.9"/></svg></button>
         <div class="gnav-menu" id="gnavMenu" role="menu" hidden>
           <button class="gnav-item" id="globalBtnWallpaper" role="menuitem" type="button" hidden>
             <span class="gnav-ico">🖼️</span><span class="gnav-txt">关闭壁纸</span>
@@ -191,7 +191,7 @@
       </div>
     </div>
     <!-- 饮品测评子导航：特调 vs 奶茶 -->
-    <div class="subnav-pill-bar" style="margin: 6px auto 16px; position: relative; z-index: 5;">
+    <div class="subnav-pill-bar subnav-pill-bar--pair" style="margin: 6px auto 16px; position: relative; z-index: 5;">
       <button type="button" class="subnav-pill-btn active" data-sub-jump="drinks">🍹 16款灵魂特调</button>
       <button type="button" class="subnav-pill-btn" data-sub-jump="milktea">🧋 奶茶人格配方</button>
     </div>
@@ -424,7 +424,7 @@
     <section id="mod-milktea" class="app-module">
       <div class="mt-screen active" id="sc-mt-home">
         <!-- 饮品测评子导航：特调 vs 奶茶 -->
-        <div class="subnav-pill-bar" style="margin: 0 auto 16px; position: relative; z-index: 5;">
+        <div class="subnav-pill-bar subnav-pill-bar--pair" style="margin: 0 auto 16px; position: relative; z-index: 5;">
           <button type="button" class="subnav-pill-btn" data-sub-jump="drinks">🍹 16款灵魂特调</button>
           <button type="button" class="subnav-pill-btn active" data-sub-jump="milktea">🧋 奶茶人格配方</button>
         </div>

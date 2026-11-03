@@ -1504,6 +1504,9 @@ html[data-theme="light"] #modalAbout .gp-tip {
   .global-btn-pill {
     width: auto;
     padding: 6px 12px;
+    /* 768 断点把它收成 30px 圆钮（border-radius:50%），这里恢复文字后
+       必须一起复位圆角，否则 78×36 会渲染成一颗横椭圆 */
+    border-radius: 14px;
   }
   .global-btn-pill .pill-txt { display: inline; }
   .global-btn-profile { min-width: 0; padding: 3px 10px 4px; }
@@ -1560,4 +1563,21 @@ html[data-theme="light"] #modalAbout .gp-tip {
   }
   /* 后缀在窄屏不再隐藏——单行滚动有足够空间，保留完整语义 */
   .sub-pill-x { display: inline; }
+}
+
+/* 只有两项的子导航（特调 / 奶茶）不参与上面的「拉满 + 横向滚动」：
+   拉满 100% 后未选中项是透明底，整条白底会变成一根空长胶囊。
+   这类条保持胶囊自身宽度居中，同时撤掉两端渐隐，避免糊住首尾文字。 */
+@media (max-width: 568px) {
+  .subnav-pill-bar--pair {
+    width: fit-content !important;
+    max-width: 100% !important;
+    justify-content: center;
+    overflow: visible;
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+  .subnav-pill-bar--pair .subnav-pill-btn {
+    flex: 0 0 auto;
+  }
 }

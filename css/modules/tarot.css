@@ -2148,6 +2148,26 @@ html[data-theme="light"] #mod-tarot .result-list.is-single .tr-single-hero {
     grid-template-columns: 1fr;
     gap: 10px;
   }
+  /* 结果页三个操作：移动端改成「保存整行 + 返回/再占各半」。
+     此前三个 flex:1 平分宽度，长文案把按钮撑到 137px 高，
+     border-radius:999px 直接渲染成三个大圆球。 */
+  #mod-tarot .tr-result-actions {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+    width: 100% !important;
+  }
+  #mod-tarot .tr-result-actions .tr-btn {
+    width: 100% !important;
+    height: 46px !important;
+    padding: 0 12px !important;
+    font-size: 14px !important;
+    letter-spacing: 1px !important;
+    white-space: nowrap !important;
+  }
+  #mod-tarot .tr-result-actions #trBtnSave {
+    grid-column: 1 / -1;
+  }
   #mod-tarot .tr-arcana-showcase {
     grid-template-columns: 100px 1fr;
     gap: 12px;

@@ -158,7 +158,13 @@
       hintEl.innerHTML = '最新留言会从这里飞过 →';
     }
     const live = engine.items.length;
-    if (live > 0) return;
+    if (live > 0) {
+      /* 切走再切回时上一轮弹幕元素还在 DOM 里，但 frame 已在失活那一帧
+         把 raf 置 0。此前这里直接 return，导致 ensureLoop 永远不会被再次调用，
+         弹幕就永久钉在屏幕上——回来时必须把循环重新拉起来。 */
+      ensureLoop();
+      return;
+    }
     /* 冷启动：只从队列里取前几条，且取完就推进 qi，
        避免与 scheduleCycle 抢同一条造成重复 */
     const n = Math.min(4, engine.queue.length);
@@ -350,7 +356,7 @@
 
   /* ---------- 初始化 ---------- */
   function init() {
-    if (inited) { fetchWall(); return; }
+    if (inited) { primeStage(); fetchWall(); return; }
     inited = true;
     el = document.getElementById('wallBody');
     if (!el) return;
@@ -394,6 +400,15 @@
         const c = document.getElementById('wlCounter');
         if (c) c.textContent = input.value.length + '/60';
       });
+    }
+
+    /* 路由器对 wall 只初始化一次，切回模块不会再调 init：
+       监听 active class，重新进入时把停掉的弹幕循环拉起来 */
+    const modEl = document.getElementById('mod-wall');
+    if (modEl && window.MutationObserver) {
+      new MutationObserver(function () {
+        if (modEl.classList.contains('active')) primeStage();
+      }).observe(modEl, { attributes: true, attributeFilter: ['class'] });
     }
 
     document.addEventListener('visibilitychange', function () {

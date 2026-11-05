@@ -1425,11 +1425,11 @@
     ctx.font = '600 26px sans-serif';
     ctx.fillText('饮料人格研究所 · 幸运刮刮乐 · 愿好运与惊喜常伴', 540, 1820);
 
-    // 下载触发
-    const link = document.createElement('a');
-    link.download = `幸运刮刮乐_${curTicketData.theme}_${Date.now()}.png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
+    // 统一导出通道：裸 a.download 在微信/内嵌 WebView 会把当前页跳成裸图
+    const fn = `幸运刮刮乐_${curTicketData.theme}_${Date.now()}.png`;
+    Promise.resolve(window.juiceExportCanvas(canvas, fn, '幸运刮刮乐海报')).then(function (ok) {
+      if (ok === false && window.juiceNotice) window.juiceNotice('长按图片即可保存海报');
+    });
 
     if (window.SFX && window.SFX.save) window.SFX.save();
   }

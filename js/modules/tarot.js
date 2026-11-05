@@ -1462,16 +1462,10 @@
 
     const dlBtn = modal.querySelector('.tr-poster-dl-btn');
     dlBtn.onclick = () => {
-      try {
-        const a = document.createElement('a');
-        a.download = filename || '命运塔罗_命运画报.png';
-        a.href = dataUrl;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-      } catch (e) {
-        console.error('Download click failed:', e);
-      }
+      Promise.resolve(window.juiceExportCanvas(dataUrl, filename || '命运塔罗_命运画报.png', '命运塔罗画报'))
+        .then(function (ok) {
+          if (ok === false && window.juiceNotice) window.juiceNotice('长按图片即可保存画报');
+        });
     };
 
     modal.style.display = 'flex';

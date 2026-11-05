@@ -2148,26 +2148,6 @@ html[data-theme="light"] #mod-tarot .result-list.is-single .tr-single-hero {
     grid-template-columns: 1fr;
     gap: 10px;
   }
-  /* 结果页三个操作：移动端改成「保存整行 + 返回/再占各半」。
-     此前三个 flex:1 平分宽度，长文案把按钮撑到 137px 高，
-     border-radius:999px 直接渲染成三个大圆球。 */
-  #mod-tarot .tr-result-actions {
-    display: grid !important;
-    grid-template-columns: 1fr 1fr !important;
-    gap: 10px !important;
-    width: 100% !important;
-  }
-  #mod-tarot .tr-result-actions .tr-btn {
-    width: 100% !important;
-    height: 46px !important;
-    padding: 0 12px !important;
-    font-size: 14px !important;
-    letter-spacing: 1px !important;
-    white-space: nowrap !important;
-  }
-  #mod-tarot .tr-result-actions #trBtnSave {
-    grid-column: 1 / -1;
-  }
   #mod-tarot .tr-arcana-showcase {
     grid-template-columns: 100px 1fr;
     gap: 12px;
@@ -2649,5 +2629,29 @@ html[data-theme="light"] #mod-tarot .result-list.is-single .tr-single-hero {
 @media (max-width: 640px) {
   #mod-tarot .ew-mystic-bar {
     margin: 12px auto 12px !important;
+  }
+}
+
+/* 结果页三个操作：≤767px 与桌面 min-width:768 规则无缝衔接。
+   此前只覆盖 ≤640，641-767 区间三个 flex:1 会把长文案折成两行、
+   999px 圆角渲染成粗短胶囊（与 ≤640 的「大圆球」是同一症状）。 */
+@media (max-width: 767px) {
+  #mod-tarot .tr-result-actions {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+    width: 100% !important;
+    margin-top: 12px !important;
+  }
+  #mod-tarot .tr-result-actions .tr-btn {
+    width: 100% !important;
+    height: 46px !important;
+    padding: 0 12px !important;
+    font-size: 14px !important;
+    letter-spacing: 1px !important;
+    white-space: nowrap !important;
+  }
+  #mod-tarot .tr-result-actions #trBtnSave {
+    grid-column: 1 / -1;
   }
 }

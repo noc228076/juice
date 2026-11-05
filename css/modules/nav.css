@@ -1573,6 +1573,9 @@ html[data-theme="light"] #modalAbout .gp-tip {
     width: fit-content !important;
     max-width: 100% !important;
     justify-content: center;
+    /* 撤销上层单行滚动条的 nowrap：超大系统字号下两枚胶囊能换行兜底，
+       不会溢出圆角边框外又无处可滚 */
+    flex-wrap: wrap;
     overflow: visible;
     -webkit-mask-image: none;
     mask-image: none;

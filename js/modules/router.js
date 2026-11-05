@@ -860,7 +860,7 @@
             '<div>🪙 <b>纠结拯救</b> —— 命运大轮盘、抛硬币、掷骰子、掷圣杯，治好选择困难症。</div>' +
             '<div>🗞️ <b>今日风向</b> —— 每天 60 秒早报速递、全网实时热搜榜、必应 4K 壁纸。</div>' +
             '' +
-            '<div>📚 <b>背单词</b> —— 四六级词库 8500+ 词（CET-4 4544 / CET-6 3991），间隔重复 + 四选一，进度存本机。</div>' +
+            '<div>📚 <b>背单词</b> —— 四六级词库 8500+ 词（CET-4 4544 / CET-6 4036），间隔重复 + 四选一，进度存本机。</div>' +
             '<div>🎵 <b>我的音乐台</b> —— 酷我 / 酷狗 / 企鹅 / 咪咕 四平台聚合搜索；' +
             '<b>黑胶全屏播放</b>（封面随播放旋转、暂停停在当前角度、实时歌词、hover 音量条）；' +
             '<b>我的列表</b>（收藏 / 自建歌单 / 按字母·歌手·时间排序 / 拖动排序播放队列）；' +
@@ -892,11 +892,17 @@
             '</div>' +
             '</div>';
           document.body.appendChild(aboutEl);
+          const closeAbout = () => {
+            aboutEl.classList.remove('open');
+            aboutEl.setAttribute('aria-hidden', 'true');
+          };
           aboutEl.querySelectorAll('[data-about-close]').forEach(el => {
-            el.addEventListener('click', () => {
-              aboutEl.classList.remove('open');
-              aboutEl.setAttribute('aria-hidden', 'true');
-            });
+            el.addEventListener('click', closeAbout);
+          });
+          aboutEl.querySelector('.gp-backdrop')?.addEventListener('click', closeAbout);
+          /* 全站其余弹层都支持 Esc，关于弹窗补齐（单例只绑一次） */
+          document.addEventListener('keydown', e => {
+            if (e.key === 'Escape' && aboutEl.classList.contains('open')) closeAbout();
           });
         }
         aboutEl.classList.add('open');

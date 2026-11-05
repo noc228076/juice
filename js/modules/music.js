@@ -1,10 +1,8 @@
 /* =========================================================
    模块 12：我的音乐台（Personal Music Lab）
    ---------------------------------------------------------
-   站内不内置任何内容源，三种「自导入」方式：
-     1. 本机音乐文件（文件选择 / 拖拽 / 关联文件夹）
-     2. 直链歌单（JSON 导入，自有云盘/服务器上的音频直链）
-     3. 自定义音源脚本（本机保存，实现 search 接口；仓库不含任何脚本）
+   内置洛雪多平台聚合搜索（酷我/酷狗/企鹅/咪咕等）与 25 个平台榜单；
+   另支持本机音乐文件、音频直链、歌单分享链接与自定义音源脚本导入。
    播放内核挂在 document 级 <audio>，切模块不断播；
    沉浸全屏 + 全局吸底迷你条 + MediaSession 系统控制。
    ========================================================= */
@@ -15,6 +13,7 @@
   var el = null;
   var tab = 'search';
   var inited = false;
+  var bindVolOutside = false;
 
   /* ---------------- 持久化状态 ---------------- */
   function defaultState() {
@@ -1293,7 +1292,7 @@
         '<button class="mu-love' + (loved ? ' on' : '') + '" data-love="' + i + '" title="' + (loved ? '取消收藏' : '收藏') + '">' + icon('Heart') + '</button>' +
         '<button class="mu-addlist" data-addlist="' + i + '" title="加入歌单">' + icon('ListPlus') + '</button>' +
       '</span>' +
-      (dur ? '<span class="mu-row-dur">' + dur + '</span>' : '') +
+      (dur ? '<span class="mu-row-dur">' + esc(dur) + '</span>' : '') +
       '</div>';
   }
 
@@ -2224,12 +2223,19 @@
         setVolume(lastVolume > 0 ? lastVolume : 0.7);
       }
       updateMuteIcon();
+      /* 与沉浸页一致：触屏没有 hover，静音键同时唤出/收起音量滑条 */
+      var volWrap = bar.querySelector('.mu-imm-vol');
+      if (volWrap && window.matchMedia && window.matchMedia('(hover: none)').matches) {
+        volWrap.classList.toggle('vol-open');
+      }
     };
     var seek = bar.querySelector('.mu-seek');
     if (seek) seek.oninput = function () { seekTo(parseFloat(seek.value)); };
     var imm = bar.querySelector('#muImmersive'); if (imm) imm.onclick = openImmersive;
     var queueBtn = bar.querySelector('#muQueueBtn');
-    if (queueBtn) queueBtn.onclick = toggleQueuePanel;
+    /* onclick 直接传函数会把 Event 当 inImmersive（恒真值），
+       非沉浸模式下也给面板挂上 in-immersive 类 */
+    if (queueBtn) queueBtn.onclick = function () { toggleQueuePanel(false); };
 
     // 收藏当前曲
     var loveBtn = bar.querySelector('#muBarLove');
@@ -2313,6 +2319,9 @@
     paintIcons(queuePanelEl);
     bindQueueDrag(queuePanelEl);
     queueScrollArmed = Date.now();   // 打开面板允许一次定位到当前行
+    /* 打开即把当前曲目滚到可见区（此前只埋了 armed 标记却没有消费点） */
+    var activeRow = queuePanelEl.querySelector('.mu-queue-row.active');
+    if (activeRow) activeRow.scrollIntoView({ block: 'center' });
 
     queuePanelEl.querySelectorAll('[data-q-jump]').forEach(function (row) {
       row.onclick = function () {
@@ -2703,6 +2712,11 @@
 
       function paint(remote) {
         if (seq !== suggestSeq) return;   // 输入已变，丢弃旧结果
+        /* 迟到的热词响应不能把用户已点关闭的下拉框重新弹开 */
+        if (searching || suppressSuggest || (skw && document.activeElement !== skw)) {
+          sug.hidden = true;
+          return;
+        }
         var html = '';
         if (remote && remote.length) {
           html += '<div class="mu-suggest-head">搜索建议</div>' +
@@ -3349,11 +3363,13 @@
     if (!bindImmersive.volCloseBound) {
       bindImmersive.volCloseBound = true;
       document.addEventListener('click', function (ev) {
-        if (!immEl) return;
-        var wrap = immEl.querySelector('.mu-imm-vol.vol-open');
-        if (!wrap) return;
         if (ev.target.closest && ev.target.closest('.mu-imm-vol')) return;
-        wrap.classList.remove('vol-open');
+        /* 沉浸页与吸底播放条都可能开着 vol-open，点外部时一起收起 */
+        [immEl, document.querySelector('.mu-player')].forEach(function (root) {
+          if (!root) return;
+          var wrap = root.querySelector('.mu-imm-vol.vol-open');
+          if (wrap) wrap.classList.remove('vol-open');
+        });
       }, true);
     }
 
@@ -3680,8 +3696,9 @@
   function parsePlaylistLink(text) {
     var s = String(text || '');
 
-    // 网易云：music.163.com/{m/,}/playlist?id=xxx 或 #/playlist?id=xxx
-    var wy = s.match(/music\.163\.com\/(?:[a-z]+\/)?(?:playlist|discover)?[^\s]*?[?&#]id=(\d+)/i) ||
+    // 网易云：只认歌单/发现路径，别把 /song?id=、/album?id= 误判成歌单
+    var wy = s.match(/music\.163\.com\/(?:m\/)?(?:playlist|discover)[^\s]*?[?&#]id=(\d+)/i) ||
+             s.match(/music\.163\.com\/#\/(?:playlist|discover)[^\s]*?[?&#]id=(\d+)/i) ||
              s.match(/music\.163\.com\/(?:m\/)?playlist\/(\d+)/i);
     if (wy) return { platform: '网易云音乐', kind: 'wy', id: wy[1] };
 
@@ -3772,8 +3789,7 @@
   function fetchWyPlaylist(id) {
     var detailUrl = 'https://music.163.com/api/v6/playlist/detail?id=' + encodeURIComponent(id);
     return window.LxRequest.httpFetch(detailUrl, {
-      timeout: 10000,
-      headers: { Referer: 'https://music.163.com/' }
+      timeout: 10000
     }).promise.then(function (resp) {
       var pl = resp && resp.body && resp.body.playlist;
       if (!pl) return { name: '', tracks: [], error: '歌单不存在或已设为私密' };
@@ -3802,9 +3818,9 @@
         method: 'post',
         body: form,
         timeout: 15000,
+        /* Referer 是浏览器禁改头，且代理白名单不转发，传了等于没传 */
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          Referer: 'https://music.163.com/'
+          'Content-Type': 'application/x-www-form-urlencoded'
         }
       }).promise.then(function (r) {
         var songs = (r && r.body && r.body.songs) || [];
@@ -4013,15 +4029,21 @@
     var active = document.getElementById('mod-music').classList.contains('active');
     var imm = !!immEl;
     var maskOpen = !!document.getElementById('muAddListMask');
-    if (!active && !imm && !maskOpen) return;
+    if (!active && !imm && !maskOpen && !askEl && !queuePanelEl) return;
     // 其他输入框里不抢键
     if (/INPUT|TEXTAREA|SELECT/.test((e.target && e.target.tagName) || '')) return;
     // 焦点在按钮上：Space 应该是「按下这个按钮」，不劫持（审计 #15）
     if (e.code === 'Space' && e.target && e.target.closest && e.target.closest('button')) return;
-    if (e.key === 'Escape' && maskOpen) {
-      addTargetIndex = -1; pickTarget = null;
-      document.getElementById('muAddListMask').remove();
-      return;
+    /* Esc 逐层退出：加入歌单 > 确认弹层 > 队列面板 > 沉浸页 */
+    if (e.key === 'Escape') {
+      if (maskOpen) {
+        addTargetIndex = -1; pickTarget = null;
+        document.getElementById('muAddListMask').remove();
+        return;
+      }
+      if (askEl) { closeAsk(); return; }
+      if (queuePanelEl) { closeQueuePanel(); return; }
+      if (imm) { closeImmersive(); return; }
     }
     if (!active && !imm) return;
     if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
@@ -4035,7 +4057,6 @@
     }
     else if (e.key === 'ArrowUp') { e.preventDefault(); setVolume(state.volume + 0.05); }
     else if (e.key === 'ArrowDown') { e.preventDefault(); setVolume(state.volume - 0.05); }
-    else if (e.key === 'Escape' && imm) closeImmersive();
   }
 
   /* ---------------- 还原播放现场 ----------------
@@ -4075,8 +4096,9 @@
     // 存档的进度随后就会被 seek 到那首错误的歌上。
     var srcIdx = [];
     queue = d.queue.map(function (x, i) {
-      // 失效的 objectURL 留着只会让点播放时报「格式不支持」
-      if (x.kind === 'local' && /^blob:/.test(x.url || '')) return null;
+      // 本机 objectURL 刷新后必然失效，存档时地址已清空，
+      // 这里按 kind 直接丢弃，否则空 src 会被解析成页面 URL 报「播放失败」
+      if (x.kind === 'local') return null;
       srcIdx.push(i);
       return x;
     }).filter(Boolean);
@@ -4126,6 +4148,19 @@
     if (!inited) {
       inited = true;
       document.addEventListener('keydown', onKey);
+      /* 触屏点外部收起 vol-open：与沉浸页共用一套关闭逻辑，
+         不依赖「曾打开过沉浸页」（bindImmersive 里的监听器才会注册） */
+      if (!bindVolOutside) {
+        bindVolOutside = true;
+        document.addEventListener('click', function (ev) {
+          if (ev.target.closest && ev.target.closest('.mu-imm-vol')) return;
+          [immEl, document.querySelector('.mu-player')].forEach(function (root) {
+            if (!root) return;
+            var wrap = root.querySelector('.mu-imm-vol.vol-open');
+            if (wrap) wrap.classList.remove('vol-open');
+          });
+        }, true);
+      }
       /* 切模块（hash 变化）时重算吸底条显隐：音频常驻，但吸底条只在
          离开音乐模块且非沉浸模式时出现 */
       window.addEventListener('hashchange', function () {

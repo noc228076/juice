@@ -1281,8 +1281,7 @@
   // 恢复已保存的全站背景状态
   function restoreSavedAmbientBg() {
     try {
-      const savedActive = localStorage.getItem('daily_site_active_fix') === 'true'
-        || localStorage.getItem('daily_site_bg_active') === 'true';
+      const savedActive = localStorage.getItem('daily_site_bg_active') === 'true';
       let savedUrl = localStorage.getItem('daily_site_bg_url') || '';
       /* v301/v302 代理方案残留清理：存的 /api/bing-img?u=<编码直链>
          解码还原回 bing 直链（代理已删除，代理地址会 404 导致背景空白） */

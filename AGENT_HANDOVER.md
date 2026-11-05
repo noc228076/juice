@@ -812,6 +812,29 @@ curl -s "https://juice.noooc.dpdns.org/js/app.bundle.js?v=100" | grep -c "你的
   scripts/verify-minesweeper-settle.cjs 真实对局回归。教训：**大改动后必须跑真实对局级回归，
   node --check 只能抓语法**。
 
+**R12（2026-11-05 上午，v625，4 个只读代理并行 + 暗/亮双端视觉巡检）**
+- 音乐：queueBtn.onclick 把 Event 当 inImmersive（面板误带 in-immersive 类）；
+  刷新还原过滤本机曲目时按 kind 丢弃（blob 已在存档清空，原判断永远不命中，空 src 报「播放失败」）；
+  搜索行时长 esc(dur)；打开队列补 scrollIntoView；Esc 逐层退出（加入歌单>确认>队列>沉浸）；
+  网易云歌单正则限定 playlist/discover 路径（不再误吞 /song?id=）；
+  联想迟到响应守卫（点空白关掉的下拉不再被热词弹回）；LRC credits 正则提为模块常量；
+  播放条静音键补触屏 vol-open + 全局点外部收起；删 2 处浏览器禁改的 Referer 头；文件头注释同步现状。
+- 背单词（重点）：**P1** makeQuestion 里 `w.word` 应为 `w[0]`（词库是数组），
+  拼写降级守卫从未生效，23 个含连字符/空格词（ice cream / up-to-date…）出拼写题无解；
+  已在 verify-vocab-data.js 加数据级 + 代码级双断言防复发。
+  migrateV3 对无 box 的 wrong-only 记录不再伪造 S=0.5/last=0（否则首次答对间隔暴涨到 16 天）；
+  排行榜 score/acc 补 esc；fetchRank 加 8s 超时（弱网不再永久 rankLoading）。
+- 全局横切：scratch 海报、塔罗预览弹窗两处裸 a.download 迁移 juiceExportCanvas；
+  about 弹窗补 Esc/点遮罩关闭；CET-6 词数 3991→4036（实测词库）；
+  搜索历史删除钮触屏热区 20→40px；daily 删死读取 daily_site_active_fix。
+- v619-624 复查：清空档案后保留「全部」chip（否则空分类里退不出去）；
+  塔罗结果按钮断点 ≤640 → ≤767（补齐 641-767 空档，700px 实测）；
+  pair 子导航补 flex-wrap 兜底（超大字号不溢出圆角壳）。
+- 视觉验收：暗/亮 × PC/手机 × 16 模块 64 张截图 0 pageerror；
+  另补 430 音乐/单词、700 塔罗、430 档案空态 4 张定点复查。
+- 回归：vocab 11 套件 139 断言、history 14、tarot 11、wall 5、scratch 15、films 11、
+  扫雷真实对局，全部通过。构建 v625。
+
 **明确不修/待拍板**（避免后续重复排查）
 - 音乐 ~300 行死代码（本机文件/Audius 路径）与 music.css 前 716 行旧层：整块删除有回归风险，留专项。
 - 音乐 #16 队列 scrollIntoView 已改为「打开/点行时武装」启发式；若仍嫌打断可再收紧。

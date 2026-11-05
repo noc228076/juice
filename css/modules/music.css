@@ -2559,7 +2559,9 @@ html[data-theme="light"] .mu-immersive {
 .mu-suggest-del:hover { color: var(--warn-c); background: var(--btn-ghost-bg); }
 /* 触屏没有 hover，删除按钮常显 */
 @media (hover: none) {
-  .mu-suggest-del { opacity: .6; }
+  .mu-suggest-del { opacity: .6; position: relative; }
+  /* 20px 视觉 → 40px 触控热区，与队列删除钮同一口径 */
+  .mu-suggest-del::before { content: ""; position: absolute; inset: -10px; border-radius: 50%; }
 }
 
 /* ==========================================================================

@@ -232,7 +232,9 @@
         { mod: 'bazi', label: '📜 八字', count: counts.bazi },
         { mod: 'scratch', label: '🎟️ 刮刮乐', count: counts.scratch },
         { mod: 'vocab', label: '📚 背单词', count: counts.vocab }
-      ].filter(f => f.count > 0 || f.mod === filterMod);
+      /* 「全部」永远在场：清空后在某个空分类下仍要能切回去，
+         否则抽屉里只剩一颗 0 条 chip，除非关闭重开无法退出 */
+      ].filter(f => f.count > 0 || f.mod === filterMod || f.mod === 'all');
       filterBar.innerHTML = filters.map(f =>
         `<button class="uni-filter-chip ${filterMod === f.mod ? 'active' : ''}" data-mod="${f.mod}">${f.label} <span class="chip-count">${f.count}</span></button>`
       ).join('');

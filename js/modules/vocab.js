@@ -379,6 +379,11 @@
       for (var w in words) {
         var r = words[w];
         if (!r || typeof r !== 'object' || typeof r.S === 'number') continue;
+        /* 导入/旧档里可能有 wrong-only 的「生词本计数」记录（无 box 无 S），
+           它们不是 Leitner 进度：别把 undefined 当 box=0 伪造出 S=0.5、
+           last=0，否则首次答对时 elapsed 会算成两万天、间隔暴涨。
+           保留计数供生词本使用，调度字段留空 = 按新词处理。 */
+        if (typeof r.box !== 'number') continue;
         var box = clampNum(r.box | 0, 0, 5);
         var ivl = INTERVALS[box] || 0;
         if (r.known) {
@@ -1747,7 +1752,7 @@
 
     /* 词库实存连字符/空格/重音符词（ice cream / résumé）：拼写格只收 a-z，
        这类词无法完成拼写 → 降级为英选中，避免死局 */
-    if (kind === 'spell' && /[^a-zA-Z]/.test(String(w && w.word))) kind = 'en2cn';
+    if (kind === 'spell' && /[^a-zA-Z]/.test(String(w && w[0]))) kind = 'en2cn';
     var q = {
       idx: idx,
       kind: kind,
@@ -2524,8 +2529,8 @@
         '<span class="vc-lb-rank">' + medal + '</span>' +
         '<span class="vc-lb-ava">' + esc(r.avatar || '🙂') + '</span>' +
         '<span class="vc-lb-name">' + esc(r.name || '匿名玩家') + (isMe ? '（我）' : '') + '</span>' +
-        '<span class="vc-lb-score"><b>' + r.score + '</b> 词</span>' +
-        '<span class="vc-lb-acc">' + (acc == null ? '—' : '✔ ' + acc + '%') + '</span>' +
+        '<span class="vc-lb-score"><b>' + esc(r.score) + '</b> 词</span>' +
+        '<span class="vc-lb-acc">' + (acc == null ? '—' : '✔ ' + esc(acc) + '%') + '</span>' +
         '<span class="vc-lb-ms">⏱ ' + fmtMs(r.extra && r.extra.ms) + '</span>' +
       '</div>';
     }).join('') +
@@ -2564,7 +2569,8 @@
     rankLoading = true;
     var spinBtn = el.querySelector('[data-rank-refresh]');
     if (spinBtn) { spinBtn.classList.add('spin'); spinBtn.disabled = true; }
-    fetch(url).then(function (r) { return r.json(); }).then(function (data) {
+    /* 8s 超时：弱网挂起时 rankLoading 不能永久为 true（刷新键会一直 disabled） */
+    fetch(url, { signal: AbortSignal.timeout(8000) }).then(function (r) { return r.json(); }).then(function (data) {
       if (!data || !data.ok) throw new Error('bad');
       var me = window.AppProfile ? window.AppProfile.get() : null;
       rankCache[game] = { at: Date.now(), html: rankRowsHTML(data.board, me) };

@@ -64,6 +64,21 @@ const phMissing = cet6.filter(w => !String(w[1] || '').trim()).length;
 check('[cet6] 音标覆盖率 ≥ 90%', phMissing / cet6.length <= 0.1,
   `${cet6.length - phMissing}/${cet6.length} = ${((1 - phMissing / cet6.length) * 100).toFixed(1)}%`);
 
+/* 拼写题的死局回归：makeQuestion 必须把含非 a-z 字符的词面降级成英选中。
+   这里锁定词库里的非 a-z 词数量与清单，防止有人改回 w.word（数组无该属性）
+   或改坏降级条件时静默复发。 */
+const nonAZ = {};
+for (const level of ['cet4', 'cet6']) {
+  nonAZ[level] = load(level).filter(w => /[^a-zA-Z]/.test(String(w[0]))).map(w => w[0]);
+}
+check('[数据] 非 a-z 词面清单存在且被降级处理',
+  nonAZ.cet4.length > 0 && nonAZ.cet6.length > 0,
+  { cet4: nonAZ.cet4.length, cet6: nonAZ.cet6.length, sample: nonAZ.cet6.slice(0, 4) });
+const vjs = fs.readFileSync(path.join(__dirname, '..', 'js', 'modules', 'vocab.js'), 'utf8');
+check('[代码] makeQuestion 用 w[0] 判定非 a-z 词并降级',
+  vjs.includes("kind === 'spell' && /[^a-zA-Z]/.test(String(w && w[0]))") &&
+  vjs.includes("kind = 'en2cn'") && !vjs.includes('w && w.word'));
+
 const bad = results.filter(r => !r.ok);
 console.log('\n=== ' + (results.length - bad.length) + '/' + results.length + ' 通过 ===');
 process.exit(bad.length ? 1 : 0);

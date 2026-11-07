@@ -812,6 +812,25 @@ curl -s "https://juice.noooc.dpdns.org/js/app.bundle.js?v=100" | grep -c "你的
   scripts/verify-minesweeper-settle.cjs 真实对局回归。教训：**大改动后必须跑真实对局级回归，
   node --check 只能抓语法**。
 
+### 小说书架模块（2026-11-07，v627，novel）
+- **定位**：legado/eso 书源聚合搜索 + 阅读器。站内**不内置任何书源与正文**（同音乐「不内置音源」原则；
+  legado 作者 2026-03 因书源分发被判刑，分发书源是红线），书源由用户在「书源管理」粘贴 JSON 或直链导入。
+- **引擎**（自研微引擎，规避 GPL：any-reader 内核 GPL-3 会传染整个仓库，故不引内核只兼容其规则格式）：
+  `js/modules/novel.js`。支持 CSS 规则（`.a b@text`）、legado 经典链（`class.x / id.x / tag.x.0 / text.文案`、
+  `@` 分段）、JSONPath（`$.a.b[0]` / `$.a[*].b`，API 型源，裸 key 兼容）、`##re##替换` 后置过滤、
+  `@text/@textNodes/@href/@src`；`searchUrl` 支持 `{{key}}/{{page}}` 与尾部 `,{"charset":"gbk","method":"POST","body":...}`。
+  **不支持** `<js>/@js:/{{js}}`（明确报「该源使用了 JS 规则」）。GBK 解码走 TextDecoder（探测顺序：
+  URL 选项 → 响应头 → meta charset → utf-8）；GBK **编码**（搜索词）未实现，此类站中文搜索可能不准（已知限制）。
+- **网络**：全部走 `api/proxy.js` 的 `kind=api` 通道（复用音乐代理：SSRF 内网拦截 + 80/443 + 8MB + nosniff）。
+- **UI**：书架 / 搜书 / 详情(目录) / 阅读器 四屏（`.nv-screen`，AppRouter.replaceView 驱动，浏览器返回可用）。
+  进度按章落档（lastCi/lastChName），刷新恢复；字号 14-30；正文广告行过滤（请记住/首发域名/天才一秒等）。
+  存储 `juice_novel_v1`：sources ≤20、shelf ≤60；目录缓存会话内 Map。
+- **挂载**：`#mod-novel`（空 section JS 自渲染）；解压 5 条子导航尾加「📖 小说」；
+  router 四表 + lastRelaxMod；build chunks novel + moduleCssFiles novel.css；主题色翠绿 #10B981（nav.css）。
+- **测试**：`scripts/verify-novel.js` 30 项（引擎单测 18 + e2e 12：导入→聚合搜索(mock)→书架→目录→
+  正文跨页拼接→下一章→进度恢复→移动端）；verify-scratch-merge 子导航计数断言已同步 5→6。
+- **已知限制**：不支持 JS 规则书源；GBK 搜索词编码；目录/正文规则极端写法（如 @js 混排）会明确报错而非静默。
+
 **R12（2026-11-05 上午，v625，4 个只读代理并行 + 暗/亮双端视觉巡检）**
 - 音乐：queueBtn.onclick 把 Event 当 inImmersive（面板误带 in-immersive 类）；
   刷新还原过滤本机曲目时按 kind 丢弃（blob 已在存档清空，原判断永远不命中，空 src 报「播放失败」）；

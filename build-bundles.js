@@ -40,8 +40,7 @@ const moduleCssFiles = [
   'css/modules/wall.css',
   'css/modules/films.css',
   'css/modules/vocab.css',
-  'css/modules/music.css',
-  'css/modules/novel.css'
+  'css/modules/music.css'
 ];
 
 // 首屏核心：饮品封面、身份、榜单、历史、Daily 全局壁纸入口与路由本身。
@@ -103,7 +102,6 @@ const chunks = {
   scratch: ['js/modules/scratch.js'],
   films: ['js/modules/films.js'],
   wall: ['js/modules/wall.js'],
-  novel: ['js/modules/novel.js'],
   milktea: ['js/modules/milktea.js'],
   vocab: ['js/modules/vocab-data.js', 'js/modules/vocab.js'],
   // 洛雪音源内核 + 音乐台：搜索走多平台接口，播放地址由自定义音源脚本提供

@@ -135,19 +135,6 @@ html[data-theme="light"][data-active-module="wall"] {
   --mod-ac-glow: rgba(28, 126, 214, 0.32);
   --mod-ambient: rgba(28, 126, 214, 0.06);
 }
-/* 小说书架：翠绿（阅读器主色），与 clock 石青、wall 天蓝拉开 */
-html[data-active-module="novel"] {
-  --mod-ac: #10B981;
-  --mod-ac-ink: #03291C;
-  --mod-ac-glow: rgba(16, 185, 129, 0.35);
-  --mod-ambient: rgba(16, 185, 129, 0.06);
-}
-html[data-theme="light"][data-active-module="novel"] {
-  --mod-ac: #059669;
-  --mod-ac-ink: #FFFFFF;
-  --mod-ac-glow: rgba(5, 150, 105, 0.32);
-  --mod-ambient: rgba(5, 150, 105, 0.06);
-}
 html[data-theme="light"][data-active-module="vocab"] {
   --mod-ac: #4F46E5;
   --mod-ac-ink: #FFFFFF;

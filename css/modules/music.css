@@ -2560,8 +2560,9 @@ html[data-theme="light"] .mu-immersive {
 /* 触屏没有 hover，删除按钮常显 */
 @media (hover: none) {
   .mu-suggest-del { opacity: .6; position: relative; }
-  /* 20px 视觉 → 40px 触控热区，与队列删除钮同一口径 */
-  .mu-suggest-del::before { content: ""; position: absolute; inset: -10px; border-radius: 50%; }
+  /* 20px 视觉 → 水平 40px 触控热区；垂直只外扩 4px——行高不足 40px，
+     全向 -10px 会让相邻行的热区互相叠压、边界点击删错行 */
+  .mu-suggest-del::before { content: ""; position: absolute; inset: -4px -10px; border-radius: 50%; }
 }
 
 /* ==========================================================================

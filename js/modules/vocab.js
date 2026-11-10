@@ -55,7 +55,9 @@
     } else {
       var elapsed = Math.max(0, todayNum - (rec.last || todayNum));
       var R = retrievability(elapsed, rec.S);
-      var d = rec.D - W[6] * (G - 3) * (10 - rec.D) / 9;
+      /* 阻尼式 ΔD 取自 FSRS-5（4.5 原式无 (10-D)/9 因子）：难度回落更慢、
+       间隔整体略偏长；权重仍为 4.5 官方 17 参数，混合口径勿混改 */
+    var d = rec.D - W[6] * (G - 3) * (10 - rec.D) / 9;
       rec.D = clampNum(W[7] * W[4] + (1 - W[7]) * d, 1, 10);
       if (G === 1) {
         rec.S = W[11] * Math.pow(rec.D, -W[12]) *
@@ -265,17 +267,12 @@
     ].filter(function (j) {
       return j.count && j.count > (b.posted[j.pk] || 0);
     });
-    /* 水位线在成功后才落盘：先写后报的话，弱网下这批计数
-       会因水位已推过而永远不再补报（这局白背）。失败回滚到请求前的值。 */
-    var prev = {};
-    jobs.forEach(function (j) {
-      prev[j.pk] = b.posted[j.pk] || 0;
-      b.posted[j.pk] = j.count;
-    });
-    saveState();
+    /* 水位线只在成功后落盘：先写后报的话，8s 在途窗口内关页
+       （pagehide 会 flush 存档）会让这批计数被当成「已报」而永远补报不了。
+       成功才写 + 服务端绝对计数幂等（取历史最大），重报无副作用。 */
     if (!jobs.length) { if (after) after(false); return; }
     Promise.all(jobs.map(function (j) {
-      /* 8s 超时：弱网悬死时 catch 触发回滚水位，关页不丢计数（审计 P2-2） */
+      /* 8s 超时：弱网悬死时 catch 不写水位，下次进排行页自动补报 */
       return fetch('/api/leaderboard', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -285,14 +282,15 @@
           count: j.count, ms: Math.round(j.ms || 0),
           acc: j.acc == null ? undefined : j.acc
         }),
-        signal: AbortSignal.timeout(8000)
+        /* 老内核（旧微信 X5 等）没有 AbortSignal.timeout，同步求值会抛 TypeError；
+           与 api/toutiao.js 同口径，undefined signal 等于不限时 */
+        signal: (window.AbortSignal && AbortSignal.timeout) ? AbortSignal.timeout(8000) : undefined
       }).then(function (r) {
         return r.json();
       }).then(function (d) {
         if (!d || !d.ok) throw new Error('bad');
-      }).catch(function () {
-        b.posted[j.pk] = prev[j.pk];   // 失败回滚，下次进排行页会补报
-      });
+        b.posted[j.pk] = j.count;   // 成功才推水位；失败不写即天然回滚
+      }).catch(function () {});
     })).then(function () { saveState(); if (after) after(true); }, function () { if (after) after(true); });
   }
 
@@ -353,12 +351,11 @@
       migrateV3(state);
       bs();
     } catch (e) {
-      /* 存档损坏：把原串备份到独立键（可人工找回），
-         本次会话用空档，但关掉再清掉原档之前的自动保存会覆盖——
-         所以同时把 SAVE_KEY 改指向 .corrupt，原串原样保留 */
+      /* 存档损坏：原串备份到独立键（可人工找回），本次会话以空档运行；
+         后续自动保存会覆盖原损坏串（备份仍在 .corrupt 键里）。
+         不做写入守卫：守卫会把损坏档用户锁进「每次重进都空档」的死循环 */
       try { localStorage.setItem(SAVE_KEY + '.corrupt', raw); } catch (e2) {}
       state = emptyState();
-      state.corruptGuard = true;
     }
     /* 不能在这里把 day 改成今天：跨天判定要读存档里的旧日期 */
   }
@@ -1696,19 +1693,34 @@
       return { idx: it.idx, rec: bs().words[book.words[it.idx][0]] || null, isNew: it.isNew };
     });
     stage = Math.min(sn.stage || 0, steps().length - 1);
-    stageQueue = (sn.stageQueue || []).filter(function (it) {
-      return book.words[it.idx] && book.words[it.idx][0] === it.w && !isWordKnown(it.idx);
-    }).map(function (it) {
-      return { idx: it.idx, rec: bs().words[book.words[it.idx][0]] || null, kind: it.kind, isRedo: !!it.isRedo };
+    /* 索引感知重建：标熟/词库换版会把快照里的题删掉，若只 filter 不重定基，
+       qi 之前每少一题后续就整体前移一位、静默跳过一道未答题 */
+    var savedQi = Math.min(sn.qi || 0, (sn.stageQueue || []).length);
+    var removedBefore = 0;
+    stageQueue = [];
+    (sn.stageQueue || []).forEach(function (it, i) {
+      var alive = book.words[it.idx] && book.words[it.idx][0] === it.w && !isWordKnown(it.idx);
+      if (!alive) { if (i < savedQi) removedBefore++; return; }
+      stageQueue.push({ idx: it.idx, rec: bs().words[book.words[it.idx][0]] || null, kind: it.kind, isRedo: !!it.isRedo });
     });
-    qi = Math.min(sn.qi || 0, stageQueue.length);
+    qi = Math.max(0, Math.min(savedQi - removedBefore, stageQueue.length));
     redoSet = (sn.redoSet || []).filter(function (idx) { return book.words[idx]; });
     redoRound = sn.redoRound || 0;
+    /* miss/counted 与队列同样按「idx + 词名」双重校验，防词库换版后 idx 错位
+       把无辜词标进生词本、或让 bw.n 重复计 */
+    var snapWords = {};
+    (sn.stageQueue || []).concat(sn.words || []).forEach(function (it) {
+      if (it && typeof it.w === 'string') snapWords[it.w] = 1;
+    });
     missSet = {};
-    (sn.miss || []).forEach(function (idx) { if (book.words[idx]) missSet[idx] = 1; });
+    (sn.miss || []).forEach(function (idx) {
+      if (book.words[idx] && snapWords[book.words[idx][0]]) missSet[idx] = 1;
+    });
     sessionStats = { right: (sn.stats && sn.stats.right) || 0, wrong: (sn.stats && sn.stats.wrong) || 0 };
     countedWords = {};
-    (sn.counted || []).forEach(function (idx) { countedWords[idx] = 1; });
+    (sn.counted || []).forEach(function (idx) {
+      if (book.words[idx] && snapWords[book.words[idx][0]]) countedWords[idx] = 1;
+    });
     committed = !!sn.committed;
     if (!stageQueue.length || qi >= stageQueue.length) { clearSession(); queue = buildQueue(); renderHome(); return; }
     var my = ++sessionSeq;
@@ -2570,7 +2582,7 @@
     var spinBtn = el.querySelector('[data-rank-refresh]');
     if (spinBtn) { spinBtn.classList.add('spin'); spinBtn.disabled = true; }
     /* 8s 超时：弱网挂起时 rankLoading 不能永久为 true（刷新键会一直 disabled） */
-    fetch(url, { signal: AbortSignal.timeout(8000) }).then(function (r) { return r.json(); }).then(function (data) {
+    fetch(url, { signal: (window.AbortSignal && AbortSignal.timeout) ? AbortSignal.timeout(8000) : undefined }).then(function (r) { return r.json(); }).then(function (data) {
       if (!data || !data.ok) throw new Error('bad');
       var me = window.AppProfile ? window.AppProfile.get() : null;
       rankCache[game] = { at: Date.now(), html: rankRowsHTML(data.board, me) };

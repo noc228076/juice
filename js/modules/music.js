@@ -48,6 +48,8 @@
         state.src = state.src && typeof state.src === 'object' ? state.src : {};
         var wasStale = state.src.builtin !== 'lx';
         state.src.builtin = 'lx';
+        /* 旧版两键独立可同时为真：shuffle 优先显示、repeat=one 却原地重放，语义不闭合 */
+        if (state.shuffle && state.repeat === 'one') state.repeat = 'all';
         // 迁移结果要落盘，否则内存是 lx、存储还是旧值，长期不一致
         if (wasStale) saveState();
       }
@@ -135,7 +137,8 @@
       // 当前曲目与播放位置以 POS_KEY 为准：快照里的 qi/pos 是队列变化那一刻的旧值
       try {
         var pk = JSON.parse(localStorage.getItem(POS_KEY) || 'null');
-        if (pk && typeof pk.qi === 'number' && pk.qi >= 0 && pk.qi < d.queue.length) d.qi = pk.qi;
+        /* qi 校验补曲目 id：LIVE_KEY 降级 MINI 后旧 POS 可能指向错行 */
+        if (pk && typeof pk.qi === 'number' && pk.qi >= 0 && pk.qi < d.queue.length && pk.id === d.queue[pk.qi].id) d.qi = pk.qi;
         var ct = d.queue[d.qi];
         if (pk && ct && pk.id === ct.id && typeof pk.pos === 'number') d.pos = pk.pos;
       } catch (e) {}
@@ -1147,6 +1150,7 @@
       var mySearch = ++searchSeq;   // 过期令牌：连搜两个词时旧响应后到不得覆盖
       renderHome();
       window.LxMusic.search(kw, 1, function (p) {
+        if (mySearch !== searchSeq) return;   // 连搜时旧搜索的进度事件不得串台
         // 实时进度：让用户看到具体哪个平台慢，而不是无限转圈
         if (p.phase === 'start') {
           // start 现在一条带全部源名（sources 数组），不再逐源各发一条
@@ -1836,6 +1840,11 @@
       discoverState.songs = songs;
       discoverState.loading = false;
       renderHome();
+    }).catch(function () {
+      if (!discoverState.openRank || discoverState.openRank.id !== id) return;
+      discoverState.loading = false;
+      discoverState.rankFailAt = Date.now();   // 与 listRanks 同口径退避，失败不再每次渲染都重发
+      renderHome();
     });
   }
 
@@ -2284,9 +2293,11 @@
       }
     };
 
-    // 音量滑块（hover 弹出的垂直条）
-    var barVol = bar.querySelector('.mu-vol');
-    if (barVol) barVol.oninput = function () { setVolume(parseFloat(barVol.value)); };
+    // 音量滑块：播放条上有 inline 与 hover/vol-open 弹出两条（querySelector 只绑
+    // 第一个会让弹出条拖动失效——松手即被 setVolume 的同步回写弹回），全绑
+    bar.querySelectorAll('.mu-vol').forEach(function (v) {
+      v.oninput = function () { setVolume(parseFloat(v.value)); };
+    });
     // 滚轮也能调：挂在音量图标所在的容器上，hover 时滚一下就行
     bindVolumeWheel(bar.querySelector('.mu-imm-vol'));
 
@@ -2337,7 +2348,9 @@
     var clr = queuePanelEl.querySelector('#muQueueClear');
     if (clr) clr.onclick = function () {
       try { audio.pause(); audio.removeAttribute('src'); audio.load(); } catch (e) {}
+      /* 同 id 再点播放时旧进度不得复活；failStreak 归零避免误判连续失败 */
       cur = null; queue = []; qi = -1; qName = '';
+      pendingSeek = null; failStreak = 0; lastBarLyric = '';
       saveLive();
       closeQueuePanel();
       syncPlayUI(false);
@@ -2394,8 +2407,10 @@
         renderQueuePanel();
       };
     });
+    /* 删除/拖动排序走的也是全量重建：滚动只认「打开面板/主动切歌」手势，
+       不然浏览到别处点删除会被拽回正在播的行（与 light 路径同口径） */
     var active = queuePanelEl.querySelector('.mu-queue-row.active');
-    if (active) active.scrollIntoView({ block: 'center' });
+    if (active && userBrowsingQueue()) active.scrollIntoView({ block: 'center' });
   }
 
   function queuePanelHtml() {
@@ -2490,7 +2505,7 @@
       renderIfActive();
       closeQueuePanel();
       saveLive();
-      toast('播放列表已清空');
+      toast('已清空播放列表');
       return;
     }
 
@@ -2850,7 +2865,7 @@
       b.onclick = function () {
         var listId = b.getAttribute('data-pick-list');
         var track = pickTarget || filteredResults()[addTargetIndex];
-        if (!track) { addTargetIndex = -1; pickTarget = null; pickTarget = null; renderHome(); return; }
+        if (!track) { addTargetIndex = -1; pickTarget = null; renderHome(); return; }
         var l = getList(listId);
         if (!l) { addTargetIndex = -1; pickTarget = null; renderHome(); return; }
         if (inList(listId, track)) {
@@ -3011,6 +3026,7 @@
         l.tracks.splice(i, 1);
         saveState();
         renderHome();
+        toast('已从「' + l.name + '」移除');
       };
     });
 
@@ -3360,18 +3376,8 @@
         volWrap.classList.toggle('vol-open');
       }
     };
-    if (!bindImmersive.volCloseBound) {
-      bindImmersive.volCloseBound = true;
-      document.addEventListener('click', function (ev) {
-        if (ev.target.closest && ev.target.closest('.mu-imm-vol')) return;
-        /* 沉浸页与吸底播放条都可能开着 vol-open，点外部时一起收起 */
-        [immEl, document.querySelector('.mu-player')].forEach(function (root) {
-          if (!root) return;
-          var wrap = root.querySelector('.mu-imm-vol.vol-open');
-          if (wrap) wrap.classList.remove('vol-open');
-        });
-      }, true);
-    }
+    /* vol-open 点外部收起的全局监听已移到 init（覆盖沉浸页 + 吸底条各一份，
+       不依赖「曾打开过沉浸页」），这里不再重复注册 */
 
     // 收藏当前曲
     var loveBtn = immEl.querySelector('[data-imm="love"]');
@@ -3519,7 +3525,8 @@
         else if (k === 'goto') { if (window.AppRouter) window.AppRouter.navigate('music', 'home'); }
         else if (k === 'stop') {
           try { audio.pause(); audio.removeAttribute('src'); audio.load(); } catch (err) {}
-          cur = null; queue = []; qi = -1;
+          cur = null; queue = []; qi = -1; qName = '';
+          pendingSeek = null; failStreak = 0;
           saveLive();
           miniEl.style.display = 'none';
           renderIfActive();
@@ -3563,6 +3570,8 @@
     if (!box) {
       box = document.createElement('div');
       box.className = 'mu-toast';
+      box.setAttribute('role', 'status');
+      box.setAttribute('aria-live', 'polite');
       document.body.appendChild(box);
     }
     box.textContent = msg;
@@ -4223,9 +4232,8 @@
 
       /* 首次进入时加载内置音源脚本 + 用户导入的脚本。
          内置脚本随包发布，开箱即可播放；用户导入的追加在后面。
-         注意：9 个脚本是串行加载的，个别失效脚本要等满 12s 超时，
-         全链可能拖到一分钟以上。所以用一个轮询把「已加载 N 个」
-         边加载边刷出来，而不是等 Promise 链结束。 */
+         注意：bridge.js 已改为并行加载（Promise.all），失效脚本最多
+         拖 12s；轮询仅用来把「已加载 N 个」边加载边刷出来。 */
       if (window.LxMusic) {
         srcLoading = true;
         var hadSource = false;

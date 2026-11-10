@@ -899,7 +899,7 @@
           aboutEl.querySelectorAll('[data-about-close]').forEach(el => {
             el.addEventListener('click', closeAbout);
           });
-          aboutEl.querySelector('.gp-backdrop')?.addEventListener('click', closeAbout);
+          /* backdrop 已带 data-about-close 由上面的循环绑定，勿重复绑 */
           /* 全站其余弹层都支持 Esc，关于弹窗补齐（单例只绑一次） */
           document.addEventListener('keydown', e => {
             if (e.key === 'Escape' && aboutEl.classList.contains('open')) closeAbout();

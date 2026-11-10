@@ -835,6 +835,33 @@ curl -s "https://juice.noooc.dpdns.org/js/app.bundle.js?v=100" | grep -c "你的
   正文跨页拼接→下一章→进度恢复→移动端）；verify-scratch-merge 子导航计数断言已同步 5→6。
 - **已知限制**：不支持 JS 规则书源；GBK 搜索词编码；目录/正文规则极端写法（如 @js 混排）会明确报错而非静默。
 
+**R13（2026-11-10 上午，v631，3 个只读代理 + 暗/亮双端视觉巡检）**
+- 音乐（3 轮深审 17 条，修 12 条）：
+  **P1** bindPlayerBar 只绑了第一个 .mu-vol——播放条同时有 inline 与 hover/vol-open 弹出两条滑条，
+  弹出条拖动后松手即被 setVolume 回写弹回，手机端音量拖动完全失效 → querySelectorAll 全绑。
+  P2：renderQueuePanel 全量重建路径的 scrollIntoView 补 userBrowsingQueue() 守卫（删除/拖动排序不再被拽回正在播的行）；
+  openRank 补 catch（失败与空榜可区分 + rankFailAt 退避）；runSearch 进度回调补 searchSeq 守卫（连搜不再串台进度文案）。
+  P3：迷你条停止补 qName/pendingSeek/failStreak 清理；清空队列补 pendingSeek/failStreak/lastBarLyric；
+  readLive 的 qi 校验补曲目 id（LIVE 降级 MINI 后不错行）；loadState 归一 shuffle+repeat-one 组合；
+  重复赋值清理；文案统一「已清空播放列表」+ 歌单移除补 toast；init 注释改并行语义；toast 补 role/aria-live；
+  队列删除钮热区 42→44px；suggest-del 热区垂直收窄（-4px -10px，避免相邻行误触）；
+  bindImmersive 里 volCloseBound 旧监听器副本删除（与 init 版重复注册）。
+- 单词（8 条，修 6 条）：
+  **V-04** resumeSession 索引感知重建 + qi 重定基（标熟已答词后续局不再跳题）；
+  **V-07** submitBoards 改「成功后才写水位」（pagehide 8s 在途窗口丢计数 → 服务端幂等重报）；
+  **V-08** corruptGuard 死 flag 删除 + 注释修正（不做写入守卫：会把损坏档用户锁进永久空档循环）；
+  V-10 miss/counted 恢复按 idx+词名双校验；V-12 阻尼式 ΔD 注释口径如实标注（FSRS-5 混合口径）。
+  **连带发现并修复：fetchRank/submitBoards 两处 AbortSignal.timeout 缺老内核守卫（旧微信 X5 同步抛 TypeError，
+  正是它想修的「刷新键永久 disabled」）→ 与 api/toutiao.js 同口径加 window.AbortSignal 守卫。**
+- 增量复查（f159866..36eb382 五条）：R-01 已并入上面 vocab 守卫修复；R-02 监听器重复注册已删；
+  R-03 about backdrop 重复绑定删除；R-04 suggest-del 热区重叠已收窄；R-05 .vercelignore 死条目清理。
+- sandbox.js：teardown 后迟到 ready 的 unhandled rejection 守卫（每次音源失败路径必踩的那个）。
+- 本轮明确不修（记录在案）：M-06 沙箱取址 18s 超时后的串号窗口（需 cancel 机制，专项）；
+  M-07 removeScript 按 name+version 连坐（需按 entryId）；M-05 lx-music 层 7 处禁改请求头（需核对代理端注入）；
+  V-09 设置切拼写后续局二次自评（需快照归一）；V-11 导入白名单 seq/due/S clamp；V-13 加练 newDoneToday 记账；
+  music.js/music.css A 级死代码专项（music.js 10 项 + music.css 12 组约 220 行，删除需全面视觉回归兜底）。
+- 回归：vocab 8 套件 + history/tarot/wall/scratch/films/扫雷真实对局全绿；暗/亮 × PC/手机 64 图 0 pageerror。
+
 **R12（2026-11-05 上午，v625，4 个只读代理并行 + 暗/亮双端视觉巡检）**
 - 音乐：queueBtn.onclick 把 Event 当 inImmersive（面板误带 in-immersive 类）；
   刷新还原过滤本机曲目时按 kind 丢弃（blob 已在存档清空，原判断永远不命中，空 src 报「播放失败」）；

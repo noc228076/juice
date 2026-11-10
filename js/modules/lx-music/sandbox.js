@@ -176,9 +176,12 @@
       window.addEventListener('message', onMessage);
       document.body.appendChild(iframe);
 
+      /* teardown（12s 超时）后迟到的 ready 会拿到 null contentWindow，
+         不拦就成了每次音源失败必踩的 unhandled rejection */
       readyPromise.then(function () {
+        if (sb.dead || !iframe.contentWindow) return;
         iframe.contentWindow.postMessage({ type: 'init', script: script, scriptInfo: scriptInfo }, '*');
-      });
+      }).catch(function () {});
     });
   }
 
